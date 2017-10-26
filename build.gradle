@@ -1,0 +1,289 @@
+/*
+ * build.gradle
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2016, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
+def pluginVersion = '1.0.0'
+def vXnat = '1.7.4'
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'xnat-data-builder'
+
+buildscript {
+    repositories {
+        mavenLocal()
+        jcenter()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        maven {
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
+            name 'XNAT Release Repository'
+        }
+        maven {
+            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
+            name 'XNAT Snapshot Repository'
+        }
+    }
+    dependencies {
+        classpath "org.hibernate:hibernate-validator:6.0.3.Final"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
+        classpath "org.apache.maven.plugins:maven-resources-plugin:2.5"
+        classpath "org.apache.maven.plugins:maven-compiler-plugin:3.7.0"
+        classpath "org.apache.maven.plugins:maven-surefire-plugin:2.20.1"
+        classpath "org.apache.maven.plugins:maven-antrun-plugin:1.8"
+        classpath "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
+        classpath "javax.validation:validation-api:2.0.0.Final"
+        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.4"){
+            exclude group:'torque'
+        }
+    }
+}
+
+group 'org.nrg.xnat'
+version pluginVersion
+
+
+repositories {
+    mavenLocal()
+    maven {
+        url 'http://dcm4che.org/maven2'
+        name 'dcm4che Maven Repository'
+    }
+    jcenter()
+    mavenCentral()
+    maven {
+        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
+        name 'XNAT Release Repository'
+    }
+    maven {
+        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
+        name 'XNAT Snapshot Repository'
+    }
+    maven {
+        url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
+        name 'XNAT External Release Repository'
+    }
+}
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+if (hasProperty("rt.17.jar")) {
+    // Solution for bootstrap classpath warning and possible issues with compatibility with 1.7 libraries
+    // was taken from this post on discuss.gradle.org: http://bit.ly/24xD9j0
+    def rt17jar = getProperty("rt.17.jar")
+    logger.info "Using ${rt17jar} as the bootstrap class path jar."
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.fork = true
+            options.compilerArgs << "-XDignore.symbol.file"
+            options.bootClasspath = rt17jar
+        }
+    }
+} else {
+    logger.warn "No value was set for the rt.17.jar build property, using the default bootstrap class path. You should consider setting rt.17.jar to indicate a jar file containing the Java 1.7 run-time library:\n"
+    logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
+}
+
+compileJava {
+    options.fork = false
+}
+
+jacoco {
+    toolVersion = "0.7.9"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.enabled = false
+        csv.enabled = false
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            srcDir 'build/xnat-generated/src/main/java'
+        }
+        resources {
+            srcDir 'src/main/resources'
+            srcDir 'build/xnat-generated/src/main/resources'
+        }
+    }
+}
+
+configurations {
+    all*.exclude group: 'ant', module: 'ant'
+    all*.exclude group: 'avalon-logkit'
+    all*.exclude group: 'berkeleydb'
+    all*.exclude group: 'com.metaparadigm'
+    all*.exclude group: 'com.sun.jdmk', module: 'jmxtools'
+    all*.exclude group: 'com.sun.jmx', module: 'jmxri'
+    all*.exclude group: 'commons-beanutils', module: 'commons-beanutils-core'
+    all*.exclude group: 'commons-betwixt'
+    all*.exclude group: 'commons-dbcp'
+    all*.exclude group: 'commons-email'
+    all*.exclude group: 'commons-messenger'
+    all*.exclude group: 'commons-pool'
+    all*.exclude group: 'edu.ucar', module: 'netcdf'
+    all*.exclude group: 'excalibur-component'
+    all*.exclude group: 'excalibur-instrument'
+    all*.exclude group: 'excalibur-logger'
+    all*.exclude group: 'excalibur-pool'
+    all*.exclude group: 'fulcrum'
+    all*.exclude group: 'geronimo-spec'
+    all*.exclude group: 'hsqldb'
+    all*.exclude group: 'imagej'
+    all*.exclude group: 'jakarta-regexp'
+    all*.exclude group: 'jamon'
+    all*.exclude group: 'javax.jms', module: 'jms'
+    all*.exclude group: 'javax.mail', module: 'mail'
+    all*.exclude group: 'javax.servlet', module: 'servlet-api'
+    all*.exclude group: 'javax.sql', module: 'jdbc-stdext'
+    all*.exclude group: 'javax.transaction', module: 'jta'
+    all*.exclude group: 'jdbc', module: 'jdbc'
+    all*.exclude group: 'jmock'
+    all*.exclude group: 'jms', module: 'jms'
+    all*.exclude group: 'jndi'
+    all*.exclude group: 'jython'
+    all*.exclude group: 'mockobjects'
+    all*.exclude group: 'mysql'
+    all*.exclude group: 'net.sf.saxon', module: 'Saxon-B'
+    all*.exclude group: 'net.sf.saxon', module: 'saxon'
+    all*.exclude group: 'net.sf.saxon', module: 'saxon-dom'
+    all*.exclude group: 'net.sf.saxon', module: 'saxon-xpath'
+    all*.exclude group: 'ojb', module: 'ojb'
+    all*.exclude group: 'org.apache.geronimo.specs'
+    all*.exclude group: 'org.apache.struts'
+    all*.exclude group: 'org.nrg', module: 'nrg'
+    all*.exclude group: 'org.nrg', module: 'nrgutil'
+    all*.exclude group: 'org.nrg', module: 'plexiviewer'
+    all*.exclude group: 'org.nrg.xdat', module: 'beans'
+    all*.exclude group: 'quartz'
+    all*.exclude group: 'resources', module: 'resources'
+    all*.exclude group: 'servletapi'
+    all*.exclude group: 'stax', module: 'stax-api'
+    all*.exclude group: 'tomcat'
+    all*.exclude group: 'velocity'
+    all*.exclude group: 'xerces', module: 'xmlParserAPIs'
+    all*.exclude group: 'xml-apis'
+    all*.exclude group: 'xmlrpc'
+    all*.exclude module: 'log4j-slf4j-impl'
+    all*.exclude module: 'pipelineCNDAXNAT'
+    all*.exclude module: 'slf4j-simple'
+}
+
+dependencyManagement.imports {
+    mavenBom "org.nrg:parent:${vXnat}"
+}
+
+dependencies {
+    compile("org.nrg.xnat:web:1.7.4") {
+        exclude group: '*'
+    }
+    compile("javax.validation:validation-api:2.0.0.Final") {
+        exclude group: '*'
+    }
+    compile("org.hibernate:hibernate-validator:6.0.3.Final") {
+        exclude group: '*'
+    }
+    implementation "org.nrg:dicomtools"
+    implementation "org.nrg:dicom-xnat"
+    implementation "org.nrg:dicom-xnat-mx"
+    implementation "org.nrg:dicom-xnat-sop"
+    implementation "org.nrg:dicom-xnat-util"
+    implementation "org.nrg.dicom:dicom-edit4"
+    implementation "org.nrg.dicom:dicom-edit6"
+    implementation "org.nrg.xnat:xnat-data-models"
+    implementation "org.nrg.xdat:core"
+    implementation "org.nrg:prefs"
+    implementation "org.nrg:framework"
+    implementation "org.nrg:config"
+    implementation "org.nrg:automation"
+    implementation "javax.servlet:jstl"
+    implementation "org.reflections:reflections"
+    implementation "javax.servlet:javax.servlet-api"
+
+    implementation "org.nrg:pipelineBase"
+    implementation "org.apache.xmlbeans:xmlbeans"
+    implementation "org.apache.xmlbeans:xmlbeans-xpath"
+
+    implementation "turbine:turbine"
+    implementation "org.apache.velocity:velocity"
+
+    implementation "org.slf4j:slf4j-api"
+    implementation "org.slf4j:slf4j-log4j12"
+    implementation "org.slf4j:jul-to-slf4j"
+    implementation "log4j:log4j"
+
+    implementation "org.springframework:spring-aop"
+    implementation "org.springframework:spring-beans"
+    implementation "org.springframework:spring-context-support"
+    implementation "org.springframework:spring-context"
+    implementation "org.springframework:spring-core"
+    implementation "org.springframework:spring-jdbc"
+    implementation "org.springframework:spring-jms"
+    implementation "org.springframework:spring-messaging"
+    implementation "org.springframework:spring-orm"
+    implementation "org.springframework:spring-oxm"
+    implementation "org.springframework:spring-tx"
+    implementation "org.springframework:spring-web"
+    implementation "org.springframework:spring-webmvc"
+
+    implementation "io.springfox:springfox-swagger2"
+    implementation "io.springfox:springfox-swagger-ui"
+
+    implementation "org.springframework.security:spring-security-acl"
+    implementation "org.springframework.security:spring-security-aspects"
+    implementation "org.springframework.security:spring-security-config"
+    implementation "org.springframework.security:spring-security-ldap"
+    implementation "org.springframework.security:spring-security-taglibs"
+    implementation "org.springframework.ldap:spring-ldap-core"
+
+    compile "ecs:ecs:1.4.2"
+    compile("stratum:stratum:1.0") {
+        transitive = false
+    }
+
+    compile group: 'dcm4che.tool', name: 'dcm4che-tool-dcmecho', version: '2.0.25'
+    compile group: 'dcm4che.tool', name: 'dcm4che-tool-dcmqr', version: '2.0.25'
+    implementation "dcm4che:dcm4che-core"
+    implementation "dcm4che:dcm4che-image"
+    implementation "dcm4che:dcm4che-imageio"
+    implementation "dcm4che:dcm4che-imageio-rle"
+    implementation "dcm4che:dcm4che-iod"
+    implementation "dcm4che:dcm4che-net"
+
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.2'
+    compile group: 'org.apache.activemq', name: 'activemq-core'
+    compile group: 'org.apache.xbean', name: 'xbean-spring', version: '3.12'
+    compile group: 'org.apache.geronimo.specs', name: 'geronimo-jms_1.1_spec', version: '1.1.1'
+    compile group: 'org.apache.geronimo.specs', name: 'geronimo-j2ee-management_1.1_spec', version: '1.0.1'
+    compile group: 'org.apache.activemq', name: 'kahadb', version: '5.7.0'
+    compile "org.apache.maven.plugins:maven-resources-plugin:2.5"
+    compile "org.apache.maven.plugins:maven-compiler-plugin:3.7.0"
+    compile "org.apache.maven.plugins:maven-surefire-plugin:2.20.1"
+    compile "org.apache.maven.plugins:maven-antrun-plugin:1.8"
+    compile "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
+
+    testCompile "junit:junit"
+    testCompile "org.springframework:spring-test"
+
+
+}

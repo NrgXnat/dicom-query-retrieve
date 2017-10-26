@@ -1,0 +1,307 @@
+/*
+ * D:/Development/TIP/tip/image-search/src/main/resources/module-resources/scripts/tip/PacsSessionFinder.js
+ * TIP is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+/*jslint white: true, browser: true, vars: true */
+
+function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionSelectionStudyInstanceUidInputId, sessionSelectionPacsIdInputId, sessionSearchResultsDivId, imagePath) {
+    "use strict";
+
+    var that = this;
+
+    this.constants = {
+        "MODAL_WINDOW_NAME": "loadData",
+        "CLIENT_ERROR_BAD_REQUEST": 400,
+        "CLIENT_ERROR_NOT_FOUND": 404,
+        "STUDY_DATE_COLUMN": 4,
+        "OPEN_ROW_IMAGE": "row_details_open.png",
+        "CLOSED_ROW_IMAGE": "row_details_close.png",
+        "OPEN_ROW_ALT": "Show the series for this study",
+        "CLOSED_ROW_ALT": "Hide the series for this study",
+        "PROCESS_BUTTON_CLASS": "processButton"
+    };
+
+    this.sessionSearchFormId = sessionSearchFormId;
+
+    this.sessionSelectionFormId = sessionSelectionFormId;
+
+    this.sessionSelectionStudyInstanceUidInputId = sessionSelectionStudyInstanceUidInputId;
+
+    this.sessionSelectionPacsIdInputId = sessionSelectionPacsIdInputId;
+
+    this.sessionSearchResultsDivId = sessionSearchResultsDivId;
+
+    this.imagePath = imagePath;
+
+    this.activeElementBeforeSearch = null;
+
+    this.currentPacsId = null;
+
+    this.findSessions = function (pacsId) {
+        this.currentPacsId = pacsId;
+
+
+        jq.ajax({
+            type: "POST",
+            url: serverRoot + "/data/services/pacs/" + pacsId + "/search/studies?XNAT_CSRF=" + csrfToken,
+            data: jq("#" + this.sessionSearchFormId).serialize(),
+            dataType: "json",
+            context: this,
+            success: this.showSessionSearchResults,
+            error: this.handleSessionSearchFailure
+        });
+
+        this.saveFocusedField();
+        openModalPanel(this.constants.MODAL_WINDOW_NAME, "Loading data...");
+    };
+
+    this.showSessionSearchResults = function (data) {
+        var sessionSearchResultsTableId = sessionSearchResultsDivId + "Table";
+
+        jq("#" + sessionSearchResultsDivId).empty().html('<fieldset><table cellpadding="0" cellspacing="0" border="0" class="pacsSessionSearchResults" id="' + sessionSearchResultsTableId + '"/></fieldset>');
+
+
+        var stringStartsWithFilter = new StringStartsWithFilter();
+
+        var dataTableOptions = {
+            "aaData": data.ResultSet.Result,
+            "aoColumns": [
+                {
+                    "bSearchable": false,
+                    "bSortable": false,
+                    "mData": null,
+                    "sDefaultContent": '<img src="' + that.getImageURI(that.constants.OPEN_ROW_IMAGE) + '" title="' + that.constants.OPEN_ROW_ALT + '" class="rowDetailsExpander"/>'
+                },
+                {
+                    "mData": "patient.id",
+                    "sTitle": "Patient ID",
+                    "tipCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": function (source) {
+                        return source.patient.name.lastNameCommaFirstName;
+                    },
+                    "sTitle": "Patient Name"
+                },
+                {
+                    "mData": "accessionNumber",
+                    "sTitle": "Accession #",
+                    "tipCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": function (source) {
+                        return that.dateFormatter(source.studyDate);
+                    },
+                    "sTitle": "Study Date",
+                    "tipCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": "studyDescription",
+                    "sTitle": "Study Description"
+                },
+                {
+                    "mData": "patient.sex",
+                    "sTitle": "Gender"
+                },
+                {
+                    "mData": function (source) {
+                        return that.ageFormatter(source.patient.birthDate);
+                    },
+                    "sTitle": "Age",
+                    "tipCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": "studyId",
+                    "sTitle": "Study ID",
+                    "tipCustomFilter": stringStartsWithFilter
+                },
+                /* {
+                    "mData": function (source) {
+                        return source.referringPhysicianName.lastNameCommaFirstName;
+                    },
+                    "sTitle": "Referring Physician"
+                }, */
+                {
+                    "bSearchable": false,
+                    "bSortable": false,
+                    "mData": null,
+                    "sDefaultContent": '<button class="' + that.constants.PROCESS_BUTTON_CLASS + '">Choose</button>'
+                }
+            ],
+            "oLanguage": {
+                "sInfoPostFix": ""
+            },
+            "iDisplayLength": 10,
+            "aaSorting": [
+                [that.constants.STUDY_DATE_COLUMN, "desc"]
+            ]
+        };
+
+        if (data.ResultSet.limitedResultSetSize) {
+            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>These search results were limited to " + data.ResultSet.resultSetSize + " records to avoid overtaxing the PACS.  You may need to narrow your search to find what you're looking for.</span>";
+        } else if (data.ResultSet.studyDateRangeLimitResults.limited) {
+            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>" + data.ResultSet.studyDateRangeLimitResults.limitExplanation + "</span>";
+        }
+
+        jq("#" + sessionSearchResultsTableId).dataTable(dataTableOptions);
+
+        this.addColumnFilters(sessionSearchResultsTableId, dataTableOptions.aoColumns);
+
+        this.bindRowExpansionHandler(sessionSearchResultsTableId);
+
+        this.bindProcessButtonHandler(sessionSearchResultsTableId);
+
+        closeModalPanel(this.constants.MODAL_WINDOW_NAME);
+        this.restoreFocusedField();
+    };
+
+    this.addColumnFilters = function (sessionSearchResultsTableId, dataTableColumns) {
+        var filterHeaderRowId = sessionSearchResultsTableId + "FilterHeaderRow";
+        jq("#" + sessionSearchResultsTableId).find('thead').prepend('<tr id="' + filterHeaderRowId + '">');
+        var i;
+        for (i = 0; i < dataTableColumns.length; i = i + 1) {
+            if (dataTableColumns[i].mData) {
+                var inputId = filterHeaderRowId + "Input" + i;
+                jq("#" + filterHeaderRowId).append('<th class="noPointer"><input type="text" id="' + inputId + '" name="' + inputId + '" value="filter..." class="filter_init" /></th>');
+            } else {
+                jq("#" + filterHeaderRowId).append('<th class="noPointer"/>');
+            }
+        }
+
+        var asInitVals = [];
+
+        jq("#" + sessionSearchResultsTableId + " thead input").each(function (i) {
+            asInitVals[i] = this.value;
+        });
+
+        jq("#" + sessionSearchResultsTableId + " thead input").focus(function () {
+            if (this.className === "filter_init") {
+                this.className = "";
+                this.value = "";
+            }
+        });
+
+        jq("#" + sessionSearchResultsTableId + " thead input").blur(function () {
+            if (this.value === "") {
+                this.className = "filter_init";
+                this.value = asInitVals[jq("#" + sessionSearchResultsTableId + " thead input").index(this)];
+            }
+        });
+
+        jq("#" + sessionSearchResultsTableId + " thead input").keyup(function () {
+            /* Filter on the column (the index) of this element, +1 to account for the row expander column */
+            var columnIndexOfThisFilter = jq("#" + sessionSearchResultsTableId + " thead input").index(this) + 1;
+            jq("#" + sessionSearchResultsTableId).dataTable().fnFilter(that.getFilterRegex(this.value, dataTableColumns[columnIndexOfThisFilter]), columnIndexOfThisFilter, true);
+        });
+
+        // we can't turn off filtering entirely on the table cause then our individual column filters won't work
+        // so just hide the global (all-column) filter
+        jq("#" + sessionSearchResultsTableId + "_filter").css("display", "none");
+    };
+
+    this.getFilterRegex = function (filterText, dataTableColumn) {
+        if (dataTableColumn.tipCustomFilter) {
+            return dataTableColumn.tipCustomFilter.getFilterRegex(filterText);
+        }
+        // no custom filter specified, use the default
+        return new StringIndexOfFilter().getFilterRegex(filterText);
+    };
+
+    this.bindRowExpansionHandler = function (sessionSearchResultsTableId) {
+        var rowExpansionHandler = function () {
+            var nTr = jq(this).parents('tr')[0];
+            var oTable = jq("#" + sessionSearchResultsTableId).dataTable();
+            if (oTable.fnIsOpen(nTr)) {
+                // This row is already open - close it
+
+                this.src = that.getImageURI(that.constants.OPEN_ROW_IMAGE);
+                this.title = that.constants.OPEN_ROW_ALT;
+                oTable.fnClose(nTr);
+            } else {
+                //Open this row
+
+                // prevent overcaffeinated clicking of the image
+                jq(this).removeClass("rowDetailsExpander");
+
+                this.src = that.getImageURI(that.constants.CLOSED_ROW_IMAGE);
+                this.title = that.constants.CLOSED_ROW_ALT;
+                var seriesRow = oTable.fnOpen(nTr, "Loading series...<img src=\"" + serverRoot + "/scripts/yui/build/assets/skins/xnat/wait.gif\"/>", 'rowDetailsExpanding');
+                var pacsSeriesFinder = new PacsSeriesFinder(oTable.fnGetData(nTr), jq(seriesRow).children().first(), this, rowExpansionHandler, that.currentPacsId);
+                pacsSeriesFinder.findSeries();
+            }
+        };
+        jq("#" + sessionSearchResultsTableId).on("click", "img.rowDetailsExpander", rowExpansionHandler);
+    };
+
+    this.bindProcessButtonHandler = function (sessionSearchResultsTableId) {
+        var processButtonHandler = function () {
+            var nTr = jq(this).parents('tr')[0];
+            var oTable = jq("#" + sessionSearchResultsTableId).dataTable();
+            var study = oTable.fnGetData(nTr);
+            jq("#" + that.sessionSelectionStudyInstanceUidInputId).val(study.studyInstanceUid);
+            jq("#" + that.sessionSelectionPacsIdInputId).val(that.currentPacsId);
+            concealContent();
+            jq("#" + that.sessionSelectionFormId).submit();
+        };
+        jq("#" + sessionSearchResultsTableId).on("click", "button.processButton", processButtonHandler);
+    };
+
+    this.handleSessionSearchFailure = function (jqXHR) {
+        closeModalPanel(this.constants.MODAL_WINDOW_NAME);
+        this.restoreFocusedField();
+
+        if (this.constants.CLIENT_ERROR_BAD_REQUEST === jqXHR.status) {
+            jq("#" + sessionSearchResultsDivId).text("Please specify at least one of the search criteria.");
+        } else if (this.constants.CLIENT_ERROR_NOT_FOUND === jqXHR.status) {
+            jq("#" + sessionSearchResultsDivId).text("There were no results found that match this search criteria.");
+        } else {
+            jq("#" + sessionSearchResultsDivId).text("Error " + jqXHR.status + ": " + jqXHR.responseText);
+        }
+    };
+
+    this.saveFocusedField = function () {
+        this.activeElementBeforeSearch = document.activeElement;
+    };
+
+    this.restoreFocusedField = function () {
+        if (this.activeElementBeforeSearch) {
+            this.activeElementBeforeSearch.focus();
+        }
+    };
+
+    this.dateFormatter = function (oData) {
+        if (!oData) {
+            return "";
+        }
+        // we're expecting the date as milliseconds since epoch
+        var oDate = new Date(oData);
+
+        return YAHOO.util.Date.format(oDate, {
+            format: "%m/%d/%Y"
+        });
+    };
+
+    this.ageFormatter = function (dob) {
+        if (!dob) {
+            return "";
+        }
+        // we're expecting the dob as milliseconds since epoch
+        var dCurrent = new Date();
+        var dDob = new Date(dob);
+        var ageInMilliSeconds = Math.abs(dCurrent - dDob);
+        var milliSecondsInAYear = 31556900000;
+        return Math.floor(ageInMilliSeconds / milliSecondsInAYear);
+    };
+
+    this.getImageURI = function (imageName) {
+        return this.imagePath + imageName;
+    };
+}

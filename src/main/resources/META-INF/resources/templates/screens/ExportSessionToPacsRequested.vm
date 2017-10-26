@@ -1,0 +1,17 @@
+<!-- BEGIN templates/screens/ExportSessionToPacsRequested.vm -->
+<div class="edit_title">Export Images to PACS</div><br/>
+
+#if( 0 == $numberOfProcessedScans )
+No scans in the session were exported.
+#else
+The session has been scheduled for export to the PACS, and should be sent shortly.
+<br/><br/>
+    #if($StringUtils.isBlank($user.getEmail()))
+    Check back in a little while.  (In the meantime, if you provide us your <a
+            href="$link.setPage("XDATScreen_MyXNAT.vm")">email
+        address</a>, we can notify you when the export is complete).
+    #else
+    You'll receive an email at <b>$user.getEmail()</b> when the export is complete.
+    #end
+#end
+<!-- END templates/screens/ExportSessionToPacsRequested.vm -->

@@ -1,0 +1,7 @@
+<!-- BEGIN templates/screens/PacsSessionFinderNoPacsFound.vm -->
+
+<DIV class="edit_title">Import Images from PACS</DIV><br/>
+
+There are no PACS registered with the system.  Please ask your system administrator to set up a PACS.
+
+<!-- END templates/screens/PacsSessionFinderNoPacsFound.vm -->

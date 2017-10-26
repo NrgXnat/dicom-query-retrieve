@@ -1,0 +1,40 @@
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="aeTitle" type="java.lang.String" *#
+#* @vtlvariable name="storagePort" type="java.lang.String" *#
+#* @vtlvariable name="qrPort" type="java.lang.String" *#
+#* @vtlvariable name="error" type="java.lang.String" *#
+#* @vtlvariable name="host" type="java.lang.String" *#
+#* @vtlvariable name="scanIds" type="java.lang.String" *#
+#* @vtlvariable name="sessionId" type="java.lang.String" *#
+#* @vtlvariable name="error" type="java.lang.Exception" *#
+<!-- BEGIN templates/screens/ExportSessionToPacsError.vm -->
+<script type="text/javascript">
+    var hidden = true;
+    function toggleStackTrace() {
+        var stackTrace = document.getElementById("stackTrace");
+        hidden = !hidden;
+        stackTrace.style.display = hidden ? 'none' : 'block';
+    }
+</script>
+<div class="edit_title">Export Error Occurred to PACS</div><br/>
+
+<p>An error occurred while attempting to export the session ${sessionId} (${scanIds}) to the destination:</p>
+
+<ul>
+    <li><strong>Host:</strong> ${host}</li>
+    <li><strong>AE Title</strong> ${aeTitle}</li>
+    <li><strong>Storage Port:</strong> ${storagePort}</li>
+    <li><strong>Q/R Port:</strong> ${qrPort}</li>
+</ul>
+
+<p>The error that occurred was:</p>
+
+<p><code>${error.getMessage()}</code></p>
+
+<p><a onclick="toggleStackTrace();">Show error stack trace</a></p>
+<p id="stackTrace" style="display: none;"><code>
+    #foreach($line in $error.stackTrace)
+        at $line<br/>
+    #end
+</code></p>
+<!-- END templates/screens/ExportSessionToPacsError.vm -->

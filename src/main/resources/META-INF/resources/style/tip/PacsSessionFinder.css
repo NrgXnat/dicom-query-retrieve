@@ -1,0 +1,48 @@
+/*
+ * D:/Development/TIP/tip/image-search/src/main/resources/module-resources/style/tip/PacsSessionFinder.css
+ * TIP is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+@CHARSET "ISO-8859-1";
+
+table.pacsSessionSearchResults thead #filterHeaderRow th {
+    padding: 3px 15px 3px 15px;
+    font-weight: bold;
+    text-align: left;
+}
+
+table.pacsSessionSearchResults thead input {
+    color: blue;
+    margin: 0.5em 0;
+    padding: 2px 4px 1px 3px;
+    width: 100%;
+}
+
+table.pacsSessionSearchResults thead input.filter_init {
+    color: #999;
+}
+
+table.pacsSessionSearchResults thead th.noPointer {
+    cursor: default;
+}
+
+table.pacsSessionSearchResults tbody td img.rowDetailsExpander {
+    cursor: pointer;
+}
+
+table.pacsSessionSearchResults tbody td.rowDetailsExpanding {
+    background-color: lightgray;
+}
+
+table.pacsSessionSearchResults tbody td.rowDetailsExpanded {
+/*    background-color: papayawhip; */
+    text-align: left;
+    padding-left: 50px;
+}

@@ -1,0 +1,21 @@
+/*
+ * D:/Development/TIP/tip/image-search/src/main/resources/module-resources/style/tip/PacsAdministration.css
+ * TIP is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+@CHARSET "ISO-8859-1";
+
+#pacsTable img.editRow, img.deleteRow {
+    cursor: pointer;
+}
+
+input.editPacs[type=text] {
+    width: 300px;
+}

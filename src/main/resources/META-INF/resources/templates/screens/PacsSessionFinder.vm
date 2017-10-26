@@ -1,0 +1,134 @@
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+<!-- BEGIN templates/screens/PacsSessionFinder.vm -->
+
+<link rel="stylesheet" type="text/css" href="$content.getURI("style/tip/PacsSessionFinder.css")">
+<link rel="stylesheet" type="text/css" href="$content.getURI("style/tip/PacsSeriesFinder.css")">
+<link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"/>
+
+<script type="text/javascript" src="$content.getURI("scripts/tip/PacsSessionFinder.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/tip/PacsSeriesFinder.js")"></script>
+<script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/ui/1.9.2/jquery-ui.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
+<script type="text/javascript" src="$content.getURI("scripts/tip/datejs.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/tip/StudyDatePicker.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/tip/CustomDataTablesFilters.js")"></script>
+
+<script type="text/javascript">
+    jq(document).ready(function () {
+        if (window.pacsSessionFinder == undefined) {
+            window.pacsSessionFinder = new PacsSessionFinder("sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", "$content.getURI("images/tip/")");
+        }
+
+        jq("#searchButton").click(function (event) {
+            event.preventDefault();
+            if (jq("#sessionSearchForm").validate()) {
+                window.studyDatePicker.formatDateFieldsInPlace();
+                window.pacsSessionFinder.findSessions(jq("#pacsId").val());
+            }
+        });
+
+        jq("#sessionSearchForm input[type=text],select").keydown(function (event) {
+            var enterKeyCode = 13;
+            if (event.keyCode == enterKeyCode) {
+                jq("#searchButton").click();
+            }
+        });
+
+        if (window.studyDatePicker == undefined) {
+            window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday", "$content.getURI("images/tip/")");
+        }
+
+        var searchValidationRules = window.studyDatePicker.getStudyDateValidationRules();
+        searchValidationRules["pacsId"] = {
+            required: true
+        };
+
+        jq("#sessionSearchForm").validate({
+            rules: searchValidationRules,
+            groups: window.studyDatePicker.getStudyDateValidationGroup(),
+            errorPlacement: function (error, element) {
+                if (jq(element).prop("id") === "studyDateFrom" || jq(element).prop("id") === "studyDateTo") {
+                    jq("#studyDateValidationErrorMessageHolder").append(error);
+                }
+                else {
+                    error.css("color", "red");
+                    error.insertAfter(element);
+                }
+            },
+            messages: {
+                pacsId: "Please choose a PACS."
+            }
+        });
+
+        if ((1 + 1) === jq("#pacsId option").length) {
+            jq("#pacsId option").last().prop("selected", "true");
+        }
+
+        jq("#pacsId").focus();
+    });
+</script>
+
+<h2 class="edit_title">Import Images from PACS</h2>
+<form id="sessionSearchForm" class="friendlyForm mini">
+    <fieldset id="searchFormControls">
+        <!--  left column -->
+        <div class="inputWrapper horizontal" style="margin-right: 30px;">
+            <h4>Configure Search (Required)</h4>
+            <p>
+                <label for="pacsId">Select PACS to Import From</label>
+                <select id="pacsId" name="pacsId">
+                    <option VALUE="">(SELECT)</option>
+                    #foreach($pacs in $pacsList)
+                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs())
+                                selected="true" #end>$pacs.getAeTitle()</option>
+                    #end
+                </select>
+            </p>
+        </div>
+
+        <div class="inputWrapper horizontal wide">
+            <h4>Search Terms</h4>
+            <p>
+                <label for="accessionNumber">Accession Number</label>
+                <input id="accessionNumber" name="accessionNumber" type="text" maxlength="50"/>
+            </p>
+            <div style="display:none; background-color: #e4efff; margin-left: -2px; padding: 6px 2px 2px;" id="advFields"> <!-- advanced fields -->
+                <p>
+                    <label for="patientId">${displayManager.getSingularDisplayNameForSubject()} ID</label>
+                    <input id="patientId" name="patientId" type="text" maxlength="50"/>
+                </p>
+                <p>
+                    <label for="patientName">${displayManager.getSingularDisplayNameForSubject()} Name</label>
+                    <!-- <input id="patientName" name="patientName" type="text" maxlength="50"/> -->
+                    <em>Disabled</em>
+                </p>
+                <p>
+                    <label for="studyDateFrom">Study Date Range</label>
+                    <span style="margin:0 6px 0 0;">From</span><input id="studyDateFrom" name="studyDateFrom" type="text" maxlength="10" style="width: 90px;" />
+                    <span style="margin:0 6px;">To</span><input id="studyDateTo" name="studyDateTo" type="text" maxlength="10" style="width: 90px;" />
+                </p>
+                <p>
+                    <label>&nbsp;</label>
+                    <input type="checkbox" id="studyDateIsToday" name="studyDateIsToday"/><em>The study happened today</em>
+                </p>
+                <span id="studyDateValidationErrorMessageHolder" style="color:red;"/>
+            </div>
+            <p><em><a href="javascript:" onclick="$('#advFields').toggle()">Toggle advanced search fields</a></em></p>
+
+            <p><button id="searchButton" class="btn1">Search</button></p>
+##            <p><input id="searchButton" class="btn1" type="button" value="Search" /></p>
+        </div>
+    </fieldset>
+</form>
+
+<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession")" style="display:none;">
+    <input type="hidden" id="studyInstanceUid" name="studyInstanceUid"/>
+    <input type="hidden" id="hiddenPacsId" name="pacsId"/>
+</form>
+
+<div id="pacsSessionFinderDiv" style="margin: 1em 0" />
+
+<!-- END templates/screens/PacsSessionFinder.vm -->

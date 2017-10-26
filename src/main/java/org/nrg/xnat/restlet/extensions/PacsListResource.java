@@ -1,0 +1,82 @@
+/*
+ * org.nrg.xnat.restlet.extensions.PacsListResource
+ * TIP is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+package org.nrg.xnat.restlet.extensions;
+
+import java.util.List;
+
+import javax.validation.ConstraintViolationException;
+
+import org.nrg.tip.domain.entities.Pacs;
+import org.nrg.xnat.restlet.XnatRestlet;
+import org.restlet.Context;
+import org.restlet.data.MediaType;
+import org.restlet.data.Request;
+import org.restlet.data.Response;
+import org.restlet.data.Status;
+import org.restlet.resource.Representation;
+import org.restlet.resource.ResourceException;
+import org.restlet.resource.StringRepresentation;
+import org.restlet.resource.Variant;
+import org.springframework.dao.DataIntegrityViolationException;
+
+@XnatRestlet("/pacs")
+public class PacsListResource extends PacsAdminResource {
+
+    public PacsListResource(final Context context, final Request request, final Response response) {
+        super(context, request, response);
+    }
+
+    @Override
+    public Representation represent(final Variant variant) throws ResourceException {
+        final List<Pacs> allPacs = getPacsEntityService().getAll();
+        return jsonRepresentation(allPacs);
+    }
+
+    @Override
+    public boolean allowPost() {
+        return true;
+    }
+
+    @Override
+    public void handlePost() {
+        try {
+            final Pacs pacs = buildPacsFromRequest(null);
+            getPacsEntityService().create(pacs);
+            getResponse().setLocationRef("pacs/" + String.valueOf(pacs.getId()));
+            respondWithSuccessCreated();
+        } catch (final InvalidRequestBodyException e) {
+            respondWithInvalidRequestBody();
+        } catch (final ConstraintViolationException e) {
+            respondWithEntityValidationError(e);
+        } catch (final DataIntegrityViolationException e) {
+            respondWithDataIntegrityError(e);
+        }
+    }
+
+    private Representation jsonRepresentation(final List<Pacs> results) {
+        Representation r;
+        try {
+            r = new StringRepresentation("{\"ResultSet\":{\"Result\":" + getObjectMapper().writeValueAsString(results)
+                    + ", \"resultSetSize\":" + getObjectMapper().writeValueAsString(results.size()) + "}}");
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+        r.setMediaType(MediaType.APPLICATION_JSON);
+        return r;
+    }
+
+    private void respondWithSuccessCreated() {
+        getResponse().setStatus(Status.SUCCESS_CREATED,
+                "The location header contains the URI of the newly created PACS.");
+    }
+}
