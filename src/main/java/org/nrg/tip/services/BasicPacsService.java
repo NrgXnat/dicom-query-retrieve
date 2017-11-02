@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
-import org.nrg.config.services.SiteConfigurationService;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.tip.dicom.command.cfind.CFindSCU;
 import org.nrg.tip.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
@@ -49,9 +48,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class BasicPacsService implements PacsService {
-
-    @Inject
-    private SiteConfigurationService siteConfigurationService;
 
     @Override
     public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs,
@@ -272,8 +268,7 @@ public class BasicPacsService implements PacsService {
 
     private boolean leaveAuditTrail() {
         try {
-            return Boolean.valueOf(StringUtils.trimToEmpty(siteConfigurationService
-                    .getSiteConfigurationProperty("tip.leavePacsAuditTrail")));
+            return Boolean.valueOf(StringUtils.trimToEmpty(XDAT.getSiteConfigurationProperty("leavePacsAuditTrail")));
         } catch (final ConfigServiceException e) {
             throw new RuntimeException(e);
         }
