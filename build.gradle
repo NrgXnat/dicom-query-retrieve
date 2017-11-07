@@ -136,6 +136,7 @@ configurations {
     all*.exclude module: 'pipelineCNDAXNAT'
     all*.exclude module: 'slf4j-simple'
     all*.exclude group: 'jamon'
+    compile.extendsFrom(compileAndInclude)
 }
 
 dependencyManagement.imports {
@@ -181,16 +182,29 @@ dependencies {
     implementation "org.springframework:spring-tx"
     runtime 'org.springframework:spring-web'
     runtime 'io.springfox:springfox-swagger-ui'
-    implementation group: 'dcm4che.tool', name: 'dcm4che-tool-dcmecho', version: '2.0.25'
-    implementation group: 'dcm4che.tool', name: 'dcm4che-tool-dcmqr', version: '2.0.25'
+    compileAndInclude 'dcm4che.tool:dcm4che-tool-dcmecho'
+    compileAndInclude 'dcm4che.tool:dcm4che-tool-dcmqr'
     implementation "dcm4che:dcm4che-core"
     runtime 'dcm4che:dcm4che-imageio'
     runtime 'dcm4che:dcm4che-imageio-rle'
     implementation "dcm4che:dcm4che-net"
-    runtime 'org.apache.activemq:activemq-core'
-    implementation group: 'org.apache.geronimo.specs', name: 'geronimo-jms_1.1_spec', version: '1.1.1'
-    implementation group: 'org.apache.geronimo.specs', name: 'geronimo-j2ee-management_1.1_spec', version: '1.0.1'
-    runtime 'org.apache.activemq:kahadb:5.7.0'
+    compileAndInclude 'org.apache.activemq:activemq-core:5.7.0'
+    compileAndInclude 'org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1'
+    compileAndInclude 'org.apache.geronimo.specs:geronimo-j2ee-management_1.1_spec:1.0.1'
+    compileAndInclude 'org.apache.activemq:kahadb:5.7.0'
     testImplementation "junit:junit"
     testImplementation "org.springframework:spring-test"
+}
+
+task fatJar(type: Jar) {
+    zip64 true
+    classifier = "fat"
+    from {
+        configurations.compileAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
 }

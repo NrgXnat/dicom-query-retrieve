@@ -1,5 +1,5 @@
 /*
- * org.apache.turbine.app.tip_xnat.modules.screens.ExportSessionToPacs
+ * org.apache.turbine.modules.screens.ExportSessionToPacs
  * TIP is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
@@ -10,7 +10,7 @@
  * Last modified 11/20/13 11:21 AM
  */
 
-package org.apache.turbine.app.tip_xnat.modules.screens;
+package org.apache.turbine.modules.screens;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
@@ -20,11 +20,9 @@ import org.nrg.tip.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ExportSessionToPacs extends SecureScreen {

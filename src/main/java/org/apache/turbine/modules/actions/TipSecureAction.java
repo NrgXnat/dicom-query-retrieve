@@ -10,7 +10,7 @@
  * Last modified 9/24/13 6:11 PM
  */
 
-package org.apache.turbine.app.tip_xnat.modules.actions;
+package org.apache.turbine.modules.actions;
 
 import org.apache.turbine.util.RunData;
 import org.nrg.tip.domain.Study;

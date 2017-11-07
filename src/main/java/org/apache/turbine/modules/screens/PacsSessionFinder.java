@@ -10,7 +10,7 @@
  * Last modified 9/24/13 6:11 PM
  */
 
-package org.apache.turbine.app.tip_xnat.modules.screens;
+package org.apache.turbine.modules.screens;
 
 import java.util.List;
 
@@ -33,6 +33,6 @@ public class PacsSessionFinder extends SecureScreen {
         } else {
             context.put("pacsList", pacsList);
         }
-        org.apache.turbine.app.tip_xnat.modules.actions.TipSecureAction.removeTipSessionVariables(data);
+        org.apache.turbine.modules.actions.TipSecureAction.removeTipSessionVariables(data);
     }
 }

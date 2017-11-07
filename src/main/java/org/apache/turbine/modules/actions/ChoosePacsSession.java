@@ -11,7 +11,7 @@
  */
 
 
-package org.apache.turbine.app.tip_xnat.modules.actions;
+package org.apache.turbine.modules.actions;
 
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;

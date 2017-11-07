@@ -10,7 +10,7 @@
  * Last modified 9/24/13 6:11 PM
  */
 
-package org.apache.turbine.app.tip_xnat.modules.screens;
+package org.apache.turbine.modules.screens;
 
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;

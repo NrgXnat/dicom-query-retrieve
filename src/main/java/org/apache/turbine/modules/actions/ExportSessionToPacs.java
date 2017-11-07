@@ -10,7 +10,7 @@
  * Last modified 9/24/13 6:11 PM
  */
 
-package org.apache.turbine.app.tip_xnat.modules.actions;
+package org.apache.turbine.modules.actions;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
@@ -22,7 +22,6 @@ import org.nrg.tip.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
