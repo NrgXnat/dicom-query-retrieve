@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
-@XnatPlugin(value = "image-search", name = "TIP Image Search Plugin", description = "This is the XNAT 1.7 TIP Image Search Plugin.",
+@XnatPlugin(value = "image-search", name = "TIP Image Search Plugin", description = "Searches for user-requested images in PACS and displays results.",
     entityPackages = "org.nrg.tip.domain.entities")
 @ComponentScan({"org.nrg.tip.services",
         "org.nrg.tip.daos"})
