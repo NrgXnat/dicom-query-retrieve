@@ -233,7 +233,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
                 this.src = that.getImageURI(that.constants.CLOSED_ROW_IMAGE);
                 this.title = that.constants.CLOSED_ROW_ALT;
-                var seriesRow = oTable.fnOpen(nTr, "Loading series...<img src=\"" + serverRoot + "/scripts/yui/build/assets/skins/xnat/wait.gif\"/>", 'rowDetailsExpanding');
+                var seriesRow = oTable.fnOpen(nTr, "Loading series...<img src=\"" + serverRoot + "/scripts/yui/build/assets/skins/images/wait.gif\"/>", 'rowDetailsExpanding');
                 var pacsSeriesFinder = new PacsSeriesFinder(oTable.fnGetData(nTr), jq(seriesRow).children().first(), this, rowExpansionHandler, that.currentPacsId);
                 pacsSeriesFinder.findSeries();
             }

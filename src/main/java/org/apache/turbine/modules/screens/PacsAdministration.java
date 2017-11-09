@@ -17,6 +17,7 @@ import org.apache.velocity.context.Context;
 import org.nrg.tip.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
@@ -24,10 +25,14 @@ public class PacsAdministration extends SecureScreen {
 
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
-        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-        Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
-        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
-            strategies.put(strategy.getValue(), strategy.getKey());
+//        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
+          Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
+//        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
+//            strategies.put(strategy.getValue(), strategy.getKey());
+//        }
+        Object strategy = XDAT.getContextService().getBean("dicomOrmStrategy");
+        if(strategy!=null && strategy instanceof OrmStrategy){
+            strategies.put((OrmStrategy)strategy, "dicomOrmStrategy");
         }
         context.put("strategies", strategies);
     }
