@@ -20,7 +20,7 @@
     .editRow:hover, .deleteRow:hover { background-color: #ddd; border-radius: 2px; cursor: pointer; }
 </style>
 
-<DIV class="edit_title">PACS Administration</DIV><br/>
+<h2 class="edit_header1">PACS Administration</h2>
 
 <div id="delete_modal_content" class="modal_content" style="display:none;">
     <p>Are you sure you want to delete this PACS?</p>
@@ -29,42 +29,52 @@
 
 <div id="edit_modal_content" class="modal_content" style="display:none;">
 
-    <form id="editPacsForm" name="editPacsForm" class="editPacsForm">
+    <form id="editPacsForm" name="editPacsForm" class="editPacsForm panel">
         #if ($strategies.size() == 0)
             <b>ERROR!</b> There are no available ORM strategies. Please contact your TIP system administrator.
         #elseif($strategies.size() == 1)
             #set($strategyId = $strategies.values().iterator().next())
             <input id="ormStrategySpringBeanId" name="ormStrategySpringBeanId" type="hidden" value="$strategyId"/>
         #end
-        <table>
-            <tr>
-                <td><label for="pacsId">ID</label></td>
-                <td><input id="pacsId" name="pacsId" type="text" class="editPacs" disabled/></td>
-            </tr>
-            <tr>
-                <td><label for="aeTitle">AE Title</label></td>
-                <td><input id="aeTitle" name="aeTitle" type="text" class="editPacs"/></td>
-            </tr>
-            <tr>
-                <td><label for="host">Host</label></td>
-                <td><input id="host" name="host" type="text" class="editPacs"/></td>
-            </tr>
-            <tr>
-                <td><label for="queryRetrievePort">Q/R Port</label></td>
-                <td><input id="queryRetrievePort" name="queryRetrievePort" type="text" class="editPacs"/></td>
-            </tr>
-            <tr>
-                <td><label for="storagePort">Storage Port</label></td>
-                <td><input id="storagePort" name="storagePort" type="text" class="editPacs"/></td>
-            </tr>
-            <tr>
-                <td><label for="extendedNegotiations">Supports Extended Negotiations?</label></td>
-                <td><input id="extendedNegotiations" name="extendedNegotiations" type="checkbox" class="editPacs"/></td>
-            </tr>
-            #if ($strategies.size() > 1)
-            <tr>
-                <td><label for="ormStrategySpringBeanId">ORM Strategy</label></td>
-                <td>
+
+        <input id="pacsId" name="pacsId" type="hidden" class="editPacs" disabled/>
+
+        <div class="panel-element">
+            <label class="element-label" for="aeTitle">AE Title</label>
+            <div class="element-wrapper">
+                <input id="aeTitle" name="aeTitle" type="text" class="editPacs"/>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel-element">
+            <label class="element-label" for="host">Host</label>
+            <div class="element-wrapper">
+                <input id="host" name="host" type="text" class="editPacs"/>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel-element">
+            <label class="element-label" for="queryRetrievePort">Q/R Port</label>
+            <div class="element-wrapper">
+                <input id="queryRetrievePort" name="queryRetrievePort" type="text" class="editPacs"/>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel-element">
+            <label class="element-label" for="storagePort">Storage Port</label>
+            <div class="element-wrapper">
+                <input id="storagePort" name="storagePort" type="text" class="editPacs"/>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        #if ($strategies.size() > 1)
+            <div class="panel-element">
+                <label class="element-label" for="ormStrategySpringBeanId">ORM Strategy</label>
+                <div class="element-wrapper">
                     <select id="ormStrategySpringBeanId" name="ormStrategySpringBeanId">
                         #foreach($strategyEntry in $strategies)
                             #set($strategy = $strategyEntry.key)
@@ -72,18 +82,44 @@
                             <option value="$strategyId">$strategy.name: $strategy.description</option>
                         #end
                     </select>
-                </td>
-            </tr>
-            #end
-            <tr>
-                <td><label for="defaultQueryRetrievePacs">Default Q/R Pacs?</label></td>
-                <td><input id="defaultQueryRetrievePacs" name="defaultQueryRetrievePacs" type="checkbox" class="editPacs"/></td>
-            </tr>
-            <tr>
-                <td><label for="defaultStoragePacs">Default STORE Pacs?</label></td>
-                <td><input id="defaultStoragePacs" name="defaultStoragePacs" type="checkbox" class="editPacs"/></td>
-            </tr>
-        </table>
+                </div>
+                <div class="clear"></div>
+            </div>
+        #end
+
+        <div class="panel-element">
+            <label class="element-label" for="extendedNegotiations">Extended Negotiations</label>
+            <div class="element-wrapper">
+                <label>
+                    <input type="checkbox" id="extendedNegotiations" name="extendedNegotiations" title="Extended Negotiations" value="true">
+                    Does This PACS Support Extended Negotiations?
+                </label>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel-element">
+            <label class="element-label" for="defaultQueryRetrievePacs">Q/R</label>
+            <div class="element-wrapper">
+                <label>
+                    <input type="checkbox" id="defaultQueryRetrievePacs" name="defaultQueryRetrievePacs" title="Default Q/R Pacs" value="true">
+                    Set as Default PACS for Q/R
+                </label>
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel-element">
+            <label class="element-label" for="defaultStoragePacs">Storage</label>
+            <div class="element-wrapper">
+                <label>
+                    <input type="checkbox" id="defaultStoragePacs" name="defaultStoragePacs" title="Default Storage Pacs" value="true">
+                    Set as Default PACS for Storage
+                </label>
+            </div>
+            <div class="clear"></div>
+        </div>
+
     </form>
 </div>
 

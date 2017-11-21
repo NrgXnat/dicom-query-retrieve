@@ -83,22 +83,32 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function fnFooterCallback(nRow, aaData, iStart, iEnd, aiDisplay) {
-        jq(constants.ADD_PACS_LINK_HOLDER).html("<a id='" + constants.ADD_PACS_LINK.substring(1) + "' href='javascript:void(0);'>Add New PACS</a>");
+        jq(constants.ADD_PACS_LINK_HOLDER).html("<a id='" + constants.ADD_PACS_LINK.substring(1) + "' href='javascript:void(0);' class='btn primary'>Add New PACS</a>");
     }
 
     function bindAddButtonHandler() {
         var addButtonHandler = function () {
             currentOperation = new AddOperation(this);
-            xmodal.open({
-                width: 600,
-                height: 350,
-                className: 'addModal',
+            XNAT.dialog.open({
                 title: 'Add PACS',
+                width: 600,
+                className: 'addModal',
                 content: editModalContent,
-                okAction: XNAT.app.PacsAdministration.submitCurrentOperation
+                buttons: [
+                    {
+                        label: 'Save',
+                        isDefault: true,
+                        close: true,
+                        action: XNAT.app.PacsAdministration.submitCurrentOperation
+                    },
+                    {
+                        label: 'Cancel',
+                        close: true
+                    }
+                ]
             });
         };
-        jq(constants.PACS_TABLE).on("click", constants.ADD_PACS_LINK, addButtonHandler);
+        jq(document).on("click", constants.ADD_PACS_LINK, addButtonHandler);
     }
 
     function bindEditButtonHandler() {
@@ -107,13 +117,23 @@ XNAT.app.PacsAdministration = ( function () {
             currentOperation = new ModifyOperation(this, "editRow", pacs, constants.OPERATION_EDIT);
             // currentOperation.disable();
 
-            xmodal.open({
-                width: 600,
-                height: 350,
-                className: 'editModal',
+            XNAT.dialog.open({
                 title: 'Modify PACS',
+                width: 600,
+                className: 'editModal',
                 content: editModalContent,
-                okAction: XNAT.app.PacsAdministration.submitCurrentOperation
+                buttons:[
+                    {
+                        label: 'Save',
+                        isDefault: true,
+                        close: true,
+                        action: XNAT.app.PacsAdministration.submitCurrentOperation
+                    },
+                    {
+                        label: 'Cancel',
+                        close: true
+                    }
+                ]
             });
 
             populateFormFields();
@@ -140,7 +160,7 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function showPacs(data) {
-        jq(constants.PACS_DIV).empty().html('<table cellpadding="0" cellspacing="0" border="0" id="' + constants.PACS_TABLE.substring(1) + '"><tfoot><tr><th style="padding-top: 20px;" align="left" id="' + constants.ADD_PACS_LINK_HOLDER.substring(1) + '" colspan="9"></th></tr></tfoot></table>');
+        jq(constants.PACS_DIV).empty().html('<table class="xnat-table" id="' + constants.PACS_TABLE.substring(1) + '"></table><p id="' + constants.ADD_PACS_LINK_HOLDER.substring(1) + '"></p>');
 
         var dataTableOptions = {
             "aaData": data.ResultSet.Result,
@@ -191,13 +211,13 @@ XNAT.app.PacsAdministration = ( function () {
                     "bSearchable": false,
                     "bSortable": false,
                     "mData": null,
-                    "sDefaultContent": '<span class="icon icon-sm icon-edit editRow" title="Edit"></span>'
+                    "sDefaultContent": '<span class="fa fa-pencil editRow" title="Edit"></span>'
                 },
                 {
                     "bSearchable": false,
                     "bSortable": false,
                     "mData": null,
-                    "sDefaultContent": '<span class="icon icon-sm icon-trash deleteRow" title="Delete"></span>'
+                    "sDefaultContent": '<span class="fa fa-trash deleteRow" title="Delete"></span>'
                 }
             ],
             "bFilter": false,
