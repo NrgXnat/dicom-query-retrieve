@@ -1,0 +1,37 @@
+####
+#### TIP Settings Panels
+####
+
+tipPacsPanel:
+    kind: panel
+    name: tipPacsPanel
+    label: PACS Admin
+    contents:
+        tipPacsTableContainer:
+            tag: "div#pacsDiv"
+            contents: No PACS connections yet
+        tipPacsScript:
+            tag: script|src="~/scripts/tip/PacsAdministration.js"
+
+
+#################################################
+####  Root Site Admin Spawner Config Object  ####
+#################################################
+
+siteSettings:
+    kind: tabs
+    name: tipSearchAdminPage
+    label: TIP Site Settings
+    meta:
+        tabGroups:
+            tipImageSearchTabGroup: TIP Image Search
+    contains: tabs
+    tabs:
+        tipPacsTab:
+            kind: tab
+            name: tipPacsTab
+            label: Administer PACS
+            group: tipImageSearchTabGroup
+            active: false
+            contents:
+              ${tipPacsPanel}

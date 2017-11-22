@@ -12,6 +12,8 @@
 
 /*jslint white: true, browser: true, vars: true */
 
+console.log('PacsAdministration.js');
+
 XNAT.app.PacsAdministration = ( function () {
     "use strict";
 
@@ -25,35 +27,18 @@ XNAT.app.PacsAdministration = ( function () {
         "OPERATION_DELETE": "DELETE",
         "OPERATION_CREATE": "CREATE"
     };
-    var imagePath;
+
+    var ormStrategies = ['dicomOrmStrategy']; // replace this with a dynamic list
 
     // We'll keep the edit form in JavaScript, adding it to the DOM upon request
     // Just cleaner to define the form initially in the Velocity template, then slurp it in on page load
-    var editModalContent;
 
     var currentOperation;
-
-    function getImageURI(imageName) {
-        return imagePath + imageName;
-    }
-
-    function getPacsThatWasClickedOn(image) {
-        var nTr = jq(image).parents('tr')[0];
-        var oTable = jq(constants.PACS_TABLE).dataTable();
-        var pacs = oTable.fnGetData(nTr);
-        return pacs;
-    }
 
     function AddOperation(pButton) {
         this.button = pButton;
         this.type = constants.OPERATION_CREATE;
     }
-
-
-    AddOperation.prototype.disable = function () {
-    };
-    AddOperation.prototype.enable = function () {
-    };
 
     function ModifyOperation(pImage, pImageCssClass, pPacs, pType) {
         this.image = pImage;
@@ -64,86 +49,125 @@ XNAT.app.PacsAdministration = ( function () {
 
 
     ModifyOperation.prototype.disable = function () {
-        jq(this.image).removeClass(this.imageCssClass);
+        $(this.image).removeClass(this.imageCssClass);
     };
     ModifyOperation.prototype.enable = function () {
-        jq(this.image).addClass(this.imageCssClass);
+        $(this.image).addClass(this.imageCssClass);
     };
 
-    function populateFormFields() {
-        jq("#pacsId").val(currentOperation.pacs.id);
-        jq("#aeTitle").val(currentOperation.pacs.aeTitle);
-        jq("#host").val(currentOperation.pacs.host);
-        jq("#queryRetrievePort").val(currentOperation.pacs.queryRetrievePort);
-        jq("#storagePort").val(currentOperation.pacs.storagePort);
-        jq("#ormStrategySpringBeanId").val(currentOperation.pacs.ormStrategySpringBeanId);
-        jq("#extendedNegotiations").prop("checked", currentOperation.pacs.supportsExtendedNegotiations);
-        jq("#defaultQueryRetrievePacs").prop("checked", currentOperation.pacs.defaultQueryRetrievePacs);
-        jq("#defaultStoragePacs").prop("checked", currentOperation.pacs.defaultStoragePacs);
-    }
+    function editPacsDialog(pacs) {
+        pacs = pacs || {};
+        var doWhat = Object.keys(pacs).length ? 'Modify' : 'Create';
+        XNAT.dialog.open({
+            title: doWhat + ' PACS',
+            width: 600,
+            className: doWhat.toLowerCase() + 'Modal',
+            content: spawn('form.panel'),
+            beforeShow: function(obj){
+                var $form = obj.$modal.find('form');
+                $form.append(
+                    spawn('!', [
+                        XNAT.ui.panel.input.hidden({
+                            name: 'pacsId'
+                        }),
+                        XNAT.ui.panel.select.menu({
+                            name: 'ormStrategySpringBeanId',
+                            label: 'ORM Strategy',
+                            options: ormStrategies
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'aeTitle',
+                            label: 'AE Title'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'host',
+                            label: 'Host'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'queryRetrievePort',
+                            label: 'Q/R Port'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'storagePort',
+                            label: 'Storage Port'
+                        }),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'extendedNegotiations',
+                            label: 'Extended Negotiations',
+                            onText: 'Supported',
+                            offText: 'Not Supported',
+                            value: 'true'
+                        }),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'defaultQueryRetrievePacs',
+                            label: 'Default Q/R PACS',
+                            onText: 'Yes',
+                            offText: 'No',
+                            value: 'true'
+                        }),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'defaultStoragePacs',
+                            label: 'Default Storage PACS',
+                            onText: 'Yes',
+                            offText: 'No',
+                            value: 'true'
+                        })
+                    ])
+                );
 
-    function fnFooterCallback(nRow, aaData, iStart, iEnd, aiDisplay) {
-        jq(constants.ADD_PACS_LINK_HOLDER).html("<a id='" + constants.ADD_PACS_LINK.substring(1) + "' href='javascript:void(0);' class='btn primary'>Add New PACS</a>");
+                if (pacs && doWhat === 'Modify') {
+                    $form.setValues(pacs);
+                }
+                else {
+                    $form.find('select').find('option').first().prop('selected','selected');
+                    $form.find('input[type=checkbox]').prop('checked',false);
+                }
+            },
+            buttons: [
+                {
+                    label: 'Save',
+                    isDefault: true,
+                    close: true,
+                    action: function(obj){
+                        var $form = obj.$modal.find('form');
+                        (doWhat === 'Create') ?
+                            addPacs($form) :
+                            editPacs($form);
+                    }
+                },
+                {
+                    label: 'Cancel',
+                    close: true
+                }
+            ]
+        })
     }
 
     function bindAddButtonHandler() {
         var addButtonHandler = function () {
             currentOperation = new AddOperation(this);
-            XNAT.dialog.open({
-                title: 'Add PACS',
-                width: 600,
-                className: 'addModal',
-                content: editModalContent,
-                buttons: [
-                    {
-                        label: 'Save',
-                        isDefault: true,
-                        close: true,
-                        action: XNAT.app.PacsAdministration.submitCurrentOperation
-                    },
-                    {
-                        label: 'Cancel',
-                        close: true
-                    }
-                ]
-            });
+
+            editPacsDialog();
         };
-        jq(document).on("click", constants.ADD_PACS_LINK, addButtonHandler);
+        $(document).off("click", constants.ADD_PACS_LINK);
+        $(document).on("click", constants.ADD_PACS_LINK, addButtonHandler);
     }
 
     function bindEditButtonHandler() {
         var editButtonHandler = function () {
-            var pacs = getPacsThatWasClickedOn(this);
+            var pacs = $(this).parents('tr').data();
             currentOperation = new ModifyOperation(this, "editRow", pacs, constants.OPERATION_EDIT);
             // currentOperation.disable();
 
-            XNAT.dialog.open({
-                title: 'Modify PACS',
-                width: 600,
-                className: 'editModal',
-                content: editModalContent,
-                buttons:[
-                    {
-                        label: 'Save',
-                        isDefault: true,
-                        close: true,
-                        action: XNAT.app.PacsAdministration.submitCurrentOperation
-                    },
-                    {
-                        label: 'Cancel',
-                        close: true
-                    }
-                ]
-            });
+            editPacsDialog(pacs);
 
-            populateFormFields();
         };
-        jq(constants.PACS_TABLE).on("click", ".editRow", editButtonHandler);
+        $(constants.PACS_TABLE).on("click", ".editRow", editButtonHandler);
     }
 
     function bindDeleteButtonHandler() {
         var deleteButtonHandler = function () {
-            var pacs = getPacsThatWasClickedOn(this);
+            var pacs = $(this).parents('tr').data();
             currentOperation = new ModifyOperation(this, "deleteRow", pacs, constants.OPERATION_DELETE);
             // currentOperation.disable();
 
@@ -152,82 +176,84 @@ XNAT.app.PacsAdministration = ( function () {
                 height: 150,
                 className: 'deleteModal',
                 title: 'Confirm PACS Deletion',
-                content: jq('#delete_modal_content').html(),
+                content: spawn('p','Are you sure you want to delete this PACS?'),
                 okAction: XNAT.app.PacsAdministration.submitCurrentOperation
             });
         };
-        jq(constants.PACS_TABLE).on("click", ".deleteRow", deleteButtonHandler);
+        $(constants.PACS_TABLE).on("click", ".deleteRow", deleteButtonHandler);
     }
 
     function showPacs(data) {
-        jq(constants.PACS_DIV).empty().html('<table class="xnat-table" id="' + constants.PACS_TABLE.substring(1) + '"></table><p id="' + constants.ADD_PACS_LINK_HOLDER.substring(1) + '"></p>');
+        var pacsTableData = data.ResultSet.Result;
+        $(constants.PACS_DIV).empty();
 
-        var dataTableOptions = {
-            "aaData": data.ResultSet.Result,
-            "aoColumns": [
-                {
-                    "mData": "id",
-                    "sTitle": "ID"
-                },
-                {
-                    "mData": "aeTitle",
-                    "sTitle": "AE Title"
-                },
-                {
-                    "mData": "host",
-                    "sTitle": "Host"
-                },
-                {
-                    "mData": "queryRetrievePort",
-                    "sTitle": "Q/R Port"
-                },
-                {
-                    "mData": "storagePort",
-                    "sTitle": "STORE Port"
-                },
-                {
-                    "mData": "ormStrategySpringBeanId",
-                    "sTitle": "ORM Strategy Spring Bean ID"
-                },
-                {
-                    "mData": function (source, x, y, z) {
-                        return source.defaultQueryRetrievePacs ? "yes" : "no";
-                    },
-                    "sTitle": "Default Q/R Pacs?"
-                },
-                {
-                    "mData": function (source, x, y, z) {
-                        return source.defaultStoragePacs ? "yes" : "no";
-                    },
-                    "sTitle": "Default STORE Pacs?"
-                },
-                {
-                    "mData": function (source, x, y, z) {
-                        return source.supportsExtendedNegotiations ? "yes" : "no";
-                    },
-                    "sTitle": "Extended Negotiations?"
-                },
-                {
-                    "bSearchable": false,
-                    "bSortable": false,
-                    "mData": null,
-                    "sDefaultContent": '<span class="fa fa-pencil editRow" title="Edit"></span>'
-                },
-                {
-                    "bSearchable": false,
-                    "bSortable": false,
-                    "mData": null,
-                    "sDefaultContent": '<span class="fa fa-trash deleteRow" title="Delete"></span>'
-                }
-            ],
-            "bFilter": false,
-            "bPaginate": false,
-            "bLengthChange": false,
-            "bInfo": false,
-            "fnFooterCallback": fnFooterCallback
-        };
+        var pacsTable = XNAT.table({
+            className: 'xnat-table',
+            style: {
+                'width': '100%'
+            },
+            id: constants.PACS_TABLE.substring(1)
+        });
 
-        jq(constants.PACS_TABLE).dataTable(dataTableOptions);
+        // add table header row
+        pacsTable.tr()
+            .th({ addClass: 'left', html: '<b>ID</b>' })
+            .th('<b>AE Title</b>')
+            .th('<b>Host</b>')
+            .th('<b>Q/R Port</b>')
+            .th('<b>Storage Port</b>')
+            .th('<b>Q/R Default</b>')
+            .th('<b>Storage Default</b>')
+            .th('<b>Actions</b>');
+
+        function showDefault(setting){
+            return setting ? spawn('i',{ className: 'fa fa-check' }) : '';
+        }
+        function editButton(){
+            return spawn('button',{ className: 'btn editRow', title: 'Edit This PACS' },[
+                spawn('i', { className: 'fa fa-pencil' })
+            ]);
+        }
+        function deleteButton(){
+            return spawn('button',{ className: 'btn deleteRow', title: 'Delete This PACS' },[
+                spawn('i', {className: 'fa fa-trash' })
+            ]);
+        }
+
+        // add data rows
+        if (pacsTableData.length) {
+            pacsTableData.forEach(function(ae){
+                pacsTable.tr({
+                    data: {
+                        id: ae.id,
+                        aeTitle: ae.aeTitle,
+                        host: ae.host,
+                        queryRetrievePort: ae.queryRetrievePort,
+                        storagePort: ae.storagePort,
+                        ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
+                        defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
+                        defaultStoragePacs: ae.defaultStoragePacs,
+                        supportsExtendedNegotiations: ae.supportsExtendedNegotiations
+                    }
+                })
+                    .td({ addClass: 'right' }, ae.id )
+                    .td( ae.aeTitle )
+                    .td( ae.host )
+                    .td( ae.queryRetrievePort )
+                    .td( ae.storagePort )
+                    .td([ showDefault(ae.defaultQueryRetrievePacs) ])
+                    .td([ showDefault(ae.defaultStoragePacs) ])
+                    .td([ editButton(), spawn('!',' '), deleteButton() ]);
+            })
+
+        }
+        $(constants.PACS_DIV).append(pacsTable.table);
+
+        $(constants.PACS_DIV).append(
+            spawn('p',{ 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top':'1em' } }, [
+                spawn('a', { className: 'btn primary', href: 'javascript:void(0)', id: constants.ADD_PACS_LINK.substring(1) },'Add New PACS')
+            ])
+        );
 
         bindAddButtonHandler();
         bindEditButtonHandler();
@@ -237,12 +263,12 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function handlePacsSearchFailure(jqXHR) {
-        jq(constants.PACS_DIV).text("Error " + jqXHR.status + ": " + jqXHR.responseText);
+        $(constants.PACS_DIV).text("Error " + jqXHR.status + ": " + jqXHR.responseText);
         closeModalPanel(constants.MODAL_WINDOW_NAME);
     }
 
     function getAllPacs() {
-        jq.ajax({
+        $.ajax({
             type: "GET",
             url: serverRoot + "/data/pacs?XNAT_CSRF=" + csrfToken,
             dataType: "json",
@@ -254,7 +280,7 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function deletePacs() {
-        jq.ajax({
+        $.ajax({
             type: "DELETE",
             url: serverRoot + "/data/pacs/" + currentOperation.pacs.id + "?XNAT_CSRF=" + csrfToken,
             success: getAllPacs,
@@ -268,13 +294,14 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function editPacs($form) {
-        jq.ajax({
+        $.ajax({
             type: "PUT",
             url: serverRoot + "/data/pacs/" + currentOperation.pacs.id + "?XNAT_CSRF=" + csrfToken,
             data: $form.serialize(),
             success: function () {
                 xmodal.close();
                 getAllPacs();
+                XNAT.ui.banner.top(3000, 'Saved changes to PACS definition', 'success');
             },
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
@@ -286,13 +313,14 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function addPacs($form) {
-        jq.ajax({
+        $.ajax({
             type: "POST",
             url: serverRoot + "/data/pacs?XNAT_CSRF=" + csrfToken,
             data: $form.serialize(),
             success: function () {
                 xmodal.close();
                 getAllPacs();
+                XNAT.ui.banner.top(3000, 'Created new PACS definition', 'success');
             },
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
@@ -304,10 +332,7 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     return {
-        init: function (pImagePath) {
-            imagePath = pImagePath;
-            editModalContent = jq("#edit_modal_content").html();
-            jq("#edit_modal_content").empty();
+        init: function () {
             getAllPacs();
         },
 
@@ -320,16 +345,22 @@ XNAT.app.PacsAdministration = ( function () {
                 xmodal.close();
                 deletePacs();
             } else if (currentOperation.type === constants.OPERATION_EDIT) {
-                editPacs(jq("#editPacsForm"));
+                editPacs($("#editPacsForm"));
             } else if (currentOperation.type === constants.OPERATION_CREATE) {
-                addPacs(jq("#editPacsForm"));
+                addPacs($("#editPacsForm"));
             } else {
-                alert('Unspported operation type: ' + currentOperation.type);
+                alert('Unsupported operation type: ' + currentOperation.type);
             }
             currentOperation.enable();
-        }
+        },
+
+        ormStrategies: ormStrategies
     };
 }());
+
+$(document).ready(function(){
+    XNAT.app.PacsAdministration.init();
+});
 
 window.xModalSubmit = function () {
     "use strict";
