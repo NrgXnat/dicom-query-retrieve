@@ -242,7 +242,6 @@ TIP.presetScanSelector = function(event,keywords,baseElement,source) {
     $(baseElement).prop("checked",false);
 
     // find matching series descriptions in a datatable and check corresponding checkboxes.
-    // Requires textFilter.js
     var matchesFound = 0;
     for (i=0, j=keywords.length; i<j; i++) {
         var keyword = keywords[i].toLowerCase();

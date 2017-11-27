@@ -6,7 +6,6 @@
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
 
 <script type="text/javascript" src="$content.getURI("scripts/tip/PacsSeriesFinder2.js")"></script>
-## <script type="text/javascript" src="$content.getURI("scripts/tip/textFilter.js")"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
@@ -76,7 +75,7 @@
                                 #foreach($proj in $projects)
                                     ##if($data.getSession().getAttribute("user").canEdit($proj))
                                     ##if($proj.canEdit($data.getSession().getAttribute("user")))
-                                    #if($data.getSession().getAttribute("user").canEdit("xnat:subjectData/project",$proj.getId()))
+                                    #if($proj.canEdit($data.getSession().getAttribute("user")))
                                         <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/name")</option>
                                     #else
                                         <option disabled>$proj.getStringProperty("xnat:projectData/name")</option>
