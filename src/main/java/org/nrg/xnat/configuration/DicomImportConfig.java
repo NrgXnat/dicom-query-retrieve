@@ -10,37 +10,71 @@
 package org.nrg.xnat.configuration;
 
 import org.nrg.dcm.DicomFileNamer;
+import org.nrg.dcm.Extractor;
 import org.nrg.dcm.id.ClassicDicomObjectIdentifier;
 import org.nrg.dcm.id.CompositeDicomObjectIdentifier;
 import org.nrg.dcm.id.RoutedStudyDicomProjectIdentifier;
 import org.nrg.dcm.id.TemplatizedDicomFileNamer;
+import org.nrg.dcm.xnat.AttributeMapXnatImagesessiondataBeanFactory;
+import org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory;
 import org.nrg.tip.dicom.id.StudyIdDicomSessionIdentifier;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xnat.DicomObjectIdentifier;
 import org.nrg.xnat.services.cache.UserProjectCache;
 import org.nrg.xnat.utils.XnatUserProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Configuration
 @ComponentScan({"org.nrg.dcm.scp", "org.nrg.dcm.edit.mizer", "org.nrg.dicom.dicomedit.mizer", "org.nrg.dicom.mizer.service.impl"})
 public class DicomImportConfig {
+    @Autowired
     @Bean
-    @Primary
-    public DicomObjectIdentifier<XnatProjectdata> dicomObjectIdentifier(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) {
-        final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
+    public RoutedStudyDicomProjectIdentifier tipProjectIdent(final StudyRoutingService service) throws Exception {
+        return new RoutedStudyDicomProjectIdentifier(service);
+    }
+
+    @Autowired
+    @Bean
+    public List<Extractor> baseSubjectIdent(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
         final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
         ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
+        return classicDicomObjectIdentifier.getSubjectExtractors();
+    }
+
+    @Autowired
+    @Bean
+    public List<Extractor> tipSessionIdent() throws Exception {
+        return StudyIdDicomSessionIdentifier.getSessionExtractors();
+    }
+
+    @Autowired
+    @Bean
+    public List<Extractor> baseAAIdent(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
+        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
+        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
+        return classicDicomObjectIdentifier.getAAExtractors();
+    }
+
+    @Primary
+    @Bean
+    public DicomObjectIdentifier<XnatProjectdata> dicomObjectIdentifier(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
+        final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
+//        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
+//        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
+//        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
+        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, baseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), tipSessionIdent(), baseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
     }
 
     @Bean
@@ -49,8 +83,13 @@ public class DicomImportConfig {
     }
 
     @Bean
-    public List<String> sessionDataFactoryClasses() {
-        return Arrays.asList("org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory", "org.nrg.dcm.xnat.ModalityMapXnatImagesessiondataBeanFactory");
+    public ExecutorService dicomSCPExecutor() throws Exception {
+        return Executors.newCachedThreadPool();
+    }
+
+    @Bean
+    public List<Class<? extends AttributeMapXnatImagesessiondataBeanFactory>> sessionDataFactoryClasses() {
+        return Arrays.asList(SOPMapXnatImagesessiondataBeanFactory.class, org.nrg.dcm.xnat.ModalityMapXnatImagesessiondataBeanFactory.class);
     }
 
     @Bean
