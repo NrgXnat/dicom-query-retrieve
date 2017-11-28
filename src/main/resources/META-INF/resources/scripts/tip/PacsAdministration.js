@@ -95,22 +95,19 @@ XNAT.app.PacsAdministration = ( function () {
                             name: 'extendedNegotiations',
                             label: 'Extended Negotiations',
                             onText: 'Supported',
-                            offText: 'Not Supported',
-                            value: 'true'
+                            offText: 'Not Supported'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultQueryRetrievePacs',
                             label: 'Default Q/R PACS',
                             onText: 'Yes',
-                            offText: 'No',
-                            value: 'true'
+                            offText: 'No'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultStoragePacs',
                             label: 'Default Storage PACS',
                             onText: 'Yes',
-                            offText: 'No',
-                            value: 'true'
+                            offText: 'No'
                         })
                     ])
                 );
@@ -176,7 +173,7 @@ XNAT.app.PacsAdministration = ( function () {
                 height: 150,
                 className: 'deleteModal',
                 title: 'Confirm PACS Deletion',
-                content: spawn('p','Are you sure you want to delete this PACS?'),
+                content: 'Are you sure you want to delete this PACS?',
                 okAction: XNAT.app.PacsAdministration.submitCurrentOperation
             });
         };
@@ -222,6 +219,9 @@ XNAT.app.PacsAdministration = ( function () {
 
         // add data rows
         if (pacsTableData.length) {
+            pacsTableData.sort(function(a,b){
+                return (a.id > b.id) ? 1 : -1;
+            });
             pacsTableData.forEach(function(ae){
                 pacsTable.tr({
                     data: {
@@ -268,9 +268,9 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function getAllPacs() {
-        $.ajax({
+        XNAT.xhr.ajax({
             type: "GET",
-            url: serverRoot + "/data/pacs?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/pacs"),
             dataType: "json",
             success: showPacs,
             error: handlePacsSearchFailure
@@ -280,9 +280,9 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function deletePacs() {
-        $.ajax({
+        XNAT.xhr.ajax({
             type: "DELETE",
-            url: serverRoot + "/data/pacs/" + currentOperation.pacs.id + "?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/pacs/" + currentOperation.pacs.id),
             success: getAllPacs,
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
@@ -294,9 +294,9 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function editPacs($form) {
-        $.ajax({
+        XNAT.xhr.ajax({
             type: "PUT",
-            url: serverRoot + "/data/pacs/" + currentOperation.pacs.id + "?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/pacs/" + currentOperation.pacs.id),
             data: $form.serialize(),
             success: function () {
                 xmodal.close();
@@ -313,9 +313,9 @@ XNAT.app.PacsAdministration = ( function () {
     }
 
     function addPacs($form) {
-        $.ajax({
+        XNAT.xhr.ajax({
             type: "POST",
-            url: serverRoot + "/data/pacs?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/pacs"),
             data: $form.serialize(),
             success: function () {
                 xmodal.close();

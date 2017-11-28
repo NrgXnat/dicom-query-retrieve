@@ -49,9 +49,9 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
         this.currentPacsId = pacsId;
 
 
-        jq.ajax({
+        XNAT.xhr.ajax({
             type: "POST",
-            url: serverRoot + "/data/services/pacs/" + pacsId + "/search/studies?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies"),
             data: jq("#" + this.sessionSearchFormId).serialize(),
             dataType: "json",
             context: this,

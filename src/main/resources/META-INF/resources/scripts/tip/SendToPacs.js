@@ -32,9 +32,9 @@ XNAT.app.SendToPacs = function (pacsId, sessionId, scanIds) {
 
         for (var index = 0; index < scanIds.length; index++) {
             var scanId = scanIds[index];
-            jq.ajax({
+            XNAT.xhr.ajax({
                 type: "POST",
-                url: serverRoot + "/data/services/pacs/" + pacsId + "/export/experiments/" + sessionId + "/scans/" + scanId + "?XNAT_CSRF=" + csrfToken,
+                url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/export/experiments/" + sessionId + "/scans/" + scanId),
                 dataType: "json",
                 success: this.exportSuccess,
                 error: this.exportFailure

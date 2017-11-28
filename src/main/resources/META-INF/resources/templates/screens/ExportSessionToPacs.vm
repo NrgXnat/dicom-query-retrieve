@@ -56,7 +56,7 @@
                         </tr>
                         <tr>
                             <td style="font-weight:bold;">Accession Number:</td>
-                            <td><a href="/REST/experiments/$session.id?format=html">$session.label</a></td>
+                            <td><a href="${SITE_ROOT}/REST/experiments/$session.id?format=html">$session.label</a></td>
                         </tr>
                     </table>
                 </div>
@@ -171,41 +171,44 @@
         }
     });
 
-    $.getJSON('/REST/experiments/$session.id?format=json')
-            .success(function(data){
-                var sessionOrigDate = Date.parse(data.items[0].meta.start_date);
-                var sessionData = data.items[0].data_fields;
-                var sessionChildren = data.items[0].children;
-                var originalScans = [];
+    XNAT.xhr.getJSON({
+        url: XNAT.url.rootUrl('/REST/experiments/$session.id?format=json'),
+        success: function(data){
+            var sessionOrigDate = Date.parse(data.items[0].meta.start_date);
+            var sessionData = data.items[0].data_fields;
+            var sessionChildren = data.items[0].children;
+            var originalScans = [];
 
-                for (var i=0, j=sessionChildren.length; i<j; i++){
-                    // iterate through scans to find those who have the same origination date as the parent session
-                    if (sessionChildren[i].field === "scans/scan") {
-                        var sessionScans = sessionChildren[i].items;
+            for (var i=0, j=sessionChildren.length; i<j; i++){
+                // iterate through scans to find those who have the same origination date as the parent session
+                if (sessionChildren[i].field === "scans/scan") {
+                    var sessionScans = sessionChildren[i].items;
 
-                        for (var k= 0, l=sessionScans.length; k<l; k++) {
-                            thisScanDate = Date.parse(sessionScans[k].meta.start_date);
-                            if (thisScanDate === sessionOrigDate) {
-                                originalScans.push(sessionScans[k].data_fields.ID);
-                            }
+                    for (var k= 0, l=sessionScans.length; k<l; k++) {
+                        thisScanDate = Date.parse(sessionScans[k].meta.start_date);
+                        if (thisScanDate === sessionOrigDate) {
+                            originalScans.push(sessionScans[k].data_fields.ID);
                         }
                     }
                 }
+            }
 
-                // split originalScans into an array
-                // originalScans = originalScans.split(',');
+            // split originalScans into an array
+            // originalScans = originalScans.split(',');
 
-                // iterate over the list of original scans and disable their checkbox
-                for (var i= 0, j=originalScans.length; i<j; i++){
-                    $('input#scan-'+originalScans[i])
-                            .prop('disabled','disabled')
-                            .prop('name','scansToIgnore')
-                            .parents('tr').addClass('disabled');
-                }
-            })
-            .error(function(){
-                $('#layout_content').prepend('<div class="error">Error, could not obtain list of original scans</div>');
-            })
+            // iterate over the list of original scans and disable their checkbox
+            for (var i= 0, j=originalScans.length; i<j; i++){
+                $('input#scan-'+originalScans[i])
+                        .prop('disabled','disabled')
+                        .prop('name','scansToIgnore')
+                        .parents('tr').addClass('disabled');
+            }
+        },
+        fail: function(e){
+            $('#layout_content').prepend('<div class="error">Error, could not obtain list of original scans</div>');
+            console.log(e);
+        }
+    });
 
     $(document).ready(function(){
         // clean up display of patient name
