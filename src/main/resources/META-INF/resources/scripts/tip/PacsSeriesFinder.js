@@ -28,9 +28,9 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
     this.rowExpansionHandler = rowExpansionHandler;
 
     this.findSeries = function () {
-        jq.ajax({
+        XNAT.xhr.ajax({
             type: "GET",
-            url: serverRoot + "/data/services/pacs/" + pacsId + "/search/studies/" + study.studyInstanceUid + "/series?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies/" + study.studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,

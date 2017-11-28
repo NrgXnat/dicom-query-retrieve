@@ -28,9 +28,9 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     };
 
     this.findSeries = function () {
-        jq.ajax({
+        XNAT.xhr.ajax({
             type: "GET",
-            url: serverRoot + "/data/services/pacs/" + pacsId + "/search/studies/" + studyInstanceUid + "/series?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies/" + studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,
@@ -140,9 +140,9 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         }
         data += "&STUDY_ID=" + studyInstanceUid;
         data += "&PROJECT=" + project;
-        jq.ajax({
+        XNAT.xhr.ajax({
             type: "PUT",
-            url: serverRoot + "/data/services/pacs/" + pacsId + "/import/series?XNAT_CSRF=" + csrfToken,
+            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/import/series"),
             data: data,
             context: this,
             success: this.showSeriesRequestResults,

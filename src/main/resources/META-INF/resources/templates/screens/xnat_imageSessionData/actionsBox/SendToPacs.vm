@@ -1,0 +1,20 @@
+#if($item.canEdit($user))
+    #* @vtlvariable name="om" type="org.nrg.xdat.om.XnatImagesessiondata" *#
+    #* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
+    <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
+    <!-- Sequence: 20 -->
+    #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id))
+    </ul>
+    <ul>
+    <li class="yuimenuitem">
+        <a href="$destination")">Send to PACS</a>
+    </li>
+    <!-- END /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
+#else
+</ul>
+    <ul>
+        <li class="yuimenuitem">
+            <a href="#">Can't send to pacs</a>
+        </li>
+#end
+

@@ -1,0 +1,221 @@
+#* @vtlvariable name="message" type="java.lang.String" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
+#* @vtlvariable name="pacsList" type="java.util.List" *#
+#* @vtlvariable name="pacs" type="org.nrg.tip.domain.entities.Pacs" *#
+#* @vtlvariable name="session" type="org.nrg.xdat.om.XnatMrsessiondata" *#
+#* @vtlvariable name="scans" type="java.util.List" *#
+#* @vtlvariable name="scan" type="org.nrg.xdat.model.XnatImagescandataI" *#
+<!-- BEGIN templates/screens/tip/ExportSessionToPacs.vm -->
+<link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
+<script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+
+<style type="text/css">
+    .label-container,
+    .input-container { display: inline-block; vertical-align: top; }
+</style>
+
+<h2 class="edit_title">Export Patient Study $session.label to PACS</h2>
+
+#if($message)
+    <div class="error">$message</div>
+#else
+
+    <form id="editPacsForm" name="editPacsForm" class="friendlyForm mini" method="POST" action="$link.setAction("ExportSessionToPacs")">
+        <fieldset>
+            <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
+                <div class="inputWrapper">
+                    <h4>Set Destination (Required)</h4>
+                    <p>
+                        <label for="pacs">Select PACS to Export To:</label>
+                        <select id="pacs" name="pacs">
+                            #foreach($pacs in $pacsList)
+                                #if($pacs.storagePort)
+                                    #if($pacs.isDefaultStoragePacs())
+                                        #set($selected = " selected")
+                                    #else
+                                        #set($selected = "")
+                                    #end
+                                    <option value="$pacs.id"$selected>$pacs.aeTitle:$pacs.storagePort ($pacs.host)</option>
+                                #end
+                            #end
+                        </select>
+                    </p>
+                    <input type="hidden" id="session" name="session" value="$session.id"/>
+                </div>
+                <div class="inputWrapper">
+                    <h4>Patient Study Info</h4>
+                    <table id="studyInfoTable" style="border:none;">
+                        <tr>
+                            <td style="font-weight:bold;">Patient:</td>
+                            <td id="patientName">$session.dcmpatientname</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold;">Study Date:</td>
+                            <td>$session.getDate()</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:bold;">Accession Number:</td>
+                            <td><a href="${SITE_ROOT}/REST/experiments/$session.id?format=html">$session.label</a></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div style="display: inline-block; vertical-align: top; width: 640px;">
+                <table id="scansToExport" cellpadding="0" cellspacing="0" border="0">
+                    <thead>
+                        <tr>
+                            <th><label><input type="checkbox" id="selectAll" /> <span>Select All</span></label></th>
+                            <th>Series</th>
+                            <th>Description</th>
+                            <th>Sequence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    #set($scanCounter =0)
+                    #foreach($scan in $scans)
+                        ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
+                        <tr>
+                            <td><input type="checkbox" id="scan-$scan.id" name="scansToExport" value="$scan.id" /></td>
+                            <td class="sorting_1">$scan.id</td>
+                            <td>$scan.seriesDescription</td>
+                            #set($scanType = $!scan.xSIType)
+                            #if($scanType == "xnat:mrScanData")
+                                <td>$!scan.getProperty("parameters.sequence")</td>
+                            #else
+                                <td>$!scan.getType()</td>
+                            #end
+                        </tr>
+                        #set($scanCounter = $scanCounter +1)
+                    #end
+                    </tbody>
+                </table>
+
+                <p><em>Note: Scans that were a part of the originally imported session have been excluded.</em></p>
+                <button id="submitScansToPacs" class="btn1" onclick="jq('#editPacsForm').submit()">Send Selected Series to PACS</button>
+            </div>
+
+        </fieldset>
+
+    </form>
+
+<script>
+    $('#scansToExport').DataTable({
+        "aoColumns": [
+            {
+                "bSearchable": false,
+                "bSortable": false
+            },
+            {
+                "sTitle": "Series"
+            },
+            {
+                "sTitle": "Description"
+            },
+            {
+                "sTitle": "Sequence"
+            }
+
+        ],
+        "aaSorting": [
+            [1, "asc"]
+        ],
+        "autoWidth": false,
+        "bFilter": false,
+        "bPaginate": false,
+        "bLengthChange": false,
+        "bInfo": false,
+        "columns": [
+            {
+                "width": "10%"
+            },
+                null,
+                null,
+                null
+        ]
+    })
+
+    $('#selectAll').on('click', function(){
+        if ($(this).prop('indeterminate') || $(this).is(':checked')) {
+            // if none or some checkboxes are selected, select all
+            $('input[name=scansToExport]').prop('checked','checked');
+            $(this)
+                    .prop('indeterminate',false)
+                    .next().html('Deselect All');
+        } else {
+            // otherwise, deselect all
+            $('input[name=scansToExport]').prop('checked',false);
+            $(this)
+                    .prop('indeterminate',false)
+                    .next().html('Select All');
+        }
+    });
+
+    $('input[name=scansToExport]').on('click',function(){
+        // place Select All button in a default state.
+        $('#selectAll')
+                .prop('checked',false)
+                .prop('indeterminate',true)
+                .next().html('Select All');
+
+        // compare the number of checked checkboxes to N number of checkboxes. '0' = an unchecked, determinate state for Select All. 'N' = a fully checked, determinate state for Select All.
+        if (document.querySelectorAll('input[name=scansToExport]:checked').length === 0) {
+            $('#selectAll')
+                    .prop('indeterminate',false);
+        } else if (document.querySelectorAll('input[name=scansToExport]:checked').length === document.querySelectorAll('input[name=scansToExport]').length) {
+            $('#selectAll')
+                    .prop('indeterminate',false)
+                    .prop('checked','checked')
+                    .next().html('Deselect All');
+        }
+    });
+
+    XNAT.xhr.getJSON({
+        url: XNAT.url.rootUrl('/REST/experiments/$session.id?format=json'),
+        success: function(data){
+            var sessionOrigDate = Date.parse(data.items[0].meta.start_date);
+            var sessionData = data.items[0].data_fields;
+            var sessionChildren = data.items[0].children;
+            var originalScans = [];
+
+            for (var i=0, j=sessionChildren.length; i<j; i++){
+                // iterate through scans to find those who have the same origination date as the parent session
+                if (sessionChildren[i].field === "scans/scan") {
+                    var sessionScans = sessionChildren[i].items;
+
+                    for (var k= 0, l=sessionScans.length; k<l; k++) {
+                        thisScanDate = Date.parse(sessionScans[k].meta.start_date);
+                        if (thisScanDate === sessionOrigDate) {
+                            originalScans.push(sessionScans[k].data_fields.ID);
+                        }
+                    }
+                }
+            }
+
+            // split originalScans into an array
+            // originalScans = originalScans.split(',');
+
+            // iterate over the list of original scans and disable their checkbox
+            for (var i= 0, j=originalScans.length; i<j; i++){
+                $('input#scan-'+originalScans[i])
+                        .prop('disabled','disabled')
+                        .prop('name','scansToIgnore')
+                        .parents('tr').addClass('disabled');
+            }
+        },
+        fail: function(e){
+            $('#layout_content').prepend('<div class="error">Error, could not obtain list of original scans</div>');
+            console.log(e);
+        }
+    });
+
+    $(document).ready(function(){
+        // clean up display of patient name
+        var patientName = $('#patientName').html().replace(/\^/g,' ');
+        patientName = patientName.replace(' ',', '); // add a comma after the first listed name
+        $('#patientName').html(patientName);
+    });
+</script>
+#end
+<!-- END templates/screens/tip/ExportSessionToPacs.vm -->
