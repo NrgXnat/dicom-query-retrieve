@@ -5,11 +5,11 @@
 tipPacsPanel:
     kind: panel
     name: tipPacsPanel
-    label: PACS Admin
+    label: Manage DICOM AE (PACS) Connections
     contents:
         tipPacsTableContainer:
             tag: "div#pacsDiv"
-            contents: No PACS connections yet
+            contents: No DICOM AE connections yet
         tipPacsScript:
             tag: script|src="~/scripts/tip/PacsAdministration.js"
 

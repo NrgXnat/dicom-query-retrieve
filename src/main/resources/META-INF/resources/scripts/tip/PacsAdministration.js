@@ -57,9 +57,9 @@ XNAT.app.PacsAdministration = ( function () {
 
     function editPacsDialog(pacs) {
         pacs = pacs || {};
-        var doWhat = Object.keys(pacs).length ? 'Modify' : 'Create';
+        var doWhat = Object.keys(pacs).length ? 'Modify' : 'Add New';
         XNAT.dialog.open({
-            title: doWhat + ' PACS',
+            title: doWhat + ' DICOM AE Connection ',
             width: 600,
             className: doWhat.toLowerCase() + 'Modal',
             content: spawn('form.panel'),
@@ -99,13 +99,13 @@ XNAT.app.PacsAdministration = ( function () {
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultQueryRetrievePacs',
-                            label: 'Default Q/R PACS',
+                            label: 'Default Q/R AE',
                             onText: 'Yes',
                             offText: 'No'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultStoragePacs',
-                            label: 'Default Storage PACS',
+                            label: 'Default Storage AE',
                             onText: 'Yes',
                             offText: 'No'
                         })
@@ -172,8 +172,8 @@ XNAT.app.PacsAdministration = ( function () {
                 width: 400,
                 height: 150,
                 className: 'deleteModal',
-                title: 'Confirm PACS Deletion',
-                content: 'Are you sure you want to delete this PACS?',
+                title: 'Confirm DICOM AE Deletion',
+                content: 'Are you sure you want to delete this DICOM AE connection?',
                 okAction: XNAT.app.PacsAdministration.submitCurrentOperation
             });
         };
@@ -207,12 +207,12 @@ XNAT.app.PacsAdministration = ( function () {
             return setting ? spawn('i',{ className: 'fa fa-check' }) : '';
         }
         function editButton(){
-            return spawn('button',{ className: 'btn editRow', title: 'Edit This PACS' },[
+            return spawn('button',{ className: 'btn editRow', title: 'Edit This DICOM AE Connection' },[
                 spawn('i', { className: 'fa fa-pencil' })
             ]);
         }
         function deleteButton(){
-            return spawn('button',{ className: 'btn deleteRow', title: 'Delete This PACS' },[
+            return spawn('button',{ className: 'btn deleteRow', title: 'Delete This DICOM AE Connection' },[
                 spawn('i', {className: 'fa fa-trash' })
             ]);
         }
@@ -251,7 +251,7 @@ XNAT.app.PacsAdministration = ( function () {
 
         $(constants.PACS_DIV).append(
             spawn('p',{ 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top':'1em' } }, [
-                spawn('a', { className: 'btn primary', href: 'javascript:void(0)', id: constants.ADD_PACS_LINK.substring(1) },'Add New PACS')
+                spawn('a', { className: 'btn primary', href: 'javascript:void(0)', id: constants.ADD_PACS_LINK.substring(1) },'Add New DICOM AE')
             ])
         );
 
@@ -286,7 +286,7 @@ XNAT.app.PacsAdministration = ( function () {
             success: getAllPacs,
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
-                alert("PACS deletion failed: " + jqXHR.status + ": " + jqXHR.responseText);
+                alert("Could not delete DICOM AE deletion: " + jqXHR.status + ": " + jqXHR.responseText);
             }
         });
 
@@ -301,11 +301,11 @@ XNAT.app.PacsAdministration = ( function () {
             success: function () {
                 xmodal.close();
                 getAllPacs();
-                XNAT.ui.banner.top(3000, 'Saved changes to PACS definition', 'success');
+                XNAT.ui.banner.top(3000, 'Saved changes to DICOM AE connection', 'success');
             },
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
-                alert("PACS modification failed: " + jqXHR.status + ": " + jqXHR.responseText);
+                alert("Could not modify DICOM AE connection: " + jqXHR.status + ": " + jqXHR.responseText);
             }
         });
 
@@ -320,11 +320,11 @@ XNAT.app.PacsAdministration = ( function () {
             success: function () {
                 xmodal.close();
                 getAllPacs();
-                XNAT.ui.banner.top(3000, 'Created new PACS definition', 'success');
+                XNAT.ui.banner.top(3000, 'Created new DICOM AE connection', 'success');
             },
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
-                alert("PACS addition failed: " + jqXHR.status + ": " + jqXHR.responseText);
+                alert("Could not create new DICOM AE connection: " + jqXHR.status + ": " + jqXHR.responseText);
             }
         });
 
