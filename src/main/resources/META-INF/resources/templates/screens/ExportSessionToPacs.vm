@@ -7,6 +7,8 @@
 #* @vtlvariable name="scans" type="java.util.List" *#
 #* @vtlvariable name="scan" type="org.nrg.xdat.model.XnatImagescandataI" *#
 <!-- BEGIN templates/screens/tip/ExportSessionToPacs.vm -->
+#set ($SITE_ROOT = $content.getURI(''))
+
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 
