@@ -16,7 +16,10 @@ import java.util.List;
 
 import javax.validation.ConstraintViolationException;
 
+import org.apache.log4j.Logger;
 import org.nrg.tip.domain.entities.Pacs;
+import org.nrg.xdat.security.helpers.Roles;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -31,6 +34,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 @XnatRestlet("/pacs")
 public class PacsListResource extends PacsAdminResource {
+    static Logger logger = Logger.getLogger(PacsListResource.class);
 
     public PacsListResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
@@ -49,17 +53,25 @@ public class PacsListResource extends PacsAdminResource {
 
     @Override
     public void handlePost() {
-        try {
-            final Pacs pacs = buildPacsFromRequest(null);
-            getPacsEntityService().create(pacs);
-            getResponse().setLocationRef("pacs/" + String.valueOf(pacs.getId()));
-            respondWithSuccessCreated();
-        } catch (final InvalidRequestBodyException e) {
-            respondWithInvalidRequestBody();
-        } catch (final ConstraintViolationException e) {
-            respondWithEntityValidationError(e);
-        } catch (final DataIntegrityViolationException e) {
-            respondWithDataIntegrityError(e);
+        final UserI user = getUser();
+        if (Roles.isSiteAdmin(user)) {
+            try {
+                final Pacs pacs = buildPacsFromRequest(null);
+                getPacsEntityService().create(pacs);
+                getResponse().setLocationRef("pacs/" + String.valueOf(pacs.getId()));
+                respondWithSuccessCreated();
+            } catch (final InvalidRequestBodyException e) {
+                respondWithInvalidRequestBody();
+            } catch (final ConstraintViolationException e) {
+                respondWithEntityValidationError(e);
+            } catch (final DataIntegrityViolationException e) {
+                respondWithDataIntegrityError(e);
+            }
+        }
+        else{
+            final String message = String.format("User %s is not an administrator and can't delete PACs configurations.", user.getUsername());
+            logger.info(message);
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
 

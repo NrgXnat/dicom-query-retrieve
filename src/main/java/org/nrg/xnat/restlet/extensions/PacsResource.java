@@ -14,7 +14,10 @@ package org.nrg.xnat.restlet.extensions;
 
 import javax.validation.ConstraintViolationException;
 
+import org.apache.log4j.Logger;
 import org.nrg.tip.domain.entities.Pacs;
+import org.nrg.xdat.security.helpers.Roles;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -29,6 +32,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 @XnatRestlet("/pacs/{PACS_ID}")
 public class PacsResource extends PacsAdminResource {
+    static Logger logger = Logger.getLogger(PacsResource.class);
 
     public PacsResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
@@ -52,19 +56,27 @@ public class PacsResource extends PacsAdminResource {
 
     @Override
     public void handlePut() {
-        try {
-            final Pacs pacs = retrievePacs();
-            buildPacsFromRequest(pacs);
-            getPacsEntityService().update(pacs);
-            respondWithSuccessNoContent();
-        } catch (final PacsNotFoundException e) {
-            respondWithPacsNotFound();
-        } catch (final InvalidRequestBodyException e) {
-            respondWithInvalidRequestBody();
-        } catch (final ConstraintViolationException e) {
-            respondWithEntityValidationError(e);
-        } catch (final DataIntegrityViolationException e) {
-            respondWithDataIntegrityError(e);
+        final UserI user = getUser();
+        if (Roles.isSiteAdmin(user)) {
+            try {
+                final Pacs pacs = retrievePacs();
+                buildPacsFromRequest(pacs);
+                getPacsEntityService().update(pacs);
+                respondWithSuccessNoContent();
+            } catch (final PacsNotFoundException e) {
+                respondWithPacsNotFound();
+            } catch (final InvalidRequestBodyException e) {
+                respondWithInvalidRequestBody();
+            } catch (final ConstraintViolationException e) {
+                respondWithEntityValidationError(e);
+            } catch (final DataIntegrityViolationException e) {
+                respondWithDataIntegrityError(e);
+            }
+        }
+        else{
+            final String message = String.format("User %s is not an administrator and can't edit or create PACs configurations.", user.getUsername());
+            logger.info(message);
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
 
@@ -75,12 +87,20 @@ public class PacsResource extends PacsAdminResource {
 
     @Override
     public void handleDelete() {
-        try {
-            final Pacs pacs = retrievePacs();
-            getPacsEntityService().delete(pacs);
-            respondWithSuccessNoContent();
-        } catch (final PacsNotFoundException e) {
-            respondWithPacsNotFound();
+        final UserI user = getUser();
+        if (Roles.isSiteAdmin(user)) {
+            try {
+                final Pacs pacs = retrievePacs();
+                getPacsEntityService().delete(pacs);
+                respondWithSuccessNoContent();
+            } catch (final PacsNotFoundException e) {
+                respondWithPacsNotFound();
+            }
+        }
+        else{
+            final String message = String.format("User %s is not an administrator and can't delete PACs configurations.", user.getUsername());
+            logger.info(message);
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
 
