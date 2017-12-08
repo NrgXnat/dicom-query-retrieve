@@ -1,0 +1,43 @@
+/*
+ * org.nrg.dqr.services.PacsService
+ * DQR is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+package org.nrg.dqr.services;
+
+import org.nrg.dqr.domain.Patient;
+import org.nrg.dqr.domain.Series;
+import org.nrg.dqr.domain.Study;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.dto.PacsSearchCriteria;
+import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xft.security.UserI;
+
+public interface PacsService {
+
+    PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs,
+                                                            final PacsSearchCriteria searchCriteria);
+
+    Patient getPatientById(UserI user, final Pacs pacs, String patientId);
+
+    PacsSearchResults<String, Study> getStudiesByExample(UserI user, final Pacs pacs,
+                                                         final PacsSearchCriteria searchCriteria);
+
+    Study getStudyById(UserI user, final Pacs pacs, final String studyInstanceUid);
+
+    PacsSearchResults<String, Series> getSeriesByStudy(UserI user, final Pacs pacs, final Study study);
+
+    Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid);
+
+    void importSeries(UserI user, final Pacs pacs, final Study study, final Series series);
+
+    void exportSeries(UserI user, final Pacs pacs, final XnatImagescandata series);
+}

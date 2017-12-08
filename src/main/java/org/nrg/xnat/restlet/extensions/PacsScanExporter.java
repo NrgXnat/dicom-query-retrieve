@@ -1,6 +1,6 @@
 /*
  * org.nrg.xnat.restlet.extensions.PacsScanExporter
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -12,7 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import org.nrg.tip.services.PacsService;
+import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xft.event.EventDetails;

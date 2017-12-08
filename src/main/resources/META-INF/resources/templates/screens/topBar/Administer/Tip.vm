@@ -1,2 +1,2 @@
 <!-- Sequence: 20 -->
-<li><a href="${SITE_ROOT}/app/template/Page.vm?view=admin/plugins#tab=tip-pacs-tab">PACS</a></li>
+<li><a href="${SITE_ROOT}/app/template/Page.vm?view=admin/plugins#tab=dqr-pacs-tab">PACS</a></li>

@@ -17,7 +17,7 @@ import org.nrg.dcm.id.RoutedStudyDicomProjectIdentifier;
 import org.nrg.dcm.id.TemplatizedDicomFileNamer;
 import org.nrg.dcm.xnat.AttributeMapXnatImagesessiondataBeanFactory;
 import org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory;
-import org.nrg.tip.dicom.id.StudyIdDicomSessionIdentifier;
+import org.nrg.dqr.dicom.id.StudyIdDicomSessionIdentifier;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xnat.DicomObjectIdentifier;
@@ -41,7 +41,7 @@ import java.util.concurrent.Executors;
 public class DicomImportConfig {
     @Autowired
     @Bean
-    public RoutedStudyDicomProjectIdentifier tipProjectIdent(final StudyRoutingService service) throws Exception {
+    public RoutedStudyDicomProjectIdentifier dqrProjectIdent(final StudyRoutingService service) throws Exception {
         return new RoutedStudyDicomProjectIdentifier(service);
     }
 
@@ -55,7 +55,7 @@ public class DicomImportConfig {
 
     @Autowired
     @Bean
-    public List<Extractor> tipSessionIdent() throws Exception {
+    public List<Extractor> dqrSessionIdent() throws Exception {
         return StudyIdDicomSessionIdentifier.getSessionExtractors();
     }
 
@@ -74,7 +74,7 @@ public class DicomImportConfig {
 //        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
 //        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
 //        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, baseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), tipSessionIdent(), baseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
+        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, baseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), dqrSessionIdent(), baseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
     }
 
     @Bean

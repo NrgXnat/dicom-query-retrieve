@@ -1,6 +1,6 @@
 /*
  * org.nrg.xnat.restlet.extensions.PacsAdminResource
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -17,9 +17,9 @@ import javax.validation.ConstraintViolationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.tip.domain.entities.Pacs;
-import org.nrg.tip.restlet.NullValueSerializer;
-import org.nrg.tip.services.PacsEntityService;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.restlet.NullValueSerializer;
+import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xnat.restlet.resources.SecureResource;
 import org.restlet.Context;

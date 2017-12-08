@@ -1,0 +1,35 @@
+/*
+ * CFindSCUPatientLevelByExample
+ * DQR is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+package org.nrg.dqr.dicom.command.cfind.dcm4che.tool;
+
+import org.nrg.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
+import org.nrg.dqr.dicom.net.DicomConnectionProperties;
+import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.dqr.dto.PacsSearchCriteria;
+import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+
+public class CFindSCUPatientLevelByExample extends CFindSCUPatientLevel {
+
+    public CFindSCUPatientLevelByExample(final DicomConnectionProperties dicomConnectionProperties,
+                                         final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
+        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+    }
+
+    @Override
+    protected void validatePacsSearchCriteria(final PacsSearchCriteria searchCriteria)
+            throws SearchCriteriaTooVagueException {
+        if (!getOrmStrategy().getResultSetLimitStrategy().searchCriteriaIsSufficientlySpecific(searchCriteria)) {
+            throw new SearchCriteriaTooVagueException();
+        }
+    }
+}

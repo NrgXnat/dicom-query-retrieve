@@ -2,11 +2,11 @@
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
 #* @vtlvariable name="pacsList" type="java.util.List" *#
-#* @vtlvariable name="pacs" type="org.nrg.tip.domain.entities.Pacs" *#
+#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="session" type="org.nrg.xdat.om.XnatMrsessiondata" *#
 #* @vtlvariable name="scans" type="java.util.List" *#
 #* @vtlvariable name="scan" type="org.nrg.xdat.model.XnatImagescandataI" *#
-<!-- BEGIN templates/screens/tip/ExportSessionToPacs.vm -->
+<!-- BEGIN templates/screens/dqr/ExportSessionToPacs.vm -->
 #set ($SITE_ROOT = $content.getURI(''))
 
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
@@ -220,4 +220,4 @@
     });
 </script>
 #end
-<!-- END templates/screens/tip/ExportSessionToPacs.vm -->
+<!-- END templates/screens/dqr/ExportSessionToPacs.vm -->

@@ -1,6 +1,6 @@
 /*
  * ExportSessionToPacs
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -16,9 +16,9 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.tip.domain.entities.Pacs;
-import org.nrg.tip.services.PacsEntityService;
-import org.nrg.tip.services.PacsService;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -28,7 +28,7 @@ import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExportSessionToPacs extends TipSecureAction {
+public class ExportSessionToPacs extends DqrSecureAction {
 
     private static final Logger _log = LoggerFactory.getLogger(ExportSessionToPacs.class);
 

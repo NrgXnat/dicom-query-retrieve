@@ -1,6 +1,6 @@
 /*
  * org.nrg.xnat.restlet.extensions.PacsListResource
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -17,7 +17,7 @@ import java.util.List;
 import javax.validation.ConstraintViolationException;
 
 import org.apache.log4j.Logger;
-import org.nrg.tip.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;

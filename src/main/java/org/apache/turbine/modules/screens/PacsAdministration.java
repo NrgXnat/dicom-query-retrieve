@@ -1,6 +1,6 @@
 /*
  * PacsAdministration
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -14,10 +14,9 @@ package org.apache.turbine.modules.screens;
 
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.tip.dicom.strategy.orm.OrmStrategy;
+import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 

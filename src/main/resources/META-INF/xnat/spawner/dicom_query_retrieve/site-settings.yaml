@@ -1,0 +1,37 @@
+####
+#### DQR Settings Panels
+####
+
+dqrPacsPanel:
+    kind: panel
+    name: dqrPacsPanel
+    label: Manage DICOM AE (PACS) Connections
+    contents:
+        dqrPacsTableContainer:
+            tag: "div#pacsDiv"
+            contents: No DICOM AE connections yet
+        dqrPacsScript:
+            tag: script|src="~/scripts/dqr/PacsAdministration.js"
+
+
+#################################################
+####  Root Site Admin Spawner Config Object  ####
+#################################################
+
+siteSettings:
+    kind: tabs
+    name: dqrAdminPage
+    label: DQR Site Settings
+    meta:
+        tabGroups:
+            dqrTabGroup: DQR
+    contains: tabs
+    tabs:
+        dqrPacsTab:
+            kind: tab
+            name: dqrPacsTab
+            label: Administer PACS
+            group: dqrTabGroup
+            active: false
+            contents:
+              ${dqrPacsPanel}

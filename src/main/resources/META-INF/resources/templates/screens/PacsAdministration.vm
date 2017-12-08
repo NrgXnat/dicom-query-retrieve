@@ -1,11 +1,11 @@
 #* @vtlvariable name="strategies" type="java.util.Map" *#
-#* @vtlvariable name="strategy" type="org.nrg.tip.dicom.strategy.orm.OrmStrategy" *#
+#* @vtlvariable name="strategy" type="org.nrg.dqr.dicom.strategy.orm.OrmStrategy" *#
 #* @vtlvariable name="strategyEntry" type="java.util.Map.Entry" *#
 #* @vtlvariable name="strategyId" type="java.lang.String" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 <!-- BEGIN templates/screens/PacsAdministration.vm -->
 
-<script type="text/javascript" src="$content.getURI("scripts/tip/PacsAdministration.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/PacsAdministration.js")"></script>
 
 <h2 class="edit_header1">PACS Administration</h2>
 

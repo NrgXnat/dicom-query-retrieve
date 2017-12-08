@@ -1,6 +1,6 @@
 /*
  * org.nrg.xnat.restlet.extensions.PacsSeriesImporter
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -14,14 +14,13 @@ package org.nrg.xnat.restlet.extensions;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.tip.dicom.command.cmove.CMoveFailureException;
-import org.nrg.tip.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.tip.domain.Series;
-import org.nrg.tip.domain.Study;
-import org.nrg.tip.domain.entities.Pacs;
+import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
+import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
+import org.nrg.dqr.domain.Series;
+import org.nrg.dqr.domain.Study;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xft.XFT;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;

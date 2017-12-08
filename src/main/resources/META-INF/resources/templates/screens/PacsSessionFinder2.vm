@@ -1,11 +1,11 @@
 #* @vtlvariable name="projects" type="java.util.ArrayList" *#
 #* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
-#* @vtlvariable name="pacs" type="org.nrg.tip.domain.entities.Pacs" *#
+#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
 
-<script type="text/javascript" src="$content.getURI("scripts/tip/PacsSeriesFinder2.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>

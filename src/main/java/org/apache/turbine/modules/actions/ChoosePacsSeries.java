@@ -1,6 +1,6 @@
 /*
  * ChoosePacsSeries
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -19,15 +19,15 @@ import javax.jms.Destination;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.tip.domain.Series;
-import org.nrg.tip.messaging.PacsSeriesImportRequest;
-import org.nrg.tip.messaging.PacsStudyImportRequest;
+import org.nrg.dqr.domain.Series;
+import org.nrg.dqr.messaging.PacsSeriesImportRequest;
+import org.nrg.dqr.messaging.PacsStudyImportRequest;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.springframework.jms.core.JmsTemplate;
 
-public class ChoosePacsSeries extends TipSecureAction {
+public class ChoosePacsSeries extends DqrSecureAction {
 
     @Override
     public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {

@@ -1,6 +1,6 @@
 /*
  * org.apache.turbine.modules.screens.ExportSessionToPacs
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -15,8 +15,8 @@ package org.apache.turbine.modules.screens;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.tip.domain.entities.Pacs;
-import org.nrg.tip.services.PacsEntityService;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatMrsessiondata;

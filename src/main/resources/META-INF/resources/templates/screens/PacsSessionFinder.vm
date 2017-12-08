@@ -2,24 +2,24 @@
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 <!-- BEGIN templates/screens/PacsSessionFinder.vm -->
 
-<link rel="stylesheet" type="text/css" href="$content.getURI("style/tip/PacsSessionFinder.css")">
-<link rel="stylesheet" type="text/css" href="$content.getURI("style/tip/PacsSeriesFinder.css")">
+<link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSessionFinder.css")">
+<link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSeriesFinder.css")">
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css"/>
 
-<script type="text/javascript" src="$content.getURI("scripts/tip/PacsSessionFinder.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/tip/PacsSeriesFinder.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSessionFinder.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder.js")"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 <script type="text/javascript" src="https://code.jquery.com/ui/1.9.2/jquery-ui.min.js"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
-<script type="text/javascript" src="$content.getURI("scripts/tip/datejs.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/tip/StudyDatePicker.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/tip/CustomDataTablesFilters.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/datejs.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/StudyDatePicker.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/dqr/CustomDataTablesFilters.js")"></script>
 
 <script type="text/javascript">
     jq(document).ready(function () {
         if (window.pacsSessionFinder == undefined) {
-            window.pacsSessionFinder = new PacsSessionFinder("sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", "$content.getURI("images/tip/")");
+            window.pacsSessionFinder = new PacsSessionFinder("sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", "$content.getURI("images/dqr/")");
         }
 
         jq("#searchButton").click(function (event) {
@@ -38,7 +38,7 @@
         });
 
         if (window.studyDatePicker == undefined) {
-            window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday", "$content.getURI("images/tip/")");
+            window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday", "$content.getURI("images/dqr/")");
         }
 
         var searchValidationRules = window.studyDatePicker.getStudyDateValidationRules();

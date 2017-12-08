@@ -1,6 +1,6 @@
 /*
  * org.nrg.xnat.restlet.extensions.PacsServiceResource
- * TIP is developed by the Neuroinformatics Research Group
+ * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
  * All Rights Reserved
@@ -15,18 +15,17 @@ package org.nrg.xnat.restlet.extensions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.tip.domain.Study;
-import org.nrg.tip.domain.TipDomainObject;
-import org.nrg.tip.domain.entities.Pacs;
-import org.nrg.tip.dto.PacsSearchResults;
-import org.nrg.tip.restlet.NullValueSerializer;
-import org.nrg.tip.services.PacsEntityService;
-import org.nrg.tip.services.PacsService;
+import org.nrg.dqr.domain.Study;
+import org.nrg.dqr.domain.DqrDomainObject;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.dqr.restlet.NullValueSerializer;
+import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xft.XFT;
 import org.nrg.xnat.restlet.resources.SecureResource;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -71,7 +70,7 @@ public abstract class PacsServiceResource extends SecureResource {
         getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, message);
     }
 
-    protected Representation jsonRepresentation(final TipDomainObject result, final Class<?> serializationView) {
+    protected Representation jsonRepresentation(final DqrDomainObject result, final Class<?> serializationView) {
         try {
             Representation r = new StringRepresentation("{\"ResultSet\":{\"Result\":"
                     + getObjectMapper().writerWithView(serializationView).writeValueAsString(result) + ", \"limited\": \""
@@ -122,7 +121,7 @@ public abstract class PacsServiceResource extends SecureResource {
         context.put("pacs", getPacs());
         context.put("adminEmail", adminEmail);
         TurbineUtils.GetFullServerPath(getHttpServletRequest());
-        final String body = AdminUtils.populateVmTemplate(context, "/screens/tip/email/" + template + ".vm");
+        final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
         XDAT.getMailService().sendHtmlMessage(adminEmail, getUser().getEmail(), subject, body);
     }
 
