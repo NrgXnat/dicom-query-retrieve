@@ -58,7 +58,7 @@
                         </tr>
                         <tr>
                             <td style="font-weight:bold;">Accession Number:</td>
-                            <td><a href="${SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.label</a></td>
+                            <td><a href="$!{SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.label</a></td>
                         </tr>
                     </table>
                 </div>
