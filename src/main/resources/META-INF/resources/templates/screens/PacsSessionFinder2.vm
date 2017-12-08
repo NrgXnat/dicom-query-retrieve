@@ -76,9 +76,9 @@
                                     ##if($data.getSession().getAttribute("user").canEdit($proj))
                                     ##if($proj.canEdit($data.getSession().getAttribute("user")))
                                     #if($proj.canEdit($data.getSession().getAttribute("user")))
-                                        <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/name")</option>
+                                        <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
                                     #else
-                                        <option disabled>$proj.getStringProperty("xnat:projectData/name")</option>
+                                        <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
                                     #end
                                 #end
                             </select>

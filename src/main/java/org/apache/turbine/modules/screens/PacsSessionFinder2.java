@@ -19,12 +19,26 @@ import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class PacsSessionFinder2 extends SecureScreen {
 
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
         ArrayList<XnatProjectdata> projects = XnatProjectdata.getAllXnatProjectdatas(TurbineUtils.getUser(data), true);
+        Comparator<XnatProjectdata> projRunningTitleComparator
+                = new Comparator<XnatProjectdata>() {
+            public int compare(XnatProjectdata p1, XnatProjectdata p2) {
+                String run1 = p1.getSecondaryId().toUpperCase();
+                String run2 = p2.getSecondaryId().toUpperCase();
+                return run1.compareTo(run2);
+            }
+
+        };
+        Collections.sort(projects,projRunningTitleComparator);
         context.put("projects", projects);
     }
+
 }

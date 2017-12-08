@@ -79,9 +79,9 @@
                     #foreach($scan in $scans)
                         ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
                         <tr>
-                            <td><input type="checkbox" id="scan-$scan.id" name="scansToExport" value="$scan.id" /></td>
-                            <td class="sorting_1">$scan.id</td>
-                            <td>$scan.seriesDescription</td>
+                            <td><input type="checkbox" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
+                            <td class="sorting_1">$!scan.id</td>
+                            <td>$!scan.seriesDescription</td>
                             #set($scanType = $!scan.xSIType)
                             #if($scanType == "xnat:mrScanData")
                                 <td>$!scan.getProperty("parameters.sequence")</td>
