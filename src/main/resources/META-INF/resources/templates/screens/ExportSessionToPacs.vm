@@ -50,15 +50,15 @@
                     <table id="studyInfoTable" style="border:none;">
                         <tr>
                             <td style="font-weight:bold;">Patient:</td>
-                            <td id="patientName">$session.dcmpatientname</td>
+                            <td id="patientName">$!session.dcmpatientname</td>
                         </tr>
                         <tr>
                             <td style="font-weight:bold;">Study Date:</td>
-                            <td>$session.getDate()</td>
+                            <td>$!session.getDate()</td>
                         </tr>
                         <tr>
                             <td style="font-weight:bold;">Accession Number:</td>
-                            <td><a href="${SITE_ROOT}/REST/experiments/$session.id?format=html">$session.label</a></td>
+                            <td><a href="${SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.label</a></td>
                         </tr>
                     </table>
                 </div>
