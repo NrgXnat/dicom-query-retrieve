@@ -19,6 +19,7 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
+import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -41,7 +42,7 @@ public class ExportSessionToPacs extends SecureScreen {
         }
         context.put("pacsList", pacsList);
 
-        final XnatMrsessiondata session = XnatMrsessiondata.getXnatMrsessiondatasById(sessionId, TurbineUtils.getUser(data), false);
+        final XnatImagesessiondata session = XnatImagesessiondata.getXnatImagesessiondatasById(sessionId, TurbineUtils.getUser(data), false);
         if (session == null) {
             context.put("message", "There was no session associated with the requested session ID: " + sessionId);
             return;
