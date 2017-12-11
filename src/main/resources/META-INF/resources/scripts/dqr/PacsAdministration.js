@@ -197,10 +197,10 @@ XNAT.app.PacsAdministration = ( function () {
             .th({ addClass: 'left', html: '<b>ID</b>' })
             .th('<b>AE Title</b>')
             .th('<b>Host</b>')
-            .th('<b>Q/R Port</b>')
-            .th('<b>Storage Port</b>')
-            .th('<b>Q/R Default</b>')
-            .th('<b>Storage Default</b>')
+            .th('<b>Q/R<br>Port</b>')
+            .th('<b>Storage<br>Port</b>')
+            .th('<b>Q/R<br>Default</b>')
+            .th('<b>Storage<br>Default</b>')
             .th('<b>Actions</b>');
 
         function showDefault(setting){
@@ -215,6 +215,9 @@ XNAT.app.PacsAdministration = ( function () {
             return spawn('button',{ className: 'btn deleteRow', title: 'Delete This DICOM AE Connection' },[
                 spawn('i', {className: 'fa fa-trash' })
             ]);
+        }
+        function displayLongLabel(label){
+            return spawn('span.truncate', { style: { 'width': '120px' }, title: label }, label);
         }
 
         // add data rows
@@ -237,12 +240,12 @@ XNAT.app.PacsAdministration = ( function () {
                     }
                 })
                     .td({ addClass: 'right' }, ae.id )
-                    .td( ae.aeTitle )
-                    .td( ae.host )
+                    .td([ displayLongLabel(ae.aeTitle) ])
+                    .td([ displayLongLabel(ae.host) ])
                     .td( ae.queryRetrievePort )
                     .td( ae.storagePort )
-                    .td([ showDefault(ae.defaultQueryRetrievePacs) ])
-                    .td([ showDefault(ae.defaultStoragePacs) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.defaultQueryRetrievePacs) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.defaultStoragePacs) ])
                     .td([ editButton(), spawn('!',' '), deleteButton() ]);
             })
 
