@@ -112,7 +112,7 @@ XNAT.app.PacsAdministration = ( function () {
                     ])
                 );
 
-                if (pacs && doWhat === 'Modify') {
+                if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
                 }
                 else {
@@ -127,9 +127,9 @@ XNAT.app.PacsAdministration = ( function () {
                     close: true,
                     action: function(obj){
                         var $form = obj.$modal.find('form');
-                        (doWhat === 'Create') ?
-                            addPacs($form) :
-                            editPacs($form);
+                        (doWhat.toLowerCase() === 'modify') ?
+                            editPacs($form) :
+                            addPacs($form);
                     }
                 },
                 {
