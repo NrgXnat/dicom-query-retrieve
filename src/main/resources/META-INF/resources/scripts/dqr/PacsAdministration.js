@@ -14,6 +14,8 @@
 
 console.log('PacsAdministration.js');
 
+XNAT.app.PacsList = [];
+
 XNAT.app.PacsAdministration = ( function () {
     "use strict";
 
@@ -77,7 +79,8 @@ XNAT.app.PacsAdministration = ( function () {
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'aeTitle',
-                            label: 'AE Title'
+                            label: 'AE Title',
+                            className: 'aeTitle-input'
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'host',
@@ -124,9 +127,21 @@ XNAT.app.PacsAdministration = ( function () {
                 {
                     label: 'Save',
                     isDefault: true,
-                    close: true,
+                    close: false,
                     action: function(obj){
                         var $form = obj.$modal.find('form');
+
+                        // validate AE title
+                        var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
+                        if (XNAT.app.PacsList.indexOf(submittedAeTitle) >= 0) {
+                            xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
+                            $form.find('input[name=aeTitle]').addClass('invalid');
+                            return false;
+                        }
+                        else {
+                            XNAT.ui.dialog.closeAll();
+                        }
+
                         (doWhat.toLowerCase() === 'modify') ?
                             editPacs($form) :
                             addPacs($form);
@@ -139,6 +154,10 @@ XNAT.app.PacsAdministration = ( function () {
             ]
         })
     }
+
+    $('.aeTitle-input').on('blur',function(){
+        $(this).removeClass('invalid');
+    });
 
     function bindAddButtonHandler() {
         var addButtonHandler = function () {
@@ -182,7 +201,10 @@ XNAT.app.PacsAdministration = ( function () {
 
     function showPacs(data) {
         var pacsTableData = data.ResultSet.Result;
+
+        // intialize PACS table container and PACS list
         $(constants.PACS_DIV).empty();
+        XNAT.app.PacsList = [];
 
         var pacsTable = XNAT.table({
             className: 'xnat-table',
@@ -226,6 +248,10 @@ XNAT.app.PacsAdministration = ( function () {
                 return (a.id > b.id) ? 1 : -1;
             });
             pacsTableData.forEach(function(ae){
+                // add AE Title to Pacs List
+                XNAT.app.PacsList.push(ae.aeTitle.toLowerCase());
+
+                // populate table row
                 pacsTable.tr({
                     data: {
                         id: ae.id,
