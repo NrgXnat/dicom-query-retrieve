@@ -14,30 +14,38 @@
         $('#sendToPacs').on('click',function(e){
             e.preventDefault();
             var destination = $(this).prop('href');
+
+            function noPacsErrorMsg(){
+                XNAT.ui.dialog.open({
+                    title: 'Cannot Send To DICOM Destination',
+                    width: 400,
+                    content: spawn('p',[
+                        spawn('strong','Error:'),
+                        spawn('span',' Cannot send to PACS. No DICOM AE connections have been enabled on this XNAT instance. Please contact your XNAT Administrator to resolve this.')
+                    ]),
+                    buttons: [
+                        {
+                            label: 'OK',
+                            isDefault: true,
+                            close: true
+                        }
+                    ]
+                });
+            }
+
             XNAT.xhr.getJSON({
-                url: XNAT.url.rootUrl('/data/pacs'),
-                success: function(data){
-                    if (data.length > 0) {
-                        window.location.assign(destination);
-                    } else {
-                        XNAT.ui.dialog.open({
-                            title: 'Cannot Send To DICOM Destination',
-                            width: 400,
-                            content: spawn('p',[
-                                    spawn('strong','Error:'),
-                                    spawn('span',' Cannot send to PACS. No DICOM AE connections have been enabled on this XNAT instance. Please contact your XNAT Administrator to resolve this.')
-                            ]),
-                            buttons: [
-                                {
-                                    label: 'OK',
-                                    isDefault: true,
-                                    close: true
-                                }
-                            ]
-                        })
-                    }
-                }
+                url: XNAT.url.rootUrl('/data/pacs')
             })
+                    .success(function(data){
+                        if (data.ResultSet.Result.length > 0) {
+                            window.location.assign(destination);
+                        } else {
+                            noPacsErrorMsg();
+                        }
+                    })
+                    .fail(function(){
+                        noPacsErrorMsg();
+                    })
         });
     </script>
     <!-- END /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
