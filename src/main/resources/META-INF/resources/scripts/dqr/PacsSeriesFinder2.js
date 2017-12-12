@@ -113,8 +113,8 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         jq("#" + seriesSearchResultsCheckAllButtonId).removeAttr("disabled");
 
         // after table has rendered add "Select All" checkbox
-        var selectAll = '<label><input type="checkbox" id="selectAll" onclick="DQR.selectAllHandler()" /> <span>Select All</span></label>';
-        jq("#pacsSeriesFinderDivTable").find("thead").find("th").first().append(selectAll);
+        var selectAll = '<input type="checkbox" id="selectAll" onclick="DQR.selectAllHandler()" />';
+        jq("#pacsSeriesFinderDivTable").find("thead").find("th").first().addClass("left").append(selectAll);
 
         closeModalPanel(this.constants.MODAL_WINDOW_NAME);
     };
@@ -194,14 +194,12 @@ DQR.selectAllHandler = function(baseElement) {
             // if none or some checkboxes are selected, select all
             $(baseElement).prop('checked', 'checked');
             $(selectAll)
-                .prop('indeterminate', false)
-                .next().html('Deselect All');
+                .prop('indeterminate', false);
         } else {
             // otherwise, deselect all
             $(baseElement).prop('checked', false);
             $(selectAll)
-                .prop('indeterminate', false)
-                .next().html('Select All');
+                .prop('indeterminate', false);
         }
     } else {
         baseElement = 'input[name='+ $(baseElement).prop('name') + ']';
@@ -209,8 +207,7 @@ DQR.selectAllHandler = function(baseElement) {
         // place Select All button in a default state.
         $(selectAll)
             .prop('checked', false)
-            .prop('indeterminate', true)
-            .next().html('Select All');
+            .prop('indeterminate', true);
 
         // compare the number of checked checkboxes to N number of checkboxes. '0' = an unchecked, determinate state for Select All. 'N' = a fully checked, determinate state for Select All.
         if (document.querySelectorAll(baseElement+':checked').length === 0) {
@@ -219,8 +216,7 @@ DQR.selectAllHandler = function(baseElement) {
         } else if (document.querySelectorAll(baseElement+':checked').length === document.querySelectorAll(baseElement).length) {
             $(selectAll)
                 .prop('indeterminate', false)
-                .prop('checked', 'checked')
-                .next().html('Deselect All');
+                .prop('checked', 'checked');
         }
     }
 };
