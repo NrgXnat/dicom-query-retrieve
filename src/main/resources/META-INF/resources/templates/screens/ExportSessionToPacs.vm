@@ -43,9 +43,6 @@
                         #end
                     </select>
                 </p>
-                <p>
-                    <label><input id="dqrPushSetting" type="checkbox" #if(${siteConfig.dqrPushPreference} == "true") checked #end /> Enable original scans to be sent</label>
-                </p>
                 <input type="hidden" id="session" name="session" value="$session.id"/>
             </div>
             <div class="inputWrapper">
@@ -56,7 +53,7 @@
                         <td id="patientName">$!session.dcmpatientname</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForMRSession() Date:</td>
+                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForImageSession() Date:</td>
                         <td>$!session.getDate()</td>
                     </tr>
                     <tr>
@@ -104,8 +101,10 @@
                     <em>Note: Scans that were a part of the originally imported session have been excluded.</em>
                 </div>
             </div>
-
-            <button id="submitScansToPacs" class="btn1" onclick="jq('#editPacsForm').submit()">Send Selected Series to PACS</button>
+            <p>
+                <label><input id="dqrPushSetting" type="checkbox" #if(${siteConfig.dqrPushPreference} == "true") checked #end /> Enable original scans to be sent</label>
+            </p>
+            <p><button id="submitScansToPacs" class="btn1">Send Selected Series to PACS</button></p>
         </div>
     </form>
 
@@ -129,6 +128,25 @@
         var enableAllScans = '${siteConfig.dqrPushPreference}';
 
         var originalScans = [];
+
+        jq('#submitScansToPacs').on('click',function(e){
+            e.preventDefault();
+            var scansToSubmit = [];
+
+            jq('#editPacsForm').find('input[name=scansToExport]').not(':disabled').each(function(){
+            if (jq(this).prop('checked')) {
+                scansToSubmit.push(jq(this).val());
+            }
+            });
+
+            if (scansToSubmit.length > 0) {
+                jq('#editPacsForm').submit();
+            }
+            else {
+                xmodal.message('Error', "<p>Please select a valid scan to send.</p>", 'OK');
+            }
+
+        });
 
         function getSessionId() {
             var urlParams = window.location.search.substring(1).split('&'),

@@ -12,6 +12,8 @@
 
 /*jslint white: true, browser: true, vars: true */
 
+console.log('SendToPacs.js');
+
 XNAT.app.SendToPacs = function (pacsId, sessionId, scanIds) {
 
     try {
