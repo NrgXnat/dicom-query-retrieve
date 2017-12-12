@@ -7,8 +7,39 @@
     </ul>
     <ul>
     <li class="yuimenuitem">
-        <a href="$destination")">Send to PACS</a>
+        <a href="$destination")" id="sendToPacs">Send to PACS</a>
     </li>
+
+    <script>
+        $('#sendToPacs').on('click',function(e){
+            e.preventDefault();
+            var destination = $(this).prop('href');
+            XNAT.xhr.getJSON({
+                url: XNAT.url.rootUrl('/data/pacs'),
+                success: function(data){
+                    if (data.length > 0) {
+                        window.location.assign(destination);
+                    } else {
+                        XNAT.ui.dialog.open({
+                            title: 'Cannot Send To DICOM Destination',
+                            width: 400,
+                            content: spawn('p',[
+                                    spawn('strong','Error:'),
+                                    spawn('span',' Cannot send to PACS. No DICOM AE connections have been enabled on this XNAT instance. Please contact your XNAT Administrator to resolve this.')
+                            ]),
+                            buttons: [
+                                {
+                                    label: 'OK',
+                                    isDefault: true,
+                                    close: true
+                                }
+                            ]
+                        })
+                    }
+                }
+            })
+        });
+    </script>
     <!-- END /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
 #else
 </ul>
