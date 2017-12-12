@@ -71,7 +71,7 @@
     });
 </script>
 
-<h2 class="edit_title">Import Images from PACS</h2>
+<h2 class="edit_title">Import DICOM Images</h2>
 <form id="sessionSearchForm" class="friendlyForm mini">
     <fieldset id="searchFormControls">
         <!--  left column -->

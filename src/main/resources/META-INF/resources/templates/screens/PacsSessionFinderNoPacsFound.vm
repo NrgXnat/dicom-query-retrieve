@@ -1,7 +1,7 @@
 <!-- BEGIN templates/screens/PacsSessionFinderNoPacsFound.vm -->
 
-<DIV class="edit_title">Import Images from PACS</DIV><br/>
+<h2 class="edit_title">Import DICOM Images</h2>
 
-There are no PACS registered with the system.  Please ask your system administrator to set up a PACS.
+<p>There are no queryable DICOM AEs registered with the system.  Please ask your system administrator to set this up.</p>
 
 <!-- END templates/screens/PacsSessionFinderNoPacsFound.vm -->
