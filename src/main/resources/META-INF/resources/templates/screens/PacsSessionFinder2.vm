@@ -59,81 +59,76 @@
 #else
 
     <form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
-        <fieldset>
-            <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
-                <div class="inputWrapper">
-                    <h4>Select Destination for Import</h4>
-                    <div id="pacsSeriesProjectSelector">
-                        #if($projects.size() == 1)
-                            #set($project = $projects.get(0))
-                            <p><strong>Project:</strong> ${project.name}</p>
-                            <input type="hidden" id="project" name="project" value="${project.id}"/>
-                        #else
-                            <label for="project" class="select_label"><b>${displayManager.getSingularDisplayNameForProject()}:</b></label>
-                            <select id="project" id="project" name="project" style="min-width:200px;">
-                                <option disabled>(Select Project)</option>
-                                #foreach($proj in $projects)
-                                    ##if($data.getSession().getAttribute("user").canEdit($proj))
-                                    ##if($proj.canEdit($data.getSession().getAttribute("user")))
-                                    #if($proj.canEdit($data.getSession().getAttribute("user")))
-                                        <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                                    #else
-                                        <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                                    #end
+        <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
+            <div class="inputWrapper">
+                <h4>Select Destination for Import</h4>
+                <div id="pacsSeriesProjectSelector">
+                    #if($projects.size() == 1)
+                        #set($project = $projects.get(0))
+                        <p><strong>Project:</strong> ${project.name}</p>
+                        <input type="hidden" id="project" name="project" value="${project.id}"/>
+                    #else
+                        <label for="project" class="select_label"><b>${displayManager.getSingularDisplayNameForProject()}:</b></label>
+                        <select id="project" id="project" name="project" style="min-width:200px;">
+                            <option disabled>(Select Project)</option>
+                            #foreach($proj in $projects)
+                                #if($proj.canEdit($data.getSession().getAttribute("user")))
+                                    <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
+                                #else
+                                    <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
                                 #end
-                            </select>
-                            <script>
-                            /*    jq.getJSON("/data/archive/projects?format=json&accessible=true",function(data){
-                                    for (i=0, j=data.ResultSet.Result.length; i<j; i++) {
-                                        var opt="<option value='"+data.ResultSet.Result[i].id+"'>"+data.ResultSet.Result[i].name+"</option>";
-                                        jq("#project").append(opt);
-                                    }
-                                }); */
-                            </script>
-                        #end
-                    </div>
-                </div>
-                <div class="inputWrapper">
-                    <h4>Patient Info</h4>
-                    <table id="studyInfoTable" style="border:none;">
-                        <tr>
-                            <td style="font-weight:bold;">Patient:</td>
-                            <td>$!study.getPatient().getName().getLastNameCommaFirstName()</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:bold;">Study:</td>
-                            <td>$!study.getStudyDescription()</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:bold;">Study Date:</td>
-                            <td>$!study.getStudyDateFormattedAs("MM/dd/yyyy")</td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:bold;">Accession Number:</td>
-                            <td>$!study.getAccessionNumber()</td>
-                        </tr>
-                        <!-- <tr>
-                            <td style="font-weight:bold;">Referring Physician:</td>
-                            <td>$!study.getReferringPhysicianName().getLastNameCommaFirstName()</td>
-                        </tr> -->
-                    </table>
+                            #end
+                        </select>
+                        <script>
+                        /*    jq.getJSON("/data/archive/projects?format=json&accessible=true",function(data){
+                                for (i=0, j=data.ResultSet.Result.length; i<j; i++) {
+                                    var opt="<option value='"+data.ResultSet.Result[i].id+"'>"+data.ResultSet.Result[i].name+"</option>";
+                                    jq("#project").append(opt);
+                                }
+                            }); */
+                        </script>
+                    #end
                 </div>
             </div>
-
-            <div style="display: inline-block; vertical-align: top; width: 640px;">
-                <!--
-                for some reason if you don't have this extra wrapper here,
-                jQuery wipes out the submit button when emptying the div
-                -->
-                <div id="pacsSeriesFinderWrapperDiv">
-                    <div id="pacsSeriesFinderDiv" style="margin-bottom:15px;"/>
-                </div>
-                <div id="pacsSeriesFinderFooter"/>
-                <button class="btn1" id="pacsSeriesFinderSubmit" name="pacsSeriesFinderSubmit" onclick="requestSelectedSeries(); return false;">Request Selected Series</button>
-                <span id="validationErrorMessageHolder" style="color:red;"/>
+            <div class="inputWrapper">
+                <h4>$displayManager.getSingularDisplayNameForSubject() Info</h4>
+                <table id="studyInfoTable" style="border:none;">
+                    <tr>
+                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForSubject():</td>
+                        <td>$!study.getPatient().getName().getLastNameCommaFirstName()</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()}:</td>
+                        <td>$!study.getStudyDescription()</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()} Date:</td>
+                        <td>$!study.getStudyDateFormattedAs("MM/dd/yyyy")</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:bold;">Accession Number:</td>
+                        <td>$!study.getAccessionNumber()</td>
+                    </tr>
+                    <!-- <tr>
+                        <td style="font-weight:bold;">Referring Physician:</td>
+                        <td>$!study.getReferringPhysicianName().getLastNameCommaFirstName()</td>
+                    </tr> -->
+                </table>
             </div>
-        </fieldset>
+        </div>
 
+        <div style="display: inline-block; vertical-align: top; width: 640px;">
+            <!--
+            for some reason if you don't have this extra wrapper here,
+            jQuery wipes out the submit button when emptying the div
+            -->
+            <div id="pacsSeriesFinderWrapperDiv">
+                <div id="pacsSeriesFinderDiv" style="margin-bottom:15px;"/>
+            </div>
+            <div id="pacsSeriesFinderFooter"/>
+            <button class="btn1" id="pacsSeriesFinderSubmit" name="pacsSeriesFinderSubmit" onclick="requestSelectedSeries(); return false;">Request Selected Series</button>
+            <span id="validationErrorMessageHolder" style="color:red;"/>
+        </div>
 
     </form>
 

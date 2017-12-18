@@ -18,7 +18,7 @@
     .friendlyForm label { text-transform: none; }
 </style>
 
-<h2 class="edit_title" style="text-transform: capitalize">Export $displayManager.getSingularDisplayNameForSubject() Study $session.label to PACS</h2>
+<h2 class="edit_title" style="text-transform: capitalize">Export ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} $session.label to PACS</h2>
 
 #if($message)
     <div class="error">$message</div>
@@ -46,14 +46,14 @@
                 <input type="hidden" id="session" name="session" value="$session.id"/>
             </div>
             <div class="inputWrapper">
-                <h4 style="text-transform: capitalize">$displayManager.getSingularDisplayNameForSubject() Study Info</h4>
+                <h4 style="text-transform: capitalize">${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} Info</h4>
                 <table id="studyInfoTable" style="border:none;">
                     <tr>
-                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForSubject():</td>
+                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForSubject()}:</td>
                         <td id="patientName">$!session.dcmpatientname</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForImageSession() Date:</td>
+                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()} Date:</td>
                         <td>$!session.getDate()</td>
                     </tr>
                     <tr>
@@ -126,6 +126,7 @@
         }
     }(function(){
         var enableAllScans = '${siteConfig.dqrPushPreference}';
+        if (typeof jq === 'undefined') var jq = jQuery;
 
         var originalScans = [];
 

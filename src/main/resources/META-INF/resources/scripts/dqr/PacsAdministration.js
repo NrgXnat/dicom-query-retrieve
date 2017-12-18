@@ -60,6 +60,8 @@ XNAT.app.PacsAdministration = ( function () {
     function editPacsDialog(pacs) {
         pacs = pacs || {};
         var doWhat = Object.keys(pacs).length ? 'Modify' : 'Add New';
+        var originalPacsLabel = (pacs.aeTitle) ? pacs.aeTitle.toLowerCase() : false;
+
         XNAT.dialog.open({
             title: doWhat + ' DICOM AE Connection ',
             width: 600,
@@ -133,7 +135,7 @@ XNAT.app.PacsAdministration = ( function () {
 
                         // validate AE title
                         var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
-                        if (XNAT.app.PacsList.indexOf(submittedAeTitle) >= 0) {
+                        if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && XNAT.app.PacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
                             $form.find('input[name=aeTitle]').addClass('invalid');
                             return false;
