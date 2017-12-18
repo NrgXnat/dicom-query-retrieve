@@ -32,7 +32,6 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aeTitle"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @PortNotNullIfDefaultPacs
-@AtLeastOnePortNotNull
 public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
