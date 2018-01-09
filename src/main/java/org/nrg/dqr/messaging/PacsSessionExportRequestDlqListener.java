@@ -15,6 +15,7 @@ package org.nrg.dqr.messaging;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,7 @@ public class PacsSessionExportRequestDlqListener {
                             user.getEmail()
                     }, new String[]{
                                     XDAT.getSiteConfigPreferences().getAdminEmail()
-                    }, "PACS Session Export Request FAILED",
+                    }, "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request FAILED",
                             "Sorry!  The system was unable to export the study you requested to the PACS.  We're looking into it...");
         } catch (final UserNotFoundException e) {
             // not much to do here - was their account deleted since they made the request?

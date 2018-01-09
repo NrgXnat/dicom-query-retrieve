@@ -15,6 +15,7 @@ package org.nrg.dqr.messaging;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class PacsStudyImportRequestDlqListener {
         try {
             final XDATUser user = new XDATUser(pacsStudyImportRequest.getRequestingUser().getLogin());
             XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), new String[] { user.getEmail() }, new String[] { XDAT.getSiteConfigPreferences().getAdminEmail() },
-                    "PACS Study Import Request FAILED", "Sorry!  The system was unable to import the study you requested from the PACS.  We're looking into it...");
+                    "[" + TurbineUtils.GetSystemName()+"] PACS Study Import Request FAILED", "Sorry!  The system was unable to import the study you requested from the PACS.  We're looking into it...");
         } catch (final UserNotFoundException e) {
             // not much to do here - was their account deleted since they made the request?
             log.error(String.format("User %s queued up a PACS import request, but their user account cannot be found to send them a failure email.",

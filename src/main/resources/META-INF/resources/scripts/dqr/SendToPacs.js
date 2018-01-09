@@ -50,7 +50,7 @@ XNAT.app.SendToPacs = function (pacsId, sessionId, scanIds) {
 
     this.exportSuccess = function() {
         xmodal.loading.close();
-        xmodal.message(sessionId + ' Sent', 'The request to store your session to the requested PACS system has been sent.', 'OK');
+        xmodal.message(sessionId + ' Sent', 'The request to store your session to the requested PACS has been sent.', 'OK');
     };
 
     this.exportFailure = function(results) {

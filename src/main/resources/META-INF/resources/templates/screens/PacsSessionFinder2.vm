@@ -22,7 +22,7 @@
         var selectedSeriesControls = jq("input[name=selectedSeries]:checked");
         var project = jq("#project").val();
         if (!selectedSeriesControls || selectedSeriesControls.length == 0) {
-            xmodal.message('No series selected', 'You have to select at least one series before you can request that it be retrieved from the selected PACS system.', 'OK');
+            xmodal.message('No series selected', 'You have to select at least one series before you can request that it be retrieved from the selected PACS.', 'OK');
         } else if (project == "") {
             xmodal.message('No project selected', 'You need to select a project to which the requested series can be assigned.', 'OK');
         } else {

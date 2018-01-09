@@ -21,6 +21,7 @@ import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
@@ -45,7 +46,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
         super(context, request, response);
         _studyId = getBodyVariable("STUDY_ID");
         if (StringUtils.isBlank(_studyId)) {
-            response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, new RuntimeException("For the best level of compatibility across PACS systems, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series."), "For the best level of compatibility across PACS systems, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series.");
+            response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, new RuntimeException("For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series."), "For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series.");
         }
         final String seriesId = (String) getParameter(getRequest(), "SERIES_ID");
         if (!StringUtils.isBlank(seriesId)) {

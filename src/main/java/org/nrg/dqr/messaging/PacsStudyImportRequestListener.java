@@ -17,6 +17,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
@@ -52,7 +53,7 @@ public class PacsStudyImportRequestListener {
         try {
             final XDATUser user = new XDATUser(request.getRequestingUser().getLogin());
             XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
-                    "PACS Study Import Request Complete",
+                    "[" + TurbineUtils.GetSystemName()+"] PACS Study Import Request Complete",
                     "The study you requested from the PACS has been successfully imported.");
             final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_COMPLETE");
             PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, request.getStudy().getStudyId(), request.getStudy().getProjectId(), eventDetails);

@@ -3,7 +3,7 @@
 #* @vtlvariable name="adminEmail" type="java.lang.String" *#
 #* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
 <p>
-    Your requested DICOM series were imported from the PACS system $pacs.aeTitle on port $pacs.queryRetrievePort. Once
+    Your requested DICOM series were imported from the PACS $pacs.aeTitle on port $pacs.queryRetrievePort. Once
     transferred, your DICOM series will be available as a new XNAT session in the <a href="$prearchive">system
     prearchive</a>. The following DICOM series were requested:
 </p>

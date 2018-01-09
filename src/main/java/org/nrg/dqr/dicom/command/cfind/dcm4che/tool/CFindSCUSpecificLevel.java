@@ -71,7 +71,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     /**
-     * Performs a C-FIND against the select PACS system.
+     * Performs a C-FIND against the select PACS.
      * @param searchCriteria    The search criteria to use for the C-FIND operation.
      * @return The results of the search.
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.

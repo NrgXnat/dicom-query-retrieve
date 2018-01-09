@@ -18,6 +18,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
@@ -56,7 +57,7 @@ public class PacsSessionExportRequestListener {
         try {
             final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
             XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
-                    "PACS Session Export Request Complete",
+                    "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request Complete",
                     "The session you requested has been successfully exported to the PACS.");
             final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_COMPLETE");
             eventDetails.setComment("Series: " + Joiner.on(", ").join(getSeriesIds(pacsSessionExportRequest.getScans())));

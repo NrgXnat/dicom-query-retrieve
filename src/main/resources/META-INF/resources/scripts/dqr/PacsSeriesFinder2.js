@@ -157,7 +157,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
             XNAT.ui.dialog.open({
                 title: 'Selected series requested',
                 width: 540,
-                content: 'The selected series have been requested from the PACS system and should be available in the system prearchive shortly. Contact your PACS administrator if your requested series are not imported in a timely manner.',
+                content: 'The selected series have been requested from the PACS and should be available in the system prearchive shortly. Contact your PACS administrator if your requested series are not imported in a timely manner.',
                 buttons: [
                     {
                         label: 'Go to the Prearchive',

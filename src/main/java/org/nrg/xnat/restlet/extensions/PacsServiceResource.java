@@ -122,7 +122,7 @@ public abstract class PacsServiceResource extends SecureResource {
         context.put("adminEmail", adminEmail);
         TurbineUtils.GetFullServerPath(getHttpServletRequest());
         final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-        XDAT.getMailService().sendHtmlMessage(adminEmail, getUser().getEmail(), subject, body);
+        XDAT.getMailService().sendHtmlMessage(adminEmail, getUser().getEmail(), "[" + TurbineUtils.GetSystemName()+"] " + subject, body);
     }
 
     protected Pacs getPacs() throws PacsNotFoundException {
