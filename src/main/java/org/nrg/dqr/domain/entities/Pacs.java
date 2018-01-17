@@ -38,8 +38,13 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     private String _aeTitle;
     private String _host;
+    private String _label;
+
+    private Boolean _queryable;
     private Integer _storagePort;
     private Boolean _defaultStoragePacs;
+
+    private Boolean _storable;
     private Integer _queryRetrievePort;
     private Boolean _defaultQueryRetrievePacs;
     private String _ormStrategySpringBeanId;
@@ -69,6 +74,26 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _host = host;
     }
 
+
+    @Size(max = 100)
+    public String getLabel() {
+        return _label;
+    }
+
+    public void setLabel(final String label) {
+        _label = label;
+    }
+
+    @NotNull
+    @Column(columnDefinition = "boolean default true")
+    public boolean isStorable() {
+        return _storable;
+    }
+
+    public void setStorable(final boolean storable) {
+        _storable = storable;
+    }
+
     public Integer getStoragePort() {
         return _storagePort;
     }
@@ -84,6 +109,16 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     public void setDefaultStoragePacs(final Boolean defaultStoragePacs) {
         _defaultStoragePacs = defaultStoragePacs;
+    }
+
+    @NotNull
+    @Column(columnDefinition = "boolean default true")
+    public boolean isQueryable() {
+        return _queryable;
+    }
+
+    public void setQueryable(final boolean queryable) {
+        _queryable = queryable;
     }
 
     public Integer getQueryRetrievePort() {
@@ -128,8 +163,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host).append(_storagePort)
-                .append(_defaultStoragePacs).append(_queryRetrievePort).append(_defaultQueryRetrievePacs)
+        return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host)
+                .append(_label).append(_storable).append(_storagePort).append(_defaultStoragePacs).append(_queryable)
+                .append(_queryRetrievePort).append(_defaultQueryRetrievePacs)
                 .append(_ormStrategySpringBeanId).toHashCode();
     }
 
@@ -146,8 +182,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         }
         final Pacs other = (Pacs) obj;
         return new EqualsBuilder().append(_aeTitle, other._aeTitle).append(_host, other._host)
+                .append(_label, other._label).append(_storable, other._storable)
                 .append(_storagePort, other._storagePort).append(_defaultStoragePacs, other._defaultStoragePacs)
-                .append(_queryRetrievePort, other._queryRetrievePort)
+                .append(_queryable, other._queryable).append(_queryRetrievePort, other._queryRetrievePort)
                 .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
                 .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
                 .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId).isEquals();
@@ -158,9 +195,12 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         final StringBuilder buffer = new StringBuilder("{ ");
         buffer.append("aeTitle: ").append(_aeTitle).append(", ");
         buffer.append("host: ").append(_host).append(", ");
-        buffer.append("storagePort: ").append(_storagePort).append(", ");
+        buffer.append("label: ").append(_label).append(", ");
+        buffer.append("queryable: ").append(_queryable).append(", ");
         buffer.append("queryRetrievePort: ").append(_queryRetrievePort).append(", ");
         buffer.append("isDefaultQueryRetrievePacs: ").append(_defaultQueryRetrievePacs).append(", ");
+        buffer.append("storable: ").append(_storable).append(", ");
+        buffer.append("storagePort: ").append(_storagePort).append(", ");
         buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
         buffer.append("supportsExtendedNegotiations: ").append(_supportsExtendedNegotiations).append(" }");
         return buffer.toString();

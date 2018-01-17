@@ -59,7 +59,8 @@ public abstract class PacsAdminResource extends SecureResource {
             }
             pacs.setAeTitle(requestForm.getFirstValue("aeTitle"));
             pacs.setHost(requestForm.getFirstValue("host"));
-
+            pacs.setLabel(requestForm.getFirstValue("label"));
+            pacs.setStorable(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("storable"))));
             pacs.setStoragePort(null);
             if (!StringUtils.isBlank(requestForm.getFirstValue("storagePort"))) {
                 pacs.setStoragePort(Integer.valueOf(requestForm.getFirstValue("storagePort")));
@@ -67,6 +68,7 @@ public abstract class PacsAdminResource extends SecureResource {
             pacs.setDefaultStoragePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm
                     .getFirstValue("defaultStoragePacs"))));
 
+            pacs.setQueryable(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("queryable"))));
             pacs.setQueryRetrievePort(null);
             if (!StringUtils.isBlank(requestForm.getFirstValue("queryRetrievePort"))) {
                 pacs.setQueryRetrievePort(Integer.valueOf(requestForm.getFirstValue("queryRetrievePort")));

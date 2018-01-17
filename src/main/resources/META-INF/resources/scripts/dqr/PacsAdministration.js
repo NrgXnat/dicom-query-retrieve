@@ -89,12 +89,8 @@ XNAT.app.PacsAdministration = ( function () {
                             label: 'Host'
                         }),
                         XNAT.ui.panel.input.text({
-                            name: 'queryRetrievePort',
-                            label: 'Q/R Port'
-                        }),
-                        XNAT.ui.panel.input.text({
-                            name: 'storagePort',
-                            label: 'Storage Port'
+                            name: 'label',
+                            label: 'Label'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'extendedNegotiations',
@@ -103,10 +99,30 @@ XNAT.app.PacsAdministration = ( function () {
                             offText: 'Not Supported'
                         }),
                         XNAT.ui.panel.input.switchbox({
+                            name: 'queryable',
+                            label: 'Queryable',
+                            onText: 'Yes',
+                            offText: 'No'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'queryRetrievePort',
+                            label: 'Q/R Port'
+                        }),
+                        XNAT.ui.panel.input.switchbox({
                             name: 'defaultQueryRetrievePacs',
                             label: 'Default Q/R AE',
                             onText: 'Yes',
                             offText: 'No'
+                        }),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'storable',
+                            label: 'Storable',
+                            onText: 'Yes',
+                            offText: 'No'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'storagePort',
+                            label: 'Storage Port'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultStoragePacs',
@@ -221,9 +237,12 @@ XNAT.app.PacsAdministration = ( function () {
             .th({ addClass: 'left', html: '<b>ID</b>' })
             .th('<b>AE Title</b>')
             .th('<b>Host</b>')
+            .th('<b>Label</b>')
+            .th('<b>Queryable</b>')
             .th('<b>Q/R<br>Port</b>')
-            .th('<b>Storage<br>Port</b>')
             .th('<b>Q/R<br>Default</b>')
+            .th('<b>Storable</b>')
+            .th('<b>Storage<br>Port</b>')
             .th('<b>Storage<br>Default</b>')
             .th('<b>Actions</b>');
 
@@ -259,20 +278,26 @@ XNAT.app.PacsAdministration = ( function () {
                         id: ae.id,
                         aeTitle: ae.aeTitle,
                         host: ae.host,
+                        label: ae.label,
+                        queryable: ae.queryable,
                         queryRetrievePort: ae.queryRetrievePort,
-                        storagePort: ae.storagePort,
-                        ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                         defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
+                        storable: ae.storable,
+                        storagePort: ae.storagePort,
                         defaultStoragePacs: ae.defaultStoragePacs,
+                        ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                         supportsExtendedNegotiations: ae.supportsExtendedNegotiations
                     }
                 })
                     .td({ addClass: 'right' }, ae.id )
                     .td([ displayLongLabel(ae.aeTitle) ])
                     .td([ displayLongLabel(ae.host) ])
+                    .td([ displayLongLabel(ae.label) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.queryable) ])
                     .td( ae.queryRetrievePort )
-                    .td( ae.storagePort )
                     .td({ addClass: 'center' },[ showDefault(ae.defaultQueryRetrievePacs) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.storable) ])
+                    .td( ae.storagePort )
                     .td({ addClass: 'center' },[ showDefault(ae.defaultStoragePacs) ])
                     .td([ editButton(), spawn('!',' '), deleteButton() ]);
             })

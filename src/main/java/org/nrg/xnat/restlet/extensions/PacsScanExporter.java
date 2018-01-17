@@ -12,6 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -42,8 +43,13 @@ public class PacsScanExporter extends ScanResource {
 
         if (getScan() != null) {
             try {
-                pacsService.exportSeries(XDAT.getUserDetails(), PacsServiceResource.getPacs(getRequest()), getScan());
-                
+                Pacs pacsToExportTo = PacsServiceResource.getPacs(getRequest());
+                if(pacsToExportTo.isStorable()) {
+                    pacsService.exportSeries(XDAT.getUserDetails(), pacsToExportTo, getScan());
+                }
+                else{
+                    throw new PacsNotStorableException();
+                }
                 final String projectId;
                 if (proj != null) {
                     projectId = proj.getId();
@@ -59,6 +65,8 @@ public class PacsScanExporter extends ScanResource {
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             } catch (final PacsNotFoundException e) {
                 getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified PACS.");
+            } catch (final PacsNotStorableException e) {
+                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
             } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
                 _log.warn("Error creating new workflow event", e);
                 respondToException(e, Status.SERVER_ERROR_INTERNAL);

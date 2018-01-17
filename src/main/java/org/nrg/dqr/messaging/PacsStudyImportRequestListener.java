@@ -32,12 +32,14 @@ public class PacsStudyImportRequestListener {
 
     public void onPacsStudyImportRequest(final PacsStudyImportRequest pacsStudyImportRequest) throws Exception {
         try {
+            //Study import requests are not currently set up to allow users to specify which AE to send the data to
+
             final PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
 
             log.info("Listener received study import request");
             for (final PacsSeriesImportRequest pacsSeriesImportRequest : pacsStudyImportRequest.getSeries()) {
                 pacsService.importSeries(pacsStudyImportRequest.getRequestingUser(), pacsStudyImportRequest.getPacs(),
-                        pacsSeriesImportRequest.getStudy(), pacsSeriesImportRequest.getSeries());
+                        pacsSeriesImportRequest.getStudy(), pacsSeriesImportRequest.getSeries(), null);
             }
             sendCompleteNotification(pacsStudyImportRequest);
             log.info("Listener completed study import request");

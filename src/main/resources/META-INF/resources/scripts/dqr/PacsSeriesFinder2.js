@@ -129,7 +129,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         closeModalPanel(this.constants.MODAL_WINDOW_NAME);
     };
 
-    this.requestSeries = function (project, selectedSeries) {
+    this.requestSeries = function (project, selectedSeries, ae) {
         openModalPanel("requestSeries", "Requesting " + selectedSeries.length + " selected series");
         var data = "SERIES_IDS=";
         for (var index = 0; index < selectedSeries.length; index++) {
@@ -140,6 +140,9 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         }
         data += "&STUDY_ID=" + studyInstanceUid;
         data += "&PROJECT=" + project;
+        if(ae) {
+            data += "&AE=" + ae;
+        }
         XNAT.xhr.ajax({
             type: "PUT",
             url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/import/series"),

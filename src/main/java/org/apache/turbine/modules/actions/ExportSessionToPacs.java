@@ -25,6 +25,7 @@ import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
+import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,13 +98,18 @@ public class ExportSessionToPacs extends DqrSecureAction {
         }
     }
 
-    private void exportOnDemand() {
-        for (String scanId : _scanIds) {
-            XnatImagescandata scan = _session.getScanById(scanId);
-            _service.exportSeries(_user, _pacs, scan);
-            if (_log.isInfoEnabled()) {
-                _log.info("Exported series " + scanId + " from session " + _session.getId());
+    private void exportOnDemand() throws PacsNotStorableException {
+        if(_pacs.isStorable()) {
+            for (String scanId : _scanIds) {
+                XnatImagescandata scan = _session.getScanById(scanId);
+                _service.exportSeries(_user, _pacs, scan);
+                if (_log.isInfoEnabled()) {
+                    _log.info("Exported series " + scanId + " from session " + _session.getId());
+                }
             }
+        }
+        else{
+            throw new PacsNotStorableException();
         }
     }
 

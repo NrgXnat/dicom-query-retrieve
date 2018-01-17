@@ -28,7 +28,7 @@ public class PacsSessionFinder extends SecureScreen {
     protected void doBuildTemplate(final RunData data, final Context context) throws Exception {
         // no-op so that SecureScreen.doBuildTemplate fires...
         PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        List<Pacs> pacsList = pacsEntityService.getAll();
+        List<Pacs> pacsList = pacsEntityService.findAllQueryable();
         if (pacsList.isEmpty()) {
             data.setScreenTemplate("PacsSessionFinderNoPacsFound.vm");
         } else {

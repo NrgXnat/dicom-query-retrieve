@@ -12,16 +12,20 @@
 
 package org.apache.turbine.modules.screens;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
+import org.nrg.dcm.scp.DicomSCPInstance;
+import org.nrg.dcm.scp.DicomSCPManager;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.dto.ApplicationEntity;
+import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 
 public class PacsSessionFinder2 extends SecureScreen {
 
@@ -39,6 +43,44 @@ public class PacsSessionFinder2 extends SecureScreen {
         };
         Collections.sort(projects,projRunningTitleComparator);
         context.put("projects", projects);
-    }
 
+        ArrayList<ApplicationEntity> aes = new ArrayList<>();
+        ArrayList<String> addedAeTitles = new ArrayList<>();
+        String defaultAe = "";
+        //Get all enabled and storable PACS
+        final List<Pacs> allPacs = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
+        for (Pacs pacs : allPacs){
+            //Only add receivers that are set to storable to list of XNAT AEs
+            String aeTitle = pacs.getAeTitle();
+            String label = pacs.getLabel();
+            if (!StringUtils.isBlank(aeTitle)) {
+                if (!addedAeTitles.contains(aeTitle)) {
+                    ApplicationEntity ae = new ApplicationEntity();
+                    ae.setAeTitle(aeTitle);
+                    if(!StringUtils.isBlank(label)){
+                        ae.setLabel(label);
+                    }
+                    if (pacs.isDefaultStoragePacs()) {
+                        ae.setIsDefaultStorageDestination(true);
+                    }
+                    aes.add(ae);
+                }
+            }
+        }
+
+        Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
+        for (DicomSCPInstance scp : scps){
+            String aeTitle = scp.getAeTitle();
+            if(!StringUtils.isBlank(aeTitle)){
+                if(!addedAeTitles.contains(aeTitle)){
+                    ApplicationEntity ae = new ApplicationEntity();
+                    ae.setAeTitle(aeTitle);
+                    aes.add(ae);
+                }
+            }
+        }
+
+        Collections.sort(aes);
+        context.put("aes", aes);
+    }
 }

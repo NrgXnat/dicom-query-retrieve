@@ -14,11 +14,16 @@ package org.nrg.xnat.restlet.extensions;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
+import org.hsqldb.lib.StringUtil;
+import org.nrg.dcm.scp.DicomSCPInstance;
+import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.dto.ApplicationEntity;
+import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -36,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
@@ -56,6 +62,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
         if (!StringUtils.isBlank(seriesIds)) {
             _seriesIds.addAll(Arrays.asList(seriesIds.split("\\s*,\\s*")));
         }
+        _ae = getBodyVariable("AE");
         _projectId = getBodyVariable("PROJECT");
         if (StringUtils.isBlank(_projectId)) {
             if (_log.isDebugEnabled()) {
@@ -70,18 +77,26 @@ public class PacsSeriesImporter extends PacsServiceResource {
     public void handlePut() {
         try {
             final Pacs pacs = getPacs();
-            try {
-                final Study study = assignStudyToProject(_projectId, _studyId);
+            if(!pacs.isQueryable()) {
+                throw new PacsNotQueryableException();
+            }
+            else if(!getPacsService().aeIsStorable(_ae)){
+                throw new PacsNotStorableException();
+            }
+            else {
+                try {
+                    final Study study = assignStudyToProject(_projectId, _studyId);
 
-                for (String seriesId : _seriesIds) {
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Requesting series " + seriesId + " for study instance UID " + _studyId);
+                    for (String seriesId : _seriesIds) {
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("Requesting series " + seriesId + " for study instance UID " + _studyId);
+                        }
+                        getPacsService().importSeries(XDAT.getUserDetails(), pacs, study, new Series(seriesId), _ae);
                     }
-                    getPacsService().importSeries(XDAT.getUserDetails(), pacs, study, new Series(seriesId));
+                } catch (final CMoveTargetNotFoundException exception) {
+                    _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
+                    respondWithNotFound("Unable to find the specified series.");
                 }
-            } catch (final CMoveTargetNotFoundException exception) {
-                _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
-                respondWithNotFound("Unable to find the specified series.");
             }
 
             final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
@@ -112,6 +127,12 @@ public class PacsSeriesImporter extends PacsServiceResource {
             PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
         } catch (final PacsNotFoundException exception) {
             _log.warn("PACS not found somehow", exception);
+            respondWithPacsNotFound();
+        } catch (final PacsNotQueryableException exception) {
+            _log.warn("PACS not queryable somehow", exception);
+            respondWithPacsNotFound();
+        } catch (final PacsNotStorableException exception) {
+            _log.warn("PACS not storable somehow", exception);
             respondWithPacsNotFound();
         } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
             _log.warn("Error creating new workflow event", e);
@@ -152,5 +173,6 @@ public class PacsSeriesImporter extends PacsServiceResource {
 
     private final String _projectId;
     private final String _studyId;
+    private final String _ae;
     private final List<String> _seriesIds = new ArrayList<>();
 }

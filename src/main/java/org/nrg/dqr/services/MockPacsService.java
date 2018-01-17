@@ -94,12 +94,17 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series) {
+    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
     public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public boolean aeIsStorable(final String ae) {
         throw new RuntimeException("method not implemented");
     }
 }

@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
+import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
@@ -39,9 +40,13 @@ import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.List;
 
 @Service
 public class BasicPacsService implements PacsService {
@@ -164,7 +169,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series) {
+    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
         PersistentWorkflowI workflow = null;
         try {
             workflow = buildOpenWorkflow(
@@ -174,7 +179,7 @@ public class BasicPacsService implements PacsService {
                     null,
                     EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
                             MethodName.currentMethodName(), null, MAPPER.writeValueAsString(series)));
-            buildCMoveSCU(pacs).cmoveSeries(study, series);
+            buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
             completeWorkflow(workflow);
         } catch (final Exception e) {
             failWorkflow(workflow);
@@ -201,7 +206,10 @@ public class BasicPacsService implements PacsService {
         }
     }
 
-    private CFindSCU buildCFindSCU(final Pacs pacs) {
+    private CFindSCU buildCFindSCU(final Pacs pacs) throws PacsNotQueryableException {
+        if(!pacs.isQueryable()){
+            throw new PacsNotQueryableException();
+        }
         return new Dcm4cheToolCFindSCU(buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
     }
 
@@ -213,12 +221,26 @@ public class BasicPacsService implements PacsService {
         return new BasicCStoreSCU(buildDicomConnectionProperties(pacs));
     }
 
+    private CMoveSCU buildCMoveSCU(final Pacs pacs, final String receiverAETitle) {
+        return new Dcm4cheToolCMoveSCU(buildDicomConnectionProperties(pacs, receiverAETitle), getOrmStrategy(pacs));
+    }
+
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {
         // At some point in the future caller will probably specify AE as well
         // For now, this is an ugly hack that just uses the first defined AE in the XNAT webapp
-        final String localAETitle = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances()
-                .values().iterator().next().getAeTitle();
+        DicomSCPInstance firstXnatScp = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances()
+                .values().iterator().next();
+        final String localAETitle = firstXnatScp.getAeTitle();
         return new DicomConnectionProperties(localAETitle, pacs);
+    }
+
+    private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs, final String receiverAETitle) {
+        if(!StringUtils.isBlank(receiverAETitle)) {
+            return new DicomConnectionProperties(receiverAETitle, pacs);
+        }
+        else{
+            return buildDicomConnectionProperties(pacs);
+        }
     }
 
     private OrmStrategy getOrmStrategy(final Pacs pacs) {
@@ -276,5 +298,24 @@ public class BasicPacsService implements PacsService {
         final DefaultSerializerProvider provider = new DefaultSerializerProvider.Impl();
         provider.setNullValueSerializer(new NullValueSerializer());
         MAPPER.setSerializerProvider(provider);
+    }
+
+    @Override
+    public boolean aeIsStorable(final String ae){
+        //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
+        Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
+        for (DicomSCPInstance scp : scps){
+            if(StringUtils.equals(scp.getAeTitle(),ae)){
+                return true;
+            }
+        }
+
+        final List<Pacs> allPacs = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
+        for (Pacs pacsToCheck : allPacs){
+            if(StringUtils.equals(pacsToCheck.getAeTitle(),ae)){
+                return true;
+            }
+        }
+        return false;
     }
 }

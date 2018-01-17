@@ -13,6 +13,7 @@
 package org.nrg.dqr.messaging;
 
 import com.google.common.base.Joiner;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -23,6 +24,7 @@ import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
+import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,14 +39,20 @@ public class PacsSessionExportRequestListener {
     public void onPacsSessionExportRequest(final PacsSessionExportRequest pacsSessionExportRequest) throws Exception {
         try {
             final PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-
             log.info("Listener received session export request");
-            for (final PacsScanExportRequest pacsScanExportRequest : pacsSessionExportRequest.getScans()) {
-                pacsService.exportSeries(pacsSessionExportRequest.getRequestingUser(),
-                        pacsSessionExportRequest.getPacs(), pacsScanExportRequest.getScan());
+
+            final Pacs pacsToExportTo = pacsSessionExportRequest.getPacs();
+            if(pacsToExportTo.isStorable()) {
+                for (final PacsScanExportRequest pacsScanExportRequest : pacsSessionExportRequest.getScans()) {
+                    pacsService.exportSeries(pacsSessionExportRequest.getRequestingUser(),
+                            pacsToExportTo, pacsScanExportRequest.getScan());
+                }
+                sendCompleteNotification(pacsSessionExportRequest);
+                log.info("Listener completed session export request");
             }
-            sendCompleteNotification(pacsSessionExportRequest);
-            log.info("Listener completed session export request");
+            else{
+                throw new PacsNotStorableException();
+            }
         } catch (final Exception e) {
             // If errors are not logged before they're rethrown, they do not show up in any of the files
             log.error("Choked on request " + pacsSessionExportRequest + " with the following error:\n" + e);

@@ -37,7 +37,9 @@ public interface PacsService {
 
     Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid);
 
-    void importSeries(UserI user, final Pacs pacs, final Study study, final Series series);
+    void importSeries(UserI user, final Pacs pacs, final Study study, final Series series, final String ae);
 
     void exportSeries(UserI user, final Pacs pacs, final XnatImagescandata series);
+
+    boolean aeIsStorable(final String ae);
 }

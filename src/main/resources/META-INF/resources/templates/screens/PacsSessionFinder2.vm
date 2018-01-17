@@ -1,5 +1,6 @@
 #* @vtlvariable name="projects" type="java.util.ArrayList" *#
 #* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable="aes" type="java.util.ArrayList" *#
 #* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
@@ -21,6 +22,7 @@
     function requestSelectedSeries() {
         var selectedSeriesControls = jq("input[name=selectedSeries]:checked");
         var project = jq("#project").val();
+        var ae = jq("#ae").val();
         if (!selectedSeriesControls || selectedSeriesControls.length == 0) {
             xmodal.message('No series selected', 'You have to select at least one series before you can request that it be retrieved from the selected PACS.', 'OK');
         } else if (project == "") {
@@ -30,7 +32,7 @@
             for (var index = 0; index < selectedSeriesControls.length; index++) {
                 selectedSeries.push(selectedSeriesControls[index].value.replace(/_/g, '.'));
             }
-            window.pacsSeriesFinder.requestSeries(project, selectedSeries);
+            window.pacsSeriesFinder.requestSeries(project, selectedSeries, ae);
         }
     }
 </script>
@@ -87,6 +89,26 @@
                                 }
                             }); */
                         </script>
+                    #end
+                </div>
+
+                <div id="pacsSeriesAeSelector">
+                    #if($aes.size() == 1)
+                        #set($ae = $aes.get(0))
+                        <p><strong>AE:</strong> ${ae.getDisplayString()}</p>
+                        <input type="hidden" id="ae" name="ae" value="${ae.getAeTitle()}"/>
+                    #else
+                        <label for="ae" class="select_label"><b>AE:</b></label>
+                        <select id="ae" id="ae" name="ae" style="min-width:200px;">
+                            <option disabled>(Select AE)</option>
+                            #foreach($tempAe in $aes)
+                                #if($tempAe.isDefaultStorageDestination())
+                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
+                                #else
+                                    <option value="${tempAe.getAeTitle()}">${tempAe.getDisplayString()}</option>
+                                #end
+                            #end
+                        </select>
                     #end
                 </div>
             </div>
