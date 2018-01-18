@@ -33,6 +33,22 @@ dqrPushPreferencePanel:
             onText: Allow all scans to be sent to DICOM AE
             offText: Allow only new / edited scans to be sent to DICOM AE
             value: "true"
+dqrOtherPreferencePanel:
+    kind: panel.form
+    name: dqrOtherPreferencePanel
+    label: Other Preferences
+    method: POST
+    url: /xapi/siteConfig
+    contentType: json
+    contents:
+        dqrCallingAe:
+            kind: panel.input.text
+            name: dqrCallingAe
+            label: Calling AE Title
+            value: ''
+            placeholder: XNAT
+            description: >
+                The calling AE Title that should be used for all DICOM queries this site makes.
 
 #################################################
 ####  Root Site Admin Spawner Config Object  ####
@@ -56,3 +72,4 @@ siteSettings:
             contents:
               ${dqrPacsPanel}
               ${dqrPushPreferencePanel}
+              ${dqrOtherPreferencePanel}

@@ -21,6 +21,7 @@ import org.nrg.dcm.io.TransferCapabilityExtractor;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatResource;
@@ -129,9 +130,13 @@ public class BasicCStoreSCU implements CStoreSCU {
         } else {
             connection = new NetworkConnection();
         }
-
+        Object callingAeObject = XDAT.getSiteConfigPreferences().get("dqrCallingAe");
+        String callingAe = _dicomConnectionProperties.getLocalAeTitle();
+        if(callingAeObject!=null && callingAeObject.toString()!=null){
+            callingAe = callingAeObject.toString();
+        }
         final NetworkApplicationEntity localAE = new NetworkApplicationEntityBuilder()
-                .setAETitle(_dicomConnectionProperties.getLocalAeTitle()).setTransferCapability(tcs)
+                .setAETitle(callingAe).setTransferCapability(tcs)
                 .setNetworkConnection(connection).build();
 
         final NetworkConnectionBuilder builder = new NetworkConnectionBuilder();

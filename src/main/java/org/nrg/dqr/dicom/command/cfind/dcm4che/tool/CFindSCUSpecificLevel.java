@@ -35,6 +35,7 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.util.DqrRuntimeException;
+import org.nrg.xdat.XDAT;
 import org.nrg.xnat.utils.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,12 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     protected CFindSCUSpecificLevel(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                     final OrmStrategy ormStrategy) {
-        dcmQR = createDcmQR(dicomConnectionProperties.getLocalAeTitle());
+        Object callingAeObject = XDAT.getSiteConfigPreferences().get("dqrCallingAe");
+        String callingAe = dicomConnectionProperties.getLocalAeTitle();
+        if(callingAeObject!=null && callingAeObject.toString()!=null){
+            callingAe = callingAeObject.toString();
+        }
+        dcmQR = createDcmQR(callingAe);
         dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
         dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
         dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
