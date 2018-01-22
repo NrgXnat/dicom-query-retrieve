@@ -22,6 +22,8 @@ import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsRequest;
+import org.nrg.dqr.services.PacsRequestService;
 import org.nrg.dqr.dto.ApplicationEntity;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
@@ -39,10 +41,7 @@ import org.restlet.data.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
 @XnatRestlet("/services/pacs/{PACS_ID}/import/series")
@@ -76,28 +75,18 @@ public class PacsSeriesImporter extends PacsServiceResource {
     @Override
     public void handlePut() {
         try {
-            final Pacs pacs = getPacs();
-            if(!pacs.isQueryable()) {
-                throw new PacsNotQueryableException();
-            }
-            else if(!getPacsService().aeIsStorable(_ae)){
-                throw new PacsNotStorableException();
-            }
-            else {
-                try {
-                    final Study study = assignStudyToProject(_projectId, _studyId);
+            PacsRequest pacsReq = new PacsRequest();
+            pacsReq.setPacsId(getPacsId(getRequest()));
+            pacsReq.setUsername(getUser().getUsername());
+            pacsReq.setXnatProject(_projectId);
+            pacsReq.setStudyId(_studyId);
+            pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+            pacsReq.setDestinationAeTitle(_ae);
+            pacsReq.setRequestTime(new Date());
 
-                    for (String seriesId : _seriesIds) {
-                        if (_log.isDebugEnabled()) {
-                            _log.debug("Requesting series " + seriesId + " for study instance UID " + _studyId);
-                        }
-                        getPacsService().importSeries(XDAT.getUserDetails(), pacs, study, new Series(seriesId), _ae);
-                    }
-                } catch (final CMoveTargetNotFoundException exception) {
-                    _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
-                    respondWithNotFound("Unable to find the specified series.");
-                }
-            }
+            XDAT.getContextService().getBean(PacsRequestService.class).create(pacsReq);
+
+            getPacsService().importFromPacsRequest(pacsReq);
 
             final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
             final StringBuilder prearchive = new StringBuilder(siteUrl);

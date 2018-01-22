@@ -182,7 +182,7 @@ public abstract class PacsServiceResource extends SecureResource {
 
     }
 
-    private static Long getPacsId(final Request request) throws PacsNotFoundException {
+    protected static Long getPacsId(final Request request) throws PacsNotFoundException {
         try {
             return Long.valueOf(getParameter(request, "PACS_ID").toString());
         } catch (NumberFormatException e) {

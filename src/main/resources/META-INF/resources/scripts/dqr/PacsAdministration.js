@@ -129,6 +129,14 @@ XNAT.app.PacsAdministration = ( function () {
                             label: 'Default Storage AE',
                             onText: 'Yes',
                             offText: 'No'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'availabilityStart',
+                            label: 'Availability Start Time'
+                        }),
+                        XNAT.ui.panel.input.text({
+                            name: 'availabilityEnd',
+                            label: 'Availability End Time'
                         })
                     ])
                 );
@@ -285,6 +293,8 @@ XNAT.app.PacsAdministration = ( function () {
                         storable: ae.storable,
                         storagePort: ae.storagePort,
                         defaultStoragePacs: ae.defaultStoragePacs,
+                        availabilityStart: ae.availabilityStart,
+                        availabilityEnd: ae.availabilityEnd,
                         ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                         supportsExtendedNegotiations: ae.supportsExtendedNegotiations
                     }

@@ -14,13 +14,16 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
+import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveSCU;
+import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
 import org.nrg.dqr.dicom.command.cstore.BasicCStoreSCU;
 import org.nrg.dqr.dicom.command.cstore.CStoreSCU;
@@ -30,26 +33,37 @@ import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.security.XDATUser;
+import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
+import org.nrg.xnat.restlet.extensions.*;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
+import org.restlet.data.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 @Service
 public class BasicPacsService implements PacsService {
+
+    private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
 
     @Override
     public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs,
@@ -188,6 +202,50 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
+    public void importFromPacsRequest(final PacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
+        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        Pacs pacs = pacsEntityService.retrieve(request.getPacsId());
+        if(!pacs.isQueryable()) {
+            throw new PacsNotQueryableException();
+        }
+        else if(!aeIsStorable(request.getDestinationAeTitle())){
+            throw new PacsNotStorableException();
+        }
+        else {
+            try {
+
+                final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyId(), request.getUsername());
+
+                for (String seriesId : Arrays.asList(request.getSeriesIds().split(","))) {
+                    seriesId = seriesId.trim();
+                    if (_log.isDebugEnabled()) {
+                        _log.debug("Requesting series " + seriesId + " for study instance UID " + request.getStudyId());
+                    }
+                    Series series = new Series(seriesId);
+
+                    PersistentWorkflowI workflow = null;
+                    try {
+                        workflow = buildOpenWorkflow(
+                                new XDATUser(request.getUsername()),
+                                "pacs:import",
+                                pacs.getAeTitle(),
+                                null,
+                                EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
+                                        MethodName.currentMethodName(), null, MAPPER.writeValueAsString(series)));
+                        buildCMoveSCU(pacs, request.getDestinationAeTitle()).cmoveSeries(study, series);
+                        completeWorkflow(workflow);
+                    } catch (final Exception e) {
+                        failWorkflow(workflow);
+                        throw new RuntimeException(e);
+                    }
+                }
+            } catch (final CMoveTargetNotFoundException exception) {
+                _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
+            }
+        }
+    }
+
+    @Override
     public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
         PersistentWorkflowI workflow = null;
         try {
@@ -317,5 +375,20 @@ public class BasicPacsService implements PacsService {
             }
         }
         return false;
+    }
+
+    protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
+        if (!StringUtils.isBlank(projectId)) {
+            if (_log.isDebugEnabled()) {
+                _log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
+            }
+            XDAT.getContextService().getBean(StudyRoutingService.class).assign(studyInstanceUid, projectId, username);
+            return new Study(projectId, studyInstanceUid);
+        } else {
+            if (_log.isDebugEnabled()) {
+                _log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
+            }
+            return new Study(studyInstanceUid);
+        }
     }
 }

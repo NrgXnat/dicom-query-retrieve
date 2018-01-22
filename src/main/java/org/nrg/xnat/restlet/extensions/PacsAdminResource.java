@@ -31,6 +31,8 @@ import org.restlet.data.Status;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.LocalTime;
+
 public abstract class PacsAdminResource extends SecureResource {
 
     public PacsAdminResource(final Context context, final Request request, final Response response) {
@@ -74,6 +76,8 @@ public abstract class PacsAdminResource extends SecureResource {
                 pacs.setQueryRetrievePort(Integer.valueOf(requestForm.getFirstValue("queryRetrievePort")));
             }
             pacs.setDefaultQueryRetrievePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("defaultQueryRetrievePacs"))));
+            pacs.setAvailabilityStart(requestForm.getFirstValue("availabilityStart"));
+            pacs.setAvailabilityEnd(requestForm.getFirstValue("availabilityEnd"));
             pacs.setSupportsExtendedNegotiations(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("extendedNegotiations"))));
             pacs.setOrmStrategySpringBeanId(requestForm.getFirstValue("ormStrategySpringBeanId"));
             return pacs;

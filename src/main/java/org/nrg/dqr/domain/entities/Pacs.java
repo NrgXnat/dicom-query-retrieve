@@ -13,6 +13,7 @@
 package org.nrg.dqr.domain.entities;
 
 import java.io.Serializable;
+import java.time.LocalTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -49,6 +50,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private Boolean _defaultQueryRetrievePacs;
     private String _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
+
+    private String _availabilityStart;
+    private String _availabilityEnd;
 
     // for Hibernate
     public Pacs() {
@@ -148,6 +152,22 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _supportsExtendedNegotiations = supportsExtendedNegotiations;
     }
 
+    public String getAvailabilityStart() {
+        return _availabilityStart;
+    }
+
+    public void setAvailabilityStart(final String availabilityStart) {
+        _availabilityStart = availabilityStart;
+    }
+
+    public String getAvailabilityEnd() {
+        return _availabilityEnd;
+    }
+
+    public void setAvailabilityEnd(final String availabilityEnd) {
+        _availabilityEnd = availabilityEnd;
+    }
+
     /**
      * Ugly, this doesn't really belong on a domain object, not sure where to put it though...
      */
@@ -166,7 +186,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host)
                 .append(_label).append(_storable).append(_storagePort).append(_defaultStoragePacs).append(_queryable)
                 .append(_queryRetrievePort).append(_defaultQueryRetrievePacs)
-                .append(_ormStrategySpringBeanId).toHashCode();
+                .append(_ormStrategySpringBeanId).append(_availabilityStart).append(_availabilityEnd).toHashCode();
     }
 
     @Override
@@ -187,7 +207,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
                 .append(_queryable, other._queryable).append(_queryRetrievePort, other._queryRetrievePort)
                 .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
                 .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
-                .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId).isEquals();
+                .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId)
+                .append(_availabilityStart, other._availabilityStart)
+                .append(_availabilityEnd, other._availabilityEnd).isEquals();
     }
 
     @Override
@@ -202,6 +224,8 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         buffer.append("storable: ").append(_storable).append(", ");
         buffer.append("storagePort: ").append(_storagePort).append(", ");
         buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
+        buffer.append("availabilityStart: ").append(_availabilityStart).append(", ");
+        buffer.append("availabilityEnd: ").append(_availabilityEnd).append(", ");
         buffer.append("supportsExtendedNegotiations: ").append(_supportsExtendedNegotiations).append(" }");
         return buffer.toString();
     }
