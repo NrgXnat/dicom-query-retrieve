@@ -26,6 +26,7 @@ import org.nrg.dqr.domain.entities.PacsRequest;
 import org.nrg.dqr.services.PacsRequestService;
 import org.nrg.dqr.dto.ApplicationEntity;
 import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -41,6 +42,9 @@ import org.restlet.data.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalTime;
 import java.util.*;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
@@ -75,45 +79,75 @@ public class PacsSeriesImporter extends PacsServiceResource {
     @Override
     public void handlePut() {
         try {
-            PacsRequest pacsReq = new PacsRequest();
-            pacsReq.setPacsId(getPacsId(getRequest()));
-            pacsReq.setUsername(getUser().getUsername());
-            pacsReq.setXnatProject(_projectId);
-            pacsReq.setStudyId(_studyId);
-            pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-            pacsReq.setDestinationAeTitle(_ae);
-            pacsReq.setRequestTime(new Date());
+            final Pacs pacs = getPacs();
 
-            XDAT.getContextService().getBean(PacsRequestService.class).create(pacsReq);
+            LocalTime currentTime = LocalTime.now();
+            String availabilityStartTimeString = pacs.getAvailabilityStart();
+            String availabilityEndTimeString = pacs.getAvailabilityEnd();
 
-            getPacsService().importFromPacsRequest(pacsReq);
-
-            final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
-            final StringBuilder prearchive = new StringBuilder(siteUrl);
-            if (!siteUrl.endsWith("/")) {
-                prearchive.append("/");
+            LocalTime availabilityStartTime = LocalTime.parse(availabilityStartTimeString);
+            LocalTime availabilityEndTime = LocalTime.parse(availabilityEndTimeString);
+            if(availabilityStartTime==null || availabilityEndTime==null){
+                throw new PacsNotAvailableException();
             }
-            prearchive.append("app/template/XDATScreen_prearchives.vm");
 
-            final PacsServiceResource.PacsServiceResourceContext context = new PacsServiceResource.PacsServiceResourceContext();
-            context.put("prearchive", prearchive.toString());
-            context.put("studyId", _studyId);
-            context.put("seriesIds", _seriesIds);
-
-            try {
-                if (_log.isDebugEnabled()) {
-                    _log.debug("Completed DICOM request for study " + _studyId + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+            boolean pacsIsAvailable = false;
+            if(availabilityEndTime.isBefore(availabilityStartTime)){
+                //That means that the availability interval contains midnight.
+                if(currentTime.isAfter(availabilityStartTime) || currentTime.isBefore(availabilityEndTime)){
+                    pacsIsAvailable = true;
                 }
-                sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
-            } catch (Exception exception) {
-                _log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+            }
+            else{
+                if(currentTime.isAfter(availabilityStartTime) && currentTime.isBefore(availabilityEndTime)){
+                    pacsIsAvailable = true;
+                }
             }
 
-            final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-            eventDetails.setComment("Series: " + Joiner.on(", ").join(_seriesIds));
-            PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyId, _projectId, eventDetails);
-            assert wrk != null;
-            PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+            if(pacsIsAvailable) {
+                PacsRequest pacsReq = new PacsRequest();
+                pacsReq.setPacsId(getPacsId(getRequest()));
+                pacsReq.setUsername(getUser().getUsername());
+                pacsReq.setXnatProject(_projectId);
+                pacsReq.setStudyId(_studyId);
+                pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+                pacsReq.setDestinationAeTitle(_ae);
+                pacsReq.setRequestTime(new Date());
+
+                XDAT.getContextService().getBean(PacsRequestService.class).create(pacsReq);
+
+                getPacsService().importFromPacsRequest(pacsReq);
+
+                final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
+                final StringBuilder prearchive = new StringBuilder(siteUrl);
+                if (!siteUrl.endsWith("/")) {
+                    prearchive.append("/");
+                }
+                prearchive.append("app/template/XDATScreen_prearchives.vm");
+
+                final PacsServiceResource.PacsServiceResourceContext context = new PacsServiceResource.PacsServiceResourceContext();
+                context.put("prearchive", prearchive.toString());
+                context.put("studyId", _studyId);
+                context.put("seriesIds", _seriesIds);
+
+                try {
+                    if (_log.isDebugEnabled()) {
+                        _log.debug("Completed DICOM request for study " + _studyId + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+                    }
+                    sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
+                } catch (Exception exception) {
+                    _log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                }
+
+                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                eventDetails.setComment("Series: " + Joiner.on(", ").join(_seriesIds));
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyId, _projectId, eventDetails);
+                assert wrk != null;
+                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+            }
+            else{
+                throw new PacsNotAvailableException();
+            }
         } catch (final PacsNotFoundException exception) {
             _log.warn("PACS not found somehow", exception);
             respondWithPacsNotFound();
@@ -122,6 +156,9 @@ public class PacsSeriesImporter extends PacsServiceResource {
             respondWithPacsNotFound();
         } catch (final PacsNotStorableException exception) {
             _log.warn("PACS not storable somehow", exception);
+            respondWithPacsNotFound();
+        } catch (final PacsNotAvailableException exception) {
+            _log.warn("PACS not available at this time", exception);
             respondWithPacsNotFound();
         } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
             _log.warn("Error creating new workflow event", e);
