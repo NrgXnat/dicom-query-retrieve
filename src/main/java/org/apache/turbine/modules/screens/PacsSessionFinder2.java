@@ -45,6 +45,8 @@ public class PacsSessionFinder2 extends SecureScreen {
         context.put("projects", projects);
 
         ArrayList<ApplicationEntity> aes = new ArrayList<>();
+        ArrayList<ApplicationEntity> xnatAes = new ArrayList<>();
+        ArrayList<ApplicationEntity> pacsAes = new ArrayList<>();
         ArrayList<String> addedAeTitles = new ArrayList<>();
         String defaultAe = "";
         //Get all enabled and storable PACS
@@ -64,6 +66,7 @@ public class PacsSessionFinder2 extends SecureScreen {
                         ae.setIsDefaultStorageDestination(true);
                     }
                     aes.add(ae);
+                    pacsAes.add(ae);
                 }
             }
         }
@@ -72,9 +75,12 @@ public class PacsSessionFinder2 extends SecureScreen {
         for (DicomSCPInstance scp : scps){
             String aeTitle = scp.getAeTitle();
             if(!StringUtils.isBlank(aeTitle)){
+                ApplicationEntity ae = new ApplicationEntity();
+                ae.setAeTitle(aeTitle);
+                if(!xnatAes.contains(aeTitle)) {
+                    xnatAes.add(ae);
+                }
                 if(!addedAeTitles.contains(aeTitle)){
-                    ApplicationEntity ae = new ApplicationEntity();
-                    ae.setAeTitle(aeTitle);
                     aes.add(ae);
                 }
             }
@@ -82,5 +88,7 @@ public class PacsSessionFinder2 extends SecureScreen {
 
         Collections.sort(aes);
         context.put("aes", aes);
+        context.put("xnatAes", xnatAes);
+        context.put("pacsAes", pacsAes);
     }
 }
