@@ -14,14 +14,12 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
-import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
@@ -33,25 +31,22 @@ import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsRequest;
+import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.*;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
-import org.restlet.data.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -202,7 +197,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public void importFromPacsRequest(final PacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
+    public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
         PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
         Pacs pacs = pacsEntityService.retrieve(request.getPacsId());
         if(!pacs.isQueryable()) {

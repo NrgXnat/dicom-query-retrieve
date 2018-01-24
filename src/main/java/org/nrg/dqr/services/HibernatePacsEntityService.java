@@ -12,12 +12,14 @@
 
 package org.nrg.dqr.services;
 
+import org.apache.commons.lang.StringUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.dqr.daos.PacsDAO;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -66,5 +68,38 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
     @Transactional
     public List<Pacs> findAllQueryable(){
         return getDao().findAllQueryable();
+    }
+
+    @Override
+    @Transactional
+    public boolean isAvailable(final Pacs entity){
+        boolean pacsIsAvailable = false;
+        LocalTime currentTime = LocalTime.now();
+        String availabilityStartTimeString = entity.getAvailabilityStart();
+        String availabilityEndTimeString = entity.getAvailabilityEnd();
+        if(StringUtils.isBlank(availabilityStartTimeString) || StringUtils.isBlank(availabilityStartTimeString)) {
+            pacsIsAvailable = true; //If time constraints are not set for the PACS, allow access
+        }
+        else{
+            LocalTime availabilityStartTime = LocalTime.parse(availabilityStartTimeString);
+            LocalTime availabilityEndTime = LocalTime.parse(availabilityEndTimeString);
+            if (availabilityStartTime == null || availabilityEndTime == null) {
+                pacsIsAvailable = true; //If time constraints are not set for the PACS, allow access
+            }
+            else{
+                if(availabilityEndTime.isBefore(availabilityStartTime)){
+                    //That means that the availability interval contains midnight.
+                    if(currentTime.isAfter(availabilityStartTime) || currentTime.isBefore(availabilityEndTime)){
+                        pacsIsAvailable = true;
+                    }
+                }
+                else{
+                    if(currentTime.isAfter(availabilityStartTime) && currentTime.isBefore(availabilityEndTime)){
+                        pacsIsAvailable = true;
+                    }
+                }
+            }
+        }
+        return pacsIsAvailable;
     }
 }

@@ -16,7 +16,7 @@ import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsRequest;
+import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.xdat.om.XnatImagescandata;
@@ -42,7 +42,7 @@ public interface PacsService {
 
     void importSeries(UserI user, final Pacs pacs, final Study study, final Series series, final String ae);
 
-    void importFromPacsRequest(final PacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
+    void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
 
     void exportSeries(UserI user, final Pacs pacs, final XnatImagescandata series);
 

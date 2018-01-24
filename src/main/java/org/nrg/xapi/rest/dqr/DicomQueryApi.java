@@ -1,8 +1,8 @@
 package org.nrg.xapi.rest.dqr;
 
 import io.swagger.annotations.*;
-import org.nrg.dqr.domain.entities.PacsRequest;
-import org.nrg.dqr.services.PacsRequestService;
+import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
@@ -28,28 +28,28 @@ import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
 @RequestMapping(value = "/dqr")
 public class DicomQueryApi extends AbstractXapiRestController {
 
-    protected DicomQueryApi(UserManagementServiceI userManagementService, RoleHolder roleHolder, PacsRequestService requestService) {
+    protected DicomQueryApi(UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService) {
         super(userManagementService, roleHolder);
         _requestService = requestService;
     }
 
-    @ApiOperation(value = "Get list of all DICOM query requests.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = PacsRequest.class, responseContainer = "List")
+    @ApiOperation(value = "Get list of all DICOM query requests.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<PacsRequest>> queryHistoryGet() {
+    public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGet() {
         return new ResponseEntity<>(_requestService.getAll(), HttpStatus.OK);
     }
 
-    @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = PacsRequest.class)
+    @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = ExecutedPacsRequest.class)
     @ApiResponses({@ApiResponse(code = 200, message = "A DICOM query request."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "history/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<PacsRequest> queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable("id") final String id) {
+    public ResponseEntity<ExecutedPacsRequest> queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable("id") final String id) {
         try {
             return new ResponseEntity<>(_requestService.get(Long.parseLong(id)), HttpStatus.OK);
         } catch (NotFoundException e) {
@@ -57,5 +57,5 @@ public class DicomQueryApi extends AbstractXapiRestController {
         }
     }
 
-    PacsRequestService _requestService;
+    ExecutedPacsRequestService _requestService;
 }

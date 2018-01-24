@@ -23,7 +23,7 @@ import org.nrg.dqr.domain.ReferringPhysicianName;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsRequest;
+import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.xdat.om.XnatImagescandata;
@@ -100,7 +100,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public void importFromPacsRequest(final PacsRequest request) {
+    public void importFromPacsRequest(final ExecutedPacsRequest request) {
         throw new RuntimeException("method not implemented");
     }
 

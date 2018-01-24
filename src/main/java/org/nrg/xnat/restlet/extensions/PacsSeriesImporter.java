@@ -14,22 +14,16 @@ package org.nrg.xnat.restlet.extensions;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
-import org.hsqldb.lib.StringUtil;
-import org.nrg.dcm.scp.DicomSCPInstance;
-import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.Series;
-import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsRequest;
-import org.nrg.dqr.services.PacsRequestService;
-import org.nrg.dqr.dto.ApplicationEntity;
+import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.dqr.services.PacsService;
+import org.nrg.dqr.services.QueuedPacsRequestService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
@@ -42,8 +36,6 @@ import org.restlet.data.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -80,41 +72,20 @@ public class PacsSeriesImporter extends PacsServiceResource {
     public void handlePut() {
         try {
             final Pacs pacs = getPacs();
-
-            LocalTime currentTime = LocalTime.now();
-            String availabilityStartTimeString = pacs.getAvailabilityStart();
-            String availabilityEndTimeString = pacs.getAvailabilityEnd();
-
-            LocalTime availabilityStartTime = LocalTime.parse(availabilityStartTimeString);
-            LocalTime availabilityEndTime = LocalTime.parse(availabilityEndTimeString);
-            if(availabilityStartTime==null || availabilityEndTime==null){
-                throw new PacsNotAvailableException();
-            }
-
-            boolean pacsIsAvailable = false;
-            if(availabilityEndTime.isBefore(availabilityStartTime)){
-                //That means that the availability interval contains midnight.
-                if(currentTime.isAfter(availabilityStartTime) || currentTime.isBefore(availabilityEndTime)){
-                    pacsIsAvailable = true;
-                }
-            }
-            else{
-                if(currentTime.isAfter(availabilityStartTime) && currentTime.isBefore(availabilityEndTime)){
-                    pacsIsAvailable = true;
-                }
-            }
+            PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+            boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
 
             if(pacsIsAvailable) {
-                PacsRequest pacsReq = new PacsRequest();
+                ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                 pacsReq.setPacsId(getPacsId(getRequest()));
                 pacsReq.setUsername(getUser().getUsername());
                 pacsReq.setXnatProject(_projectId);
                 pacsReq.setStudyId(_studyId);
                 pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
                 pacsReq.setDestinationAeTitle(_ae);
-                pacsReq.setRequestTime(new Date());
+                pacsReq.setExecutedTime(new Date());
 
-                XDAT.getContextService().getBean(PacsRequestService.class).create(pacsReq);
+                XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 
                 getPacsService().importFromPacsRequest(pacsReq);
 
@@ -125,7 +96,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                 }
                 prearchive.append("app/template/XDATScreen_prearchives.vm");
 
-                final PacsServiceResource.PacsServiceResourceContext context = new PacsServiceResource.PacsServiceResourceContext();
+                final PacsServiceResourceContext context = new PacsServiceResourceContext();
                 context.put("prearchive", prearchive.toString());
                 context.put("studyId", _studyId);
                 context.put("seriesIds", _seriesIds);
@@ -146,7 +117,15 @@ public class PacsSeriesImporter extends PacsServiceResource {
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }
             else{
-                throw new PacsNotAvailableException();
+                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                pacsReq.setPacsId(getPacsId(getRequest()));
+                pacsReq.setUsername(getUser().getUsername());
+                pacsReq.setXnatProject(_projectId);
+                pacsReq.setStudyId(_studyId);
+                pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+                pacsReq.setDestinationAeTitle(_ae);
+
+                XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
             }
         } catch (final PacsNotFoundException exception) {
             _log.warn("PACS not found somehow", exception);

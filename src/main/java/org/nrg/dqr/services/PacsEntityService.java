@@ -22,4 +22,6 @@ public interface PacsEntityService extends BaseHibernateService<Pacs> {
     public List<Pacs> findAllStorable();
 
     public List<Pacs> findAllQueryable();
+
+    public boolean isAvailable(final Pacs entity);
 }

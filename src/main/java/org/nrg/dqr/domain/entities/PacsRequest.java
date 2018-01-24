@@ -1,45 +1,29 @@
-/*
- * Pacs
- * DQR is developed by the Neuroinformatics Research Group
- * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
- * All Rights Reserved
- *
- * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
- */
-
 package org.nrg.dqr.domain.entities;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
-import javax.persistence.*;
+import javax.persistence.MappedSuperclass;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
-@Entity
-@Table
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+/**
+ * Created by mike on 1/23/18.
+ */
+@MappedSuperclass
 public class PacsRequest extends AbstractHibernateEntity implements Serializable {
+    protected static final long serialVersionUID = 1L;
 
-    private static final long serialVersionUID = 1L;
+    protected String _username;
+    protected Long _pacsId;
+    protected String _xnatProject;
+    protected String _studyId;
+    protected String _seriesIds;
 
-    private String _username;
-    private Long _pacsId;
-    private String _xnatProject;
-    private String _studyId;
-    private String _seriesIds;
+    protected String _destinationAeTitle;
 
-    private String _destinationAeTitle;
-
-    private Date _queuedTime;
-    private Date _requestTime;
+    protected Date _queuedTime;
 
     public String getDestinationAeTitle() {
         return _destinationAeTitle;
@@ -55,14 +39,6 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setQueuedTime(Date _queuedTime) {
         this._queuedTime = _queuedTime;
-    }
-
-    public Date getRequestTime() {
-        return _requestTime;
-    }
-
-    public void setRequestTime(Date _requestTime) {
-        this._requestTime = _requestTime;
     }
 
     public String getUsername() {
@@ -103,48 +79,5 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setSeriesIds(String _seriesIds) {
         this._seriesIds = _seriesIds;
-    }
-
-    // for Hibernate
-    public PacsRequest() {
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
-                .append(_xnatProject).append(_studyId).append(_seriesIds).append(_destinationAeTitle)
-                .append(_queuedTime).append(_requestTime).toHashCode();
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-        final PacsRequest other = (PacsRequest) obj;
-        return new EqualsBuilder().append(_username, other._username).append(_pacsId, other._pacsId)
-                .append(_xnatProject, other._xnatProject).append(_studyId, other._studyId)
-                .append(_seriesIds, other._seriesIds).append(_destinationAeTitle, other._destinationAeTitle)
-                .append(_queuedTime, other._queuedTime).append(_requestTime, other._requestTime).isEquals();
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder buffer = new StringBuilder("{ ");
-        buffer.append("username: ").append(_username).append(", ");
-        buffer.append("pacsId: ").append(_pacsId).append(", ");
-        buffer.append("xnatProject: ").append(_xnatProject).append(", ");
-        buffer.append("studyId: ").append(_studyId).append(", ");
-        buffer.append("seriesIds: ").append(_seriesIds).append(", ");
-        buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
-        buffer.append("queuedTime: ").append(_queuedTime).append(", ");
-        buffer.append("requestTime: ").append(_requestTime).append(", ");
-        return buffer.toString();
     }
 }
