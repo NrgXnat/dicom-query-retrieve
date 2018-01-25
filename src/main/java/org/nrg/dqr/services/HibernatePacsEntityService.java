@@ -81,6 +81,15 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
             pacsIsAvailable = true; //If time constraints are not set for the PACS, allow access
         }
         else{
+
+            //If hour is one digit, pad with a zero.
+            if(availabilityStartTimeString.charAt(1)==':'){
+                availabilityStartTimeString = "0"+availabilityStartTimeString;
+            }
+            if(availabilityEndTimeString.charAt(1)==':'){
+                availabilityEndTimeString = "0"+availabilityEndTimeString;
+            }
+
             LocalTime availabilityStartTime = LocalTime.parse(availabilityStartTimeString);
             LocalTime availabilityEndTime = LocalTime.parse(availabilityEndTimeString);
             if (availabilityStartTime == null || availabilityEndTime == null) {

@@ -127,6 +127,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                 pacsReq.setQueuedTime(new Date());
 
                 XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
             }
         } catch (final PacsNotFoundException exception) {
             _log.warn("PACS not found somehow", exception);
