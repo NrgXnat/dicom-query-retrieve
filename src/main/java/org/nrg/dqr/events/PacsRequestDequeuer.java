@@ -80,6 +80,7 @@ public class PacsRequestDequeuer implements Runnable {
                 pacsReq.setSeriesIds(seriesIds);
                 pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
                 pacsReq.setExecutedTime(new Date());
+                pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
 
                 XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 

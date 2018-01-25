@@ -124,6 +124,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                 pacsReq.setStudyId(_studyId);
                 pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
                 pacsReq.setDestinationAeTitle(_ae);
+                pacsReq.setQueuedTime(new Date());
 
                 XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
             }
