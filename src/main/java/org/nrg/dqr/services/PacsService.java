@@ -25,6 +25,7 @@ import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 
 public interface PacsService {
+    boolean canConnect(UserI user, final Pacs pacs);
 
     PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs,
                                                             final PacsSearchCriteria searchCriteria);

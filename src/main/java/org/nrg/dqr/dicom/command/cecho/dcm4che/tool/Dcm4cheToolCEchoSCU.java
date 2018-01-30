@@ -64,4 +64,23 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
             }
         }
     }
+
+    @Override
+    public boolean canConnect() {
+        boolean canConnect = false;
+        try {
+            _dcmEcho.open();
+            _dcmEcho.echo();
+            canConnect = true;
+        } catch (final Exception e) {
+            canConnect = false;
+        } finally {
+            try {
+                _dcmEcho.close();
+            } catch (final Exception e) {
+                canConnect = false;
+            }
+        }
+        return canConnect;
+    }
 }

@@ -33,6 +33,11 @@ import org.nrg.xft.security.UserI;
 public class MockPacsService implements PacsService {
 
     @Override
+    public boolean canConnect(UserI user, final Pacs pacs){
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
     public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs,
                                                                    final PacsSearchCriteria searchCriteria) {
         throw new RuntimeException("method not implemented");

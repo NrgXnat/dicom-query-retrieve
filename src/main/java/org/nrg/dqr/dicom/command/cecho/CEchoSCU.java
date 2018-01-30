@@ -15,4 +15,6 @@ package org.nrg.dqr.dicom.command.cecho;
 public interface CEchoSCU {
 
     void cecho();
+
+    boolean canConnect();
 }

@@ -18,6 +18,8 @@ import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
+import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
 import org.nrg.dqr.dicom.command.cmove.CMoveSCU;
@@ -59,6 +61,18 @@ import java.util.List;
 public class BasicPacsService implements PacsService {
 
     private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
+
+    @Override
+    public boolean canConnect(UserI user, final Pacs pacs){
+        try{
+            if(buildCEchoSCU(pacs).canConnect()){
+                return true;
+            }
+        }
+        catch(Throwable e) {
+        }
+        return false;
+    }
 
     @Override
     public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs,
@@ -257,6 +271,13 @@ public class BasicPacsService implements PacsService {
             failWorkflow(workflow);
             throw new RuntimeException(e);
         }
+    }
+
+    private CEchoSCU buildCEchoSCU(final Pacs pacs) throws PacsNotQueryableException {
+        if(!pacs.isQueryable()){
+            throw new PacsNotQueryableException();
+        }
+        return new Dcm4cheToolCEchoSCU(buildDicomConnectionProperties(pacs));
     }
 
     private CFindSCU buildCFindSCU(final Pacs pacs) throws PacsNotQueryableException {
