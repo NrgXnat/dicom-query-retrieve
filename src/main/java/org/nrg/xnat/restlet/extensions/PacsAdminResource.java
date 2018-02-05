@@ -12,11 +12,10 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import javax.validation.ConstraintViolationException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.services.PacsEntityService;
@@ -107,17 +106,20 @@ public abstract class PacsAdminResource extends SecureResource {
                 "The request body did not contain all of the PACS data fields, or they were not of the correct types.");
     }
 
-    protected void respondWithEntityValidationError(final ConstraintViolationException e) {
-        getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "Entity Validation Error");
-        getResponse().setEntity(e.toString(), MediaType.TEXT_PLAIN);
-    }
-
     protected void respondWithDataIntegrityError(final DataIntegrityViolationException e) {
         getResponse().setStatus(Status.CLIENT_ERROR_CONFLICT, e, "Duplicate Entity Error");
         getResponse().setEntity(
                 "The specified application entity (AE) title already exists in the system."
                         + System.getProperty("line.separator"), MediaType.TEXT_PLAIN);
     }
+
+    protected void respondWithDuplicateAeError(final ConstraintViolationException e) {
+        getResponse().setStatus(Status.CLIENT_ERROR_CONFLICT, e, "Duplicate Entity Error");
+        getResponse().setEntity(
+                "The specified application entity (AE) title already exists in the system."
+                        + System.getProperty("line.separator"), MediaType.TEXT_PLAIN);
+    }
+
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     static {

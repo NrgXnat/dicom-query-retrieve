@@ -118,7 +118,7 @@ public class DicomQueryApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
             @ApiResponse(code = 404, message = "The queued DICOM query request wasn't found."),
             @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE)
+    @XapiRequestMapping(value = "queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authenticated)
     public ResponseEntity<Boolean> queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable("id") final String id) throws Exception {
         try {
             final UserI user = getSessionUser();

@@ -14,9 +14,8 @@ package org.nrg.xnat.restlet.extensions;
 
 import java.util.List;
 
-import javax.validation.ConstraintViolationException;
-
 import org.apache.log4j.Logger;
+import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
@@ -62,10 +61,10 @@ public class PacsListResource extends PacsAdminResource {
                 respondWithSuccessCreated();
             } catch (final InvalidRequestBodyException e) {
                 respondWithInvalidRequestBody();
-            } catch (final ConstraintViolationException e) {
-                respondWithEntityValidationError(e);
             } catch (final DataIntegrityViolationException e) {
                 respondWithDataIntegrityError(e);
+            } catch (final ConstraintViolationException e) {
+                respondWithDuplicateAeError(e);
             }
         }
         else{
