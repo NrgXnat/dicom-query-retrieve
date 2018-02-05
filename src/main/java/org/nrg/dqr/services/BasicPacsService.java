@@ -274,9 +274,6 @@ public class BasicPacsService implements PacsService {
     }
 
     private CEchoSCU buildCEchoSCU(final Pacs pacs) throws PacsNotQueryableException {
-        if(!pacs.isQueryable()){
-            throw new PacsNotQueryableException();
-        }
         return new Dcm4cheToolCEchoSCU(buildDicomConnectionProperties(pacs));
     }
 
