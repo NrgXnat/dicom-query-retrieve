@@ -41,8 +41,30 @@ public class PacsListResource extends PacsAdminResource {
 
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
-        final List<Pacs> allPacs = getPacsEntityService().getAll();
-        return jsonRepresentation(allPacs);
+        boolean checkStorable = this.getQueryVariable("storable")!=null;
+        boolean checkQueryable = this.getQueryVariable("queryable")!=null;
+
+        if(checkQueryable) {
+            if(checkStorable) {
+                final List<Pacs> allPacs = getPacsEntityService().findAllQueryableAndStorable();
+                return jsonRepresentation(allPacs);
+            }
+            else {
+                final List<Pacs> allPacs = getPacsEntityService().findAllQueryable();
+                return jsonRepresentation(allPacs);
+            }
+
+        }
+        else {
+            if (checkStorable) {
+                final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
+                return jsonRepresentation(allPacs);
+            } else {
+                final List<Pacs> allPacs = getPacsEntityService().getAll();
+                return jsonRepresentation(allPacs);
+            }
+        }
+
     }
 
     @Override

@@ -33,4 +33,8 @@ public class PacsDAO extends AbstractHibernateDAO<Pacs> {
     public List<Pacs> findAllQueryable() {
         return findByCriteria(Restrictions.eq("queryable", true), Restrictions.eq("enabled", true));
     }
+
+    public List<Pacs> findAllQueryableAndStorable() {
+        return findByCriteria(Restrictions.eq("storable", true), Restrictions.eq("queryable", true), Restrictions.eq("enabled", true));
+    }
 }

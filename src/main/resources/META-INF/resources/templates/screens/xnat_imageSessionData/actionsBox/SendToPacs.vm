@@ -21,7 +21,7 @@
                     width: 400,
                     content: spawn('p',[
                         spawn('strong','Error:'),
-                        spawn('span',' Cannot send to PACS. No DICOM AE connections have been enabled on this XNAT instance. Please contact your XNAT Administrator to resolve this.')
+                        spawn('span',' Cannot send to PACS. Either no DICOM AE connections have been enabled on this XNAT instance or none of the configured connections can be sent to. Please contact your XNAT Administrator to resolve this.')
                     ]),
                     buttons: [
                         {
@@ -34,7 +34,7 @@
             }
 
             XNAT.xhr.getJSON({
-                url: XNAT.url.rootUrl('/data/pacs')
+                url: XNAT.url.rootUrl('/data/pacs?storable=true')
             })
                     .success(function(data){
                         if (data.ResultSet.Result.length > 0) {

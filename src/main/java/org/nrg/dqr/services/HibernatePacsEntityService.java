@@ -60,6 +60,12 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
 
     @Override
     @Transactional
+    public List<Pacs> findAllQueryableAndStorable(){
+        return getDao().findAllQueryableAndStorable();
+    }
+
+    @Override
+    @Transactional
     public List<Pacs> findAllStorable(){
         return getDao().findAllStorable();
     }
