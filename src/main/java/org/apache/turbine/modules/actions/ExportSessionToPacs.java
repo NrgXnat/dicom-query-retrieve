@@ -20,7 +20,9 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
@@ -35,7 +37,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
 
     private PacsService _service;
     private Pacs _pacs;
-    private XnatMrsessiondata _session;
+    private XnatImagesessiondata _session;
     private String[] _scanIds;
     private UserI _user;
 
@@ -55,7 +57,10 @@ public class ExportSessionToPacs extends DqrSecureAction {
         if (StringUtils.isBlank(session)) {
             throw new RuntimeException("You must specify a session ID for this operation.");
         }
-        _session = XnatMrsessiondata.getXnatMrsessiondatasById(session, _user, false);
+        XnatExperimentdata temp = XnatExperimentdata.getXnatExperimentdatasById(session,_user,false);
+        if(temp instanceof  XnatImagesessiondata) {
+            _session = (XnatImagesessiondata) temp;
+        }
         if (_session == null) {
             throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
         }
