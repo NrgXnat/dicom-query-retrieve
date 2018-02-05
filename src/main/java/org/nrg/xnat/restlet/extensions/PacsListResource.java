@@ -41,6 +41,10 @@ public class PacsListResource extends PacsAdminResource {
 
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
+        if(getUser().isGuest()){
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
+            return null;
+        }
         boolean checkStorable = this.getQueryVariable("storable")!=null;
         boolean checkQueryable = this.getQueryVariable("queryable")!=null;
 

@@ -43,6 +43,10 @@ public class PacsPatientListResource extends PacsServiceResource {
 
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
+        if(getUser().isGuest()){
+            respondWithNeedToBeLoggedIn();
+            return null;
+        }
         try {
             final PacsSearchCriteria searchCriteria = RequestUtils.buildSearchCriteriaFromRequest(getRequest());
             final PacsSearchResults<String, Patient> patients = getPacsService().getPatientsByExample(

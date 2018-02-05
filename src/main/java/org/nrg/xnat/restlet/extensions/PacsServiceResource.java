@@ -70,6 +70,10 @@ public abstract class PacsServiceResource extends SecureResource {
         getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, message);
     }
 
+    public void respondWithNeedToBeLoggedIn() {
+        getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
+    }
+
     protected Representation jsonRepresentation(final DqrDomainObject result, final Class<?> serializationView) {
         try {
             Representation r = new StringRepresentation("{\"ResultSet\":{\"Result\":"

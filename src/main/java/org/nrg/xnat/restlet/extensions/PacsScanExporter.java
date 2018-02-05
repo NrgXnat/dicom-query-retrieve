@@ -39,48 +39,52 @@ public class PacsScanExporter extends ScanResource {
 
     @Override
     public void handlePut() {
-        searchForScan();
+        if (getUser().isGuest()) {
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
+        }
+        else {
+            searchForScan();
 
-        if (getScan() != null) {
-            try {
-                Pacs pacsToExportTo = PacsServiceResource.getPacs(getRequest());
-                if(pacsToExportTo.isStorable()) {
-                    pacsService.exportSeries(XDAT.getUserDetails(), pacsToExportTo, getScan());
-                }
-                else{
-                    throw new PacsNotStorableException();
-                }
-                final String projectId;
-                if (proj != null) {
-                    projectId = proj.getId();
-                } else {
-                    projectId = "Unknown";
-                }
-                final String studyId = getScan().getImageSessionId();
+            if (getScan() != null) {
+                try {
+                    Pacs pacsToExportTo = PacsServiceResource.getPacs(getRequest());
+                    if (pacsToExportTo.isStorable()) {
+                        pacsService.exportSeries(XDAT.getUserDetails(), pacsToExportTo, getScan());
+                    } else {
+                        throw new PacsNotStorableException();
+                    }
+                    final String projectId;
+                    if (proj != null) {
+                        projectId = proj.getId();
+                    } else {
+                        projectId = "Unknown";
+                    }
+                    final String studyId = getScan().getImageSessionId();
 
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                eventDetails.setComment("Series: " + getScan().getId());
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyId, projectId, eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-            } catch (final PacsNotFoundException e) {
-                getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified PACS.");
-            } catch (final PacsNotStorableException e) {
-                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
-            } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                _log.warn("Error creating new workflow event", e);
-                respondToException(e, Status.SERVER_ERROR_INTERNAL);
-            } catch (PersistentWorkflowUtils.IDAbsent e) {
-                _log.warn("ID absent when creating new workflow event", e);
-                respondToException(e, Status.SERVER_ERROR_INTERNAL);
-            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                _log.warn("Justification absent but required when creating new workflow event", e);
-                respondToException(e, Status.SERVER_ERROR_INTERNAL);
-            } catch (Exception e) {
-                respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
+                    eventDetails.setComment("Series: " + getScan().getId());
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyId, projectId, eventDetails);
+                    assert wrk != null;
+                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+                } catch (final PacsNotFoundException e) {
+                    getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified PACS.");
+                } catch (final PacsNotStorableException e) {
+                    getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
+                } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
+                    _log.warn("Error creating new workflow event", e);
+                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                } catch (PersistentWorkflowUtils.IDAbsent e) {
+                    _log.warn("ID absent when creating new workflow event", e);
+                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                } catch (PersistentWorkflowUtils.JustificationAbsent e) {
+                    _log.warn("Justification absent but required when creating new workflow event", e);
+                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                } catch (Exception e) {
+                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                }
+            } else {
+                getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified scan.");
             }
-        } else {
-            getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified scan.");
         }
     }
 

@@ -70,98 +70,103 @@ public class PacsSeriesImporter extends PacsServiceResource {
 
     @Override
     public void handlePut() {
-        try {
-            final Pacs pacs = getPacs();
-            PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-            boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
+        if(getUser().isGuest()){
+            respondWithNeedToBeLoggedIn();
+        }
+        else{
+            try {
+                final Pacs pacs = getPacs();
+                PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+                boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
 
-            if(pacsIsAvailable) {
-                ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
-                pacsReq.setPacsId(getPacsId(getRequest()));
-                pacsReq.setUsername(getUser().getUsername());
-                pacsReq.setXnatProject(_projectId);
-                pacsReq.setStudyId(_studyId);
-                pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-                pacsReq.setDestinationAeTitle(_ae);
-                pacsReq.setExecutedTime(new Date());
+                if(pacsIsAvailable) {
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
+                    pacsReq.setPacsId(getPacsId(getRequest()));
+                    pacsReq.setUsername(getUser().getUsername());
+                    pacsReq.setXnatProject(_projectId);
+                    pacsReq.setStudyId(_studyId);
+                    pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+                    pacsReq.setDestinationAeTitle(_ae);
+                    pacsReq.setExecutedTime(new Date());
 
-                XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
+                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 
-                getPacsService().importFromPacsRequest(pacsReq);
+                    getPacsService().importFromPacsRequest(pacsReq);
 
-                final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
-                final StringBuilder prearchive = new StringBuilder(siteUrl);
-                if (!siteUrl.endsWith("/")) {
-                    prearchive.append("/");
-                }
-                prearchive.append("app/template/XDATScreen_prearchives.vm");
-
-                final PacsServiceResourceContext context = new PacsServiceResourceContext();
-                context.put("prearchive", prearchive.toString());
-                context.put("studyId", _studyId);
-                context.put("seriesIds", _seriesIds);
-
-                try {
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Completed DICOM request for study " + _studyId + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
+                    final StringBuilder prearchive = new StringBuilder(siteUrl);
+                    if (!siteUrl.endsWith("/")) {
+                        prearchive.append("/");
                     }
-                    sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
-                } catch (Exception exception) {
-                    _log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    prearchive.append("app/template/XDATScreen_prearchives.vm");
+
+                    final PacsServiceResourceContext context = new PacsServiceResourceContext();
+                    context.put("prearchive", prearchive.toString());
+                    context.put("studyId", _studyId);
+                    context.put("seriesIds", _seriesIds);
+
+                    try {
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("Completed DICOM request for study " + _studyId + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+                        }
+                        sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
+                    } catch (Exception exception) {
+                        _log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    }
+
+                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                    eventDetails.setComment("Series: " + Joiner.on(", ").join(_seriesIds));
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyId, _projectId, eventDetails);
+                    assert wrk != null;
+                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
                 }
+                else{
+                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                    pacsReq.setPacsId(getPacsId(getRequest()));
+                    pacsReq.setUsername(getUser().getUsername());
+                    pacsReq.setXnatProject(_projectId);
+                    pacsReq.setStudyId(_studyId);
+                    pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+                    pacsReq.setDestinationAeTitle(_ae);
+                    pacsReq.setQueuedTime(new Date());
 
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-                eventDetails.setComment("Series: " + Joiner.on(", ").join(_seriesIds));
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyId, _projectId, eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-            }
-            else{
-                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                pacsReq.setPacsId(getPacsId(getRequest()));
-                pacsReq.setUsername(getUser().getUsername());
-                pacsReq.setXnatProject(_projectId);
-                pacsReq.setStudyId(_studyId);
-                pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-                pacsReq.setDestinationAeTitle(_ae);
-                pacsReq.setQueuedTime(new Date());
-
-                XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
-            }
-        } catch (final PacsNotFoundException exception) {
-            _log.warn("PACS not found somehow", exception);
-            respondWithPacsNotFound();
-        } catch (final PacsNotQueryableException exception) {
-            _log.warn("PACS not queryable somehow", exception);
-            respondWithPacsNotFound();
-        } catch (final PacsNotStorableException exception) {
-            _log.warn("PACS not storable somehow", exception);
-            respondWithPacsNotFound();
-        } catch (final PacsNotAvailableException exception) {
-            _log.warn("PACS not available at this time", exception);
-            respondWithPacsNotFound();
-        } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-            _log.warn("Error creating new workflow event", e);
-            respondToException(e, Status.SERVER_ERROR_INTERNAL);
-        } catch (PersistentWorkflowUtils.IDAbsent e) {
-            _log.warn("ID absent when creating new workflow event", e);
-            respondToException(e, Status.SERVER_ERROR_INTERNAL);
-        } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-            _log.warn("Justification absent but required when creating new workflow event", e);
-            respondToException(e, Status.SERVER_ERROR_INTERNAL);
-        } catch (Exception e) {
-            final Throwable cause = e.getCause();
-            if (cause == null || !(cause instanceof Exception)) {
+                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                    getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
+                }
+            } catch (final PacsNotFoundException exception) {
+                _log.warn("PACS not found somehow", exception);
+                respondWithPacsNotFound();
+            } catch (final PacsNotQueryableException exception) {
+                _log.warn("PACS not queryable somehow", exception);
+                respondWithPacsNotFound();
+            } catch (final PacsNotStorableException exception) {
+                _log.warn("PACS not storable somehow", exception);
+                respondWithPacsNotFound();
+            } catch (final PacsNotAvailableException exception) {
+                _log.warn("PACS not available at this time", exception);
+                respondWithPacsNotFound();
+            } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
+                _log.warn("Error creating new workflow event", e);
                 respondToException(e, Status.SERVER_ERROR_INTERNAL);
-            } else if (cause instanceof CMoveFailureException) {
-                final CMoveFailureException failure = (CMoveFailureException) cause;
-                _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
-                getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, failure.getMessage());
-            } else if (cause instanceof CMoveTargetNotFoundException) {
-                respondToException((CMoveTargetNotFoundException) cause, Status.SERVER_ERROR_INTERNAL);
-            } else {
-                respondToException((Exception) cause, Status.SERVER_ERROR_INTERNAL);
+            } catch (PersistentWorkflowUtils.IDAbsent e) {
+                _log.warn("ID absent when creating new workflow event", e);
+                respondToException(e, Status.SERVER_ERROR_INTERNAL);
+            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
+                _log.warn("Justification absent but required when creating new workflow event", e);
+                respondToException(e, Status.SERVER_ERROR_INTERNAL);
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause == null || !(cause instanceof Exception)) {
+                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
+                } else if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, failure.getMessage());
+                } else if (cause instanceof CMoveTargetNotFoundException) {
+                    respondToException((CMoveTargetNotFoundException) cause, Status.SERVER_ERROR_INTERNAL);
+                } else {
+                    respondToException((Exception) cause, Status.SERVER_ERROR_INTERNAL);
+                }
             }
         }
     }

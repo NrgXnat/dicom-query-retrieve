@@ -32,6 +32,10 @@ public class PacsPatientResource extends PacsServiceResource {
 
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
+        if(getUser().isGuest()){
+            respondWithNeedToBeLoggedIn();
+            return null;
+        }
         try {
             final Patient patient = getPacsService().getPatientById(XDAT.getUserDetails(), getPacs(), getPatientId());
             if (null == patient) {

@@ -33,6 +33,10 @@ public class PacsStudyResource extends PacsServiceResource {
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
         try {
+            if(getUser().isGuest()){
+                respondWithNeedToBeLoggedIn();
+                return null;
+            }
             final Study study = getPacsService().getStudyById(XDAT.getUserDetails(), getPacs(), getStudyId());
             if (null == study) {
                 respondWithNotFound();

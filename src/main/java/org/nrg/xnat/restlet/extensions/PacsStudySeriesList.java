@@ -35,6 +35,10 @@ public class PacsStudySeriesList extends PacsServiceResource {
     @Override
     public Representation represent(final Variant variant) throws ResourceException {
         try {
+            if(getUser().isGuest()){
+                respondWithNeedToBeLoggedIn();
+                return null;
+            }
             final Study study = buildStudyFromRequest();
             final PacsSearchResults<String, Series> series = getPacsService().getSeriesByStudy(XDAT.getUserDetails(),
                     getPacs(), study);
