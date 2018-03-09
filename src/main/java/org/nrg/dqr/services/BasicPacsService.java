@@ -14,7 +14,9 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
+import org.apache.turbine.util.parser.ParameterParser;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
@@ -22,6 +24,7 @@ import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
+import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
@@ -34,33 +37,53 @@ import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
+import org.nrg.framework.constants.Scope;
+import org.nrg.xapi.exceptions.NotAuthenticatedException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xdat.turbine.utils.AdminUtils;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xft.utils.FileUtils;
+import org.nrg.xnat.helpers.editscript.DicomEdit;
+import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnat.restlet.extensions.*;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.io.File;
+import java.util.*;
 
 @Service
 public class BasicPacsService implements PacsService {
 
     private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
+
+    private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
+
+    private static Map<String, String> createHeaderToTagMap() {
+        return new HashMap<String, String>() {{
+            put("Accession Number Remapping", "(0008,0050)");
+            put("Study Date Remapping", "(0008,0020)");
+            put("Patient ID Remapping", "(0010,0020)");
+            put("Patient Name Remapping", "(0010,0010)");
+            put("Patient Birth Date Remapping", "(0010,0030)");
+        }};
+    }
 
     @Override
     public boolean canConnect(UserI user, final Pacs pacs){
@@ -212,7 +235,7 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
-        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        PacsEntityService pacsEntityService = getPacsEntityService();
         Pacs pacs = pacsEntityService.retrieve(request.getPacsId());
         if(!pacs.isQueryable()) {
             throw new PacsNotQueryableException();
@@ -381,13 +404,182 @@ public class BasicPacsService implements PacsService {
             }
         }
 
-        final List<Pacs> allPacs = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
+        final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
         for (Pacs pacsToCheck : allPacs){
             if(StringUtils.equals(pacsToCheck.getAeTitle(),ae)){
                 return true;
             }
         }
         return false;
+    }
+
+    @Override
+    public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException();
+        }
+        //ArrayList<Study> studiesList = new ArrayList<>();
+        Map<Study,String> studiesListMappedToAnonScript = new HashMap<>();
+        try {
+            List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
+            List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
+            int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
+
+            if(accessionNumberColumn!=-1) {
+                HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
+                for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
+                    int indexOfHeader = columnHeaders.indexOf(entry.getKey());
+                    if (indexOfHeader != -1) {
+                        columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+                    }
+                }
+
+                for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
+                    List<String> row = rows.get(index);
+                    final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+                    searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                    final PacsSearchResults<String, Study> studies = getStudiesByExample(
+                            XDAT.getUserDetails(), pacs, searchCriteria);
+
+                    boolean anonymizeThisRow = false;
+                    String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
+                    for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
+                        String stringToRemapTo = row.get(entry.getKey());
+                        if(StringUtils.isBlank(stringToRemapTo)){
+                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        }
+                        else{
+                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo+"\"" + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        }
+                    }
+
+                    for (Study currStudy : studies.getResults()) {
+                        if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
+                            if(anonymizeThisRow){
+                                studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow);
+                            }
+                            else{
+                                studiesListMappedToAnonScript.put(currStudy, null);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (final Throwable e) {
+            _log.error("Failed to get studies list from spreadsheet.", e);
+        }
+        for(Map.Entry<Study, String> entry : studiesListMappedToAnonScript.entrySet()){
+            Study currStudy = entry.getKey();
+            String currAnonScript = entry.getValue();
+
+            
+
+           //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+//            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
+            String login = AdminUtils.getAdminUser().getLogin();
+            String studyId = currStudy.getStudyInstanceUid();
+            final String path = "/studies/" + studyId;
+            if (_log.isDebugEnabled()) {
+                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+            }
+            if (studyId == null) {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+            } else {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+            }
+
+
+
+            final PacsSearchResults<String, Series> series = getSeriesByStudy(XDAT.getUserDetails(), pacs, currStudy);
+            String _seriesIdsString = "";
+            ArrayList<String> seriesIdsList = new ArrayList<>();
+            Object[] seriesResults = series.getResults().toArray();
+            for(int index = 0; index<seriesResults.length; index++){
+                if (index > 0) {
+                    _seriesIdsString += ",";
+                }
+                String result = ((Series)seriesResults[index]).getSeriesInstanceUid();
+                _seriesIdsString += result;
+                seriesIdsList.add(result);
+            }
+
+            try {
+                PacsEntityService pacsEntityService = getPacsEntityService();
+                boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
+                if(pacsIsAvailable) {
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
+                    pacsReq.setPacsId(pacsId);
+                    pacsReq.setUsername(user.getUsername());
+                    pacsReq.setXnatProject(project);
+                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                    pacsReq.setSeriesIds(_seriesIdsString);
+                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setExecutedTime(new Date());
+
+                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
+
+                    importFromPacsRequest(pacsReq);
+
+                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
+                    final StringBuilder prearchive = new StringBuilder(siteUrl);
+                    if (!siteUrl.endsWith("/")) {
+                        prearchive.append("/");
+                    }
+                    prearchive.append("app/template/XDATScreen_prearchives.vm");
+
+                    try {
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
+                        }
+                        //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
+                    } catch (Exception exception) {
+                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    }
+
+                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                    eventDetails.setComment("Series: " + _seriesIdsString);
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, currStudy.getStudyId(), project, eventDetails);
+                    assert wrk != null;
+                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+                }
+                else{
+                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                    pacsReq.setPacsId(pacsId);
+                    pacsReq.setUsername(user.getUsername());
+                    pacsReq.setXnatProject(project);
+                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                    pacsReq.setSeriesIds(_seriesIdsString);
+                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setQueuedTime(new Date());
+
+                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                }
+            } catch (final PacsNotFoundException exception) {
+                _log.warn("PACS not found somehow", exception);
+            } catch (final PacsNotQueryableException exception) {
+                _log.warn("PACS not queryable somehow", exception);
+            } catch (final PacsNotStorableException exception) {
+                _log.warn("PACS not storable somehow", exception);
+            } catch (final PacsNotAvailableException exception) {
+                _log.warn("PACS not available at this time", exception);
+            } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
+                _log.warn("Error creating new workflow event", e);
+            } catch (PersistentWorkflowUtils.IDAbsent e) {
+                _log.warn("ID absent when creating new workflow event", e);
+            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
+                _log.warn("Justification absent but required when creating new workflow event", e);
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause == null || !(cause instanceof Exception)) {
+                } else if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                }
+            }
+        }
     }
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
@@ -403,5 +595,9 @@ public class BasicPacsService implements PacsService {
             }
             return new Study(studyInstanceUid);
         }
+    }
+
+    private static PacsEntityService getPacsEntityService() {
+        return XDAT.getContextService().getBean(PacsEntityService.class);
     }
 }

@@ -12,6 +12,7 @@
 
 package org.nrg.dqr.services;
 
+import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
@@ -21,8 +22,11 @@ import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
+
+import java.io.File;
 
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
@@ -48,4 +52,6 @@ public interface PacsService {
     void exportSeries(UserI user, final Pacs pacs, final XnatImagescandata series);
 
     boolean aeIsStorable(final String ae);
+
+    void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
 }

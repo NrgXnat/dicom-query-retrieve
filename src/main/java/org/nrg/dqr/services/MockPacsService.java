@@ -12,6 +12,7 @@
 
 package org.nrg.dqr.services;
 
+import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 
 @SuppressWarnings("unused")
 public class MockPacsService implements PacsService {
@@ -116,6 +118,11 @@ public class MockPacsService implements PacsService {
 
     @Override
     public boolean aeIsStorable(final String ae) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException {
         throw new RuntimeException("method not implemented");
     }
 }

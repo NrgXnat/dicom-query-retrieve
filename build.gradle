@@ -9,6 +9,7 @@
 
 def pluginVersion = '1.0.0'
 def vXnat = '1.7.5-SNAPSHOT'
+def vJunit = '4.12'
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'
@@ -62,8 +63,8 @@ version pluginVersion
 repositories {
     mavenLocal()
     maven {
-        url 'http://dcm4che.org/maven2'
-        name 'dcm4che Maven Repository'
+        url "http://maven.imagej.net/content/groups/public"
+        name "ImageJ Maven Repository"
     }
     jcenter()
     mavenCentral()
@@ -193,8 +194,9 @@ dependencies {
     compileAndInclude 'org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1'
     compileAndInclude 'org.apache.geronimo.specs:geronimo-j2ee-management_1.1_spec:1.0.1'
     compileAndInclude 'org.apache.activemq:kahadb:5.7.0'
-    testImplementation "junit:junit"
-    testImplementation "org.springframework:spring-test"
+    testCompile group: 'junit', name: 'junit', version: "${vJunit}"
+    testCompile "org.springframework:spring-test"
+    testCompile "org.nrg.xdat:core"
 }
 
 task fatJar(type: Jar) {
