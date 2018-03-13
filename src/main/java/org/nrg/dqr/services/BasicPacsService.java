@@ -73,7 +73,8 @@ import java.util.*;
 public class BasicPacsService implements PacsService {
 
     private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
-    private static final String CLEAR_SIGNIFIER = "NULL";
+    //private static final String DELETE_SIGNIFIER = "DELETE";
+    private static final String CLEAR_SIGNIFIER = "\"\"";
 
     private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
     private static Map<String, String> createHeaderToTagMap() {
@@ -428,7 +429,8 @@ public class BasicPacsService implements PacsService {
             int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
             int studyDateColumn = columnHeaders.indexOf("Study Date");
             int patientIdColumn = columnHeaders.indexOf("Patient ID");
-            int patientNameColumn = columnHeaders.indexOf("Patient Name");
+            int lastNameColumn = columnHeaders.indexOf("Last Name");
+            int firstNameColumn = columnHeaders.indexOf("First Name");
             int dobColumn = columnHeaders.indexOf("DOB");
             int modalityColumn = columnHeaders.indexOf("Modality");
 
@@ -443,37 +445,37 @@ public class BasicPacsService implements PacsService {
             for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
                 List<String> row = rows.get(index);
                 final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
-                if (accessionNumberColumn != -1) {
+                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
                     searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
                 }
-                if (patientNameColumn != -1) {
-                    searchCriteria.setPatientName(row.get(patientNameColumn));
+                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                    String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                    String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                    searchCriteria.setPatientName(lastName+","+firstName);
                 }
-                if (patientIdColumn != -1) {
+                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
                     searchCriteria.setPatientId(row.get(patientIdColumn));
                 }
-                if (studyDateColumn != -1) {
+                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
                     String studyDateCell = row.get(studyDateColumn);
-                    if(studyDateCell!=null){
-                        int dashIndex = studyDateCell.indexOf("-");
-                        if(dashIndex==-1){
-                            Date dateObject = new Date(studyDateCell);
-                            Calendar c = Calendar.getInstance();
-                            c.setTime(dateObject);
-                            c.add(Calendar.DATE, 1);
-                            Date endOfDay = c.getTime();
+                    int dashIndex = studyDateCell.indexOf("-");
+                    if(dashIndex==-1){
+                        Date dateObject = new Date(studyDateCell);
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(dateObject);
+                        c.add(Calendar.DATE, 1);
+                        Date endOfDay = c.getTime();
 
-                            searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
-                        }
-                        else{
-                            searchCriteria.setStudyDateRange(new DateRange(new Date(studyDateCell.substring(0,dashIndex)), new Date(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
-                        }
+                        searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                    }
+                    else{
+                        searchCriteria.setStudyDateRange(new DateRange(new Date(studyDateCell.substring(0,dashIndex)), new Date(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
                     }
                 }
-                if (dobColumn != -1) {
+                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
                     searchCriteria.setDob(row.get(dobColumn));
                 }
-                if (modalityColumn != -1) {
+                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
                     searchCriteria.setModality(row.get(modalityColumn));
                 }
 
@@ -486,6 +488,10 @@ public class BasicPacsService implements PacsService {
                 for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
                     String stringToRemapTo = row.get(entry.getKey());
                     if(StringUtils.isNotBlank(stringToRemapTo)) {
+//                        if (StringUtils.equals(DELETE_SIGNIFIER,stringToRemapTo)) {
+//                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
+//                            anonymizeThisRow = true;
+//                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
                         if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
                             anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
                             anonymizeThisRow = true;
