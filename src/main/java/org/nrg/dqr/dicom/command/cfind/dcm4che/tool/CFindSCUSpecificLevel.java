@@ -139,6 +139,16 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         if (!StringUtils.isBlank(searchCriteria.getAccessionNumber())) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.AccessionNumber), searchCriteria.getAccessionNumber());
         }
+
+
+        if (!StringUtils.isBlank(searchCriteria.getDob())) {
+            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientBirthDate), searchCriteria.getDob());
+        }
+        if (!StringUtils.isBlank(searchCriteria.getModality())) {
+            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.Modality), searchCriteria.getModality());
+        }
+
+
         DateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
                 .getDateRange();
         if (null != studyDateRange && studyDateRange.isBounded()) {

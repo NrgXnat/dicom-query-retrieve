@@ -60,6 +60,7 @@ import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnat.restlet.extensions.*;
+import org.nrg.xnat.utils.DateRange;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
 import org.slf4j.Logger;
@@ -72,9 +73,9 @@ import java.util.*;
 public class BasicPacsService implements PacsService {
 
     private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
+    private static final String CLEAR_SIGNIFIER = "NULL";
 
     private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
-
     private static Map<String, String> createHeaderToTagMap() {
         return new HashMap<String, String>() {{
             put("Accession Number Remapping", "(0008,0050)");
@@ -425,45 +426,83 @@ public class BasicPacsService implements PacsService {
             List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
             List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
             int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
+            int studyDateColumn = columnHeaders.indexOf("Study Date");
+            int patientIdColumn = columnHeaders.indexOf("Patient ID");
+            int patientNameColumn = columnHeaders.indexOf("Patient Name");
+            int dobColumn = columnHeaders.indexOf("DOB");
+            int modalityColumn = columnHeaders.indexOf("Modality");
 
-            if(accessionNumberColumn!=-1) {
-                HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
-                for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
-                    int indexOfHeader = columnHeaders.indexOf(entry.getKey());
-                    if (indexOfHeader != -1) {
-                        columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+            HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
+            for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
+                int indexOfHeader = columnHeaders.indexOf(entry.getKey());
+                if (indexOfHeader != -1) {
+                    columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+                }
+            }
+
+            for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
+                List<String> row = rows.get(index);
+                final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+                if (accessionNumberColumn != -1) {
+                    searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                }
+                if (patientNameColumn != -1) {
+                    searchCriteria.setPatientName(row.get(patientNameColumn));
+                }
+                if (patientIdColumn != -1) {
+                    searchCriteria.setPatientId(row.get(patientIdColumn));
+                }
+                if (studyDateColumn != -1) {
+                    String studyDateCell = row.get(studyDateColumn);
+                    if(studyDateCell!=null){
+                        int dashIndex = studyDateCell.indexOf("-");
+                        if(dashIndex==-1){
+                            Date dateObject = new Date(studyDateCell);
+                            Calendar c = Calendar.getInstance();
+                            c.setTime(dateObject);
+                            c.add(Calendar.DATE, 1);
+                            Date endOfDay = c.getTime();
+
+                            searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                        }
+                        else{
+                            searchCriteria.setStudyDateRange(new DateRange(new Date(studyDateCell.substring(0,dashIndex)), new Date(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                        }
+                    }
+                }
+                if (dobColumn != -1) {
+                    searchCriteria.setDob(row.get(dobColumn));
+                }
+                if (modalityColumn != -1) {
+                    searchCriteria.setModality(row.get(modalityColumn));
+                }
+
+
+                final PacsSearchResults<String, Study> studies = getStudiesByExample(
+                        XDAT.getUserDetails(), pacs, searchCriteria);
+
+                boolean anonymizeThisRow = false;
+                String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
+                for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
+                    String stringToRemapTo = row.get(entry.getKey());
+                    if(StringUtils.isNotBlank(stringToRemapTo)) {
+                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                            anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        } else {
+                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        }
                     }
                 }
 
-                for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
-                    List<String> row = rows.get(index);
-                    final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
-                    searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
-                    final PacsSearchResults<String, Study> studies = getStudiesByExample(
-                            XDAT.getUserDetails(), pacs, searchCriteria);
-
-                    boolean anonymizeThisRow = false;
-                    String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
-                    for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
-                        String stringToRemapTo = row.get(entry.getKey());
-                        if(StringUtils.isBlank(stringToRemapTo)){
-                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
-                            anonymizeThisRow = true;
+                for (Study currStudy : studies.getResults()) {
+                    if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
+                        if(anonymizeThisRow){
+                            studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow);
                         }
                         else{
-                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo+"\"" + System.lineSeparator();
-                            anonymizeThisRow = true;
-                        }
-                    }
-
-                    for (Study currStudy : studies.getResults()) {
-                        if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
-                            if(anonymizeThisRow){
-                                studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow);
-                            }
-                            else{
-                                studiesListMappedToAnonScript.put(currStudy, null);
-                            }
+                            studiesListMappedToAnonScript.put(currStudy, null);
                         }
                     }
                 }
@@ -475,7 +514,7 @@ public class BasicPacsService implements PacsService {
             Study currStudy = entry.getKey();
             String currAnonScript = entry.getValue();
 
-            
+
 
            //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
 //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
