@@ -67,6 +67,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -458,9 +459,10 @@ public class BasicPacsService implements PacsService {
                 }
                 if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
                     String studyDateCell = row.get(studyDateColumn);
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
                     int dashIndex = studyDateCell.indexOf("-");
                     if(dashIndex==-1){
-                        Date dateObject = new Date(studyDateCell);
+                        Date dateObject = formatter.parse(studyDateCell);
                         Calendar c = Calendar.getInstance();
                         c.setTime(dateObject);
                         c.add(Calendar.DATE, 1);
@@ -469,7 +471,7 @@ public class BasicPacsService implements PacsService {
                         searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
                     }
                     else{
-                        searchCriteria.setStudyDateRange(new DateRange(new Date(studyDateCell.substring(0,dashIndex)), new Date(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                        searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
                     }
                 }
                 if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
