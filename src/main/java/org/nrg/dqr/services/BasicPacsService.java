@@ -536,6 +536,7 @@ public class BasicPacsService implements PacsService {
                 XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
             } else {
                 XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
             }
 
 
