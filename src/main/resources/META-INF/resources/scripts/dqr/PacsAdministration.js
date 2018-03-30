@@ -242,20 +242,17 @@ XNAT.app.PacsAdministration = ( function () {
 
         // add table header row
         pacsTable.tr()
-            .th({ addClass: 'left', html: '<b>ID</b>' })
-            .th('<b>AE Title</b>')
-            .th('<b>Host</b>')
-            .th('<b>Label</b>')
+            .th({ addClass: 'left', html: '<b>DICOM AE</b>' })
             .th('<b>Queryable</b>')
-            .th('<b>Q/R<br>Port</b>')
-            .th('<b>Q/R<br>Default</b>')
             .th('<b>Storable</b>')
-            .th('<b>Storage<br>Port</b>')
-            .th('<b>Storage<br>Default</b>')
+            .th('<b>Status</b>')
             .th('<b>Actions</b>');
 
-        function showDefault(setting){
-            return setting ? spawn('i',{ className: 'fa fa-check' }) : '';
+        function showDefault(setting,defaultSet){
+            defaultSet = defaultSet || false;
+            var display = spawn('i',{ className: 'fa fa-check' });
+            if (defaultSet) display = spawn('small',{ style: { 'text-transform':'uppercase', 'font-weight': 'bold'} }, 'Default');
+            return setting ? display : '';
         }
         function editButton(){
             return spawn('button',{ className: 'btn editRow', title: 'Edit This DICOM AE Connection' },[
@@ -269,6 +266,18 @@ XNAT.app.PacsAdministration = ( function () {
         }
         function displayLongLabel(label){
             return spawn('span.truncate', { style: { 'width': '120px' }, title: label }, label);
+        }
+        function displayAeSummary(ae){
+            var summary = [
+                spawn('p',[
+                    spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.aeTitle),
+                    spawn('span', ' (IP: ' + ae.host + ')')
+                ])
+            ];
+            if (ae.label) summary.push( spawn('p', ae.label));
+            if (ae.queryRetrievePort) summary.push( spawn('p', 'Q/R Port: '+ae.queryRetrievePort));
+            if (ae.storagePort) summary.push( spawn('p', 'Storage Port: '+ae.storagePort));
+            return spawn('!',summary);
         }
 
         // add data rows
@@ -299,17 +308,11 @@ XNAT.app.PacsAdministration = ( function () {
                         supportsExtendedNegotiations: ae.supportsExtendedNegotiations
                     }
                 })
-                    .td({ addClass: 'right' }, ae.id )
-                    .td([ displayLongLabel(ae.aeTitle) ])
-                    .td([ displayLongLabel(ae.host) ])
-                    .td([ displayLongLabel(ae.label) ])
-                    .td({ addClass: 'center' },[ showDefault(ae.queryable) ])
-                    .td( ae.queryRetrievePort )
-                    .td({ addClass: 'center' },[ showDefault(ae.defaultQueryRetrievePacs) ])
-                    .td({ addClass: 'center' },[ showDefault(ae.storable) ])
-                    .td( ae.storagePort )
-                    .td({ addClass: 'center' },[ showDefault(ae.defaultStoragePacs) ])
-                    .td([ editButton(), spawn('!',' '), deleteButton() ]);
+                    .td([ displayAeSummary(ae) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
+                    .td({ addClass: 'center' },[ showDefault(ae.storable, ae.defaultStoragePacs) ])
+                    .td({ addClass: 'center'}, '(Ping Status)')
+                    .td({ addClass: 'center'}, [ editButton(), spawn('!',' '), deleteButton() ]);
             })
 
         }
