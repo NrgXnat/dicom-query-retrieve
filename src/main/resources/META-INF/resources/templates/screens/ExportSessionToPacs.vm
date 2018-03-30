@@ -29,8 +29,8 @@
             <div class="inputWrapper">
                 <h4>Set Destination (Required)</h4>
                 <p>
-                    <label for="pacs">Select DICOM Destination to Export To:</label>
-                    <select id="pacs" name="pacs">
+                    <label for="pacsId">Select DICOM Destination to Export To:</label>
+                    <select id="pacsId" name="pacsId">
                         #foreach($pacs in $pacsList)
                             #if($pacs.storagePort)
                                 #if($pacs.isDefaultStoragePacs())
