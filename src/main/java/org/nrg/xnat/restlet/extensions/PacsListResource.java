@@ -94,7 +94,7 @@ public class PacsListResource extends PacsAdminResource {
             }
         }
         else{
-            final String message = String.format("User %s is not an administrator and can't delete PACs configurations.", user.getUsername());
+            final String message = String.format("User %s is not an administrator and can't create PACs configurations.", user.getUsername());
             logger.info(message);
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }

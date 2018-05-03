@@ -8,7 +8,7 @@
  */
 
 def pluginVersion = '1.0.0'
-def vXnat = '1.7.4'
+def vXnat = '1.7.5-SNAPSHOT'
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'
@@ -17,6 +17,7 @@ apply plugin: 'jacoco'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'idea'
+apply plugin: "io.franzbecker.gradle-lombok"
 apply plugin: 'eclipse'
 apply plugin: 'xnat-data-builder'
 
@@ -39,6 +40,7 @@ buildscript {
     }
     dependencies {
         classpath "org.hibernate:hibernate-validator:6.0.3.Final"
+        classpath "io.franzbecker:gradle-lombok:1.11"
         classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
         classpath "org.apache.maven.plugins:maven-resources-plugin:2.5"
         classpath "org.apache.maven.plugins:maven-compiler-plugin:3.7.0"
@@ -46,7 +48,8 @@ buildscript {
         classpath "org.apache.maven.plugins:maven-antrun-plugin:1.8"
         classpath "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
         classpath "javax.validation:validation-api:2.0.0.Final"
-        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.4"){
+        classpath "org.nrg.xdat:core:1.7.5-auth-B3-SNAPSHOT"
+        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.5-SNAPSHOT"){
             exclude group:'torque'
         }
     }
@@ -134,7 +137,6 @@ configurations {
     all*.exclude group: 'net.sf.saxon', module: 'Saxon-B'
     all*.exclude group: 'org.apache.geronimo.specs'
     all*.exclude module: 'pipelineCNDAXNAT'
-    all*.exclude module: 'slf4j-simple'
     all*.exclude group: 'jamon'
     compile.extendsFrom(compileAndInclude)
 }
@@ -158,8 +160,8 @@ dependencies {
     implementation 'org.sonatype.sisu:sisu-inject-bean:1.4.2'
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.6.5'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.6.5'
-    implementation 'org.nrg:mail:1.7.4'
-    implementation "org.nrg.xnat:web:1.7.4"
+    implementation 'org.nrg:mail:1.7.5-SNAPSHOT'
+    implementation "org.nrg.xnat:web:1.7.5-auth-B3-SNAPSHOT"
     implementation "javax.validation:validation-api:2.0.0.Final"
     implementation "org.nrg:dicomtools"
     implementation "org.nrg:dicom-xnat"
@@ -167,14 +169,13 @@ dependencies {
     implementation "org.nrg.dicom:dicom-edit4"
     runtime 'org.nrg.dicom:dicom-edit6'
     implementation "org.nrg.xnat:xnat-data-models"
-    implementation "org.nrg.xdat:core"
+    implementation "org.nrg.xdat:core:1.7.5-auth-B3-SNAPSHOT"
     implementation "org.nrg:framework"
     implementation "org.nrg:config"
     implementation "javax.servlet:javax.servlet-api"
     runtime 'org.apache.xmlbeans:xmlbeans-xpath'
     implementation "turbine:turbine"
     implementation "org.apache.velocity:velocity"
-    implementation "org.slf4j:slf4j-api"
     implementation "log4j:log4j"
     implementation "org.springframework:spring-beans"
     implementation "org.springframework:spring-context"

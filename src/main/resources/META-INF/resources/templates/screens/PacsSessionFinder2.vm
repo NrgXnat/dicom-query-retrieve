@@ -47,7 +47,7 @@
 
 #if($projects.size() == 1)
     #set($project = $projects.get(0))
-    #if($data.getSession().getAttribute("user").canEdit("xnat:subjectData/project",$project.getId()))
+    #if($user.canEdit("xnat:subjectData/project",$project.getId()))
 
     #else
         #set($userCanImport = false)
@@ -74,7 +74,7 @@
                         <select id="project" id="project" name="project" style="min-width:200px;">
                             <option disabled>(Select Project)</option>
                             #foreach($proj in $projects)
-                                #if($proj.canEdit($data.getSession().getAttribute("user")))
+                                #if($proj.canEdit($user))
                                     <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
                                 #else
                                     <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
