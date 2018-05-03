@@ -27,26 +27,25 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
+import org.nrg.xnat.task.*;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by mike on 1/23/18.
  */
-@Component
-public class PacsRequestDequeuer implements Runnable {
-    public PacsRequestDequeuer(final SiteConfigPreferences preferences){
+public class PacsRequestDequeuer extends AbstractXnatRunnable {
+    public PacsRequestDequeuer(){
         if (_log.isDebugEnabled()) {
             _log.debug("Initializing the PACS request dequeuer job");
         }
-        _preferences = preferences;
     }
 
     @Override
-    public void run() {
+    public void runTask() {
         try {
             if (_log.isDebugEnabled()) {
                 _log.debug("Executing PACS request dequeuer function");
@@ -129,8 +128,6 @@ public class PacsRequestDequeuer implements Runnable {
             _log.error("Error executing a PACS request from the queue.", exception);
         }
     }
-
-    private final SiteConfigPreferences   _preferences;
 
     private static final Logger _log = LoggerFactory.getLogger(PacsRequestDequeuer.class);
 }
