@@ -89,7 +89,7 @@
                     <select id="project" id="project" name="project" style="min-width:200px;">
                         <option disabled>(Select Project)</option>
                         #foreach($proj in $projects)
-                            #if($proj.canEdit($data.getSession().getAttribute("user")))
+                            #if($proj.canEdit($user))
                                 <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
                             #else
                                 <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
@@ -117,11 +117,11 @@
                     <select id="ae" id="ae" name="ae" style="min-width:200px;">
                         <option disabled>(Select AE)</option>
                         #foreach($tempAe in $aes)
-                            #if($tempAe.isDefaultStorageDestination())
-                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-                            #else
+##                            #if($tempAe.isDefaultStorageDestination())
+##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
+##                            #else
                                 <option value="${tempAe.getAeTitle()}">${tempAe.getDisplayString()}</option>
-                            #end
+##                            #end
                         #end
                     </select>
                 #end

@@ -56,31 +56,31 @@ public class SpreadsheetBasedImporter extends SecureScreen {
         context.put("projects", projects);
 
         ArrayList<ApplicationEntity> aes = new ArrayList<>();
-        ArrayList<ApplicationEntity> xnatAes = new ArrayList<>();
-        ArrayList<ApplicationEntity> pacsAes = new ArrayList<>();
+//        ArrayList<ApplicationEntity> xnatAes = new ArrayList<>();
+//        ArrayList<ApplicationEntity> pacsAes = new ArrayList<>();
         ArrayList<String> addedAeTitles = new ArrayList<>();
-        String defaultAe = "";
+//        String defaultAe = "";
         //Get all enabled and storable PACS
-        final List<Pacs> allPacs = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
-        for (Pacs pacs : allPacs){
-            //Only add receivers that are set to storable to list of XNAT AEs
-            String aeTitle = pacs.getAeTitle();
-            String label = pacs.getLabel();
-            if (!StringUtils.isBlank(aeTitle)) {
-                if (!addedAeTitles.contains(aeTitle)) {
-                    ApplicationEntity ae = new ApplicationEntity();
-                    ae.setAeTitle(aeTitle);
-                    if(!StringUtils.isBlank(label)){
-                        ae.setLabel(label);
-                    }
-                    if (pacs.isDefaultStoragePacs()) {
-                        ae.setIsDefaultStorageDestination(true);
-                    }
-                    aes.add(ae);
-                    pacsAes.add(ae);
-                }
-            }
-        }
+//        final List<Pacs> allPacs = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
+//        for (Pacs pacs : allPacs){
+//            //Only add receivers that are set to storable to list of XNAT AEs
+//            String aeTitle = pacs.getAeTitle();
+//            String label = pacs.getLabel();
+//            if (!StringUtils.isBlank(aeTitle)) {
+//                if (!addedAeTitles.contains(aeTitle)) {
+//                    ApplicationEntity ae = new ApplicationEntity();
+//                    ae.setAeTitle(aeTitle);
+//                    if(!StringUtils.isBlank(label)){
+//                        ae.setLabel(label);
+//                    }
+//                    if (pacs.isDefaultStoragePacs()) {
+//                        ae.setIsDefaultStorageDestination(true);
+//                    }
+//                    aes.add(ae);
+//                    pacsAes.add(ae);
+//                }
+//            }
+//        }
 
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
         for (DicomSCPInstance scp : scps){
@@ -88,9 +88,9 @@ public class SpreadsheetBasedImporter extends SecureScreen {
             if(!StringUtils.isBlank(aeTitle)){
                 ApplicationEntity ae = new ApplicationEntity();
                 ae.setAeTitle(aeTitle);
-                if(!xnatAes.contains(aeTitle)) {
-                    xnatAes.add(ae);
-                }
+//                if(!xnatAes.contains(aeTitle)) {
+//                    xnatAes.add(ae);
+//                }
                 if(!addedAeTitles.contains(aeTitle)){
                     aes.add(ae);
                 }
