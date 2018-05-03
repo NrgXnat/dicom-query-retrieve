@@ -1,9 +1,8 @@
 package org.nrg.dqr.domain.entities;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
+import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 import java.io.Serializable;
 import java.util.Date;
@@ -18,7 +17,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     protected String _username;
     protected Long _pacsId;
     protected String _xnatProject;
-    protected String _studyId;
+    protected String _studyInstanceUid;
     protected String _seriesIds;
 
     protected String _destinationAeTitle;
@@ -65,14 +64,15 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         this._xnatProject = _xnatProject;
     }
 
-    public String getStudyId() {
-        return _studyId;
+    public String getStudyInstanceUid() {
+        return _studyInstanceUid;
     }
 
-    public void setStudyId(String _studyId) {
-        this._studyId = _studyId;
+    public void setStudyInstanceUid(String _studyId) {
+        this._studyInstanceUid = _studyId;
     }
 
+    @Column(columnDefinition = "TEXT")
     public String getSeriesIds() {
         return _seriesIds;
     }

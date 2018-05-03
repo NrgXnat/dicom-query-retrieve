@@ -13,8 +13,10 @@
 package org.apache.turbine.modules.actions;
 
 import com.google.common.base.Joiner;
+import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.util.parser.ParameterParser;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsEntityService;
@@ -46,7 +48,12 @@ public class ExportSessionToPacs extends DqrSecureAction {
 
         _user = TurbineUtils.getUser(data);
 
-        final long pacsId = Long.valueOf((String) TurbineUtils.GetPassedParameter("pacs", data));
+        ParameterParser params = data.getParameters();
+        FileItem fi = params.getFileItem("csv_to_store");
+
+        final String project = (String) TurbineUtils.GetPassedParameter("project", data);
+        final String ae = (String) TurbineUtils.GetPassedParameter("ae", data);
+        final long pacsId = Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
         _pacs = getPacsEntityService().retrieve(pacsId);
         if (_pacs == null) {
             throw new PacsNotFoundException();

@@ -74,8 +74,8 @@ public class PacsRequestDequeuer implements Runnable {
                 pacsReq.setUsername(username);
                 String projectId = requestToDequeue.getXnatProject();
                 pacsReq.setXnatProject(projectId);
-                String studyId = requestToDequeue.getStudyId();
-                pacsReq.setStudyId(studyId);
+                String studyInstanceUid = requestToDequeue.getStudyInstanceUid();
+                pacsReq.setStudyInstanceUid(studyInstanceUid);
                 String seriesIds = requestToDequeue.getSeriesIds();
                 pacsReq.setSeriesIds(seriesIds);
                 pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
@@ -99,12 +99,12 @@ public class PacsRequestDequeuer implements Runnable {
 
                 final PacsServiceResourceContext context = new PacsServiceResourceContext();
                 context.put("prearchive", prearchive.toString());
-                context.put("studyId", studyId);
+                context.put("studyId", studyInstanceUid);
                 context.put("seriesIds", Arrays.asList(seriesIds.split("\\s*,\\s*")));
 
                 try {
                     if (_log.isDebugEnabled()) {
-                        _log.debug("Completed DICOM request for study " + studyId + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
+                        _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
                     }
                     String subject = "Selected DICOM series requested";
                     String template = "SeriesRequested";
@@ -121,7 +121,7 @@ public class PacsRequestDequeuer implements Runnable {
 
                 final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
                 eventDetails.setComment("Series: " + seriesIds);
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyId, projectId, eventDetails);
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
                 assert wrk != null;
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }

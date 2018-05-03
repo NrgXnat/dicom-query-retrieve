@@ -223,12 +223,12 @@ public class BasicPacsService implements PacsService {
         else {
             try {
 
-                final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyId(), request.getUsername());
+                final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
 
                 for (String seriesId : Arrays.asList(request.getSeriesIds().split(","))) {
                     seriesId = seriesId.trim();
                     if (_log.isDebugEnabled()) {
-                        _log.debug("Requesting series " + seriesId + " for study instance UID " + request.getStudyId());
+                        _log.debug("Requesting series " + seriesId + " for study instance UID " + request.getStudyInstanceUid());
                     }
                     Series series = new Series(seriesId);
 

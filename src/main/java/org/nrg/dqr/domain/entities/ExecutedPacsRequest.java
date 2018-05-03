@@ -16,10 +16,8 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import javax.persistence.*;
-import java.io.Serializable;
 import java.util.Date;
 
 @Entity
@@ -45,7 +43,7 @@ public class ExecutedPacsRequest extends PacsRequest {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
-                .append(_xnatProject).append(_studyId).append(_seriesIds).append(_destinationAeTitle)
+                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_destinationAeTitle)
                 .append(_queuedTime).append(_executedTime).toHashCode();
     }
 
@@ -62,7 +60,7 @@ public class ExecutedPacsRequest extends PacsRequest {
         }
         final ExecutedPacsRequest other = (ExecutedPacsRequest) obj;
         return new EqualsBuilder().append(_username, other._username).append(_pacsId, other._pacsId)
-                .append(_xnatProject, other._xnatProject).append(_studyId, other._studyId)
+                .append(_xnatProject, other._xnatProject).append(_studyInstanceUid, other._studyInstanceUid)
                 .append(_seriesIds, other._seriesIds).append(_destinationAeTitle, other._destinationAeTitle)
                 .append(_queuedTime, other._queuedTime).append(_executedTime, other._executedTime).isEquals();
     }
@@ -73,7 +71,7 @@ public class ExecutedPacsRequest extends PacsRequest {
         buffer.append("username: ").append(_username).append(", ");
         buffer.append("pacsId: ").append(_pacsId).append(", ");
         buffer.append("xnatProject: ").append(_xnatProject).append(", ");
-        buffer.append("studyId: ").append(_studyId).append(", ");
+        buffer.append("studyId: ").append(_studyInstanceUid).append(", ");
         buffer.append("seriesIds: ").append(_seriesIds).append(", ");
         buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
         buffer.append("queuedTime: ").append(_queuedTime).append(", ");

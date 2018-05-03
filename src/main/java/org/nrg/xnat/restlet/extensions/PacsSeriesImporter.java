@@ -45,8 +45,8 @@ public class PacsSeriesImporter extends PacsServiceResource {
 
     public PacsSeriesImporter(final Context context, final Request request, final Response response) {
         super(context, request, response);
-        _studyId = getBodyVariable("STUDY_ID");
-        if (StringUtils.isBlank(_studyId)) {
+        _studyInstanceUid = getBodyVariable("STUDY_ID");
+        if (StringUtils.isBlank(_studyInstanceUid)) {
             response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, new RuntimeException("For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series."), "For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series.");
         }
         final String seriesId = (String) getParameter(getRequest(), "SERIES_ID");
@@ -61,10 +61,10 @@ public class PacsSeriesImporter extends PacsServiceResource {
         _projectId = getBodyVariable("PROJECT");
         if (StringUtils.isBlank(_projectId)) {
             if (_log.isDebugEnabled()) {
-                _log.debug("No project ID set for study instance UID: " + _studyId + ", series " + Joiner.on(", ").join(_seriesIds));
+                _log.debug("No project ID set for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
             }
         } else if (_log.isDebugEnabled()) {
-            _log.debug("The project " + _projectId + " will be set as the destination for study instance UID: " + _studyId + ", series " + Joiner.on(", ").join(_seriesIds));
+            _log.debug("The project " + _projectId + " will be set as the destination for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
         }
     }
 
@@ -84,7 +84,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     pacsReq.setPacsId(getPacsId(getRequest()));
                     pacsReq.setUsername(getUser().getUsername());
                     pacsReq.setXnatProject(_projectId);
-                    pacsReq.setStudyId(_studyId);
+                    pacsReq.setStudyInstanceUid(_studyInstanceUid);
                     pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
                     pacsReq.setDestinationAeTitle(_ae);
                     pacsReq.setExecutedTime(new Date());
@@ -102,12 +102,12 @@ public class PacsSeriesImporter extends PacsServiceResource {
 
                     final PacsServiceResourceContext context = new PacsServiceResourceContext();
                     context.put("prearchive", prearchive.toString());
-                    context.put("studyId", _studyId);
+                    context.put("studyId", _studyInstanceUid);
                     context.put("seriesIds", _seriesIds);
 
                     try {
                         if (_log.isDebugEnabled()) {
-                            _log.debug("Completed DICOM request for study " + _studyId + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+                            _log.debug("Completed DICOM request for study " + _studyInstanceUid + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
                         }
                         sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
                     } catch (Exception exception) {
@@ -116,7 +116,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
 
                     final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
                     eventDetails.setComment("Series: " + Joiner.on(", ").join(_seriesIds));
-                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyId, _projectId, eventDetails);
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _studyInstanceUid, _projectId, eventDetails);
                     assert wrk != null;
                     PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
                 }
@@ -125,7 +125,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     pacsReq.setPacsId(getPacsId(getRequest()));
                     pacsReq.setUsername(getUser().getUsername());
                     pacsReq.setXnatProject(_projectId);
-                    pacsReq.setStudyId(_studyId);
+                    pacsReq.setStudyInstanceUid(_studyInstanceUid);
                     pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
                     pacsReq.setDestinationAeTitle(_ae);
                     pacsReq.setQueuedTime(new Date());
@@ -184,7 +184,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
     private static final Logger _log = LoggerFactory.getLogger(PacsSeriesImporter.class);
 
     private final String _projectId;
-    private final String _studyId;
+    private final String _studyInstanceUid;
     private final String _ae;
     private final List<String> _seriesIds = new ArrayList<>();
 }
