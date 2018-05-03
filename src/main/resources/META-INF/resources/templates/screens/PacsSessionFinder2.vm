@@ -102,11 +102,11 @@
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
                             <option disabled>(Select AE)</option>
                             #foreach($tempAe in $aes)
-                                #if($tempAe.isDefaultStorageDestination())
-                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-                                #else
+##                                #if($tempAe.isDefaultStorageDestination())
+##                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
+##                                #else
                                     <option value="${tempAe.getAeTitle()}">${tempAe.getDisplayString()}</option>
-                                #end
+##                                #end
                             #end
                         </select>
                     #end
