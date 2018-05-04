@@ -15,6 +15,9 @@
 #pacsTable img.editRow, img.deleteRow {
     cursor: pointer;
 }
+#pacsTable p {
+    margin: 0;
+}
 
 input.editPacs[type=text] {
     width: 300px;

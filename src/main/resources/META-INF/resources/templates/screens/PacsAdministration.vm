@@ -12,9 +12,9 @@
 #if ($strategies.size() > 1)
     <script>
         // reset the default ORM Strategies array that feeds the select menu.
-        XNAT.app.PacsAdministration.ormStrategies = [];
+        XNAT.app.dqr.PacsAdministration.ormStrategies = [];
         #foreach($strategyEntry in $strategies)
-            XNAT.app.PacsAdministration.ormStrategies.push('$strategyEntry.value')
+            XNAT.app.dqr.PacsAdministration.ormStrategies.push('$strategyEntry.value')
         #end
     </script>
 #end
@@ -23,7 +23,7 @@
 
 <script type="text/javascript">
     $(document).ready(function () {
-        XNAT.app.PacsAdministration.init();
+        XNAT.app.dqr.PacsAdministration.init();
     });
 </script>
 

@@ -12,6 +12,7 @@ dqrPacsPanel:
             contents: No DICOM AE connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/dqr/PacsAdministration.js"
+#            tag: script|src="/scripts/dqr/PacsAdministration.js"
 dqrPushPreferencePanel:
     kind: panel.form
     name: dqrPushPreferencePanel
@@ -60,6 +61,19 @@ dqrOtherPreferencePanel:
                 enter the queue whose PACS is now available will be executed. Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
 
+#### DQR History Tab ####
+
+dqrHistoryPanel:
+    kind: panel
+    name: dqrHistoryPanel
+    label: DICOM AE Query History
+    footer: false
+    contents:
+        dqrHistoryTableContainer:
+            tag: div#dqr-history-container
+            contents: No history to display yet
+
+
 #################################################
 ####  Root Site Admin Spawner Config Object  ####
 #################################################
@@ -83,3 +97,11 @@ siteSettings:
               ${dqrPacsPanel}
               ${dqrPushPreferencePanel}
               ${dqrOtherPreferencePanel}
+        dqrHistoryTab:
+            kind: tab
+            name: dqrHistoryTab
+            label: Query History
+            group: dqrTabGroup
+            active: false
+            contents:
+              ${dqrHistoryPanel}

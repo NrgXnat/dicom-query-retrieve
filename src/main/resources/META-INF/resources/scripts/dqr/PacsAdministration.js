@@ -14,10 +14,73 @@
 
 console.log('PacsAdministration.js');
 
-XNAT.app.PacsList = [];
+var XNAT = getObject(XNAT || {});
+XNAT.app = getObject(XNAT.app || {});
 
-XNAT.app.PacsAdministration = ( function () {
-    "use strict";
+(function(factory){
+    if (typeof define === 'function' && define.amd) {
+        define(factory);
+    }
+    else if (typeof exports === 'object') {
+        module.exports = factory();
+    }
+    else {
+        return factory();
+    }
+
+}(function(){
+
+/* ================ *
+ * GLOBAL FUNCTIONS *
+ * ================ */
+
+    function spacer(width){
+        return spawn('i.spacer', {
+            style: {
+                display: 'inline-block',
+                width: width + 'px'
+            }
+        })
+    }
+
+    function errorHandler(e, title, closeAll){
+        console.log(e);
+        title = (title) ? 'Error Found: '+ title : 'Error';
+        closeAll = (closeAll === undefined) ? true : closeAll;
+        var errormsg = (e.statusText) ? '<p><strong>Error ' + e.status + ': '+ e.statusText+'</strong></p><p>' + e.responseText + '</p>' : e;
+        XNAT.dialog.open({
+            width: 450,
+            title: title,
+            content: errormsg,
+            buttons: [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true,
+                    action: function(){
+                        if (closeAll) {
+                            xmodal.closeAll();
+
+                        }
+                    }
+                }
+            ]
+        });
+    }
+
+    /* ============ */
+
+    var pacsAdministration, pacsObj, pacsList;
+
+    XNAT.app.dqr = getObject(XNAT.app.dqr || {});
+
+    XNAT.app.dqr.pacsObj = pacsObj = {};
+    XNAT.app.dqr.pacsList = pacsList = [];
+
+    XNAT.app.dqr.PacsAdministration = pacsAdministration =
+        getObject(XNAT.app.dqr.PacsAdministration);
+
+
 
     var constants = {
         "MODAL_WINDOW_NAME": "loadData",
@@ -159,7 +222,7 @@ XNAT.app.PacsAdministration = ( function () {
 
                         // validate AE title
                         var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
-                        if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && XNAT.app.PacsList.indexOf(submittedAeTitle) >= 0) {
+                        if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && pacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
                             $form.find('input[name=aeTitle]').addClass('invalid');
                             return false;
@@ -219,7 +282,7 @@ XNAT.app.PacsAdministration = ( function () {
                 className: 'deleteModal',
                 title: 'Confirm DICOM AE Deletion',
                 content: 'Are you sure you want to delete this DICOM AE connection?',
-                okAction: XNAT.app.PacsAdministration.submitCurrentOperation
+                okAction: XNAT.app.dqr.PacsAdministration.submitCurrentOperation
             });
         };
         $(constants.PACS_TABLE).on("click", ".deleteRow", deleteButtonHandler);
@@ -230,7 +293,8 @@ XNAT.app.PacsAdministration = ( function () {
 
         // intialize PACS table container and PACS list
         $(constants.PACS_DIV).empty();
-        XNAT.app.PacsList = [];
+        pacsList = [];
+        pacsObj = {};
 
         var pacsTable = XNAT.table({
             className: 'xnat-table',
@@ -287,7 +351,8 @@ XNAT.app.PacsAdministration = ( function () {
             });
             pacsTableData.forEach(function(ae){
                 // add AE Title to Pacs List
-                XNAT.app.PacsList.push(ae.aeTitle.toLowerCase());
+                pacsList.push(ae.aeTitle.toLowerCase());
+                pacsObj[ae.id] = ae;
 
                 // populate table row
                 pacsTable.tr({
@@ -400,44 +465,361 @@ XNAT.app.PacsAdministration = ( function () {
         openModalPanel(constants.MODAL_WINDOW_NAME, "Loading data...");
     }
 
-    return {
-        init: function () {
-            getAllPacs();
-        },
-
-        cancelCurrentOperation: function () {
-            currentOperation.enable();
-        },
-
-        submitCurrentOperation: function () {
-            if (currentOperation.type === constants.OPERATION_DELETE) {
-                xmodal.close();
-                deletePacs();
-            } else if (currentOperation.type === constants.OPERATION_EDIT) {
-                editPacs($("#editPacsForm"));
-            } else if (currentOperation.type === constants.OPERATION_CREATE) {
-                addPacs($("#editPacsForm"));
-            } else {
-                alert('Unsupported operation type: ' + currentOperation.type);
-            }
-            currentOperation.enable();
-        },
-
-        ormStrategies: ormStrategies
+    pacsAdministration.init = function() {
+        getAllPacs();
     };
-}());
 
-$(document).ready(function(){
-    XNAT.app.PacsAdministration.init();
-});
+    pacsAdministration.cancelCurrentOperation = function() {
+        currentOperation.enable();
+    };
 
-window.xModalSubmit = function () {
-    "use strict";
-    XNAT.app.PacsAdministration.submitCurrentOperation();
-};
+    pacsAdministration.submitCurrentOperation = function() {
+        if (currentOperation.type === constants.OPERATION_DELETE) {
+            xmodal.close();
+            deletePacs();
+        } else if (currentOperation.type === constants.OPERATION_EDIT) {
+            editPacs($("#editPacsForm"));
+        } else if (currentOperation.type === constants.OPERATION_CREATE) {
+            addPacs($("#editPacsForm"));
+        } else {
+            alert('Unsupported operation type: ' + currentOperation.type);
+        }
+        currentOperation.enable();
+    };
 
-window.xModalCancel = function () {
-    "use strict";
-    xmodal.close();
-    XNAT.app.PacsAdministration.cancelCurrentOperation();
-};
+    pacsAdministration.ormStrategies = ormStrategies;
+
+    $(document).ready(function(){
+        XNAT.app.dqr.PacsAdministration.init();
+    });
+
+    window.xModalSubmit = function () {
+        "use strict";
+        XNAT.app.dqr.PacsAdministration.submitCurrentOperation();
+    };
+
+    window.xModalCancel = function () {
+        "use strict";
+        xmodal.close();
+        XNAT.app.dqr.PacsAdministration.cancelCurrentOperation();
+    };
+
+/* ================ *
+ * AE Query History *
+ * ================ */
+
+    console.log('commandHistory.js');
+
+    var historyTable, queryHistory;
+
+    XNAT.app.dqr.historyTable = historyTable =
+        getObject(XNAT.app.dqr.historyTable || {});
+
+    XNAT.app.dqr.queryHistory = queryHistory =
+        getObject(XNAT.app.dqr.queryHistory || {});
+
+    function getQueryHistoryUrl(id){
+        var appended = (id) ? '/request/'+id : '';
+        return XNAT.url.rootUrl('/xapi/dqr/history' + appended);
+    }
+
+    function viewHistoryDialog(e, onclose){
+        e.preventDefault();
+        var historyId = $(this).data('id') || $(this).closest('tr').prop('title');
+        XNAT.app.dqr.historyTable.viewHistory(historyId);
+    }
+
+    function sortHistoryData(callback){
+        callback = isFunction(callback) ? callback : function(){};
+
+        var URL = getQueryHistoryUrl();
+        return XNAT.xhr.getJSON(URL)
+            .success(function(data){
+                if (data.length){
+                    // sort data by ID
+                    data = data.sort(function(a,b){ return (a.id > b.id) ? 1 : -1 });
+
+                    // copy the history listing into an object for individual reference
+                    data.forEach(function(historyEntry){
+                        queryHistory[historyEntry.id] = historyEntry;
+                    });
+
+                    return data;
+                }
+                callback.apply(this, arguments);
+            })
+    }
+
+    function formatDate(timestamp){
+        var dateString = new Date(timestamp);
+        if (dateString) {
+            return dateString.toISOString().replace('T',' ').replace('Z',' ').split('.')[0];
+        }
+        else {
+            return 'Unknown Date';
+        }
+    }
+
+    function spawnHistoryTable(sortedHistoryObj){
+
+        var $dataRows = [];
+
+        return {
+            kind: 'table.dataTable',
+            name: 'dqrHistory',
+            id: 'dqr-history',
+            // load: URL,
+            data: sortedHistoryObj,
+            table: {
+                classes: 'highlight hidden',
+                on: [
+                    ['click', 'a.view-history', viewHistoryDialog]
+                ]
+            },
+            trs: function(tr, data){
+                tr.id = data.id;
+                addDataAttrs(tr, { filter: '0' });
+            },
+            sortable: 'id, pacs, dataRequested, user, DATE, PROJECT',
+            filter: 'pacs, dataRequested, user, DATE, PROJECT',
+            items: {
+                // by convention, name 'custom' columns with ALL CAPS
+                // 'custom' columns do not correspond directly with
+                // a data item
+                id: {
+                    label: 'ID',
+                    td: { className: 'center' },
+                    filter: false,
+                    apply: function(){
+                        return this['id'];
+                    }
+                },
+                pacs: {
+                    label: 'DICOM AE',
+                    filter: true,
+                    apply: function(){
+                        return (pacsObj[this.pacsId]) ? pacsObj[this.pacsId].aeTitle : 'unknown'
+                    }
+                },
+                DATE: {
+                    label: 'Date',
+                    th: { className: 'dqr-query center' },
+                    td: { className: 'dqr-query center mono'},
+                    filter: function(table){
+                        var MIN = 60*1000;
+                        var HOUR = MIN*60;
+                        var X8HRS = HOUR*8;
+                        var X24HRS = HOUR*24;
+                        var X7DAYS = X24HRS*7;
+                        var X30DAYS = X24HRS*30;
+                        return spawn('div.center', [XNAT.ui.select.menu({
+                            value: 0,
+                            options: {
+                                all: {
+                                    label: 'All',
+                                    value: 0,
+                                    selected: true
+                                },
+                                lastHour: {
+                                    label: 'Last Hour',
+                                    value: HOUR
+                                },
+                                last8hours: {
+                                    label: 'Last 8 Hrs',
+                                    value: X8HRS
+                                },
+                                last24hours: {
+                                    label: 'Last 24 Hrs',
+                                    value: X24HRS
+                                },
+                                lastWeek: {
+                                    label: 'Last Week',
+                                    value: X7DAYS
+                                },
+                                last30days: {
+                                    label: 'Last 30 days',
+                                    value: X30DAYS
+                                }
+                            },
+                            element: {
+                                id: 'filter-select-query-timestamp',
+                                on: {
+                                    change: function(){
+                                        var FILTERCLASS = 'filter-timestamp';
+                                        var selectedValue = parseInt(this.value, 10);
+                                        var currentTime = Date.now();
+                                        $dataRows = $dataRows.length ? $dataRows : $$(table).find('tbody').find('tr');
+                                        if (selectedValue === 0) {
+                                            $dataRows.removeClass(FILTERCLASS);
+                                        }
+                                        else {
+                                            $dataRows.addClass(FILTERCLASS).filter(function(){
+                                                var timestamp = this.querySelector('input.query-timestamp');
+                                                var queryDate = +(timestamp.value);
+                                                return selectedValue === queryDate-1 || selectedValue > (currentTime - queryDate);
+                                            }).removeClass(FILTERCLASS);
+                                        }
+                                    }
+                                }
+                            }
+                        }).element])
+                    },
+                    apply: function(){
+                        var dateString = formatDate(this['timestamp']);
+
+                        return spawn('!',[
+                            spawn('span', dateString ),
+                            spawn('input.hidden.query-timestamp.filtering|type=hidden', { value: this['timestamp'] } )
+                        ])
+                    }
+                },
+                dataRequested: {
+                    label: 'Data Requested',
+                    filter: true, // add filter: true to individual items to add a filter,
+                    apply: function(){
+                        var sessionID = this['studyInstanceUid'];
+                        var scans = this['seriesIds'].split(',');
+                        return spawn (
+                            'a',
+                            { href: '#!', title: sessionID, className: 'view-history-entry', data: { historyId: this['id'] } },
+                            '1 Session with '+scans.length+' Scans'
+                        );
+                    }
+                },
+                user: {
+                    label: 'User',
+                    filter: true,
+                    apply: function(){
+                        return this['username']
+                    }
+                },
+                PROJECT: {
+                    label: 'Project',
+                    filter: true,
+                    apply: function(){
+                        var projectId = this['xnatProject'];
+                        if (projectId) {
+                            return spawn('a',{ href: '/data/projects/'+ projectId + '?format=html', html: projectId });
+                        } else {
+                            return 'Unknown';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    historyTable.viewHistory = function(id){
+        if (queryHistory[id]) {
+            var historyEntry = XNAT.app.dqr.queryHistory[id];
+            var historyDialogButtons = [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true
+                }
+            ];
+
+            // build nice-looking history entry table
+            var qheTable = XNAT.table({
+                className: 'xnat-table compact',
+                style: {
+                    width: '100%',
+                    marginTop: '15px',
+                    marginBottom: '15px'
+                }
+            });
+
+            // add table header row
+            qheTable.tr()
+                .th({ addClass: 'left', html: '<b>Key</b>' })
+                .th({ addClass: 'left', html: '<b>Value</b>' });
+
+            for (var key in historyEntry){
+                var val = historyEntry[key], formattedVal = '';
+                if (key === 'seriesIds') val = val.split(',');
+
+                if (Array.isArray(val)) {
+                    var items = [];
+                    val.forEach(function(item){
+                        if (typeof item === 'object') item = JSON.stringify(item);
+                        items.push(spawn('li',[ spawn('code',item) ]));
+                    });
+                    formattedVal = spawn('ul',{ style: { 'list-style-type': 'none', 'padding-left': '0' }}, items);
+                } else if (typeof val === 'object' ) {
+                    formattedVal = spawn('code', JSON.stringify(val));
+                } else if (!val) {
+                    formattedVal = spawn('code','false');
+                } else {
+                    formattedVal = spawn('code',val);
+                }
+
+                qheTable.tr()
+                    .td('<b>'+key+'</b>')
+                    .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
+            }
+
+            // display history
+            XNAT.ui.dialog.open({
+                title: 'Query to '+pacsObj[historyEntry['pacsId']].aeTitle+' on '+formatDate(historyEntry['timestamp']),
+                width: 800,
+                scroll: true,
+                content: qheTable.table,
+                buttons: historyDialogButtons
+            });
+        } else {
+            console.log(id);
+            XNAT.ui.dialog.open({
+                content: 'Sorry, could not display this history item.',
+                buttons: [
+                    {
+                        label: 'OK',
+                        isDefault: true,
+                        close: true
+                    }
+                ]
+            });
+        }
+    };
+
+    $(document).on('click','.view-history-entry',function(e){
+        e.preventDefault();
+        var historyEntryId = $(this).data('historyId');
+        if (historyEntryId) {
+            XNAT.app.dqr.historyTable.viewHistory(historyEntryId)
+        }
+        else {
+            console.log('No history item ID provided');
+        }
+    });
+
+    historyTable.init = historyTable.refresh = function(container){
+        var $manager = $$(container || '#dqr-history-container'),
+            _historyTable;
+
+        sortHistoryData().done(function(data){
+            if (data.length) {
+
+                setTimeout(function(){
+                    $manager.html('loading...');
+                }, 1);
+                setTimeout(function(){
+                    _historyTable = XNAT.spawner.spawn({
+                        historyTable: spawnHistoryTable(data)
+                    });
+                    _historyTable.done(function(){
+                        var queryLength = (data.length === 1) ? "DICOM Query" : "DICOM Queries";
+                        $manager.empty().append(
+                            spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' ' + queryLength + ' Performed From This Site')
+                        );
+                        this.render($manager, 20);
+                    });
+                }, 10);
+            }
+        });
+
+    };
+
+    historyTable.init();
+
+}));
