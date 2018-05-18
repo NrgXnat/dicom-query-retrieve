@@ -47,7 +47,7 @@
 
 #if($projects.size() == 1)
     #set($project = $projects.get(0))
-    #if($user.canEdit("xnat:subjectData/project",$project.getId()))
+    #if($project.canEdit($user))
 
     #else
         #set($userCanImport = false)
