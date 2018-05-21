@@ -7,7 +7,7 @@
     </ul>
     <ul>
     <li class="yuimenuitem">
-        <a href="$destination")" id="sendToPacs">Send to PACS</a>
+        <a href="$destination" id="sendToPacs">Send to PACS</a>
     </li>
 
     <script>
