@@ -89,5 +89,6 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
 
         temp.delete();
         fi.delete();
+	data.setScreenTemplate("XDATScreen_prearchives.vm");
     }
 }
