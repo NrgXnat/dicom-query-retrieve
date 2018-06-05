@@ -48,7 +48,7 @@
 
 #if($projects.size() == 1)
     #set($project = $projects.get(0))
-    #if($data.getSession().getAttribute("user").canEdit("xnat:subjectData/project",$project.getId()))
+    #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
 
     #else
         #set($userCanImport = false)
