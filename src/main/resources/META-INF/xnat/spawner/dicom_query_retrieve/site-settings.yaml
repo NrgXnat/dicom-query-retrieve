@@ -9,7 +9,9 @@ dqrPacsPanel:
     contents:
         dqrPacsTableContainer:
             tag: "div#pacsDiv"
-            contents: No DICOM AE connections yet
+            element:
+                html: >
+                    No DICOM AE connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/dqr/PacsAdministration.js"
 #            tag: script|src="/scripts/dqr/PacsAdministration.js"

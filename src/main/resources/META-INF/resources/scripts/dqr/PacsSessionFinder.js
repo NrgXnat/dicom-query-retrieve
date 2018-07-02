@@ -12,6 +12,8 @@
 
 /*jslint white: true, browser: true, vars: true */
 
+console.log('PacsSessionFinder.js');
+
 function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionSelectionStudyInstanceUidInputId, sessionSelectionPacsIdInputId, sessionSearchResultsDivId, imagePath) {
     "use strict";
 
@@ -257,14 +259,17 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
     this.handleSessionSearchFailure = function (jqXHR) {
         closeModalPanel(this.constants.MODAL_WINDOW_NAME);
         this.restoreFocusedField();
+        var errorMsg, errorTitle = 'Could not complete search';
 
         if (this.constants.CLIENT_ERROR_BAD_REQUEST === jqXHR.status) {
-            jq("#" + sessionSearchResultsDivId).text("Please specify at least one of the search criteria.");
+            errorMsg = "Please specify at least one of the search criteria.";
         } else if (this.constants.CLIENT_ERROR_NOT_FOUND === jqXHR.status) {
-            jq("#" + sessionSearchResultsDivId).text("There were no results found that match this search criteria.");
+            errorMsg = "There were no results found that match this search criteria.";
+            errorTitle = "Nothing to display";
         } else {
-            jq("#" + sessionSearchResultsDivId).text("Error " + jqXHR.status + ": " + jqXHR.responseText);
+            errorMsg = "Error " + jqXHR.status + ": " + jqXHR.statusText;
         }
+        XNAT.dialog.message({ title: errorTitle, content: spawn('p',errorMsg) });
     };
 
     this.saveFocusedField = function () {
