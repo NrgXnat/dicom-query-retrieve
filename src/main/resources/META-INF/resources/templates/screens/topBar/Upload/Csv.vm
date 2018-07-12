@@ -1,2 +1,2 @@
 <!-- Sequence: 6 -->
-<li><a href="$link.setPage("SpreadsheetBasedImporter.vm")">Import Patient List from PACS</a></li>
+<li><a href="$link.setPage("SpreadsheetBasedImporter.vm")">Import ${displayManager.getSingularDisplayNameForSubject()} List from PACS</a></li>

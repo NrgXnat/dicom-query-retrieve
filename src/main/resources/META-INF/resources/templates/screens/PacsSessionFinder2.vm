@@ -42,7 +42,8 @@
     table.dataTable tr.even td.sorting_1 { background-color: #f0f7ff; }
 </style>
 
-<h2 class="edit_title">Import Patient Study from PACS</h2>
+<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForSubject()} From PACS</h2>
+<p><strong>Step 2: Select Scans to Import and Request Images from PACS</strong></p>
 #set($userCanImport = true)
 
 #if($projects.size() == 1)
@@ -61,8 +62,8 @@
 #else
 
     <form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
-        <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
-            <div class="inputWrapper">
+        <div style="display: inline-block; margin-right: 8%; vertical-align: top; width: 30%;">
+            <div style="margin-bottom: 4em;">
                 <h4>Select Destination for Import</h4>
                 <div id="pacsSeriesProjectSelector">
                     #if($projects.size() == 1)
@@ -92,10 +93,9 @@
                     #end
                 </div>
 
-                <div id="pacsSeriesAeSelector">
+                <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($aes.size() == 1)
                         #set($ae = $aes.get(0))
-                        <p><strong>AE:</strong> ${ae.getDisplayString()}</p>
                         <input type="hidden" id="ae" name="ae" value="${ae.getAeTitle()}"/>
                     #else
                         <label for="ae" class="select_label"><b>AE:</b></label>
@@ -105,41 +105,40 @@
 ##                                #if($tempAe.isDefaultStorageDestination())
 ##                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
 ##                                #else
-                                    <option value="${tempAe.getAeTitle()}">${tempAe.getDisplayString()}</option>
+                                    <option value="${tempAe.getAeTitle()}">
+                                        ${tempAe.getDisplayString()}
+                                    </option>
 ##                                #end
                             #end
                         </select>
                     #end
                 </div>
             </div>
-            <div class="inputWrapper">
+            <div>
                 <h4>$displayManager.getSingularDisplayNameForSubject() Info</h4>
-                <table id="studyInfoTable" style="border:none;">
+                <table id="studyInfoTable" class="xnat-table condensed alt1" width="100%">
                     <tr>
-                        <td style="font-weight:bold;">$displayManager.getSingularDisplayNameForSubject():</td>
+                        <th>$displayManager.getSingularDisplayNameForSubject():</th>
                         <td>$!study.getPatient().getName().getLastNameCommaFirstName()</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()}:</td>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()}:</th>
                         <td>$!study.getStudyDescription()</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()} Date:</td>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} Date:</th>
                         <td>$!study.getStudyDateFormattedAs("MM/dd/yyyy")</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">Accession Number:</td>
+                        <th>#if (${displayManager.getSingularDisplayNameForImageSession().toLowerCase()} == "study")Accession Number: #else ${displayManager.getSingularDisplayNameForImageSession()} Label: #end</th>
                         <td>$!study.getAccessionNumber()</td>
                     </tr>
-                    <!-- <tr>
-                        <td style="font-weight:bold;">Referring Physician:</td>
-                        <td>$!study.getReferringPhysicianName().getLastNameCommaFirstName()</td>
-                    </tr> -->
                 </table>
             </div>
         </div>
 
-        <div style="display: inline-block; vertical-align: top; width: 640px;">
+        <div style="display: inline-block; vertical-align: top; width: 60%;">
+            <h4>Select Scans To Import</h4>
             <!--
             for some reason if you don't have this extra wrapper here,
             jQuery wipes out the submit button when emptying the div

@@ -25,8 +25,8 @@
 #else
 
     <form id="editPacsForm" name="editPacsForm" class="friendlyForm" method="POST" action="$link.setAction("ExportSessionToPacs")">
-        <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
-            <div class="inputWrapper">
+        <div style="display: inline-block; margin-right: 8%; vertical-align: top; width: 30%;">
+            <div style="margin-bottom: 4em;">
                 <h4>Set Destination (Required)</h4>
                 <p>
                     <label for="pacsId">Select DICOM Destination to Export To:</label>
@@ -45,62 +45,63 @@
                 </p>
                 <input type="hidden" id="session" name="session" value="$session.id"/>
             </div>
-            <div class="inputWrapper">
+            <div>
                 <h4 style="text-transform: capitalize">${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} Info</h4>
-                <table id="studyInfoTable" style="border:none;">
+                <table id="studyInfoTable" class="xnat-table alt1 condensed" width="100%">
                     <tr>
-                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForSubject()}:</td>
+                        <th>${displayManager.getSingularDisplayNameForSubject()}:</th>
                         <td id="patientName">$!session.dcmpatientname</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">${displayManager.getSingularDisplayNameForImageSession()} Date:</td>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} Date:</th>
                         <td>$!session.getDate()</td>
                     </tr>
                     <tr>
-                        <td style="font-weight:bold;">Accession Number:</td>
+                        <th>#if (${displayManager.getSingularDisplayNameForImageSession().toLowerCase()} == "study")Accession Number: #else ${displayManager.getSingularDisplayNameForImageSession()} Label: #end</th>
                         <td><a href="$!{SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.id</a></td>
                     </tr>
                 </table>
             </div>
         </div>
 
-        <div style="display: inline-block; vertical-align: top; width: 640px;">
-            <div class="inputWrapper" style="margin-bottom: 0;">
-                <h4>Select Scan Series to Send (Required)</h4>
+        <div style="display: inline-block; vertical-align: top; width: 60%;">
+            <h4>Select Scan Series to Send (Required)</h4>
 
-                <table id="scansToExport" cellpadding="0" cellspacing="0" border="0">
-                    <thead>
-                        <tr>
-                            <th class="left"><input type="checkbox" id="selectAll" title="Select / Deselect All" /></th>
-                            <th>Series</th>
-                            <th>Description</th>
-                            <th>Sequence</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    #set($scanCounter =0)
-                    #foreach($scan in $scans)
-                        ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
-                        <tr>
-                            <td><input type="checkbox" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
-                            <td class="sorting_1">$!scan.id</td>
-                            <td>$!scan.seriesDescription</td>
-                            #set($scanType = $!scan.xSIType)
-                            #if($scanType == "xnat:mrScanData")
-                                <td>$!scan.getProperty("parameters.sequence")</td>
-                            #else
-                                <td>$!scan.getType()</td>
-                            #end
-                        </tr>
-                        #set($scanCounter = $scanCounter +1)
-                    #end
-                    </tbody>
-                </table>
+            <table id="scansToExport" class="xnat-table condensed" width="100%">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="selectAll" title="Select / Deselect All" /></th>
+                        <th>Series</th>
+                        <th>Description</th>
+                        <th>Sequence</th>
+                        <th>Scan Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                #set($scanCounter =0)
+                #foreach($scan in $scans)
+                    ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
+                    <tr #if($session.getProperty("date") == $scan.getProperty("start_date")) class="original" #else class="modified" #end>
+                        <td><input type="checkbox" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
+                        <td class="scan-id">$!scan.id</td>
+                        <td>$!scan.seriesDescription</td>
+                        #set($scanType = $!scan.xSIType)
+                        #if($scanType == "xnat:mrScanData" && $!scan.getProperty("parameters.sequence"))
+                            <td>$!scan.getProperty("parameters.sequence")</td>
+                        #else
+                            <td>$!scan.getType()</td>
+                        #end
+                        <td>$!scan.getProperty("start_date")</td>
+                    </tr>
+                    #set($scanCounter = $scanCounter +1)
+                #end
+                </tbody>
+            </table>
 
-                <div id="scan-exclusion-warning" #if(${siteConfig.dqrPushPreference} == "true") class="hidden alert" #else class="alert" #end>
-                    <em>Note: Scans that were a part of the originally imported session have been excluded.</em>
-                </div>
+            <div id="scan-exclusion-warning" #if(${siteConfig.dqrPushPreference} == "true") class="hidden alert" #else class="alert" #end>
+                <em>Note: Scans that were a part of the originally imported session have been excluded.</em>
             </div>
+
             <p>
                 <label><input id="dqrPushSetting" type="checkbox" #if(${siteConfig.dqrPushPreference} == "true") checked #end /> Enable original scans to be sent</label>
             </p>
@@ -108,198 +109,10 @@
         </div>
     </form>
 
-<script>
-    console.log('exportSessionToPacs.vm');
-
-    var XNAT = getObject(XNAT || {});
-    XNAT.app = getObject(XNAT.app || {});
-
-    (function(factory){
-        if (typeof define === 'function' && define.amd) {
-            define(factory);
-        }
-        else if (typeof exports === 'object') {
-            module.exports = factory();
-        }
-        else {
-            return factory();
-        }
-    }(function(){
+    <script src="$content.getURI("/scripts/dqr/SendToPacs.js")"></script>
+    <script>
+        console.log('exportSessionToPacs.vm');
         var enableAllScans = '${siteConfig.dqrPushPreference}';
-        if (typeof jq === 'undefined') var jq = jQuery;
-
-        var originalScans = [];
-
-        jq('#submitScansToPacs').on('click',function(e){
-            e.preventDefault();
-            var scansToSubmit = [];
-
-            jq('#editPacsForm').find('input[name=scansToExport]').not(':disabled').each(function(){
-            if (jq(this).prop('checked')) {
-                scansToSubmit.push(jq(this).val());
-            }
-            });
-
-            if (scansToSubmit.length > 0) {
-                jq('#editPacsForm').submit();
-            }
-            else {
-                xmodal.message('Error', "<p>Please select a valid scan to send.</p>", 'OK');
-            }
-
-        });
-
-        function getSessionId() {
-            var urlParams = window.location.search.substring(1).split('&'),
-                    params = {};
-            urlParams.forEach(function(urlParam){
-                var keyPair = urlParam.split('=');
-                params[keyPair[0]] = keyPair[1];
-            });
-
-            return (params.sessionid) ? params.sessionid : false;
-        }
-
-        XNAT.app.initDicomPushScanTable = function(containerId) {
-            containerId = containerId || '#scansToExport';
-            $(containerId).DataTable({
-                "aoColumns": [
-                    {
-                        "bSearchable": false,
-                        "bSortable": false
-                    },
-                    {
-                        "sTitle": "Series"
-                    },
-                    {
-                        "sTitle": "Description"
-                    },
-                    {
-                        "sTitle": "Sequence"
-                    }
-
-                ],
-                "aaSorting": [
-                    [1, "asc"]
-                ],
-                "autoWidth": false,
-                "bFilter": false,
-                "bPaginate": false,
-                "bLengthChange": false,
-                "bInfo": false,
-                "columns": [
-                    {
-                        "width": "10%"
-                    },
-                    null,
-                    null,
-                    null
-                ]
-            })
-        };
-
-        XNAT.app.findOriginalScans = function(enableAllScans) {
-
-            var sessionId = getSessionId();
-            if (!sessionId) return false;
-
-            XNAT.xhr.getJSON({
-                url: XNAT.url.rootUrl('/REST/experiments/'+sessionId+'?format=json'),
-                success: function(data){
-                    var sessionOrigDate = Date.parse(data.items[0].meta.start_date);
-                    var sessionChildren = data.items[0].children;
-
-                    sessionChildren.forEach(function(child){
-                        if (child.field === "scans/scan") {
-                            var sessionScans = child.items;
-
-                            sessionScans.forEach(function(scan){
-                                thisScanDate = Date.parse(scan.meta.start_date);
-                                if (thisScanDate === sessionOrigDate) {
-                                    originalScans.push(scan.data_fields.ID);
-                                }
-                            });
-                        }
-                    });
-
-                    XNAT.app.disableOriginalScans();
-                },
-                fail: function(e){
-                    jq('#layout_content').prepend('<div class="error">Error, could not obtain list of original scans</div>');
-                    console.log(e);
-                }
-            });
-        }
-
-        XNAT.app.disableOriginalScans = function(){
-
-            // iterate over the list of original scans and disable their checkbox
-            originalScans.forEach(function(scanId){
-                $('input#scan-'+scanId)
-                        .prop('disabled','disabled')
-                        .parents('tr').addClass('disabled');
-            });
-            setSelectAll();
-            $('#scan-exclusion-warning').removeClass('hidden');
-        }
-        XNAT.app.enableOriginalScans = function(){
-            // iterate over the list of original scans and enable their checkbox
-            originalScans.forEach(function(scanId){
-                $('input#scan-'+scanId)
-                        .prop('disabled',false)
-                        .parents('tr').removeClass('disabled');
-            });
-            setSelectAll();
-            $('#scan-exclusion-warning').addClass('hidden');
-        };
-
-        // Select-all Behavior
-        $('#selectAll').on('click', function(){
-            if ($(this).prop('indeterminate') || $(this).is(':checked')) {
-                // if none or some checkboxes are selected, select all
-                $('input[name=scansToExport]').prop('checked','checked');
-                $(this).prop('indeterminate',false)
-            }
-            else {
-                // otherwise, deselect all
-                $('input[name=scansToExport]').prop('checked',false);
-                $(this).prop('indeterminate',false)
-            }
-        });
-
-        // Set Select-all status based on external event
-        $('input[name=scansToExport]').on('click',function(){
-            // place Select All button in a default state.
-            setSelectAll();
-        });
-
-        // original scan toggle
-        $('#dqrPushSetting').on('click',function(){
-            if ($(this).prop('checked')) {
-                XNAT.app.enableOriginalScans();
-            }
-            else {
-                XNAT.app.disableOriginalScans();
-            }
-        });
-
-        function setSelectAll() {
-            $('#selectAll')
-                    .prop('checked',false)
-                    .prop('indeterminate',true)
-
-            // compare the number of checked checkboxes to N number of checkboxes. '0' = an unchecked, determinate state for Select All. 'N' = a fully checked, determinate state for Select All.
-            if (document.querySelectorAll('input[name=scansToExport]:checked').length === 0) {
-                $('#selectAll')
-                        .prop('indeterminate',false);
-            } else if (document.querySelectorAll('input[name=scansToExport]:checked').length === document.querySelectorAll('input[name=scansToExport]').length) {
-                $('#selectAll')
-                        .prop('indeterminate',false)
-                        .prop('checked','checked')
-            }
-        };
-
-        XNAT.app.initDicomPushScanTable();
 
         $(document).ready(function(){
             // clean up display of patient name
@@ -308,9 +121,8 @@
             $('#patientName').html(patientName);
 
             // Find original scans and toggle selectability if necessary
-            XNAT.app.findOriginalScans(enableAllScans);
+            if (!enableAllScans) XNAT.app.findOriginalScans();
         });
-    }));
-</script>
+    </script>
 #end
 <!-- END templates/screens/dqr/ExportSessionToPacs.vm -->
