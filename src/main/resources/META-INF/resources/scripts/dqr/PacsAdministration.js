@@ -132,24 +132,37 @@ XNAT.app = getObject(XNAT.app || {});
             content: spawn('form.panel'),
             beforeShow: function(obj){
                 var $form = obj.$modal.find('form');
+                var ormSelector;
+                if (ormStrategies.length > 1) {
+                    ormSelector = XNAT.ui.panel.select.menu({
+                        name: 'ormStrategySpringBeanId',
+                        label: 'ORM Strategy',
+                        options: ormStrategies
+                    })
+                }
+                else {
+                    ormSelector = XNAT.ui.panel.input.hidden({
+                        name: 'ormStrategySpringBeanId',
+                        value: ormStrategies[0]
+                    })
+                }
                 $form.append(
                     spawn('!', [
                         XNAT.ui.panel.input.hidden({
                             name: 'pacsId'
                         }),
-                        XNAT.ui.panel.select.menu({
-                            name: 'ormStrategySpringBeanId',
-                            label: 'ORM Strategy',
-                            options: ormStrategies
-                        }),
+                        ormSelector,
                         XNAT.ui.panel.input.text({
                             name: 'aeTitle',
                             label: 'AE Title',
-                            className: 'aeTitle-input'
+                            addClass: 'aeTitle-input validate',
+                            validation: 'required'
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'host',
-                            label: 'Host'
+                            label: 'Host',
+                            addClass: 'validate',
+                            validation: 'required'
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'label',
@@ -159,40 +172,50 @@ XNAT.app = getObject(XNAT.app || {});
                             name: 'extendedNegotiations',
                             label: 'Extended Negotiations',
                             onText: 'Supported',
-                            offText: 'Not Supported'
+                            offText: 'Not Supported',
+                            value: false
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'queryable',
                             label: 'Queryable',
                             onText: 'Yes',
-                            offText: 'No'
+                            offText: 'No',
+                            value: false,
+                            addClass: 'toggle-query'
                         }),
-                        XNAT.ui.panel.input.text({
-                            name: 'queryRetrievePort',
-                            label: 'Q/R Port'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'defaultQueryRetrievePacs',
-                            label: 'Default Q/R AE',
-                            onText: 'Yes',
-                            offText: 'No'
-                        }),
+                        spawn('div.toggle-query-selector',{ style: { display: 'none' }},[
+                            XNAT.ui.panel.input.text({
+                                name: 'queryRetrievePort',
+                                label: 'Q/R Port'
+                            }),
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'defaultQueryRetrievePacs',
+                                label: 'Default Q/R AE',
+                                onText: 'Yes',
+                                offText: 'No'
+                            })
+                        ]),
                         XNAT.ui.panel.input.switchbox({
                             name: 'storable',
                             label: 'Storable',
                             onText: 'Yes',
-                            offText: 'No'
+                            offText: 'No',
+                            value: false,
+                            addClass: 'toggle-store'
                         }),
-                        XNAT.ui.panel.input.text({
-                            name: 'storagePort',
-                            label: 'Storage Port'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'defaultStoragePacs',
-                            label: 'Default Storage AE',
-                            onText: 'Yes',
-                            offText: 'No'
-                        }),
+                        spawn('div.toggle-store-selector',{ style: { display: 'none' }},[
+                            XNAT.ui.panel.input.text({
+                                name: 'storagePort',
+                                label: 'Storage Port'
+                            }),
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'defaultStoragePacs',
+                                label: 'Default Storage AE',
+                                onText: 'Yes',
+                                offText: 'No',
+                                value: false
+                            })
+                        ]),
                         XNAT.ui.panel.input.text({
                             name: 'availabilityStart',
                             label: 'Availability Start Time'
@@ -206,6 +229,8 @@ XNAT.app = getObject(XNAT.app || {});
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
+                    if ($form.find('input[name=storable]').is(':checked')) $form.find('.toggle-store-selector').show();
+                    if ($form.find('input[name=queryable]').is(':checked')) $form.find('.toggle-query-selector').hide();
                 }
                 else {
                     $form.find('select').find('option').first().prop('selected','selected');
@@ -219,9 +244,24 @@ XNAT.app = getObject(XNAT.app || {});
                     close: false,
                     action: function(obj){
                         var $form = obj.$modal.find('form');
+                        var invalidFields = [];
 
-                        // validate AE title
-                        var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
+                        $form.find('.validate').each(function(){
+                            if (!XNAT.validate($(this)).check()) {
+                                $(this).addClass('invalid');
+                                invalidFields.push($(this).prop('name'));
+                            }
+                        });
+
+                        if (invalidFields.length) {
+                            XNAT.ui.dialog.open({
+                                title: 'Form Validation Errors Found',
+                                content: 'Please fix errors found in the following fields: <b>'+invalidFields.join(", ")+'</b>'
+                            });
+                            return false;
+                        }
+
+                        // // validate AE title
                         if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && pacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
                             $form.find('input[name=aeTitle]').addClass('invalid');
@@ -244,8 +284,26 @@ XNAT.app = getObject(XNAT.app || {});
         })
     }
 
-    $('.aeTitle-input').on('blur',function(){
+    $(document).on('blur','.validate',function(){
         $(this).removeClass('invalid');
+    });
+    $(document).on('click','input.toggle-query',function(){
+        var $querySelector = $(this).parents('form').find('.toggle-query-selector');
+        if ($(this).is(':checked')) {
+            $querySelector.show();
+        }
+        else {
+            $querySelector.hide();
+        }
+    });
+    $(document).on('click','input.toggle-store',function(){
+        var $storeSelector = $(this).parents('form').find('.toggle-store-selector');
+        if ($(this).is(':checked')) {
+            $storeSelector.show();
+        }
+        else {
+            $storeSelector.hide();
+        }
     });
 
     function bindAddButtonHandler() {

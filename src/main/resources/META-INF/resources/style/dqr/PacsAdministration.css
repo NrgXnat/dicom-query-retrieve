@@ -1,5 +1,5 @@
 /*
- * D:/Development/DQR/dqr/src/main/resources/module-resources/style/dqr/PacsAdministration.css
+ * style/dqr/PacsAdministration.css
  * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine
@@ -10,15 +10,6 @@
  * Last modified 9/24/13 6:11 PM
  */
 
-@CHARSET "ISO-8859-1";
-
-#pacsTable img.editRow, img.deleteRow {
-    cursor: pointer;
-}
-#pacsTable p {
-    margin: 0;
-}
-
-input.editPacs[type=text] {
-    width: 300px;
-}
+#pacsTable p { margin: 3px 0 }
+#pacsTable td p:first-of-type { margin-top: 0 }
+#pacsTable td p:last-of-type { margin-bottom: 0 }
