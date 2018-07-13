@@ -77,9 +77,11 @@ public class ExportSessionToPacs extends DqrSecureAction {
             if (_scanIds == null) {
                 _log.debug("No scan IDs found to export, returning.");
                 context.put("numberOfProcessedScans", 0);
+                context.put("sessionId", _session.getId());
             } else {
                 exportOnDemand();
                 context.put("numberOfProcessedScans", _scanIds.length);
+                context.put("sessionId", _session.getId());
                 context.put("_user", _user);
                 context.put("StringUtils", new StringUtils());
                 if (_log.isDebugEnabled()) {

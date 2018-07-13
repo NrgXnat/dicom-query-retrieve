@@ -1,17 +1,24 @@
 <!-- BEGIN templates/screens/ExportSessionToPacsRequested.vm -->
-<div class="edit_title">Export Images to PACS</div><br/>
-
 #if( 0 == $numberOfProcessedScans )
-No scans in the session were exported.
+    <h2>Export to PACS Unsuccessful</h2>
+    <p>
+        No scans in the session were exported.
+    </p>
 #else
-The session has been scheduled for export to the PACS, and should be sent shortly.
-<br/><br/>
+    <h2>Export to PACS Scheduled</h2>
+    <p>
+        The session has been scheduled for export to the PACS, and should be sent shortly.
+    </p>
+
+    <br/><br/>
     #if($StringUtils.isBlank($user.getEmail()))
-    Check back in a little while.  (In the meantime, if you provide us your <a
-            href="$link.setPage("XDATScreen_MyXNAT.vm")">email
-        address</a>, we can notify you when the export is complete).
+    Check back in a little while.  (In the meantime, if you provide us your <a href="$link.setPage("XDATScreen_UpdateUser.vm")">email address</a>, we can notify you when the export is complete).
     #else
     You'll receive an email at <b>$user.getEmail()</b> when the export is complete.
     #end
 #end
+
+<p>
+    <a href="${XNAT_HOME}/data/experiments/$sessionId?format=html" title="Return to Session Page"><button class="btn primary">OK</button></a>
+</p>
 <!-- END templates/screens/ExportSessionToPacsRequested.vm -->

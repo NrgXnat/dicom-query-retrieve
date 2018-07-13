@@ -16,6 +16,10 @@
     .label-container,
     .input-container { display: inline-block; vertical-align: top; }
     .friendlyForm label { text-transform: none; }
+    .xnat-table tr.disabled {
+        background-color: #f0f0f0;
+        color: #a8a8a8;
+    }
 </style>
 
 <h2 class="edit_title" style="text-transform: capitalize">Export ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} $session.label to PACS</h2>
@@ -99,7 +103,7 @@
             </table>
 
             <div id="scan-exclusion-warning" #if(${siteConfig.dqrPushPreference} == "true") class="hidden alert" #else class="alert" #end>
-                <em>Note: Scans that were a part of the originally imported session have been excluded.</em>
+                <em>Scans that were a part of the originally imported session have been excluded.</em>
             </div>
 
             <p>
@@ -121,7 +125,9 @@
             $('#patientName').html(patientName);
 
             // Find original scans and toggle selectability if necessary
-            if (!enableAllScans) XNAT.app.findOriginalScans();
+            if (enableAllScans.toLowerCase() !== 'true') {
+                XNAT.app.disableOriginalScans();
+            }
         });
     </script>
 #end

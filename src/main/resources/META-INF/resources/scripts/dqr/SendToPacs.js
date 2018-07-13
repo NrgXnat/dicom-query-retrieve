@@ -63,12 +63,15 @@ XNAT.app = getObject(XNAT.app || {});
 
     // A scan's "original" status is populated in the Velocity construction of the scan table by comparing scan attributes to session attributes
     var findOriginalScans = function() {
+
         $('table#scansToExport').find('tbody').find('tr').each(function(){
             if ($(this).hasClass("original")) {
                 var scanId = $(this).find('.scan-id').html();
                 originalScans.push(scanId);
+            } else {
+                canSendScans = true;
             }
-        })
+        });
     };
     findOriginalScans();
 
@@ -78,10 +81,20 @@ XNAT.app = getObject(XNAT.app || {});
         originalScans.forEach(function(scanId){
             $('input#scan-'+scanId)
                 .prop('disabled','disabled')
+                .addClass('hidden')
                 .parents('tr').addClass('disabled');
         });
         setSelectAll();
         $('#scan-exclusion-warning').removeClass('hidden');
+
+        var allScansLength = $('table#scansToExport').find('tbody').find('tr').length;
+        var canSendScans = (allScansLength > originalScans.length);
+
+        // don't allow user to submit form if no scans can be sent
+        if (!canSendScans) {
+            $('#submitScansToPacs').prop('disabled', 'disabled');
+            XNAT.ui.dialog.message({ title: false, content: 'This data only contains scans that were a part of the original image session. To send any scans to PACS, enable original scans to be sent.' });
+        }
     };
 
     XNAT.app.enableOriginalScans = function(){
@@ -89,10 +102,12 @@ XNAT.app = getObject(XNAT.app || {});
         originalScans.forEach(function(scanId){
             $('input#scan-'+scanId)
                 .prop('disabled',false)
+                .removeClass('hidden')
                 .parents('tr').removeClass('disabled');
         });
         setSelectAll();
         $('#scan-exclusion-warning').addClass('hidden');
+        $('#submitScansToPacs').prop('disabled', false);
     };
 
     // Select-all Behavior
