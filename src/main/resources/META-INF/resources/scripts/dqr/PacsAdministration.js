@@ -218,19 +218,21 @@ XNAT.app = getObject(XNAT.app || {});
                         ]),
                         XNAT.ui.panel.input.text({
                             name: 'availabilityStart',
-                            label: 'Availability Start Time'
+                            label: 'Availability Start Time',
+                            description: 'Time is specified in military time, <br>aka "20:00" rather than "10:00 pm"'
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'availabilityEnd',
-                            label: 'Availability End Time'
+                            label: 'Availability End Time',
+                            description: 'Time is specified in military time, <br>aka "20:00" rather than "10:00 pm"'
                         })
                     ])
                 );
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
-                    if ($form.find('input[name=storable]').is(':checked')) $form.find('.toggle-store-selector').show();
-                    if ($form.find('input[name=queryable]').is(':checked')) $form.find('.toggle-query-selector').hide();
+                    if (pacs.storable && pacs.storable !== 'false') $form.find('.toggle-store-selector').show();
+                    if (pacs.queryable && pacs.queryable !== 'false') $form.find('.toggle-query-selector').show();
                 }
                 else {
                     $form.find('select').find('option').first().prop('selected','selected');
@@ -262,6 +264,7 @@ XNAT.app = getObject(XNAT.app || {});
                         }
 
                         // // validate AE title
+                        var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
                         if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && pacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
                             $form.find('input[name=aeTitle]').addClass('invalid');
@@ -568,7 +571,7 @@ XNAT.app = getObject(XNAT.app || {});
 
     console.log('commandHistory.js');
 
-    var historyTable, queryHistory;
+    var historyTable, queryHistory, queryQueue;
 
     XNAT.app.dqr.historyTable = historyTable =
         getObject(XNAT.app.dqr.historyTable || {});
@@ -576,15 +579,44 @@ XNAT.app = getObject(XNAT.app || {});
     XNAT.app.dqr.queryHistory = queryHistory =
         getObject(XNAT.app.dqr.queryHistory || {});
 
+    XNAT.app.dqr.queryQueue = queryQueue =
+        getObject(XNAT.app.dqr.queryQueue || {});
+
     function getQueryHistoryUrl(id){
         var appended = (id) ? '/request/'+id : '';
         return XNAT.url.rootUrl('/xapi/dqr/history' + appended);
+    }
+
+    function getQueryQueueUrl(id){
+        var appended = (id) ? '/request/'+id : '';
+        return XNAT.url.rootUrl('/xapi/dqr/queue' + appended);
     }
 
     function viewHistoryDialog(e, onclose){
         e.preventDefault();
         var historyId = $(this).data('id') || $(this).closest('tr').prop('title');
         XNAT.app.dqr.historyTable.viewHistory(historyId);
+    }
+
+    function sortQueueData(callback){
+        callback = isFunction(callback) ? callback : function(){};
+
+        var URL = getQueryQueueUrl();
+        return XNAT.xhr.getJSON(URL)
+            .success(function(data){
+                if (data.length){
+                    // sort data by ID
+                    data = data.sort(function(a,b){ return (a.id > b.id) ? 1 : -1 });
+
+                    // copy the history listing into an object for individual reference
+                    data.forEach(function(queueEntry){
+                        queryQueue[queueEntry.id] = queueEntry;
+                    });
+
+                    return data;
+                }
+                callback.apply(this, arguments);
+            })
     }
 
     function sortHistoryData(callback){
@@ -851,15 +883,16 @@ XNAT.app = getObject(XNAT.app || {});
         }
     });
 
-    historyTable.init = historyTable.refresh = function(container){
-        var $manager = $$(container || '#dqr-history-container'),
-            _historyTable;
+    historyTable.init = historyTable.refresh = function(){
+        var $historyContainer = $('#dqr-history-container'),
+            $queueContainer = $('#dqr-queue-container'),
+            _historyTable, _queueTable;
 
         sortHistoryData().done(function(data){
             if (data.length) {
 
                 setTimeout(function(){
-                    $manager.html('loading...');
+                    $historyContainer.html('loading...');
                 }, 1);
                 setTimeout(function(){
                     _historyTable = XNAT.spawner.spawn({
@@ -867,13 +900,31 @@ XNAT.app = getObject(XNAT.app || {});
                     });
                     _historyTable.done(function(){
                         var queryLength = (data.length === 1) ? "DICOM Query" : "DICOM Queries";
-                        $manager.empty().append(
+                        $historyContainer.empty().append(
                             spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' ' + queryLength + ' Performed From This Site')
                         );
-                        this.render($manager, 20);
+                        this.render($historyContainer, 20);
                     });
                 }, 10);
             }
+
+            sortQueueData().done(function(data){
+                if (data.length){
+                    setTimeout(function(){
+                        _queueTable = XNAT.spawner.spawn({
+                            queueTable: spawnHistoryTable(data)
+                        });
+                        _queueTable.done(function(){
+                            var queueLength = (data.length === 1) ? "Query" : "Queries";
+                            $queueContainer.empty().append(
+                                spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' ' + queueLength + ' Have Been Queued')
+                            );
+                            this.render($queueContainer, 20);
+                        });
+                    }, 20);
+                    $queueContainer.css('margin-bottom','2em');
+                }
+            })
         });
 
     };

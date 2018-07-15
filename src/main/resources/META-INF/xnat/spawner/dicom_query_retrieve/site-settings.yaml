@@ -73,6 +73,8 @@ dqrHistoryPanel:
     label: DICOM AE Query History
     footer: false
     contents:
+        dqrQueueContainer:
+            tag: div#dqr-queue-container
         dqrHistoryTableContainer:
             tag: div#dqr-history-container
             contents: No history to display yet
