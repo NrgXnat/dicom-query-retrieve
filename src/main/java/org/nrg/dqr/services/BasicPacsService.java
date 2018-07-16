@@ -69,6 +69,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import org.nrg.dqr.util.CsvRow;
 
 @Service
 public class BasicPacsService implements PacsService {
@@ -417,6 +418,232 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
+    public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException();
+        }
+        ArrayList<CsvRow> resultRows = new ArrayList<>();
+
+        try {
+            List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
+            List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
+            int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
+            int studyDateColumn = columnHeaders.indexOf("Study Date");
+            int patientIdColumn = columnHeaders.indexOf("Patient ID");
+            int lastNameColumn = columnHeaders.indexOf("Last Name");
+            int firstNameColumn = columnHeaders.indexOf("First Name");
+            int dobColumn = columnHeaders.indexOf("DOB");
+            int modalityColumn = columnHeaders.indexOf("Modality");
+
+            HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
+            for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
+                int indexOfHeader = columnHeaders.indexOf(entry.getKey());
+                if (indexOfHeader != -1) {
+                    columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+                }
+            }
+
+            for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
+                List<String> row = rows.get(index);
+
+                final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
+                    searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                }
+                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                    String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                    String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                    searchCriteria.setPatientName(lastName+","+firstName);
+                }
+                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
+                    searchCriteria.setPatientId(row.get(patientIdColumn));
+                }
+                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
+                    String studyDateCell = row.get(studyDateColumn);
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                    int dashIndex = studyDateCell.indexOf("-");
+                    if(dashIndex==-1){
+                        Date dateObject = formatter.parse(studyDateCell);
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(dateObject);
+                        c.add(Calendar.DATE, 1);
+                        Date endOfDay = c.getTime();
+
+                        searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                    }
+                    else{
+                        searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                    }
+                }
+                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
+                    searchCriteria.setDob(row.get(dobColumn));
+                }
+                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
+                    searchCriteria.setModality(row.get(modalityColumn));
+                }
+
+
+                final PacsSearchResults<String, Study> studies = getStudiesByExample(
+                        XDAT.getUserDetails(), pacs, searchCriteria);
+
+                boolean anonymizeThisRow = false;
+                String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
+                for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
+                    String stringToRemapTo = row.get(entry.getKey());
+                    if(StringUtils.isNotBlank(stringToRemapTo)) {
+//                        if (StringUtils.equals(DELETE_SIGNIFIER,stringToRemapTo)) {
+//                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
+//                            anonymizeThisRow = true;
+//                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                            anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        } else {
+                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
+                            anonymizeThisRow = true;
+                        }
+                    }
+                }
+                if(!anonymizeThisRow){
+                    anonScriptForThisRow = null;
+                }
+                CsvRow currResult = new CsvRow(searchCriteria,anonScriptForThisRow,new ArrayList<>(studies.getResults()));
+                resultRows.add(currResult);
+            }
+        } catch (final Throwable e) {
+            _log.error("Failed to get studies list from spreadsheet.", e);
+        }
+        return resultRows;
+    }
+
+    @Override
+    public void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException();
+        }
+
+        Map<Study,String> studiesListMappedToAnonScript = new HashMap<>();
+        for(CsvRow row : rows) {
+            for (Study currStudy : row.getStudies()) {
+                if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
+                    studiesListMappedToAnonScript.put(currStudy, row.getAnonScript());
+                }
+            }
+        }
+
+        for(Map.Entry<Study, String> entry : studiesListMappedToAnonScript.entrySet()){
+            Study currStudy = entry.getKey();
+            String currAnonScript = entry.getValue();
+
+           //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+//            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
+            String login = AdminUtils.getAdminUser().getLogin();
+            String studyId = currStudy.getStudyInstanceUid();
+            final String path = "/studies/" + studyId;
+            if (_log.isDebugEnabled()) {
+                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+            }
+            if (studyId == null) {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+            } else {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+            }
+
+
+
+            final PacsSearchResults<String, Series> series = getSeriesByStudy(XDAT.getUserDetails(), pacs, currStudy);
+            String _seriesIdsString = "";
+            ArrayList<String> seriesIdsList = new ArrayList<>();
+            Object[] seriesResults = series.getResults().toArray();
+            for(int index = 0; index<seriesResults.length; index++){
+                if (index > 0) {
+                    _seriesIdsString += ",";
+                }
+                String result = ((Series)seriesResults[index]).getSeriesInstanceUid();
+                _seriesIdsString += result;
+                seriesIdsList.add(result);
+            }
+
+            try {
+                PacsEntityService pacsEntityService = getPacsEntityService();
+                boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
+                if(pacsIsAvailable) {
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
+                    pacsReq.setPacsId(pacsId);
+                    pacsReq.setUsername(user.getUsername());
+                    pacsReq.setXnatProject(project);
+                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                    pacsReq.setSeriesIds(_seriesIdsString);
+                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setExecutedTime(new Date());
+
+                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
+
+                    importFromPacsRequest(pacsReq);
+
+                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
+                    final StringBuilder prearchive = new StringBuilder(siteUrl);
+                    if (!siteUrl.endsWith("/")) {
+                        prearchive.append("/");
+                    }
+                    prearchive.append("app/template/XDATScreen_prearchives.vm");
+
+                    try {
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
+                        }
+                        //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
+                    } catch (Exception exception) {
+                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    }
+
+                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                    eventDetails.setComment("Series: " + _seriesIdsString);
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, currStudy.getStudyId(), project, eventDetails);
+                    assert wrk != null;
+                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+                }
+                else{
+                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                    pacsReq.setPacsId(pacsId);
+                    pacsReq.setUsername(user.getUsername());
+                    pacsReq.setXnatProject(project);
+                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                    pacsReq.setSeriesIds(_seriesIdsString);
+                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setQueuedTime(new Date());
+
+                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                }
+            } catch (final PacsNotFoundException exception) {
+                _log.warn("PACS not found somehow", exception);
+            } catch (final PacsNotQueryableException exception) {
+                _log.warn("PACS not queryable somehow", exception);
+            } catch (final PacsNotStorableException exception) {
+                _log.warn("PACS not storable somehow", exception);
+            } catch (final PacsNotAvailableException exception) {
+                _log.warn("PACS not available at this time", exception);
+            } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
+                _log.warn("Error creating new workflow event", e);
+            } catch (PersistentWorkflowUtils.IDAbsent e) {
+                _log.warn("ID absent when creating new workflow event", e);
+            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
+                _log.warn("Justification absent but required when creating new workflow event", e);
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause == null || !(cause instanceof Exception)) {
+                } else if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                }
+            }
+        }
+    }
+
+    @Override
     public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
@@ -524,7 +751,7 @@ public class BasicPacsService implements PacsService {
 
 
 
-           //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+            //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
 //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
             String login = AdminUtils.getAdminUser().getLogin();
             String studyId = currStudy.getStudyInstanceUid();

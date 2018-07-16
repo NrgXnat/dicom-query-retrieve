@@ -16,8 +16,10 @@ import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.PatientName;
 import org.nrg.dqr.domain.ReferringPhysicianName;
@@ -27,6 +29,7 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.dqr.util.CsvRow;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -122,7 +125,17 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
+    public void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
     public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId) throws Exception {
         throw new RuntimeException("method not implemented");
     }
 }

@@ -20,6 +20,7 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.dqr.util.CsvRow;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -27,6 +28,7 @@ import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 
 import java.io.File;
+import java.util.List;
 
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
@@ -53,5 +55,9 @@ public interface PacsService {
 
     boolean aeIsStorable(final String ae);
 
+    void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
+
     void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
+
+    List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId) throws Exception;
 }

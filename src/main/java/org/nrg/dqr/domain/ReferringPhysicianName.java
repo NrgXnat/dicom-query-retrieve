@@ -18,6 +18,10 @@ public class ReferringPhysicianName extends DqrPersonName {
 
     private static final long serialVersionUID = 1L;
 
+    public ReferringPhysicianName(){
+
+    }
+
     public ReferringPhysicianName(PersonName personName) {
         super(personName);
     }
