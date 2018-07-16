@@ -597,6 +597,18 @@ XNAT.app = getObject(XNAT.app || {});
         var historyId = $(this).data('id') || $(this).closest('tr').prop('title');
         XNAT.app.dqr.historyTable.viewHistory(historyId);
     }
+    function viewQueueEntryDialog(e, onclose){
+        e.preventDefault();
+        var queueEntryId = $(this).data('id') || $(this).closest('tr').prop('title');
+        XNAT.app.dqr.historyTable.viewQueueEntry(queueEntryId);
+    }
+    function removeQueueEntry(id){
+        return XNAT.xhr.ajax({
+            url: getQueryQueueUrl(id),
+            method: 'DELETE'
+        });
+    }
+    historyTable.removeQueueEntry = removeQueueEntry;
 
     function sortQueueData(callback){
         callback = isFunction(callback) ? callback : function(){};
@@ -650,20 +662,22 @@ XNAT.app = getObject(XNAT.app || {});
         }
     }
 
-    function spawnHistoryTable(sortedHistoryObj){
+    function spawnHistoryTable(sortedHistoryObj,tableType){
 
         var $dataRows = [];
+        tableType = (tableType || 'history');
 
         return {
             kind: 'table.dataTable',
-            name: 'dqrHistory',
-            id: 'dqr-history',
+            name: 'dqr-'+tableType,
+            id: 'dqr-'+tableType,
             // load: URL,
             data: sortedHistoryObj,
             table: {
                 classes: 'highlight hidden',
                 on: [
-                    ['click', 'a.view-history', viewHistoryDialog]
+                    ['click', 'a.view-history', viewHistoryDialog],
+                    ['click', 'a.view-queueEntry', viewQueueEntryDialog]
                 ]
             },
             trs: function(tr, data){
@@ -771,7 +785,7 @@ XNAT.app = getObject(XNAT.app || {});
                         var scans = this['seriesIds'].split(',');
                         return spawn (
                             'a',
-                            { href: '#!', title: sessionID, className: 'view-history-entry', data: { historyId: this['id'] } },
+                            { href: '#!', title: sessionID, className: 'view-'+tableType+'-entry', data: { id: this['id'] } },
                             '1 Session with '+scans.length+' Scans'
                         );
                     }
@@ -874,12 +888,142 @@ XNAT.app = getObject(XNAT.app || {});
 
     $(document).on('click','.view-history-entry',function(e){
         e.preventDefault();
-        var historyEntryId = $(this).data('historyId');
+        var historyEntryId = $(this).data('id');
         if (historyEntryId) {
             XNAT.app.dqr.historyTable.viewHistory(historyEntryId)
         }
         else {
             console.log('No history item ID provided');
+        }
+    });
+
+    historyTable.viewQueueEntry = function(id){
+        if (queryQueue[id]) {
+            var queueEntry = XNAT.app.dqr.queryQueue[id];
+            var queueDialogButtons = [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true
+                },
+                {
+                    label: 'Remove From Queue',
+                    isDefault: false,
+                    close: false,
+                    action: function(){
+                        XNAT.ui.dialog.confirm({
+                            title: false,
+                            content: 'Are you sure you want to remove this DICOM request from the queue?',
+                            buttons: [
+                                {
+                                    label: 'Confirm Queue Removal',
+                                    isDefault: true,
+                                    close: true,
+                                    action: function(){
+                                        xmodal.loading.open({
+                                            title: 'Removing DICOM request from queue'
+                                        });
+                                        window.setTimeout(function(){
+                                            historyTable.removeQueueEntry(id).done(function(){
+                                                historyTable.refresh();
+                                                xmodal.loading.close();
+                                                XNAT.ui.dialog.closeAll();
+                                                XNAT.ui.banner.top(3000, 'Removed queue entry', 'success');
+                                            })
+                                        }, 500)
+                                    }
+                                },
+                                {
+                                    label: 'Cancel',
+                                    close: true
+                                }
+                            ]
+                        })
+                    }
+                }
+            ];
+
+            // build nice-looking history entry table
+            var qheTable = XNAT.table({
+                className: 'xnat-table compact',
+                style: {
+                    width: '100%',
+                    marginTop: '15px',
+                    marginBottom: '15px'
+                }
+            });
+
+            // add table header row
+            qheTable.tr()
+                .th({ addClass: 'left', html: '<b>Key</b>' })
+                .th({ addClass: 'left', html: '<b>Value</b>' });
+
+            for (var key in queueEntry){
+                var val = queueEntry[key], formattedVal = '';
+                if (key === 'seriesIds') val = val.split(',');
+
+                if (Array.isArray(val)) {
+                    var items = [];
+                    val.forEach(function(item){
+                        if (typeof item === 'object') item = JSON.stringify(item);
+                        items.push(spawn('li',[ spawn('code',item) ]));
+                    });
+                    formattedVal = spawn('ul',{ style: { 'list-style-type': 'none', 'padding-left': '0' }}, items);
+                } else if (typeof val === 'object' ) {
+                    formattedVal = spawn('code', JSON.stringify(val));
+                } else if (!val) {
+                    formattedVal = spawn('code','false');
+                } else {
+                    formattedVal = spawn('code',val);
+                }
+
+                qheTable.tr()
+                    .td('<b>'+key+'</b>')
+                    .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
+            }
+
+            // display queue entry
+            XNAT.ui.dialog.open({
+                title: 'Queued: Query to '+pacsObj[queueEntry['pacsId']].aeTitle,
+                width: 800,
+                scroll: true,
+                content: qheTable.table,
+                beforeShow: function(obj){
+                    obj.$modal.find('.xnat-dialog-content').prepend(
+                        spawn(
+                            'div.message',
+                            'This request is currently queued. Items in the queue will be processed during the PACS\'s availability window. ' +
+                            'The availability window for '+pacsObj[queueEntry['pacsId']].aeTitle+' opens at <strong>'+
+                            pacsObj[queueEntry['pacsId']].availabilityStart+ '</strong> and closes at <strong>'+
+                            pacsObj[queueEntry['pacsId']].availabilityEnd+'</strong>.'
+                        )
+                    );
+                },
+                buttons: queueDialogButtons
+            });
+        } else {
+            console.log(id);
+            XNAT.ui.dialog.open({
+                content: 'Sorry, could not display this queue entry.',
+                buttons: [
+                    {
+                        label: 'OK',
+                        isDefault: true,
+                        close: true
+                    }
+                ]
+            });
+        }
+    };
+
+    $(document).on('click','.view-queue-entry',function(e){
+        e.preventDefault();
+        var queueEntryId = $(this).data('id');
+        if (queueEntryId) {
+            XNAT.app.dqr.historyTable.viewQueueEntry(queueEntryId)
+        }
+        else {
+            console.log('No queue entry ID provided');
         }
     });
 
@@ -912,7 +1056,7 @@ XNAT.app = getObject(XNAT.app || {});
                 if (data.length){
                     setTimeout(function(){
                         _queueTable = XNAT.spawner.spawn({
-                            queueTable: spawnHistoryTable(data)
+                            queueTable: spawnHistoryTable(data,'queue')
                         });
                         _queueTable.done(function(){
                             var queueLength = (data.length === 1) ? "Query" : "Queries";
