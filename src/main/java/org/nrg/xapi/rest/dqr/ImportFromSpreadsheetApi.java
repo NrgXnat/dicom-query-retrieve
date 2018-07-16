@@ -65,7 +65,7 @@ public class ImportFromSpreadsheetApi extends AbstractXapiRestController {
 
 
     @ApiOperation(value = "Uses the uploaded csv to generate JSON containing information about what would be imported if the user decides to continue.", response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 404, message = "No PACS with the specified ID is configured on this system."), @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "upload", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authenticated)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store", required = true) MultipartFile csv,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId) throws Exception {
@@ -79,9 +79,13 @@ public class ImportFromSpreadsheetApi extends AbstractXapiRestController {
         FileOutputStream fos = new FileOutputStream(temp);
         fos.write(csv.getBytes());
         fos.close();
-
-        List<CsvRow> rows = _service.extractImportRequestFromCsv(getSessionUser(),  temp, pacsId);
-
+        List<CsvRow> rows = null;
+        try {
+             rows = _service.extractImportRequestFromCsv(getSessionUser(), temp, pacsId);
+        }
+        catch(PacsNotFoundException e){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         return new ResponseEntity<>(rows, HttpStatus.OK);
     }
 
