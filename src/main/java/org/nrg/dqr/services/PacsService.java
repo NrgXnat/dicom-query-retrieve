@@ -55,9 +55,9 @@ public interface PacsService {
 
     boolean aeIsStorable(final String ae);
 
-    void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
+    void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
     void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
 
-    List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId) throws Exception;
+    List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception;
 }

@@ -14,9 +14,7 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
-import org.apache.turbine.util.parser.ParameterParser;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
@@ -43,22 +41,21 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.framework.constants.Scope;
-import org.nrg.xapi.exceptions.NotAuthenticatedException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.FileUtils;
+import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
-import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
+import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
 import org.nrg.xnat.restlet.extensions.*;
 import org.nrg.xnat.utils.DateRange;
 import org.nrg.xnat.utils.MethodName;
@@ -418,117 +415,152 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+    public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
         }
         ArrayList<CsvRow> resultRows = new ArrayList<>();
 
-        try {
-            List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
-            List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
-            int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
-            int studyDateColumn = columnHeaders.indexOf("Study Date");
-            int patientIdColumn = columnHeaders.indexOf("Patient ID");
-            int lastNameColumn = columnHeaders.indexOf("Last Name");
-            int firstNameColumn = columnHeaders.indexOf("First Name");
-            int dobColumn = columnHeaders.indexOf("DOB");
-            int modalityColumn = columnHeaders.indexOf("Modality");
+        List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
+        List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
+        int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
+        int studyDateColumn = columnHeaders.indexOf("Study Date");
+        int patientIdColumn = columnHeaders.indexOf("Patient ID");
+        int lastNameColumn = columnHeaders.indexOf("Last Name");
+        int firstNameColumn = columnHeaders.indexOf("First Name");
+        int dobColumn = columnHeaders.indexOf("DOB");
+        int modalityColumn = columnHeaders.indexOf("Modality");
 
-            HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
-            for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
-                int indexOfHeader = columnHeaders.indexOf(entry.getKey());
-                if (indexOfHeader != -1) {
-                    columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+        HashMap<Integer, String> columnToDicomTagMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
+            int indexOfHeader = columnHeaders.indexOf(entry.getKey());
+            if (indexOfHeader != -1) {
+                columnToDicomTagMap.put(indexOfHeader, entry.getValue());
+            }
+        }
+
+        for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
+            List<String> row = rows.get(index);
+            boolean areThereSearchCriteriaForThisRow = false;
+
+            final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+            if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
+                searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                searchCriteria.setPatientName(lastName+","+firstName);
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
+                searchCriteria.setPatientId(row.get(patientIdColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
+                String studyDateCell = row.get(studyDateColumn);
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                int dashIndex = studyDateCell.indexOf("-");
+                if(dashIndex==-1){
+                    Date dateObject = formatter.parse(studyDateCell);
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(dateObject);
+                    c.add(Calendar.DATE, 1);
+                    Date endOfDay = c.getTime();
+
+                    searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else{
+                    searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                    areThereSearchCriteriaForThisRow = true;
                 }
             }
+            if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
+                searchCriteria.setDob(row.get(dobColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
+                searchCriteria.setModality(row.get(modalityColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if(!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs){
+                throw new Exception("Each row must contain at least one search criteria.");
+            }
 
-            for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
-                List<String> row = rows.get(index);
+            final PacsSearchResults<String, Study> studies = getStudiesByExample(
+                    XDAT.getUserDetails(), pacs, searchCriteria);
 
-                final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
-                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                    searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
-                }
-                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
-                    String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
-                    String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                    searchCriteria.setPatientName(lastName+","+firstName);
-                }
-                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                    searchCriteria.setPatientId(row.get(patientIdColumn));
-                }
-                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                    String studyDateCell = row.get(studyDateColumn);
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-                    int dashIndex = studyDateCell.indexOf("-");
-                    if(dashIndex==-1){
-                        Date dateObject = formatter.parse(studyDateCell);
-                        Calendar c = Calendar.getInstance();
-                        c.setTime(dateObject);
-                        c.add(Calendar.DATE, 1);
-                        Date endOfDay = c.getTime();
-
-                        searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
-                    }
-                    else{
-                        searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
-                    }
-                }
-                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                    searchCriteria.setDob(row.get(dobColumn));
-                }
-                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                    searchCriteria.setModality(row.get(modalityColumn));
-                }
-
-
-                final PacsSearchResults<String, Study> studies = getStudiesByExample(
-                        XDAT.getUserDetails(), pacs, searchCriteria);
-
-                boolean anonymizeThisRow = false;
-                String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
-                for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
-                    String stringToRemapTo = row.get(entry.getKey());
-                    if(StringUtils.isNotBlank(stringToRemapTo)) {
+            boolean anonymizeThisRow = false;
+            String anonScriptForThisRow = "version \"6.1\""+System.lineSeparator();
+            for(Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()){
+                String stringToRemapTo = row.get(entry.getKey());
+                if(StringUtils.isNotBlank(stringToRemapTo)) {
 //                        if (StringUtils.equals(DELETE_SIGNIFIER,stringToRemapTo)) {
 //                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
 //                            anonymizeThisRow = true;
 //                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
-                            anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
-                            anonymizeThisRow = true;
-                        } else {
-                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
-                            anonymizeThisRow = true;
-                        }
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
+                        anonymizeThisRow = true;
+                    } else {
+                        anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
+                        anonymizeThisRow = true;
                     }
                 }
-                if(!anonymizeThisRow){
-                    anonScriptForThisRow = null;
-                }
-                CsvRow currResult = new CsvRow(searchCriteria,anonScriptForThisRow,new ArrayList<>(studies.getResults()));
-                resultRows.add(currResult);
             }
-        } catch (final Throwable e) {
-            _log.error("Failed to get studies list from spreadsheet.", e);
+            if(!anonymizeThisRow){
+                anonScriptForThisRow = null;
+            }
+            CsvRow currResult = new CsvRow(searchCriteria,anonScriptForThisRow,new ArrayList<>(studies.getResults()));
+            resultRows.add(currResult);
         }
         return resultRows;
     }
 
     @Override
-    public void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
+    public void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
+        }
+        String aeTitle = ae;
+        String port = "";
+        if(ae!=null && ae.contains(":")){
+            String[] parts = ae.split(":");
+            aeTitle = parts[0];
+            port = parts[1];
         }
 
         Map<Study,String> studiesListMappedToAnonScript = new HashMap<>();
         for(CsvRow row : rows) {
             for (Study currStudy : row.getStudies()) {
                 if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
-                    studiesListMappedToAnonScript.put(currStudy, row.getAnonScript());
+                    String anon = row.getAnonScript();
+                    studiesListMappedToAnonScript.put(currStudy, anon);
+                    if(StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff){
+                        DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle,Integer.parseInt(port));
+                        if(!scpInstance.getCustomProcessing()){
+                            throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
+                        }
+                        List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
+                        if(processorInstances.isEmpty()){
+                            throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                        }
+                        else{
+                            boolean hasProcessorOtherThanSiteAnon = false;
+                            for(ArchiveProcessorInstance instance: processorInstances){
+                                if(!StringUtils.equals(instance.getProcessorClass(),"org.nrg.xnat.processors.MizerArchiveProcessor")){
+                                    hasProcessorOtherThanSiteAnon = true;
+                                }
+                            }
+                            if(!hasProcessorOtherThanSiteAnon){
+                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -577,7 +609,7 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setXnatProject(project);
                     pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
                     pacsReq.setSeriesIds(_seriesIdsString);
-                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setDestinationAeTitle(aeTitle);
                     pacsReq.setExecutedTime(new Date());
 
                     XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
@@ -613,7 +645,7 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setXnatProject(project);
                     pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
                     pacsReq.setSeriesIds(_seriesIdsString);
-                    pacsReq.setDestinationAeTitle(ae);
+                    pacsReq.setDestinationAeTitle(aeTitle);
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
@@ -874,5 +906,13 @@ public class BasicPacsService implements PacsService {
 
     private static PacsEntityService getPacsEntityService() {
         return XDAT.getContextService().getBean(PacsEntityService.class);
+    }
+
+    private static DicomSCPManager getScpManager() {
+        return XDAT.getContextService().getBean(DicomSCPManager.class);
+    }
+
+    private static ArchiveProcessorInstanceService getProcessorService() {
+        return XDAT.getContextService().getBean(ArchiveProcessorInstanceService.class);
     }
 }

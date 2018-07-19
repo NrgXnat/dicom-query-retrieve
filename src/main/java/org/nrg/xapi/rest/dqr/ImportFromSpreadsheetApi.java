@@ -68,7 +68,7 @@ public class ImportFromSpreadsheetApi extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 404, message = "No PACS with the specified ID is configured on this system."), @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "upload", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authenticated)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store", required = true) MultipartFile csv,
-                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId) throws Exception {
+                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         if (!csv.getContentType().contains("csv")) {
             String error = "No valid files were uploaded. Spreadsheet file must be of type: application/csv";
             log.error(error);
@@ -81,7 +81,7 @@ public class ImportFromSpreadsheetApi extends AbstractXapiRestController {
         fos.close();
         List<CsvRow> rows = null;
         try {
-             rows = _service.extractImportRequestFromCsv(getSessionUser(), temp, pacsId);
+             rows = _service.extractImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
         }
         catch(PacsNotFoundException e){
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -99,9 +99,10 @@ public class ImportFromSpreadsheetApi extends AbstractXapiRestController {
             restrictTo = Authenticated)
     public ResponseEntity<Boolean> importFromPacs(@RequestBody final CsvRow[] rows,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId,
-                                                  @ApiParam("XNAT AE to send to.") @RequestParam(name = "ae", required = true) final String ae,
-                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project", required = true) final String project) throws PacsNotFoundException, ConfigServiceException {
-        _service.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId);
+                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae", required = true) final String ae,
+                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project", required = true) final String project,
+                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
+        _service.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff);
         return new ResponseEntity<>(true, HttpStatus.OK);
     }
 
