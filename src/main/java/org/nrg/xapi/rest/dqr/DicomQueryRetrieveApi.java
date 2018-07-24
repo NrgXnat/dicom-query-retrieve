@@ -2,7 +2,7 @@ package org.nrg.xapi.rest.dqr;
 
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
-import org.h2.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsPing;
@@ -18,9 +18,11 @@ import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -155,14 +157,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(value = "Uses the uploaded csv to generate JSON containing information about what would be imported if the user decides to continue.", response = String.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 404, message = "No PACS with the specified ID is configured on this system."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
     @XapiRequestMapping(value = "csvimport/uploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authenticated)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store", required = true) MultipartFile csv,
                                                         @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         if (!csv.getContentType().contains("csv")) {
-            String error = "No valid files were uploaded. Spreadsheet file must be of type: application/csv";
-            log.error(error);
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            throw new ServletRequestBindingException("Incorrect file format. Spreadsheet file must be of type: application/csv");
         }
 
         File temp = File.createTempFile("xnat", "csv");
@@ -170,13 +170,25 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         fos.write(csv.getBytes());
         fos.close();
         List<CsvRow> rows = null;
-        try {
-            rows = _pacsService.extractImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
+        rows = _pacsService.extractImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
+
+        boolean anonScriptFound = false;
+        for(CsvRow row:rows){
+            if(row!=null && StringUtils.isNotBlank(row.getAnonScript())){
+                anonScriptFound = true;
+            }
         }
-        catch(PacsNotFoundException e){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        if(anonScriptFound){
+            return new ResponseEntity<>(rows, HttpStatus.OK);
         }
-        return new ResponseEntity<>(rows, HttpStatus.OK);
+        else {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.WARNING, "The generated JSON has no anon script.");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(rows);
+        }
     }
 
     @ApiOperation(value = "Issues the PACS import requests specified in the JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
@@ -194,7 +206,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project", required = true) final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         _pacsService.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff);
-        return new ResponseEntity<>(true, HttpStatus.OK);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.WARNING, "Query Submitted.");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(true);
     }
 
     @ApiOperation(value = "Ping a PACS.", notes = "The ping PACS function returns whether the PACS was responsive.", response = PacsPing.class)

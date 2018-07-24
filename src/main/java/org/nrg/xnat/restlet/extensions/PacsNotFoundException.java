@@ -14,6 +14,10 @@ package org.nrg.xnat.restlet.extensions;
 
 public class PacsNotFoundException extends Exception {
 
+    public PacsNotFoundException() {
+        super("Specified PACS not found.");
+    }
+
     private static final long serialVersionUID = 1L;
 
 }

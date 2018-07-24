@@ -487,7 +487,7 @@ public class BasicPacsService implements PacsService {
                 areThereSearchCriteriaForThisRow = true;
             }
             if(!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs){
-                throw new Exception("Each row must contain at least one search criteria.");
+                throw new Exception("No search criteria found. Users must specify at least one valid search criteria.");
             }
 
             final PacsSearchResults<String, Study> studies = getStudiesByExample(
@@ -536,28 +536,35 @@ public class BasicPacsService implements PacsService {
 
         Map<Study,String> studiesListMappedToAnonScript = new HashMap<>();
         for(CsvRow row : rows) {
-            for (Study currStudy : row.getStudies()) {
-                if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
-                    String anon = row.getAnonScript();
-                    studiesListMappedToAnonScript.put(currStudy, anon);
-                    if(StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff){
-                        DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle,Integer.parseInt(port));
-                        if(!scpInstance.getCustomProcessing()){
-                            throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
-                        }
-                        List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
-                        if(processorInstances.isEmpty()){
-                            throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                        }
-                        else{
-                            boolean hasProcessorOtherThanSiteAnon = false;
-                            for(ArchiveProcessorInstance instance: processorInstances){
-                                if(!StringUtils.equals(instance.getProcessorClass(),"org.nrg.xnat.processors.MizerArchiveProcessor")){
-                                    hasProcessorOtherThanSiteAnon = true;
-                                }
+            if(row!=null&&row.getStudies()!=null) {
+                for (Study currStudy : row.getStudies()) {
+                    if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
+                        String anon = row.getAnonScript();
+                        studiesListMappedToAnonScript.put(currStudy, anon);
+                        if (StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff) {
+                            DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+                            if (scpInstance == null) {
+                                throw new Exception("Invalid DICOM SCP Receiver ID.");
                             }
-                            if(!hasProcessorOtherThanSiteAnon){
+                            if (!scpInstance.isEnabled()) {
+                                throw new Exception("Invalid DICOM SCP Receiver ID.");
+                            }
+                            if (!scpInstance.getCustomProcessing()) {
+                                throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
+                            }
+                            List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
+                            if (processorInstances.isEmpty()) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                            } else {
+                                boolean hasProcessorOtherThanSiteAnon = false;
+                                for (ArchiveProcessorInstance instance : processorInstances) {
+                                    if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
+                                        hasProcessorOtherThanSiteAnon = true;
+                                    }
+                                }
+                                if (!hasProcessorOtherThanSiteAnon) {
+                                    throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                                }
                             }
                         }
                     }
