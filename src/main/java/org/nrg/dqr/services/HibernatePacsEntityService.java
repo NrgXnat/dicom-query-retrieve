@@ -19,8 +19,10 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalTime;
+import java.sql.Time;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class HibernatePacsEntityService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsEntityService {
@@ -80,7 +82,6 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
     @Transactional
     public boolean isAvailable(final Pacs entity){
         boolean pacsIsAvailable = false;
-        LocalTime currentTime = LocalTime.now();
         String availabilityStartTimeString = entity.getAvailabilityStart();
         String availabilityEndTimeString = entity.getAvailabilityEnd();
         if(StringUtils.isBlank(availabilityStartTimeString) || StringUtils.isBlank(availabilityStartTimeString)) {
@@ -95,21 +96,49 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
             if(availabilityEndTimeString.charAt(1)==':'){
                 availabilityEndTimeString = "0"+availabilityEndTimeString;
             }
+            Calendar currentCal = Calendar.getInstance();
 
-            LocalTime availabilityStartTime = LocalTime.parse(availabilityStartTimeString);
-            LocalTime availabilityEndTime = LocalTime.parse(availabilityEndTimeString);
-            if (availabilityStartTime == null || availabilityEndTime == null) {
+            long currMillis = currentCal.getTimeInMillis();
+            long startMillis = 0L;
+            long endMillis = 0L;
+
+            if(StringUtils.isNotBlank(availabilityStartTimeString)){
+                try {
+                    Calendar startCal = (Calendar) currentCal.clone();
+                    String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
+                    startCal.set(Calendar.HOUR_OF_DAY,Integer.parseInt(startTime[0]));
+                    startCal.set(Calendar.MINUTE,Integer.parseInt(startTime[1]));
+                    startMillis = startCal.getTimeInMillis();
+                }
+                catch (Exception e){
+
+                }
+            }
+            if(StringUtils.isNotBlank(availabilityEndTimeString)){
+                try {
+                    Calendar endCal = (Calendar) currentCal.clone();
+                    String[] endTime = StringUtils.split(availabilityEndTimeString,":");
+                    endCal.set(Calendar.HOUR_OF_DAY,Integer.parseInt(endTime[0]));
+                    endCal.set(Calendar.MINUTE,Integer.parseInt(endTime[1]));
+                    endMillis = endCal.getTimeInMillis();
+                }
+                catch (Exception e){
+
+                }
+            }
+
+            if (startMillis == 0L || endMillis == 0L) {
                 pacsIsAvailable = true; //If time constraints are not set for the PACS, allow access
             }
             else{
-                if(availabilityEndTime.isBefore(availabilityStartTime)){
+                if(endMillis<startMillis){
                     //That means that the availability interval contains midnight.
-                    if(currentTime.isAfter(availabilityStartTime) || currentTime.isBefore(availabilityEndTime)){
+                    if(currMillis>startMillis || currMillis<endMillis){
                         pacsIsAvailable = true;
                     }
                 }
                 else{
-                    if(currentTime.isAfter(availabilityStartTime) && currentTime.isBefore(availabilityEndTime)){
+                    if(currMillis>startMillis && currMillis<endMillis){
                         pacsIsAvailable = true;
                     }
                 }

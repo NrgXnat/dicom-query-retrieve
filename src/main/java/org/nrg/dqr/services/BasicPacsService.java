@@ -238,10 +238,16 @@ public class BasicPacsService implements PacsService {
     public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
         PacsEntityService pacsEntityService = getPacsEntityService();
         Pacs pacs = pacsEntityService.retrieve(request.getPacsId());
+        String destinationAeAndPort = request.getDestinationAeTitle();
+        String destinationAe = destinationAeAndPort;
+        if (destinationAe != null && destinationAe.contains(":")) {
+            String[] parts = destinationAe.split(":");
+            destinationAe = parts[0];
+        }
         if(!pacs.isQueryable()) {
             throw new PacsNotQueryableException();
         }
-        else if(!aeIsStorable(request.getDestinationAeTitle())){
+        else if(!aeIsStorable(destinationAeAndPort)){
             throw new PacsNotStorableException();
         }
         else {
@@ -265,7 +271,7 @@ public class BasicPacsService implements PacsService {
                                 null,
                                 EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
                                         MethodName.currentMethodName(), null, MAPPER.writeValueAsString(series)));
-                        buildCMoveSCU(pacs, request.getDestinationAeTitle()).cmoveSeries(study, series);
+                        buildCMoveSCU(pacs, destinationAe).cmoveSeries(study, series);
                         completeWorkflow(workflow);
                     } catch (final Exception e) {
                         failWorkflow(workflow);
@@ -400,17 +406,17 @@ public class BasicPacsService implements PacsService {
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
         for (DicomSCPInstance scp : scps){
-            if(StringUtils.equals(scp.getAeTitle(),ae)){
+            if(StringUtils.equals(scp.getAeTitle()+":"+scp.getPort(),ae) && scp.isEnabled()){
                 return true;
             }
         }
-
-        final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
-        for (Pacs pacsToCheck : allPacs){
-            if(StringUtils.equals(pacsToCheck.getAeTitle(),ae)){
-                return true;
-            }
-        }
+//
+//        final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
+//        for (Pacs pacsToCheck : allPacs){
+//            if(StringUtils.equals(pacsToCheck.getAeTitle(),ae)){
+//                return true;
+//            }
+//        }
         return false;
     }
 
