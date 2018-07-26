@@ -8,40 +8,12 @@
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
 
 <script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
+<script type="text/javascript" src="$content.getURI("/scripts/dqr/SpreadsheetImporter.js")"></script>
+
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" type="text/css" href="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
 
-<script type="text/javascript">
-##    jq(document).ready(function () {
-##        if (window.pacsSeriesFinder == undefined) {
-##            window.pacsSeriesFinder = new PacsSeriesFinder2("$study.getStudyInstanceUid()", "pacsSeriesFinderDiv", "pacsSeriesFinderForm", "pacsSeriesFinderSubmit", "pacsSeriesFinderSelectAll", "validationErrorMessageHolder", $pacs.getId());
-##            window.pacsSeriesFinder.findSeries();
-##        }
-##    });
-
-    function requestSelectedSeries() {
-        var selectedSeriesControls = jq("input[name=selectedSeries]:checked");
-        var project = jq("#project").val();
-        var ae = jq("#ae").val();
-        if (!selectedSeriesControls || selectedSeriesControls.length == 0) {
-            xmodal.message('No series selected', 'You have to select at least one series before you can request that it be retrieved from the selected PACS.', 'OK');
-        } else if (project == "") {
-            xmodal.message('No project selected', 'You need to select a project to which the requested series can be assigned.', 'OK');
-        } else {
-            var selectedSeries = [];
-            for (var index = 0; index < selectedSeriesControls.length; index++) {
-                selectedSeries.push(selectedSeriesControls[index].value.replace(/_/g, '.'));
-            }
-            window.pacsSeriesFinder.requestSeries(project, selectedSeries, ae);
-        }
-    }
-</script>
-
-<style type="text/css">
-    table.dataTable tr.odd td.sorting_1 { background-color: #d3dfff; }
-    table.dataTable tr.even td.sorting_1 { background-color: #f0f7ff; }
-</style>
 
 <h2 class="edit_title">Import Patient Study from PACS</h2>
 #set($userCanImport = true)
@@ -57,14 +29,14 @@
 
 #if(!$userCanImport)
 <div class="error">
-    Sorry, but you do not have appropriate user permissions in order to import this scan series. You must have edit privileges on at least one study in order to import images from PACS
+    Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS
 </div>
 #else
 
 ##<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
-<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini" enctype="multipart/form-data" method="POST" action="$link.setAction("ImportFromSpreadsheet")">
+<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini" enctype="multipart/form-data">
     <div class="inputWrapper horizontal" style="margin-right: 30px;">
-        <h4>Configure Search (Required)</h4>
+        <h4>Set Query Connections (Required)</h4>
         <p>
             <label for="pacsId">Select DICOM AE to Query</label>
             <select id="pacsId" name="pacsId">
@@ -75,71 +47,62 @@
                 #end
             </select>
         </p>
+        <div id="pacsSeriesProjectSelector">
+            #if($projects.size() == 1)
+                #set($project = $projects.get(0))
+                <p><strong>Project:</strong> ${project.name}</p>
+                <input type="hidden" id="project" name="project" value="${project.id}"/>
+            #else
+                <label for="project" class="select_label"><b>Select ${displayManager.getSingularDisplayNameForProject()} To Import To:</b></label>
+                <select id="project" id="project" name="project" style="min-width:200px;">
+                    <option disabled selected>(Select Project)</option>
+                    #foreach($proj in $projects)
+                        #if($proj.canEdit($user))
+                            <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
+                        #else
+                            <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
+                        #end
+                    #end
+                </select>
+            #end
+        </div><br>
+
+        <div id="pacsSeriesAeSelector">
+            #if($aes.size() == 1)
+                #set($ae = $aes.get(0))
+                <p><strong>XNAT SCP Receiver:</strong> ${ae}</p>
+                <input type="hidden" id="ae" name="ae" value="${ae}"/>
+            #else
+                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
+                <select id="ae" id="ae" name="ae" style="min-width:200px;">
+                    <option disabled selected>(Select AE)</option>
+                    #foreach($tempAe in $aes)
+                    ##                            #if($tempAe.isDefaultStorageDestination())
+                    ##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
+                    ##                            #else
+                        <option value="${tempAe}">${tempAe}</option>
+                    ##                            #end
+                    #end
+                </select>
+            #end
+        </div>
     </div>
     <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
         <div class="inputWrapper">
-            <h4>Select Destination for Import</h4>
-            <div id="pacsSeriesProjectSelector">
-                #if($projects.size() == 1)
-                    #set($project = $projects.get(0))
-                    <p><strong>Project:</strong> ${project.name}</p>
-                    <input type="hidden" id="project" name="project" value="${project.id}"/>
-                #else
-                    <label for="project" class="select_label"><b>${displayManager.getSingularDisplayNameForProject()}:</b></label>
-                    <select id="project" id="project" name="project" style="min-width:200px;">
-                        <option disabled>(Select Project)</option>
-                        #foreach($proj in $projects)
-                            #if($proj.canEdit($user))
-                                <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                            #else
-                                <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                            #end
-                        #end
-                    </select>
-                    <script>
-                        /*    jq.getJSON("/data/archive/projects?format=json&accessible=true",function(data){
-                                for (i=0, j=data.ResultSet.Result.length; i<j; i++) {
-                                    var opt="<option value='"+data.ResultSet.Result[i].id+"'>"+data.ResultSet.Result[i].name+"</option>";
-                                    jq("#project").append(opt);
-                                }
-                            }); */
-                    </script>
-                #end
-            </div>
-
-            <div id="pacsSeriesAeSelector">
-                #if($aes.size() == 1)
-                    #set($ae = $aes.get(0))
-                    <p><strong>AE:</strong> ${ae}</p>
-                    <input type="hidden" id="ae" name="ae" value="${ae}"/>
-                #else
-                    <label for="ae" class="select_label"><b>AE:</b></label>
-                    <select id="ae" id="ae" name="ae" style="min-width:200px;">
-                        <option disabled>(Select AE)</option>
-                        #foreach($tempAe in $aes)
-##                            #if($tempAe.isDefaultStorageDestination())
-##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-##                            #else
-                                <option value="${tempAe}">${tempAe}</option>
-##                            #end
-                        #end
-                    </select>
-                #end
-            </div>
-        </div>
-        <div class="inputWrapper">
-
-                <TABLE>
-                    <TR>
-                        <TD>File</TD><TD><input type="file" name="csv_to_store"/></TD>
-                    </TR>
-                    <TR>
-                        <TD colspan="3" align="right">&nbsp;</TD>
-                    </TR>
-                    <TR>
-                        <TD colspan="3" align="right"><input type="submit" name="eventSubmit_doUpload" value="Upload"/></TD>
-                    </TR>
-                </TABLE>
+            <h4>Select CSV File To Import</h4>
+            <p>
+                Your CSV file can contain multiple queries to the selected PACS, with each line containing a new query.
+                Each query can specify a custom DICOM remapping scheme, if custom processing is enabled on your SCP receiver.
+                (Each query entry in your CSV file must contain at least one search term in order for the query to be processed).
+                <br><br>
+                Download a CSV Template file here: <a href="https://bitbucket.org/xnatdev/dicom-query-retrieve/downloads/" target="_blank">DQR CSV Template</a>
+            </p>
+            <p>
+                <input type="file" name="csv_to_store"/>
+            </p>
+            <p>
+                <button class="btn primary" id="submit-csv-form">Upload File</button>
+            </p>
 
         </div>
     </div>
