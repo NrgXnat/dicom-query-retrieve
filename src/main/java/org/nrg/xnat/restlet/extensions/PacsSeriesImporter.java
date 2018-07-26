@@ -74,6 +74,11 @@ public class PacsSeriesImporter extends PacsServiceResource {
             respondWithNeedToBeLoggedIn();
         }
         else{
+            String destinationAeTitle = _ae;
+            if (_ae != null && _ae.contains(":")) {
+                String[] parts = _ae.split(":");
+                destinationAeTitle = parts[0];
+            }
             try {
                 final Pacs pacs = getPacs();
                 PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
@@ -86,7 +91,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     pacsReq.setXnatProject(_projectId);
                     pacsReq.setStudyInstanceUid(_studyInstanceUid);
                     pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-                    pacsReq.setDestinationAeTitle(_ae);
+                    pacsReq.setDestinationAeTitle(destinationAeTitle);
                     pacsReq.setExecutedTime(new Date());
 
                     XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
@@ -127,7 +132,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     pacsReq.setXnatProject(_projectId);
                     pacsReq.setStudyInstanceUid(_studyInstanceUid);
                     pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-                    pacsReq.setDestinationAeTitle(_ae);
+                    pacsReq.setDestinationAeTitle(destinationAeTitle);
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);

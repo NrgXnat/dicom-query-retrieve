@@ -96,7 +96,7 @@
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($aes.size() == 1)
                         #set($ae = $aes.get(0))
-                        <input type="hidden" id="ae" name="ae" value="${ae.getAeTitle()}"/>
+                        <input type="hidden" id="ae" name="ae" value="${ae}"/>
                     #else
                         <label for="ae" class="select_label"><b>AE:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
@@ -105,8 +105,8 @@
 ##                                #if($tempAe.isDefaultStorageDestination())
 ##                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
 ##                                #else
-                                    <option value="${tempAe.getAeTitle()}">
-                                        ${tempAe.getDisplayString()}
+                                    <option value="${tempAe}">
+                                        ${tempAe}
                                     </option>
 ##                                #end
                             #end

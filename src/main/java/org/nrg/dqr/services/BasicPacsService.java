@@ -405,8 +405,9 @@ public class BasicPacsService implements PacsService {
     public boolean aeIsStorable(final String ae){
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
+        boolean hasPort = ae.contains(":");
         for (DicomSCPInstance scp : scps){
-            if(StringUtils.equals(scp.getAeTitle()+":"+scp.getPort(),ae) && scp.isEnabled()){
+            if(((hasPort&&StringUtils.equals(scp.getAeTitle()+":"+scp.getPort(),ae))||(!hasPort&&StringUtils.equals(scp.getAeTitle(),ae))) && scp.isEnabled()){
                 return true;
             }
         }
