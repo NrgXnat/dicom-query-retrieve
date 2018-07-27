@@ -191,20 +191,27 @@ XNAT.app = getObject(XNAT.app || {});
         $sessions.each(function(){
             var studyId = $(this).data('id');
             var query = $('span.id-'+studyId).html();
-            dataToImport.push(JSON.parse(query))
+            dataToImport.push(query);
         });
 
         if (dataToImport.length) {
             XNAT.xhr.ajax({
-                url: importJsonUrl(),
+                url: csvimporter.importJsonUrl(),
                 method: 'POST',
-                data: dataToImport,
+                data: JSON.stringify(dataToImport),
                 contentType: 'application/json',
                 fail: function(e){
                     queryErrorHandler(e)
                 },
                 success: function(data){
-                    XNAT.ui.dialog.message({ title: 'success', content: JSON.stringify(data) });
+                    XNAT.ui.dialog.message({
+                        title: 'Request Succesful',
+                        content: 'Your request for data was successful. Proceed to the <a href="'+XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm')+'">Prearchive</a>?',
+                        okAction: function(){
+                            XNAT.ui.dialog.closeAll();
+                        }
+                    });
+
                 }
             })
         }

@@ -584,12 +584,12 @@ XNAT.app = getObject(XNAT.app || {});
 
     function getQueryHistoryUrl(id){
         var appended = (id) ? '/request/'+id : '';
-        return XNAT.url.rootUrl('/xapi/dqr/history' + appended);
+        return XNAT.url.rootUrl('/xapi/dqr/query/history' + appended);
     }
 
     function getQueryQueueUrl(id){
         var appended = (id) ? '/request/'+id : '';
-        return XNAT.url.rootUrl('/xapi/dqr/queue' + appended);
+        return XNAT.url.rootUrl('/xapi/dqr/query/queue' + appended);
     }
 
     function viewHistoryDialog(e, onclose){

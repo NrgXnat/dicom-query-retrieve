@@ -68,23 +68,17 @@
         </div><br>
 
         <div id="pacsSeriesAeSelector">
-            #if($aes.size() == 1)
-                #set($ae = $aes.get(0))
-                <p><strong>XNAT SCP Receiver:</strong> ${ae}</p>
-                <input type="hidden" id="ae" name="ae" value="${ae}"/>
-            #else
-                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
-                <select id="ae" id="ae" name="ae" style="min-width:200px;">
-                    <option disabled selected>(Select AE)</option>
-                    #foreach($tempAe in $aes)
-                    ##                            #if($tempAe.isDefaultStorageDestination())
-                    ##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-                    ##                            #else
-                        <option value="${tempAe}">${tempAe}</option>
-                    ##                            #end
-                    #end
-                </select>
-            #end
+            <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
+            <select id="ae" id="ae" name="ae" style="min-width:200px;">
+                <option disabled selected>(Select AE)</option>
+                #foreach($tempAe in $aes)
+                ##                            #if($tempAe.isDefaultStorageDestination())
+                ##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
+                ##                            #else
+                    <option value="${tempAe}">${tempAe}</option>
+                ##                            #end
+                #end
+            </select>
         </div>
     </div>
     <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
