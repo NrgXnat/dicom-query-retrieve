@@ -190,7 +190,7 @@ XNAT.app = getObject(XNAT.app || {});
         var dataToImport = [];
         $sessions.each(function(){
             var studyId = $(this).data('id');
-            var query = $('span.id-'+studyId).html();
+            var query = JSON.parse($('span.id-'+studyId).html());
             dataToImport.push(query);
         });
 
