@@ -89,7 +89,7 @@ XNAT.app = getObject(XNAT.app || {});
 
     /* ============ */
 
-    var csvimporter;
+    var csvimporter, undefined;
 
     XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
@@ -97,6 +97,8 @@ XNAT.app = getObject(XNAT.app || {});
         getObject(XNAT.app.dqr.csvimporter || {});
 
     csvimporter.queryParams = {};
+    csvimporter.scpReceivers = {};
+    csvimporter.installedProcessors = {};
 
     csvimporter.importJsonUrl = function(force){
         force = force || false;
@@ -226,6 +228,144 @@ XNAT.app = getObject(XNAT.app || {});
             content: spawn('p','No results were found on your selected PACS that matched your query.')
         })
     };
+
+    /* --- INIT --- */
+
+    function scpSanityChecks(scpId){
+        var receiver = csvimporter.scpReceivers[scpId], checks = [];
+        var receiverLabel = receiver['aeTitle']+':'+receiver['port'];
+
+        XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/processors/site/enabled/receiver/'+receiverLabel),
+            fail: function(e){
+                errorHandler(e, 'Could not retrieve processors for this receiver')
+            },
+            success: function(data){
+                var enabledScpProcessors = data,
+                    $processorList = $('#installedProcessorList'),
+                    processorItems = [];
+
+                if (enabledScpProcessors.length) {
+                    enabledScpProcessors.forEach(function(processor){
+                        processorItems.push(
+                            spawn('li',[
+                                spawn('a.processor-info',{ href:'#!',data: {'id': processor.id, 'json': JSON.stringify(processor) }}, processor.label)
+                            ])
+                        )
+                    });
+                    $processorList.empty().append(
+                        spawn('ul',processorItems)
+                    )
+                }
+                else {
+                    $processorList.empty().append('No processors enabled for this SCP receiver')
+                }
+            }
+        });
+
+        // check custom processing on SCP receiver
+        if (receiver.customProcessing === true) {
+            // checks.push( spawn('div.success.sanity-check','<b>Custom processing:</b> Enabled.') );
+            $('#scpProcessingStatus').empty().html('Enabled')
+        }
+        else {
+            // checks.push( spawn('div.warning.sanity-check','<b>Custom processing:</b> Disabled. DICOM remapping will not be allowed.') );
+            $('#scpProcessingStatus').empty().html('Disabled. DICOM remapping will not be allowed.');
+        }
+
+        // check Dicom Object Identifier setting
+        if (receiver.identifier !== undefined && receiver.identifier !== 'dicomObjectIdentifier') {
+            // checks.push(spawn('div.message.sanity-check', '<b>DICOM Object Identifier:</b> '+ receiver.identifier +'. Special handling may be applied to imported sessions.'));
+            $('#scpDicomIdentifier').empty().html(receiver.identifier + '. Special handling may be applied.')
+        }
+        else {
+            // checks.push(spawn('div.success', '<b>DICOM Object Identifier:</b> Default. No special handling defined.'))
+            $('#scpDicomIdentifier').empty().html('Default. No special handling defined.');
+        }
+
+    }
+
+    $(document).on('change','select#ae',function(){
+        var scpId = $(this).find('option:selected').data('id');
+        scpSanityChecks(scpId);
+    });
+
+    $(document).on('click','a.processor-info',function(){
+        var processor = $(this).data('json');
+        XNAT.ui.dialog.message({
+            title: 'Installed Processor: '+processor.label,
+            content: '<table class="xnat-table alt1 condensed" style="width:100%"></table>',
+            width: 600,
+            beforeShow: function(obj){
+                var $table = obj.$modal.find('table');
+                $table.append(
+                    spawn('tr',[
+                        spawn('th','Attribute'),
+                        spawn('th','Value')
+                    ])
+                );
+
+                var keys = Object.keys(processor).sort(function(a,b){ return (a>b) ? 1: -1 })
+
+                keys.forEach(function(key){
+                    $table.append(
+                        spawn('tr',[
+                            spawn('th',key),
+                            spawn('td',processor[key])
+                        ])
+                    );
+                })
+            }
+        })
+    });
+
+
+
+    csvimporter.init = csvimporter.refresh = function(){
+        // reset the form
+        var $form = $('#pacsSeriesFinderForm');
+        $form.resetForm();
+
+        // populate the SCP receiver list if not already populated
+        if (Object.keys(csvimporter.scpReceivers).length === 0) {
+            XNAT.xhr.getJSON({
+                url: XNAT.url.restUrl('/xapi/dicomscp'),
+                fail: function(e){
+                    errorHandler(e, 'Could not retrieve SCP Receivers')
+                },
+                success: function(data){
+                    // transform the array into an object sorted by ID
+                    if (data.length && isArray(data)) {
+                        data.forEach(function(receiver){
+                            csvimporter.scpReceivers[receiver.id] = receiver;
+                        })
+                    }
+                }
+            })
+        }
+
+        // populate the list of known processors if not already populated
+        if (isObject(csvimporter.installedProcessors) && Object.keys(csvimporter.installedProcessors).length === 0) {
+            XNAT.xhr.getJSON({
+                url: XNAT.url.restUrl('/xapi/processors/site/enabled'),
+                fail: function(e){
+                    errorHandler(e, 'Could not retrieve installed processors')
+                },
+                success: function(data){
+                    // transform the data into an object sorted by ID
+                    if (data.length && isArray(data)) {
+                        data.forEach(function(processor){
+                            csvimporter.installedProcessors[processor.id] = processor;
+                        })
+                    }
+                    else {
+                        csvimporter.installedProcessors = false;
+                    }
+                }
+            })
+        }
+    };
+    csvimporter.init();
 
     $(document).ready(function () {
         $(document).off('submit', 'form#pacsSeriesFinderForm');

@@ -82,35 +82,24 @@
                                 #end
                             #end
                         </select>
-                        <script>
-                        /*    jq.getJSON("/data/archive/projects?format=json&accessible=true",function(data){
-                                for (i=0, j=data.ResultSet.Result.length; i<j; i++) {
-                                    var opt="<option value='"+data.ResultSet.Result[i].id+"'>"+data.ResultSet.Result[i].name+"</option>";
-                                    jq("#project").append(opt);
-                                }
-                            }); */
-                        </script>
                     #end
                 </div>
 
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
-                    #if($aes.size() == 1)
-                        #set($ae = $aes.get(0))
-                        <input type="hidden" id="ae" name="ae" value="${ae}"/>
+                    #if($scps.size() == 1)
+                        #set($scp = $scps.get(0))
+                        <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}"/>
                     #else
                         <label for="ae" class="select_label"><b>AE:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
                             <option disabled>(Select AE)</option>
-                            #foreach($tempAe in $aes)
-##                                #if($tempAe.isDefaultStorageDestination())
-##                                    <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-##                                #else
-                                    <option value="${tempAe}">
-                                        ${tempAe}
-                                    </option>
-##                                #end
+                            #foreach($scp in $scps)
+                                <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}">
+                                    ${scp.getAeTitle()}:${scp.getPort()}
+                                </option>
                             #end
                         </select>
+                        <div class="description"></div>
                     #end
                 </div>
             </div>

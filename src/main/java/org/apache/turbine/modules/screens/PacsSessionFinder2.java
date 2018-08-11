@@ -107,6 +107,7 @@ public class PacsSessionFinder2 extends SecureScreen {
             }
         }
         Collections.sort(aesAndPorts);
-        context.put("aes", aesAndPorts);
+//        context.put("aes", aesAndPorts);
+        context.put("scps", scps);
     }
 }

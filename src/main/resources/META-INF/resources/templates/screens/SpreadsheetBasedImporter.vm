@@ -71,14 +71,18 @@
             <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
             <select id="ae" id="ae" name="ae" style="min-width:200px;">
                 <option disabled selected>(Select AE)</option>
-                #foreach($tempAe in $aes)
-                ##                            #if($tempAe.isDefaultStorageDestination())
-                ##                                <option value="${tempAe.getAeTitle()}" selected>${tempAe.getDisplayString()}</option>
-                ##                            #else
-                    <option value="${tempAe}">${tempAe}</option>
-                ##                            #end
+                #foreach($scp in $scps)
+                    <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
                 #end
             </select>
+            <div class="description" style="margin-top: 1em;"></div>
+        </div>
+
+        <div id="customProcessingStatus">
+            <p><b>Imaging Import Processors:</b></p>
+            <div id="installedProcessorList" style="padding: 0.5em; border: 1px solid #e0e0e0; background: #f3f3f3">Site and Project Anonymization Scripts enabled</div>
+            <p><b>Custom Processing Status:</b> <span id="scpProcessingStatus"></span></p>
+            <p><b>DICOM Object Identifier:</b> <span id="scpDicomIdentifier"></span></p>
         </div>
     </div>
     <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">

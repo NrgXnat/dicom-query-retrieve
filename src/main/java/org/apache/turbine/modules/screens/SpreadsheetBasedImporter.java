@@ -86,6 +86,6 @@ public class SpreadsheetBasedImporter extends SecureScreen {
 //        }
 
         Collections.sort(aesAndPorts);
-        context.put("aes", aesAndPorts);
+        context.put("scps", scps);
     }
 }
