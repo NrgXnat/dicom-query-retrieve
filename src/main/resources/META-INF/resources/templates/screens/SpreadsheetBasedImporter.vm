@@ -16,96 +16,110 @@
 
 
 <h2 class="edit_title">Import Patient Study from PACS</h2>
-#set($userCanImport = true)
+#set($userCanImport = false)
+#set($importErrorMessages = [])
 
-#if($projects.size() == 1)
-    #set($project = $projects.get(0))
-    #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
+## Check for edit permissions in at least one project
+#if($projects.size() == 0)
+    $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
+#else
+    #foreach($project in $projects)
+        #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
+            #set($userCanImport = true)
+        #end
+    #end
 
-    #else
-        #set($userCanImport = false)
+    #if(!$userCanImport)
+        $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
     #end
 #end
 
+## Check for enabled SCP receiver
+#if($enabledScps.size() > 0)
+    #set($userCanImport = true)
+#else
+    $importErrorMessages.add("XNAT encountered a configuration error. You must have at least one SCP Receiver enabled in order to import data from a PACS")
+#end
+
 #if(!$userCanImport)
-<div class="error">
-    Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS
-</div>
+    #foreach($errormsg in $importErrorMessages)
+    <div class="error" style="margin-top: 4px;">$errormsg</div>
+    #end
 #else
 
-##<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
-<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini" enctype="multipart/form-data">
-    <div class="inputWrapper horizontal" style="margin-right: 30px;">
-        <h4>Set Query Connections (Required)</h4>
-        <p>
-            <label for="pacsId">Select DICOM AE to Query</label>
-            <select id="pacsId" name="pacsId">
-                <option VALUE="">(SELECT)</option>
-                #foreach($currPacs in $pacsList)
-                    <option VALUE="$currPacs.getId()" #if($currPacs.isDefaultQueryRetrievePacs())
-                            selected="true" #end>$currPacs.getAeTitle()</option>
-                #end
-            </select>
-        </p>
-        <div id="pacsSeriesProjectSelector">
-            #if($projects.size() == 1)
-                #set($project = $projects.get(0))
-                <p><strong>Project:</strong> ${project.name}</p>
-                <input type="hidden" id="project" name="project" value="${project.id}"/>
-            #else
-                <label for="project" class="select_label"><b>Select ${displayManager.getSingularDisplayNameForProject()} To Import To:</b></label>
-                <select id="project" id="project" name="project" style="min-width:200px;">
-                    <option disabled selected>(Select Project)</option>
-                    #foreach($proj in $projects)
-                        #if($proj.canEdit($user))
-                            <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                        #else
-                            <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                        #end
+    ##<form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
+    <form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini" enctype="multipart/form-data">
+        <div class="inputWrapper horizontal" style="margin-right: 30px;">
+            <h4>Set Query Connections (Required)</h4>
+            <p>
+                <label for="pacsId">Select DICOM AE to Query</label>
+                <select id="pacsId" name="pacsId">
+                    <option VALUE="">(SELECT)</option>
+                    #foreach($currPacs in $pacsList)
+                        <option VALUE="$currPacs.getId()" #if($currPacs.isDefaultQueryRetrievePacs())
+                                selected="true" #end>$currPacs.getAeTitle()</option>
                     #end
                 </select>
-            #end
-        </div><br>
-
-        <div id="pacsSeriesAeSelector">
-            <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
-            <select id="ae" id="ae" name="ae" style="min-width:200px;">
-                <option disabled selected>(Select AE)</option>
-                #foreach($scp in $scps)
-                    <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
+            </p>
+            <div id="pacsSeriesProjectSelector">
+                #if($projects.size() == 1)
+                    #set($project = $projects.get(0))
+                    <p><strong>Project:</strong> ${project.name}</p>
+                    <input type="hidden" id="project" name="project" value="${project.id}"/>
+                #else
+                    <label for="project" class="select_label"><b>Select ${displayManager.getSingularDisplayNameForProject()} To Import To:</b></label>
+                    <select id="project" id="project" name="project" style="min-width:200px;">
+                        <option disabled selected>(Select Project)</option>
+                        #foreach($proj in $projects)
+                            #if($proj.canEdit($user))
+                                <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
+                            #else
+                                <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
+                            #end
+                        #end
+                    </select>
                 #end
-            </select>
-            <div class="description" style="margin-top: 1em;"></div>
+            </div><br>
+
+            <div id="pacsSeriesAeSelector">
+                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
+                <select id="ae" id="ae" name="ae" style="min-width:200px;">
+                    <option disabled selected>(Select AE)</option>
+                    #foreach($scp in $enabledScps)
+                        <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
+                    #end
+                </select>
+                <div class="description" style="margin-top: 1em;"></div>
+            </div>
+
+            <div id="customProcessingStatus">
+                <p><b>Imaging Import Processors:</b></p>
+                <div id="installedProcessorList" style="padding: 0.5em; border: 1px solid #e0e0e0; background: #f3f3f3">Site and Project Anonymization Scripts enabled</div>
+                <p><b>Custom Processing Status:</b> <span id="scpProcessingStatus"></span></p>
+                <p><b>DICOM Object Identifier:</b> <span id="scpDicomIdentifier"></span></p>
+            </div>
+        </div>
+        <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
+            <div class="inputWrapper">
+                <h4>Select CSV File To Import</h4>
+                <p>
+                    Your CSV file can contain multiple queries to the selected PACS, with each line containing a new query.
+                    Each query can specify a custom DICOM remapping scheme, if custom processing is enabled on your SCP receiver.
+                    (Each query entry in your CSV file must contain at least one search term in order for the query to be processed).
+                    <br><br>
+                    Download a CSV Template file here: <a href="https://bitbucket.org/xnatdev/dicom-query-retrieve/downloads/" target="_blank">DQR CSV Template</a>
+                </p>
+                <p>
+                    <input type="file" name="csv_to_store"/>
+                </p>
+                <p>
+                    <button class="btn primary" id="submit-csv-form">Upload File</button>
+                </p>
+
+            </div>
         </div>
 
-        <div id="customProcessingStatus">
-            <p><b>Imaging Import Processors:</b></p>
-            <div id="installedProcessorList" style="padding: 0.5em; border: 1px solid #e0e0e0; background: #f3f3f3">Site and Project Anonymization Scripts enabled</div>
-            <p><b>Custom Processing Status:</b> <span id="scpProcessingStatus"></span></p>
-            <p><b>DICOM Object Identifier:</b> <span id="scpDicomIdentifier"></span></p>
-        </div>
-    </div>
-    <div style="display: inline-block; margin-right: 60px; vertical-align: top; width: 400px;">
-        <div class="inputWrapper">
-            <h4>Select CSV File To Import</h4>
-            <p>
-                Your CSV file can contain multiple queries to the selected PACS, with each line containing a new query.
-                Each query can specify a custom DICOM remapping scheme, if custom processing is enabled on your SCP receiver.
-                (Each query entry in your CSV file must contain at least one search term in order for the query to be processed).
-                <br><br>
-                Download a CSV Template file here: <a href="https://bitbucket.org/xnatdev/dicom-query-retrieve/downloads/" target="_blank">DQR CSV Template</a>
-            </p>
-            <p>
-                <input type="file" name="csv_to_store"/>
-            </p>
-            <p>
-                <button class="btn primary" id="submit-csv-form">Upload File</button>
-            </p>
-
-        </div>
-    </div>
-
-</form>
+    </form>
 
 #end
 

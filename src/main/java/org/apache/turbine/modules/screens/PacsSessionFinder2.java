@@ -92,22 +92,24 @@ public class PacsSessionFinder2 extends SecureScreen {
 //        context.put("pacsAes", pacsAes);
 
 
-        ArrayList<String> aesAndPorts = new ArrayList<>();
+        ArrayList<DicomSCPInstance> enabledScps = new ArrayList<>();
 
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
         for (DicomSCPInstance scp : scps){
             try {
-                String aeTitle = scp.getAeTitle();
-                int port = scp.getPort();
-                String aeAndPort = aeTitle + ":" + port;
-                aesAndPorts.add(aeAndPort);
+//                String aeTitle = scp.getAeTitle();
+//                int port = scp.getPort();
+//                String aeAndPort = aeTitle + ":" + port;
+//                aesAndPorts.add(aeAndPort);
+                if (scp.isEnabled()) {
+                    enabledScps.add(scp);
+                }
             }
             catch(Exception e){
                 log.error("Exception getting information for one of the SCP receivers",e);
             }
         }
-        Collections.sort(aesAndPorts);
-//        context.put("aes", aesAndPorts);
-        context.put("scps", scps);
+//        Collections.sort(aesAndPorts);
+        context.put("enabledScps", enabledScps);
     }
 }

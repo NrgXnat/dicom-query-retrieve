@@ -55,15 +55,19 @@ public class SpreadsheetBasedImporter extends SecureScreen {
         Collections.sort(projects, projRunningTitleComparator);
         context.put("projects", projects);
 
-        ArrayList<String> aesAndPorts = new ArrayList<>();
+//        ArrayList<String> aesAndPorts = new ArrayList<>();
+        ArrayList<DicomSCPInstance> enabledScps = new ArrayList<>();
 
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
         for (DicomSCPInstance scp : scps){
             try {
-                String aeTitle = scp.getAeTitle();
-                int port = scp.getPort();
-                String aeAndPort = aeTitle + ":" + port;
-                aesAndPorts.add(aeAndPort);
+//                String aeTitle = scp.getAeTitle();
+//                int port = scp.getPort();
+//                String aeAndPort = aeTitle + ":" + port;
+//                aesAndPorts.add(aeAndPort);
+                if (scp.isEnabled()) {
+                    enabledScps.add(scp);
+                }
             }
             catch(Exception e){
                 log.error("Exception getting information for one of the SCP receivers",e);
@@ -85,7 +89,8 @@ public class SpreadsheetBasedImporter extends SecureScreen {
 //            }
 //        }
 
-        Collections.sort(aesAndPorts);
+//        Collections.sort(aesAndPorts);
         context.put("scps", scps);
+        context.put("enabledScps", enabledScps);
     }
 }

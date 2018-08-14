@@ -44,21 +44,35 @@
 
 <h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForSubject()} From PACS</h2>
 <p><strong>Step 2: Select Scans to Import and Request Images from PACS</strong></p>
-#set($userCanImport = true)
+#set($userCanImport = false)
+#set($importErrorMessages = [])
 
-#if($projects.size() == 1)
-    #set($project = $projects.get(0))
-    #if($project.canEdit($user))
+## Check for edit permissions in at least one project
+#if($projects.size() == 0)
+    $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
+#else
+    #foreach($project in $projects)
+        #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
+            #set($userCanImport = true)
+        #end
+    #end
 
-    #else
-        #set($userCanImport = false)
+    #if(!$userCanImport)
+        $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
     #end
 #end
 
+## Check for enabled SCP receiver
+#if($enabledScps.size() > 0)
+    #set($userCanImport = true)
+#else
+    $importErrorMessages.add("XNAT encountered a configuration error. You must have at least one SCP Receiver enabled in order to import data from a PACS")
+#end
+
 #if(!$userCanImport)
-    <div class="error">
-        Sorry, but you do not have appropriate user permissions in order to import this scan series. You must have edit privileges on at least one study in order to import images from PACS
-    </div>
+    #foreach($errormsg in $importErrorMessages)
+    <div class="error" style="margin-top: 4px;">$errormsg</div>
+    #end
 #else
 
     <form id="pacsSeriesFinderForm" class="optOutOfXnatDefaultFormValidation friendlyForm mini">
@@ -87,8 +101,9 @@
 
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($scps.size() == 1)
-                        #set($scp = $scps.get(0))
-                        <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}"/>
+                        #foreach($scp in $scps)
+                            <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}"/>
+                        #end
                     #else
                         <label for="ae" class="select_label"><b>AE:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
