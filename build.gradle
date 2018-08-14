@@ -149,6 +149,7 @@ dependencyManagement.imports {
 }
 
 dependencies {
+    compile "org.nrg.xnat:web:${vXnatDev}"
     implementation 'javax.servlet:servlet-api:2.4'
     implementation 'geronimo-spec:geronimo-spec-jms:1.1-rc4'
     implementation 'velocity:velocity:1.5'
@@ -164,7 +165,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.6.5'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.6.5'
     implementation 'org.nrg:mail:1.7.5-SNAPSHOT'
-    implementation "org.nrg.xnat:web:1.7.5-RC1-SNAPSHOT"
     implementation "javax.validation:validation-api:2.0.0.Final"
     implementation "org.nrg:dicomtools"
     implementation "org.nrg:dicom-xnat"
@@ -188,10 +188,6 @@ dependencies {
     runtime 'io.springfox:springfox-swagger-ui'
     compileAndInclude 'dcm4che.tool:dcm4che-tool-dcmecho:2.0.29'
     compileAndInclude 'dcm4che.tool:dcm4che-tool-dcmqr:2.0.29'
-    compileAndInclude "dcm4che:dcm4che-core:2.0.29"
-    compileAndInclude 'dcm4che:dcm4che-imageio:2.0.29'
-    compileAndInclude 'dcm4che:dcm4che-imageio-rle:2.0.29'
-    compileAndInclude "dcm4che:dcm4che-net:2.0.29"
     compileAndInclude 'org.apache.activemq:activemq-core:5.7.0'
     compileAndInclude 'org.apache.geronimo.specs:geronimo-jms_1.1_spec:1.1.1'
     compileAndInclude 'org.apache.geronimo.specs:geronimo-j2ee-management_1.1_spec:1.0.1'
