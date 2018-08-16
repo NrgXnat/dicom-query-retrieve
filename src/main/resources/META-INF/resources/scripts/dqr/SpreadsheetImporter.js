@@ -117,29 +117,60 @@ XNAT.app = getObject(XNAT.app || {});
 
     csvimporter.displayQueryResults = function(data){
         // receive data as JSON blob, with an array of query results as the outer layer
-        // present the results as an indexed selectable list that allows users to confirm data to import
-        var content = [];
+        // present the results as an selectable table organized by query that allows users to confirm data to import
+
+
+        // initialize the table - we'll add to it below
+        var resultsTable = XNAT.table({
+            className: 'xnat-table selectable alt1',
+            style: {
+                width: '100%',
+                marginTop: '15px',
+                marginBottom: '15px'
+            }
+        });
+
+        // add table header row
+        resultsTable.thead().tr()
+            .th({
+                addClass: 'toggle-all',
+                style: { width: '45px' },
+                html: '<input type="checkbox" class="selectable-select-all" id="toggle-all-scans" title="Toggle All Scans" />'
+            })
+            .th('<b>Patient Name</b>')
+            .th('<b>Session Date</b>')
+            .th('<b>Accession Num</b>')
+            .th('<b>Study ID</b>')
+            .th('<b>Study Description</b>');
+
 
         data.forEach(function(result){
             if (result.criteria) {
                 // remove static metadata about the search and focus on the actual search criteria
-                delete result.criteria['atLeastOneKeyCriterionSpecified'];
-                delete result.criteria['firstNamePartial'];
-                delete result.criteria['firstNamePresent'];
-                delete result.criteria['lastNamePartial'];
+                var criteria = result.criteria;
+                delete criteria['atLeastOneKeyCriterionSpecified'];
+                delete criteria['firstNamePartial'];
+                delete criteria['firstNamePresent'];
+                delete criteria['lastNamePartial'];
 
                 // build an array of formatted keys and values and add that to the content
-                var criteria = [];
-                Object.keys(result.criteria).forEach(function(c){
+                var criteriaLabel = [];
+                Object.keys(criteria).forEach(function(c){
                     if (c === "studyDateRange") {
-                        criteria.push(c + ': "' + dateFormatter(result.criteria[c]['start']) + '&ndash;'+ dateFormatter(result.criteria[c]['end']) + '"');
+                        criteriaLabel.push(c + ': "' + dateFormatter(criteria[c]['start']) + '&ndash;'+ dateFormatter(criteria[c]['end']) + '"');
                     }
                     else {
-                        criteria.push(c + ': "' + result.criteria[c] + '"');
+                        criteriaLabel.push(c + ': "' + criteria[c] + '"');
                     }
                 });
 
-                content.push(spawn('p.criteria',{ style: {'font-weight': 'bold'}}, 'Search Criteria: '+criteria.join(', ') ));
+                resultsTable.tbody().tr({ data: { criteria: JSON.stringify(result.criteria) } })
+                    .th()
+                    .th({
+                        colSpan: 5,
+                        addClass: 'left',
+                        html: 'Criteria: ' + criteriaLabel.join(', ')
+                    });
 
                 if (result.studies.length) {
                     var listItems = [];
@@ -147,15 +178,27 @@ XNAT.app = getObject(XNAT.app || {});
                     result.studies.forEach(function(study){
                         var studyDate = dateFormatter(study.studyDate);
 
-                        listItems.push(spawn('li',[
-                            spawn('label', [
-                                spawn('input|type=checkbox|checked=checked',{addClass: 'sessionSelector', data: { id: study.studyId }}),
-                                spawn('span.label', studyDate + ': '+ study.studyId + " (" + study.studyDescription + ")")
-                            ]),
-                            spawn('span.hidden', { addClass: 'sessionData id-'+study.studyId }, JSON.stringify(study))
-                        ]));
+                        resultsTable.tbody().tr({ data: { json: JSON.stringify(study) }})
+                            .td({
+                                html: '<input type="checkbox" class="selectable-select-one sessionSelector" data-id="'+study.studyId+'" />'
+                            })
+                            .td( study.patient.name.lastNameCommaFirstName )
+                            .td( studyDate )
+                            .td( study.accessionNumber )
+                            .td( study.id )
+                            .td( study.studyDescription )
+
+                        // listItems.push(spawn('li',[
+                        //     spawn('label', [
+                        //         spawn('input|type=checkbox|checked=checked',{addClass: 'sessionSelector', data: { id: study.studyId }}),
+                        //         spawn('span.label', studyDate + ': '+ study.studyId + " (" + study.studyDescription + ")")
+                        //     ]),
+                        //     spawn('span.hidden', { addClass: 'sessionData id-'+study.studyId }, JSON.stringify(study))
+                        // ]));
                     });
-                    content.push(spawn('ul.resultList', listItems ))
+                } else {
+                    resultsTable.tr()
+                        .td({ colSpan: 6, html: 'No matching sessions found' })
                 }
             }
         });
@@ -163,7 +206,10 @@ XNAT.app = getObject(XNAT.app || {});
         XNAT.ui.dialog.open({
             title: 'Select Sessions To Import',
             width: 600,
-            content: spawn('form', content),
+            content: spawn('div.data-table-container'),
+            beforeShow: function(obj){
+                obj.$modal.find('.data-table-container').append(resultsTable.table);
+            },
             buttons: [
                 {
                     label: 'Import Selected Sessions',
