@@ -117,29 +117,67 @@ XNAT.app = getObject(XNAT.app || {});
 
     csvimporter.displayQueryResults = function(data){
         // receive data as JSON blob, with an array of query results as the outer layer
-        // present the results as an indexed selectable list that allows users to confirm data to import
-        var content = [];
+        // present the results as an selectable table organized by query that allows users to confirm data to import
 
-        data.forEach(function(result){
+        // clean the JSON to send without assuming that any sessions have been selected
+        var jsonToSend = [];
+
+        // initialize the table - we'll add to it below
+        var resultsTable = XNAT.table({
+            className: 'xnat-table selectable alt1',
+            style: {
+                width: '100%',
+                marginTop: '15px',
+                marginBottom: '15px'
+            }
+        });
+
+        // add table header row
+        resultsTable.thead().tr()
+            .th({
+                addClass: 'toggle-all',
+                style: { width: '45px' },
+                html: '<input type="checkbox" class="selectable-select-all" id="toggle-all-scans" title="Toggle All Scans" />'
+            })
+            .th('<b>Patient Name</b>')
+            .th('<b>Session Date</b>')
+            .th('<b>Accession Num</b>')
+            .th('<b>Study ID</b>')
+            .th('<b>Study Description</b>');
+
+        var resultsTableBody = resultsTable.tbody();
+
+
+        data.forEach(function(result, i){
             if (result.criteria) {
+                // add the criteria to the JSON we'll send, without adding any sessions
+                jsonToSend.push({ 'criteria': result.criteria, 'studies': [] });
+
                 // remove static metadata about the search and focus on the actual search criteria
-                delete result.criteria['atLeastOneKeyCriterionSpecified'];
-                delete result.criteria['firstNamePartial'];
-                delete result.criteria['firstNamePresent'];
-                delete result.criteria['lastNamePartial'];
+                var criteria = result.criteria;
+                delete criteria['atLeastOneKeyCriterionSpecified'];
+                delete criteria['firstNamePartial'];
+                delete criteria['firstNamePresent'];
+                delete criteria['lastNamePartial'];
 
                 // build an array of formatted keys and values and add that to the content
-                var criteria = [];
-                Object.keys(result.criteria).forEach(function(c){
+                var criteriaLabel = [];
+                Object.keys(criteria).forEach(function(c){
                     if (c === "studyDateRange") {
-                        criteria.push(c + ': "' + dateFormatter(result.criteria[c]['start']) + '&ndash;'+ dateFormatter(result.criteria[c]['end']) + '"');
+                        criteriaLabel.push(c + ': "' + dateFormatter(criteria[c]['start']) + '&ndash;'+ dateFormatter(criteria[c]['end']) + '"');
                     }
                     else {
-                        criteria.push(c + ': "' + result.criteria[c] + '"');
+                        criteriaLabel.push(c + ': "' + criteria[c] + '"');
                     }
                 });
 
-                content.push(spawn('p.criteria',{ style: {'font-weight': 'bold'}}, 'Search Criteria: '+criteria.join(', ') ));
+                resultsTableBody.tr({ data: { 'criteria-index': i } })
+                    .th()
+                    .th({
+                        colSpan: 5,
+                        addClass: 'left',
+                        html: 'Criteria: ' + criteriaLabel.join(', ')
+                    });
 
                 if (result.studies.length) {
                     var listItems = [];
@@ -147,15 +185,19 @@ XNAT.app = getObject(XNAT.app || {});
                     result.studies.forEach(function(study){
                         var studyDate = dateFormatter(study.studyDate);
 
-                        listItems.push(spawn('li',[
-                            spawn('label', [
-                                spawn('input|type=checkbox|checked=checked',{addClass: 'sessionSelector', data: { id: study.studyId }}),
-                                spawn('span.label', studyDate + ': '+ study.studyId + " (" + study.studyDescription + ")")
-                            ]),
-                            spawn('span.hidden', { addClass: 'sessionData id-'+study.studyId }, JSON.stringify(study))
-                        ]));
+                        resultsTableBody.tr()
+                            .td({
+                                html: '<input type="checkbox" class="selectable-select-one sessionSelector" data-id="'+study.studyId+'" data-criteria="'+i+'" data-json=\''+JSON.stringify(study) +'\' />'
+                            })
+                            .td( study.patient.name.lastNameCommaFirstName )
+                            .td( studyDate )
+                            .td( study.accessionNumber )
+                            .td( study.id )
+                            .td( study.studyDescription )
                     });
-                    content.push(spawn('ul.resultList', listItems ))
+                } else {
+                    resultsTable.tr()
+                        .td({ colSpan: 6, html: 'No matching sessions found' })
                 }
             }
         });
@@ -163,17 +205,24 @@ XNAT.app = getObject(XNAT.app || {});
         XNAT.ui.dialog.open({
             title: 'Select Sessions To Import',
             width: 600,
-            content: spawn('form', content),
+            content: spawn('div.data-table-container.form-data'),
+            beforeShow: function(obj){
+                var $container = obj.$modal.find('.data-table-container');
+                $container.append(resultsTable.table);
+                $container.append(spawn('div.hidden.json-to-send', JSON.stringify(jsonToSend) ));
+            },
             buttons: [
                 {
                     label: 'Import Selected Sessions',
                     isDefault: true,
                     close: false,
                     action: function(obj){
-                        var $form = obj.$modal.find('form');
+                        var $form = obj.$modal.find('.form-data');
                         var $selected = $form.find('.sessionSelector:checked');
+                        var dataToImport = JSON.parse($form.find('.json-to-send').html());
+
                         if ($selected.length) {
-                            csvimporter.submitQuery($selected);
+                            csvimporter.submitQuery($selected, dataToImport);
                         }
                         else {
                             XNAT.ui.dialog.message('No sessions selected. Nothing to import.');
@@ -188,29 +237,33 @@ XNAT.app = getObject(XNAT.app || {});
         });
     };
 
-    csvimporter.submitQuery = function($sessions){
-        var dataToImport = [];
+    csvimporter.submitQuery = function($sessions, dataToImport){
+
         $sessions.each(function(){
-            var studyId = $(this).data('id');
-            var query = JSON.parse($('span.id-'+studyId).html());
-            dataToImport.push(query);
+            var criteriaIndex = $(this).data('criteria');
+            var study = $(this).data('json');
+            dataToImport[criteriaIndex].studies.push(study);
         });
 
         if (dataToImport.length) {
+            xmodal.loading.open({ title: 'Submitting studies to PACS...' });
             XNAT.xhr.ajax({
                 url: csvimporter.importJsonUrl(),
                 method: 'POST',
                 data: JSON.stringify(dataToImport),
                 contentType: 'application/json',
                 fail: function(e){
-                    queryErrorHandler(e)
+                    queryErrorHandler(e);
+                    xmodal.loading.close();
                 },
-                success: function(data){
+                success: function(){
+                    xmodal.loading.close();
                     XNAT.ui.dialog.message({
                         title: 'Request Succesful',
                         content: 'Your request for data was successful. Proceed to the <a href="'+XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm')+'">Prearchive</a>?',
                         okAction: function(){
                             XNAT.ui.dialog.closeAll();
+                            csvimporter.refresh();
                         }
                     });
 
