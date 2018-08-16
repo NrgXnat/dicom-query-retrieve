@@ -93,7 +93,7 @@
 
             <div id="customProcessingStatus">
                 <p><b>Imaging Import Processors:</b></p>
-                <div id="installedProcessorList" style="padding: 0.5em; border: 1px solid #e0e0e0; background: #f3f3f3">Site and Project Anonymization Scripts enabled</div>
+                <div id="installedProcessorList" style="padding: 0.5em; border: 1px solid #e0e0e0; background: #f3f3f3">Site Anonymization Script enabled</div>
                 <p><b>Custom Processing Status:</b> <span id="scpProcessingStatus"></span></p>
                 <p><b>DICOM Object Identifier:</b> <span id="scpDicomIdentifier"></span></p>
             </div>
