@@ -23,7 +23,7 @@ public class PortNotNullIfDefaultPacsValidator implements ConstraintValidator<Po
 
     @Override
     public boolean isValid(final Pacs value, final ConstraintValidatorContext context) {
-        if (value.isDefaultStoragePacs() && value.getStoragePort() == null) {
+        if (value.isDefaultStoragePacs() && value.getQueryRetrievePort() == null) {
             return false;
         }
         if (value.isDefaultQueryRetrievePacs() && value.getQueryRetrievePort() == null) {

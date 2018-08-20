@@ -43,7 +43,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private String _label;
 
     private Boolean _queryable;
-    private Integer _storagePort;
     private Boolean _defaultStoragePacs;
 
     private Boolean _storable;
@@ -98,15 +97,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     public void setStorable(final boolean storable) {
         _storable = storable;
     }
-
-    public Integer getStoragePort() {
-        return _storagePort;
-    }
-
-    public void setStoragePort(final Integer storagePort) {
-        _storagePort = storagePort;
-    }
-
     @NotNull
     public Boolean isDefaultStoragePacs() {
         return _defaultStoragePacs;
@@ -185,7 +175,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host)
-                .append(_label).append(_storable).append(_storagePort).append(_defaultStoragePacs).append(_queryable)
+                .append(_label).append(_storable).append(_defaultStoragePacs).append(_queryable)
                 .append(_queryRetrievePort).append(_defaultQueryRetrievePacs)
                 .append(_ormStrategySpringBeanId).append(_availabilityStart).append(_availabilityEnd).toHashCode();
     }
@@ -204,7 +194,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         final Pacs other = (Pacs) obj;
         return new EqualsBuilder().append(_aeTitle, other._aeTitle).append(_host, other._host)
                 .append(_label, other._label).append(_storable, other._storable)
-                .append(_storagePort, other._storagePort).append(_defaultStoragePacs, other._defaultStoragePacs)
                 .append(_queryable, other._queryable).append(_queryRetrievePort, other._queryRetrievePort)
                 .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
                 .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
@@ -223,7 +212,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         buffer.append("queryRetrievePort: ").append(_queryRetrievePort).append(", ");
         buffer.append("isDefaultQueryRetrievePacs: ").append(_defaultQueryRetrievePacs).append(", ");
         buffer.append("storable: ").append(_storable).append(", ");
-        buffer.append("storagePort: ").append(_storagePort).append(", ");
         buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
         buffer.append("availabilityStart: ").append(_availabilityStart).append(", ");
         buffer.append("availabilityEnd: ").append(_availabilityEnd).append(", ");

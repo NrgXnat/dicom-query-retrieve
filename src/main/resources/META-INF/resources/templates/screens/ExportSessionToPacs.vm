@@ -36,13 +36,13 @@
                     <label for="pacsId">Select DICOM Destination to Export To:</label>
                     <select id="pacsId" name="pacsId">
                         #foreach($pacs in $pacsList)
-                            #if($pacs.storagePort)
+                            #if($pacs.queryRetrievePort)
                                 #if($pacs.isDefaultStoragePacs())
                                     #set($selected = " selected")
                                 #else
                                     #set($selected = "")
                                 #end
-                                <option value="$pacs.id"$selected>$pacs.aeTitle:$pacs.storagePort ($pacs.host)</option>
+                                <option value="$pacs.id"$selected>$pacs.aeTitle:$pacs.queryRetrievePort ($pacs.host)</option>
                             #end
                         #end
                     </select>

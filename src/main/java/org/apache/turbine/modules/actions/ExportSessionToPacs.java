@@ -96,11 +96,6 @@ public class ExportSessionToPacs extends DqrSecureAction {
             context.put("host", _pacs.getHost());
             context.put("aeTitle", _pacs.getAeTitle());
             try {
-                context.put("storagePort", _pacs.getStoragePort() == null ? "N/A" : _pacs.getStoragePort().toString());
-            } catch (Exception e1) {
-                context.put("storagePort", "N/A");
-            }
-            try {
                 context.put("qrPort", _pacs.getQueryRetrievePort() == null ? "N/A" : _pacs.getQueryRetrievePort().toString());
             } catch (Exception e1) {
                 context.put("qrPort", "N/A");

@@ -168,6 +168,10 @@ XNAT.app = getObject(XNAT.app || {});
                             name: 'label',
                             label: 'Label'
                         }),
+                        XNAT.ui.panel.input.text({
+                            name: 'queryRetrievePort',
+                            label: 'Port'
+                        }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'extendedNegotiations',
                             label: 'Extended Negotiations',
@@ -184,10 +188,6 @@ XNAT.app = getObject(XNAT.app || {});
                             addClass: 'toggle-query'
                         }),
                         spawn('div.toggle-query-selector',{ style: { display: 'none' }},[
-                            XNAT.ui.panel.input.text({
-                                name: 'queryRetrievePort',
-                                label: 'Q/R Port'
-                            }),
                             XNAT.ui.panel.input.switchbox({
                                 name: 'defaultQueryRetrievePacs',
                                 label: 'Default Q/R AE',
@@ -204,10 +204,6 @@ XNAT.app = getObject(XNAT.app || {});
                             addClass: 'toggle-store'
                         }),
                         spawn('div.toggle-store-selector',{ style: { display: 'none' }},[
-                            XNAT.ui.panel.input.text({
-                                name: 'storagePort',
-                                label: 'Storage Port'
-                            }),
                             XNAT.ui.panel.input.switchbox({
                                 name: 'defaultStoragePacs',
                                 label: 'Default Storage AE',
@@ -400,8 +396,7 @@ XNAT.app = getObject(XNAT.app || {});
                 ])
             ];
             if (ae.label) summary.push( spawn('p', ae.label));
-            if (ae.queryRetrievePort) summary.push( spawn('p', 'Q/R Port: '+ae.queryRetrievePort));
-            if (ae.storagePort) summary.push( spawn('p', 'Storage Port: '+ae.storagePort));
+            if (ae.queryRetrievePort) summary.push( spawn('p', 'Port: '+ae.queryRetrievePort));
             return spawn('!',summary);
         }
 
@@ -426,7 +421,6 @@ XNAT.app = getObject(XNAT.app || {});
                         queryRetrievePort: ae.queryRetrievePort,
                         defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
                         storable: ae.storable,
-                        storagePort: ae.storagePort,
                         defaultStoragePacs: ae.defaultStoragePacs,
                         availabilityStart: ae.availabilityStart,
                         availabilityEnd: ae.availabilityEnd,

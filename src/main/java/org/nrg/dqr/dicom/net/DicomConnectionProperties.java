@@ -42,15 +42,14 @@ public final class DicomConnectionProperties {
     }
 
     public Integer getRemoteStoragePort() {
-        return pacs.getStoragePort();
+        return pacs.getQueryRetrievePort();
     }
 
     /**
      * This is a decision-making property: it returns "the" remote port based on the settings of the implemented
-     * {@link #getRemoteQueryRetrievePort() query/retrieve port} and the {@link #getRemoteStoragePort() storage port}.
-     * By default, if the query/retrieve port is not empty, that will be "the" remote port. If it is empty, then the
-     * value for the storage port is returned unless that's also empty. If that is empty, then the default DICOM port
-     * setting of 104 is returned.
+     * {@link #getRemoteQueryRetrievePort() query/retrieve port}.
+     * By default, if the query/retrieve port is not empty, that will be "the" remote port. If that is empty,
+     * then the default DICOM port setting of 104 is returned.
      *
      * @return The remote port to use for DICOM connections.
      */
@@ -58,9 +57,6 @@ public final class DicomConnectionProperties {
     @XmlTransient
     @JsonIgnore
     public int getRemotePort() {
-        if (pacs.getStoragePort() != null) {
-            return pacs.getStoragePort();
-        }
         if (pacs.getQueryRetrievePort() != null) {
             return pacs.getQueryRetrievePort();
         }

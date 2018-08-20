@@ -62,10 +62,6 @@ public abstract class PacsAdminResource extends SecureResource {
             pacs.setHost(requestForm.getFirstValue("host"));
             pacs.setLabel(requestForm.getFirstValue("label"));
             pacs.setStorable(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("storable"))));
-            pacs.setStoragePort(null);
-            if (!StringUtils.isBlank(requestForm.getFirstValue("storagePort"))) {
-                pacs.setStoragePort(Integer.valueOf(requestForm.getFirstValue("storagePort")));
-            }
             pacs.setDefaultStoragePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm
                     .getFirstValue("defaultStoragePacs"))));
 

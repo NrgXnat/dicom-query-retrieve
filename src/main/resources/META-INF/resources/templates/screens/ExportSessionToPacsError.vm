@@ -1,6 +1,5 @@
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="aeTitle" type="java.lang.String" *#
-#* @vtlvariable name="storagePort" type="java.lang.String" *#
 #* @vtlvariable name="qrPort" type="java.lang.String" *#
 #* @vtlvariable name="error" type="java.lang.String" *#
 #* @vtlvariable name="host" type="java.lang.String" *#
@@ -23,8 +22,7 @@
 <ul>
     <li><strong>Host:</strong> ${host}</li>
     <li><strong>AE Title</strong> ${aeTitle}</li>
-    <li><strong>Storage Port:</strong> ${storagePort}</li>
-    <li><strong>Q/R Port:</strong> ${qrPort}</li>
+    <li><strong>Port:</strong> ${qrPort}</li>
 </ul>
 
 <p>The error that occurred was:</p>

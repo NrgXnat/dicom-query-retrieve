@@ -23,7 +23,7 @@ public class AtLeastOnePortNotNullValidator implements ConstraintValidator<AtLea
 
     @Override
     public boolean isValid(final Pacs value, final ConstraintValidatorContext context) {
-        return value.getStoragePort() != null || value.getQueryRetrievePort() != null;
+        return value.getQueryRetrievePort() != null;
     }
 
 }
