@@ -100,7 +100,7 @@
                 </div>
 
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
-                    #if($scps.size() == 1)
+                    #if($enabledScps.size() == 1)
                         #foreach($scp in $scps)
                             <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}"/>
                         #end
@@ -108,7 +108,7 @@
                         <label for="ae" class="select_label"><b>AE:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
                             <option disabled>(Select AE)</option>
-                            #foreach($scp in $scps)
+                            #foreach($scp in $enabledScps)
                                 <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}">
                                     ${scp.getAeTitle()}:${scp.getPort()}
                                 </option>
