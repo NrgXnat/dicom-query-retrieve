@@ -19,6 +19,6 @@
 #end
 
 <p>
-    <a href="${XNAT_HOME}/data/experiments/$sessionId?format=html" title="Return to Session Page"><button class="btn primary">OK</button></a>
+    <a href="$!{XNAT_HOME}/data/experiments/$sessionId?format=html" title="Return to Session Page"><button class="btn primary">OK</button></a>
 </p>
 <!-- END templates/screens/ExportSessionToPacsRequested.vm -->
