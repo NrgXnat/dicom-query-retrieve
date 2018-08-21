@@ -70,17 +70,12 @@ XNAT.app = getObject(XNAT.app || {});
 
     /* ============ */
 
-    var pacsAdministration, pacsObj, pacsList;
+    var pacsAdministration, pacsObj, pacsList, ormStrategies;
 
     XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
     XNAT.app.dqr.pacsObj = pacsObj = {};
     XNAT.app.dqr.pacsList = pacsList = [];
-
-    XNAT.app.dqr.PacsAdministration = pacsAdministration =
-        getObject(XNAT.app.dqr.PacsAdministration);
-
-
 
     var constants = {
         "MODAL_WINDOW_NAME": "loadData",
@@ -92,8 +87,6 @@ XNAT.app = getObject(XNAT.app || {});
         "OPERATION_DELETE": "DELETE",
         "OPERATION_CREATE": "CREATE"
     };
-
-    var ormStrategies = ['dicomOrmStrategy']; // replace this with a dynamic list
 
     // We'll keep the edit form in JavaScript, adding it to the DOM upon request
     // Just cleaner to define the form initially in the Velocity template, then slurp it in on page load
@@ -520,7 +513,8 @@ XNAT.app = getObject(XNAT.app || {});
         openModalPanel(constants.MODAL_WINDOW_NAME, "Loading data...");
     }
 
-    pacsAdministration.init = function() {
+    XNAT.app.dqr.pacsInit = function(strats) {
+        ormStrategies = strats;
         getAllPacs();
     };
 
@@ -542,11 +536,10 @@ XNAT.app = getObject(XNAT.app || {});
         currentOperation.enable();
     };
 
-    pacsAdministration.ormStrategies = ormStrategies;
-
-    $(document).ready(function(){
-        XNAT.app.dqr.PacsAdministration.init();
-    });
+    //
+    // $(document).ready(function(){
+    //     XNAT.app.dqr.PacsAdministration.init();
+    // });
 
     window.xModalSubmit = function () {
         "use strict";
