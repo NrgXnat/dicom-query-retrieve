@@ -25,13 +25,14 @@ public class PacsAdministration extends SecureScreen {
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
 //        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-          Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
+//          Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
 //        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
 //            strategies.put(strategy.getValue(), strategy.getKey());
 //        }
-        Object strategy = XDAT.getContextService().getBean("dicomOrmStrategy");
-        if(strategy!=null && strategy instanceof OrmStrategy){
-            strategies.put((OrmStrategy)strategy, "dicomOrmStrategy");
+        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
+        Map<OrmStrategy, String> strategies = new TreeMap<>();
+        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
+            strategies.put(strategy.getValue(), strategy.getKey());
         }
         context.put("strategies", strategies);
     }

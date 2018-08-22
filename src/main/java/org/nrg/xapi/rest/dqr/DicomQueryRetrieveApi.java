@@ -3,6 +3,7 @@ package org.nrg.xapi.rest.dqr;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsPing;
@@ -13,6 +14,7 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
@@ -28,9 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
 import static org.nrg.xdat.security.helpers.AccessLevel.Authenticated;
@@ -253,6 +253,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     public ResponseEntity<List<PacsPing>> allPingsForPacs(@ApiParam(value = "ID of the PACS", required = true) @PathVariable("id") final String id) {
         final Long pacsId = Long.valueOf(id);
         return new ResponseEntity<>(_pacsPingService.getPings(pacsId), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get list of all ormStrategies.", notes = "Returns list of the names of all the OrmStrategies beans.", response = String.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "A list of ormStrategies."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access ormStrategies."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "ormStrategies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<List<String>> getOrmStrategies() {
+        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
+        List<String> strategies = new ArrayList<>();
+        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
+            strategies.add(strategy.getKey());
+        }
+        return new ResponseEntity<>(strategies, HttpStatus.OK);
     }
 
     PacsService _pacsService;
