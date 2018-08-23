@@ -140,9 +140,13 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.AccessionNumber), searchCriteria.getAccessionNumber());
         }
 
-        if (!StringUtils.isBlank(searchCriteria.getDob())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientBirthDate), searchCriteria.getDob());
+//        DateRange dobDateRange = getOrmStrategy().getResultSetLimitStrategy().limitDobDateRange(searchCriteria)
+//                .getDateRange();
+        DateRange dobDateRange = searchCriteria.getDobDateRange();
+        if (null != dobDateRange && dobDateRange.isBounded()) {
+            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientBirthDate), buildDateCriterion(dobDateRange));
         }
+
         if (!StringUtils.isBlank(searchCriteria.getModality())) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.ModalitiesInStudy), searchCriteria.getModality());
         }
@@ -150,17 +154,17 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         DateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
                 .getDateRange();
         if (null != studyDateRange && studyDateRange.isBounded()) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildStudyDateCriterion(studyDateRange));
+            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildDateCriterion(studyDateRange));
         }
     }
 
-    private String buildStudyDateCriterion(DateRange studyDateRange) {
+    private String buildDateCriterion(DateRange dateRange) {
         String startDate = "", endDate = "";
-        if (studyDateRange.isBoundedAtStart()) {
-            startDate = DICOM_DATE_FORMAT.format(studyDateRange.getStart());
+        if (dateRange.isBoundedAtStart()) {
+            startDate = DICOM_DATE_FORMAT.format(dateRange.getStart());
         }
-        if (studyDateRange.isBoundedAtEnd()) {
-            endDate = DICOM_DATE_FORMAT.format(studyDateRange.getEnd());
+        if (dateRange.isBoundedAtEnd()) {
+            endDate = DICOM_DATE_FORMAT.format(dateRange.getEnd());
         }
         return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
     }

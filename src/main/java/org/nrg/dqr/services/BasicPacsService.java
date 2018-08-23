@@ -467,7 +467,7 @@ public class BasicPacsService implements PacsService {
                 areThereSearchCriteriaForThisRow = true;
             }
             if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                String studyDateCell = row.get(studyDateColumn);
+                String studyDateCell = StringUtils.strip(row.get(studyDateColumn));
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
                 int dashIndex = studyDateCell.indexOf("-");
                 if(dashIndex==-1){
@@ -480,14 +480,50 @@ public class BasicPacsService implements PacsService {
                     searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
                     areThereSearchCriteriaForThisRow = true;
                 }
+                else if (dashIndex==0){
+                    int st = dashIndex+1;
+                    int end = studyDateCell.length();
+                    String subst = studyDateCell.substring(st,end);
+                    Date endDate = formatter.parse(subst);
+                    DateRange newRange = new DateRange(null, endDate);
+                    searchCriteria.setStudyDateRange(newRange);
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else if (dashIndex==studyDateCell.length()-1){
+                    searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), null));
+                    areThereSearchCriteriaForThisRow = true;
+                }
                 else{
                     searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
                     areThereSearchCriteriaForThisRow = true;
                 }
             }
             if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                searchCriteria.setDob(row.get(dobColumn));
-                areThereSearchCriteriaForThisRow = true;
+                String dobDateCell = StringUtils.strip(row.get(dobColumn));
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                int dashIndex = dobDateCell.indexOf("-");
+                if(dashIndex==-1){
+                    Date dateObject = formatter.parse(dobDateCell);
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(dateObject);
+                    c.add(Calendar.DATE, 1);
+                    Date endOfDay = c.getTime();
+
+                    searchCriteria.setDobDateRange(new DateRange(dateObject, endOfDay));
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else if (dashIndex==0){
+                    searchCriteria.setDobDateRange(new DateRange(null, formatter.parse(dobDateCell.substring(dashIndex+1,dobDateCell.length()))));
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else if (dashIndex==dobDateCell.length()-1){
+                    searchCriteria.setDobDateRange(new DateRange(formatter.parse(dobDateCell.substring(0,dashIndex)), null));
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else{
+                    searchCriteria.setDobDateRange(new DateRange(formatter.parse(dobDateCell.substring(0,dashIndex)), formatter.parse(dobDateCell.substring(dashIndex+1,dobDateCell.length()))));
+                    areThereSearchCriteriaForThisRow = true;
+                }
             }
             if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
                 searchCriteria.setModality(row.get(modalityColumn));
@@ -743,12 +779,38 @@ public class BasicPacsService implements PacsService {
 
                         searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
                     }
+                    else if (dashIndex==0){
+                        searchCriteria.setStudyDateRange(new DateRange(null, formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                    }
+                    else if (dashIndex==studyDateCell.length()-1){
+                        searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), null));
+                    }
                     else{
                         searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
                     }
                 }
                 if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                    searchCriteria.setDob(row.get(dobColumn));
+                    String dobDateCell = row.get(dobColumn);
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                    int dashIndex = dobDateCell.indexOf("-");
+                    if(dashIndex==-1){
+                        Date dateObject = formatter.parse(dobDateCell);
+                        Calendar c = Calendar.getInstance();
+                        c.setTime(dateObject);
+                        c.add(Calendar.DATE, 1);
+                        Date endOfDay = c.getTime();
+
+                        searchCriteria.setDobDateRange(new DateRange(dateObject, endOfDay));
+                    }
+                    else if (dashIndex==0){
+                        searchCriteria.setDobDateRange(new DateRange(null, formatter.parse(dobDateCell.substring(dashIndex+1,dobDateCell.length()))));
+                    }
+                    else if (dashIndex==dobDateCell.length()-1){
+                        searchCriteria.setDobDateRange(new DateRange(formatter.parse(dobDateCell.substring(0,dashIndex)), null));
+                    }
+                    else{
+                        searchCriteria.setDobDateRange(new DateRange(formatter.parse(dobDateCell.substring(0,dashIndex)), formatter.parse(dobDateCell.substring(dashIndex+1,dobDateCell.length()))));
+                    }
                 }
                 if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
                     searchCriteria.setModality(row.get(modalityColumn));

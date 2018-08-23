@@ -32,7 +32,7 @@ public class PacsSearchCriteria {
 
     private String modality;
 
-    private String dob;
+    private DateRange dobDateRange;
 
     public String getPatientId() {
         return patientId;
@@ -87,20 +87,20 @@ public class PacsSearchCriteria {
         this.studyDateRange = studyDateRange;
     }
 
+    public DateRange getDobDateRange() {
+        return dobDateRange;
+    }
+
+    public void setDobDateRange(DateRange dobDateRange) {
+        this.dobDateRange = dobDateRange;
+    }
+
     public String getModality() {
         return modality;
     }
 
     public void setModality(String modality) {
         this.modality = modality;
-    }
-
-    public String getDob() {
-        return dob;
-    }
-
-    public void setDob(String dob) {
-        this.dob = dob;
     }
 
     public boolean isFirstNamePresent() {
