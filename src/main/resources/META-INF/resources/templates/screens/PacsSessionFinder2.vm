@@ -5,6 +5,15 @@
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
+<div id="breadcrumbs" style="padding-left: 0; font-size: 12px;">
+    <span class="crumb">
+        <a href="$link.setAction("DisplayItemAction").addPathInfo("search_element","xnat:projectData").addPathInfo("search_field","xnat:projectData.ID").addPathInfo("search_value","$project.id")">$project.name</a>
+        &nbsp;&gt;&nbsp;
+    </span>
+    <span class="crumb">
+        <a class="last" href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${project.getId()}")">Select ${displayManager.getSingularDisplayNameForImageSession()} From PACS</a>
+    </span>
+</div>
 
 <script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
@@ -42,25 +51,11 @@
     table.dataTable tr.even td.sorting_1 { background-color: #f0f7ff; }
 </style>
 
-<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForSubject()} From PACS</h2>
+<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForImageSession()} From PACS</h2>
 <p><strong>Step 2: Select Scans to Import and Request Images from PACS</strong></p>
 #set($userCanImport = false)
 #set($importErrorMessages = [])
 
-## Check for edit permissions in at least one project
-#if($projects.size() == 0)
-    $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
-#else
-    #foreach($project in $projects)
-        #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
-            #set($userCanImport = true)
-        #end
-    #end
-
-    #if(!$userCanImport)
-        $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
-    #end
-#end
 
 ## Check for enabled SCP receiver
 #if($enabledScps.size() > 0)
@@ -79,33 +74,16 @@
         <div style="display: inline-block; margin-right: 8%; vertical-align: top; width: 30%;">
             <div style="margin-bottom: 4em;">
                 <h4>Select Destination for Import</h4>
-                <div id="pacsSeriesProjectSelector">
-                    #if($projects.size() == 1)
-                        #set($project = $projects.get(0))
-                        <p><strong>Project:</strong> ${project.name}</p>
-                        <input type="hidden" id="project" name="project" value="${project.id}"/>
-                    #else
-                        <label for="project" class="select_label"><b>${displayManager.getSingularDisplayNameForProject()}:</b></label>
-                        <select id="project" id="project" name="project" style="min-width:200px;">
-                            <option disabled>(Select Project)</option>
-                            #foreach($proj in $projects)
-                                #if($proj.canEdit($user))
-                                    <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                                #else
-                                    <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                                #end
-                            #end
-                        </select>
-                    #end
-                </div>
+                <input type="hidden" name="project" id="project" value="${project.id}" />
 
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($enabledScps.size() == 1)
+                        <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
                         #foreach($scp in $scps)
                             <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}"/>
                         #end
                     #else
-                        <label for="ae" class="select_label"><b>AE:</b></label>
+                        <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
                             <option disabled>(Select AE)</option>
                             #foreach($scp in $enabledScps)

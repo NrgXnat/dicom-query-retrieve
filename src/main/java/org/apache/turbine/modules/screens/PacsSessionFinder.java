@@ -20,6 +20,8 @@ import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.model.XnatProjectdataI;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
 public class PacsSessionFinder extends SecureScreen {
@@ -35,5 +37,11 @@ public class PacsSessionFinder extends SecureScreen {
             context.put("pacsList", pacsList);
         }
         DqrSecureAction.removeDqrSessionVariables(data);
+
+        String p = ((String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data));
+        XnatProjectdataI project = XnatProjectdata.getXnatProjectdatasById(p, null, false);
+
+        context.put("project", project);
+
     }
 }

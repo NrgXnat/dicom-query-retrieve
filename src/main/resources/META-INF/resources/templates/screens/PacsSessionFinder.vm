@@ -1,6 +1,9 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 <!-- BEGIN templates/screens/PacsSessionFinder.vm -->
+<div id="breadcrumbs" style="padding-left: 0; font-size: 12px;">
+    <span class="crumb"><a href="$link.setAction("DisplayItemAction").addPathInfo("search_element","xnat:projectData").addPathInfo("search_field","xnat:projectData.ID").addPathInfo("search_value","$project.id")">$project.name</a></span>
+</div>
 
 <link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSessionFinder.css")">
 <link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSeriesFinder.css")">
@@ -71,7 +74,7 @@
     });
 </script>
 
-<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForSubject()} From PACS</h2>
+<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForImageSession()} From PACS</h2>
 <p><strong>Step 1: Find ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getPluralDisplayNameForImageSession()}</strong></p>
 <form id="sessionSearchForm" class="friendlyForm mini">
     <div id="searchFormControls">
@@ -83,8 +86,7 @@
                 <select id="pacsId" name="pacsId">
                     <option VALUE="">(SELECT)</option>
                     #foreach($pacs in $pacsList)
-                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs())
-                                selected="true" #end>$pacs.getAeTitle()</option>
+                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs()) selected="true" #end>$pacs.getAeTitle()</option>
                     #end
                 </select>
             </p>
@@ -126,7 +128,8 @@
 </form>
 
 
-<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession")" style="display:none;">
+<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${project.id})" style="display:none;">
+    <input type="hidden" name="project" id="project" value="${project.id}" />
     <input type="hidden" id="studyInstanceUid" name="studyInstanceUid"/>
     <input type="hidden" id="hiddenPacsId" name="pacsId"/>
 </form>

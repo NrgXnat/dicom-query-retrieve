@@ -83,6 +83,30 @@ XNAT.app = getObject(XNAT.app || {});
         return errorHandler(e);
     }
 
+    function submitErrorHandler(e){
+        if (e.status === 400){
+            return errorHandler(e, 'Missing Parameters Found');
+        }
+        if (e.status === 500){
+            if (e.responseText.toLowerCase().indexOf('remapping') >= 0) {
+                e.responseText = 'This XNAT SCP Receiver cannot perform the custom remapping you are requesting.';
+                return errorHandler(e, 'DICOM Remapping Error');
+            }
+
+            if (e.responseText.toLowerCase().indexOf('criteria') >= 0) {
+                e.responseText = 'Invalid or empty search criteria. Each query in your request must include at least one search criteria.';
+                return errorHandler(e, 'Invalid Search Criteria');
+            }
+
+            if (e.responseText.toLowerCase().indexOf('scp') >= 0) {
+                e.responseText = 'Invalid or Inactive SCP Receiver ID was selected. Please check your selection and try again.';
+                return errorHandler(e, 'SCP Receiver Error');
+            }
+        }
+        // if no matches were identified, handle the error generically
+        return errorHandler(e);
+    }
+
     function dateFormatter(timestamp){
         return (new Date(timestamp)).toLocaleDateString();
     }
@@ -192,7 +216,7 @@ XNAT.app = getObject(XNAT.app || {});
                             .td( study.patient.name.lastNameCommaFirstName )
                             .td( studyDate )
                             .td( study.accessionNumber )
-                            .td( study.id )
+                            .td( study.studyId )
                             .td( study.studyDescription )
                     });
                 } else {
@@ -204,7 +228,7 @@ XNAT.app = getObject(XNAT.app || {});
 
         XNAT.ui.dialog.open({
             title: 'Select Sessions To Import',
-            width: 600,
+            width: 800,
             content: spawn('div.data-table-container.form-data'),
             beforeShow: function(obj){
                 var $container = obj.$modal.find('.data-table-container');
@@ -253,7 +277,7 @@ XNAT.app = getObject(XNAT.app || {});
                 data: JSON.stringify(dataToImport),
                 contentType: 'application/json',
                 fail: function(e){
-                    queryErrorHandler(e);
+                    submitErrorHandler(e);
                     xmodal.loading.close();
                 },
                 success: function(){
@@ -434,6 +458,7 @@ XNAT.app = getObject(XNAT.app || {});
                 var key = $(this).prop('name');
                 csvimporter.queryParams[key] = $(this).val()
             });
+            csvimporter.queryParams['project'] = $(this).find('input#project').val();
 
             XNAT.xhr.ajax({
                 url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/uploadCsv'),

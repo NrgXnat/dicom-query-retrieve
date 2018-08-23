@@ -1,2 +1,0 @@
-<!-- Sequence: 5 -->
-<li><a href="$link.setPage("PacsSessionFinder.vm")">Import ${displayManager.getSingularDisplayNameForSubject()} from PACS</a></li>

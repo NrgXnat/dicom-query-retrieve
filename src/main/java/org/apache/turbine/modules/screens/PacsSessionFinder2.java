@@ -21,6 +21,7 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.dto.ApplicationEntity;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.model.XnatProjectdataI;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -31,18 +32,23 @@ public class PacsSessionFinder2 extends SecureScreen {
 
     @Override
     protected void doBuildTemplate(RunData data, Context context) throws Exception {
-        ArrayList<XnatProjectdata> projects = XnatProjectdata.getAllXnatProjectdatas(TurbineUtils.getUser(data), true);
-        Comparator<XnatProjectdata> projRunningTitleComparator
-                = new Comparator<XnatProjectdata>() {
-            public int compare(XnatProjectdata p1, XnatProjectdata p2) {
-                String run1 = p1.getSecondaryId().toUpperCase();
-                String run2 = p2.getSecondaryId().toUpperCase();
-                return run1.compareTo(run2);
-            }
+//        ArrayList<XnatProjectdata> projects = XnatProjectdata.getAllXnatProjectdatas(TurbineUtils.getUser(data), true);
+//        Comparator<XnatProjectdata> projRunningTitleComparator
+//                = new Comparator<XnatProjectdata>() {
+//            public int compare(XnatProjectdata p1, XnatProjectdata p2) {
+//                String run1 = p1.getSecondaryId().toUpperCase();
+//                String run2 = p2.getSecondaryId().toUpperCase();
+//                return run1.compareTo(run2);
+//            }
+//
+//        };
+//        Collections.sort(projects,projRunningTitleComparator);
+//        context.put("projects", projects);
 
-        };
-        Collections.sort(projects,projRunningTitleComparator);
-        context.put("projects", projects);
+        String p = ((String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data));
+        XnatProjectdataI project = XnatProjectdata.getXnatProjectdatasById(p, null, false);
+
+        context.put("project", project);
 
 //        ArrayList<ApplicationEntity> aes = new ArrayList<>();
 ////        ArrayList<ApplicationEntity> xnatAes = new ArrayList<>();

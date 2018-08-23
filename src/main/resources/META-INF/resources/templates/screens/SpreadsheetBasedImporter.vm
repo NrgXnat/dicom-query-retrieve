@@ -5,7 +5,10 @@
 #* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
-<!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
+<!-- BEGIN templates/screens/SpreadsheetBasedImporter.vm -->
+<div id="breadcrumbs" style="padding-left: 0; font-size: 12px;">
+    <span class="crumb"><a href="$link.setAction("DisplayItemAction").addPathInfo("search_element","xnat:projectData").addPathInfo("search_field","xnat:projectData.ID").addPathInfo("search_value","$project.id")">$project.name</a></span>
+</div>
 
 <script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/dqr/SpreadsheetImporter.js")"></script>
@@ -14,24 +17,10 @@
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/app/scanTable/scanTable.css")" />
 
 
-<h2 class="edit_title">Import Patient Study from PACS</h2>
+<h2 class="edit_title">Import List of ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getPluralDisplayNameForImageSession()} from PACS</h2>
 #set($userCanImport = false)
 #set($importErrorMessages = [])
 
-## Check for edit permissions in at least one project
-#if($projects.size() == 0)
-    $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
-#else
-    #foreach($project in $projects)
-        #if($data.getSession().getAttribute("userHelper").canEdit("xnat:subjectData/project",$project.getId()))
-            #set($userCanImport = true)
-        #end
-    #end
-
-    #if(!$userCanImport)
-        $importErrorMessages.add("Sorry, but you do not have appropriate user permissions in order to perform this action. You must have edit privileges on at least one ${displayManager.getSingularDisplayNameForProject()} in order to import images from PACS")
-    #end
-#end
 
 ## Check for enabled SCP receiver
 #if($enabledScps.size() > 0)
@@ -60,25 +49,7 @@
                     #end
                 </select>
             </p>
-            <div id="pacsSeriesProjectSelector">
-                #if($projects.size() == 1)
-                    #set($project = $projects.get(0))
-                    <p><strong>Project:</strong> ${project.name}</p>
-                    <input type="hidden" id="project" name="project" value="${project.id}"/>
-                #else
-                    <label for="project" class="select_label"><b>Select ${displayManager.getSingularDisplayNameForProject()} To Import To:</b></label>
-                    <select id="project" id="project" name="project" style="min-width:200px;">
-                        <option disabled selected>(Select Project)</option>
-                        #foreach($proj in $projects)
-                            #if($proj.canEdit($user))
-                                <option value="$proj.getId()">$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                            #else
-                                <option disabled>$proj.getStringProperty("xnat:projectData/secondary_ID")</option>
-                            #end
-                        #end
-                    </select>
-                #end
-            </div><br>
+            <input type="hidden" id="project" name="project" value="${project.id}"/>
 
             <div id="pacsSeriesAeSelector">
                 <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
@@ -122,4 +93,4 @@
 
 #end
 
-<!-- END templates/screens/PacsSessionFinder2.vm -->
+<!-- END templates/screens/SpreadsheetBasedImporter.vm -->
