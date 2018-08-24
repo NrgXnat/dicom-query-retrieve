@@ -7,7 +7,6 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/SpreadsheetBasedImporter.vm -->
 
-<script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/dqr/SpreadsheetImporter.js")"></script>
 
 <script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
@@ -38,20 +37,20 @@
             <h4>Set Query Connections (Required)</h4>
             <p>
                 <label for="pacsId">Select DICOM AE to Query</label>
-                <select id="pacsId" name="pacsId">
-                    <option VALUE="">(SELECT)</option>
+                <select id="pacsId" name="pacsId" class="required" aria-required="true">
+                    <option disabled value="">(SELECT)</option>
                     #foreach($currPacs in $pacsList)
                         <option VALUE="$currPacs.getId()" #if($currPacs.isDefaultQueryRetrievePacs())
                                 selected="true" #end>$currPacs.getAeTitle()</option>
                     #end
                 </select>
             </p>
-            <input type="hidden" id="project" name="project" value="${projectId.id}"/>
+            <input type="hidden" id="project" name="project" value="${projectId.id}" class="required" />
 
             <div id="pacsSeriesAeSelector">
                 <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
-                <select id="ae" id="ae" name="ae" style="min-width:200px;">
-                    <option disabled selected>(Select AE)</option>
+                <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
+                    <option disabled selected value="">(Select AE)</option>
                     #foreach($scp in $enabledScps)
                         <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
                     #end
@@ -77,7 +76,7 @@
                     Download a CSV Template file here: <a href="https://bitbucket.org/xnatdev/dicom-query-retrieve/downloads/" target="_blank">DQR CSV Template</a>
                 </p>
                 <p>
-                    <input type="file" name="csv_to_store"/>
+                    <input type="file" name="csv_to_store" class="required" aria-required="true" />
                 </p>
                 <p>
                     <button class="btn primary" id="submit-csv-form">Upload File</button>

@@ -174,8 +174,9 @@ XNAT.app = getObject(XNAT.app || {});
 
         data.forEach(function(result, i){
             if (result.criteria) {
-                // add the criteria to the JSON we'll send, without adding any sessions
-                jsonToSend.push({ 'criteria': result.criteria, 'studies': [] });
+                var anonScript = result.anonScript || '';
+                // add the criteria and anon to the JSON we'll send, without adding any sessions
+                jsonToSend.push({ 'criteria': result.criteria, 'anonScript': anonScript, 'studies': [] });
 
                 // remove static metadata about the search and focus on the actual search criteria
                 var criteria = result.criteria;
@@ -208,6 +209,7 @@ XNAT.app = getObject(XNAT.app || {});
 
                     result.studies.forEach(function(study){
                         var studyDate = dateFormatter(study.studyDate);
+                        if (studyDate.trim().toLowerCase() === 'invalid date') studyDate = "Unknown";
 
                         resultsTableBody.tr()
                             .td({
@@ -306,8 +308,6 @@ XNAT.app = getObject(XNAT.app || {});
         })
     };
 
-    /* --- INIT --- */
-
     function scpSanityChecks(scpId){
         var receiver = csvimporter.scpReceivers[scpId], checks = [];
         var receiverLabel = receiver['aeTitle']+':'+receiver['port'];
@@ -359,8 +359,87 @@ XNAT.app = getObject(XNAT.app || {});
             // checks.push(spawn('div.success', '<b>DICOM Object Identifier:</b> Default. No special handling defined.'))
             $('#scpDicomIdentifier').empty().html('Default. No special handling defined.');
         }
-
     }
+
+    function validateCsvForm($form){
+        var canSubmit = true,
+            formErrors = [];
+
+        $form.find('.required').each(function(){
+            if (this.nodeName.toLowerCase() === 'select') {
+                if (!$(this).find('option:selected').val()) {
+                    canSubmit = false;
+                    $(this).addClass('invalid');
+                    formErrors.push('Please choose a value for '+$(this).prop('name'));
+                }
+            }
+            if (this.nodeName.toLowerCase() === 'input') {
+                if (this.type === 'text' && !$(this).val()) {
+                    canSubmit = false;
+                    $(this).addClass('invalid');
+                    formErrors.push('Please enter a value for '+$(this).prop('name'));
+                }
+                else if (this.type === 'file' && !$(this).val()) {
+                    canSubmit = false;
+                    $(this).addClass('invalid');
+                    formErrors.push('Please select a file to upload.');
+                }
+                else if (this.type === 'hidden' && !$(this).val()) {
+                    canSubmit = false;
+                    XNAT.dialog.message('Internal configuration error: No value set for '+$(this).prop('name'));
+                }
+            }
+        });
+
+        if (!canSubmit) {
+            var errorLis = [];
+            formErrors.forEach(function(error){
+                errorLis.push(spawn('li',error));
+            });
+            XNAT.dialog.message({
+                title: false,
+                content: spawn('!',[
+                    spawn('p','Errors Found: '),
+                    spawn('ul',errorLis)
+                ])
+            });
+        }
+
+        return canSubmit;
+    }
+
+    function submitCsvForm($form){
+        // capture values from selects to be used in second query
+        // formData appears as an empty object, so each value must be retrieved individually.
+        $form.find('select').each(function(){
+            var key = $(this).prop('name');
+            csvimporter.queryParams[key] = $(this).val()
+        });
+        csvimporter.queryParams['project'] = $form.find('input#project').val();
+
+
+        var formData = new FormData($form[0]);
+
+        XNAT.xhr.ajax({
+            url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/uploadCsv'),
+            method: 'POST',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            fail: function (e) {
+                queryErrorHandler(e);
+            },
+            success: function (data) {
+                if (data.length) {
+                    csvimporter.displayQueryResults(data);
+                }
+                else csvimporter.noQueryResults();
+            }
+        });
+    }
+
+    /* -- User Event Handlers -- */
 
     $(document).on('change','select#ae',function(){
         var scpId = $(this).find('option:selected').data('id');
@@ -396,11 +475,30 @@ XNAT.app = getObject(XNAT.app || {});
         })
     });
 
+    $('.invalid').on('focus',function(){ $(this).removeClass('invalid') });
 
+    $(document).ready(function () {
+        $(document).off('submit', 'form#pacsSeriesFinderForm');
+        $(document).off('click','#submit-csv-form');
+        $(document).on('click', '#submit-csv-form', function (e) {
+            e.preventDefault();
+            var $form = $('form#pacsSeriesFinderForm');
+
+            // validate form before proceeding
+            if (validateCsvForm($form)) {
+                submitCsvForm($form);
+            } else {
+                return false;
+            }
+        });
+    });
+
+    /* --- INIT --- */
 
     csvimporter.init = csvimporter.refresh = function(){
         // reset the form
         var $form = $('#pacsSeriesFinderForm');
+        $form.find('.invalid').removeClass('invalid'); 
         $form.resetForm();
 
         // populate the SCP receiver list if not already populated
@@ -443,41 +541,5 @@ XNAT.app = getObject(XNAT.app || {});
         }
     };
     csvimporter.init();
-
-    $(document).ready(function () {
-        $(document).off('submit', 'form#pacsSeriesFinderForm');
-        $(document).on('submit', 'form#pacsSeriesFinderForm', function (e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-
-            // validate form before proceeding
-
-            // capture values from selects to be used in second query
-            // formData appears as an empty object, so each value must be retrieved individually. 
-            $(this).find('select').each(function(){
-                var key = $(this).prop('name');
-                csvimporter.queryParams[key] = $(this).val()
-            });
-            csvimporter.queryParams['project'] = $(this).find('input#project').val();
-
-            XNAT.xhr.ajax({
-                url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/uploadCsv'),
-                method: 'POST',
-                data: formData,
-                cache: false,
-                contentType: false,
-                processData: false,
-                fail: function (e) {
-                    queryErrorHandler(e);
-                },
-                success: function (data) {
-                    if (data.length) {
-                        csvimporter.displayQueryResults(data);
-                    }
-                    else csvimporter.noQueryResults();
-                }
-            });
-        });
-    });
 
 }));
