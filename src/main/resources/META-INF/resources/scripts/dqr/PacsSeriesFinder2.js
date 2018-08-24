@@ -43,46 +43,78 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     this.showSeriesSearchResults = function (data) {
         var seriesSearchResultsTableId = seriesSearchResultsDivId + "Table";
 
-        jq("#" + seriesSearchResultsDivId).empty().html('<table cellpadding="0" cellspacing="0" border="0" id="' + seriesSearchResultsTableId + '"/>');
+        var scans = data.ResultSet.Result;
+        scans = scans.sort(function(a,b){ return (a.seriesNumber.toString() > b.seriesNumber.toString()) ? 1 : -1 });
 
-        var dataTableOptions = {
-            "aaData": data.ResultSet.Result,
-            "aoColumns": [
-                {
-                    "bSearchable": false,
-                    "bSortable": false,
-                    "mData": function (source) {
-                        var checkboxId = source.seriesInstanceUid.replace(/\./g, "_");
-                        return '<input type="checkbox" id="pacsSeriesFinderCheckbox' + checkboxId + '" name="selectedSeries" value="' + checkboxId + '" onclick="DQR.selectAllHandler(this)" />';
-                    }
-                },
-                {
-                    "mData": "seriesDescription",
-                    "sTitle": "Description"
-                },
-                {
-                    "mData": "seriesNumber",
-                    "sTitle": "Series"
-                },
-                {
-                    "mData": "modality",
-                    "sTitle": "Modality"
-                }
+        var scanTable = XNAT.table({
+            className: 'xnat-table selectable compact',
+            id: seriesSearchResultsTableId,
+            style: { border: '1px solid #ccc', width: '100%' }
+        });
 
-            ],
-            "oLanguage": {
-                "sInfoPostFix": ""
-            },
-            "aaSorting": [
-                [that.constants.SERIES_NUMBER_COLUMN, "asc"]
-            ],
-            "bFilter": false,
-            "bPaginate": false,
-            "bLengthChange": false,
-            "bInfo": false
-        };
+        scanTable.thead().tr()
+            .th({
+                addClass: 'toggle-all left',
+                style: { width: '40px' },
+                html: '<input type="checkbox" class="selectable-select-all" id="toggle-all-scans" title="Toggle All Scans" />'
+            })
+            .th({ addClass: 'left'}, '<b>Series</b>')
+            .th({ addClass: 'left'}, '<b>Series Description</b>')
+            .th({ addClass: 'left'}, '<b>Modality</b>');
 
-        jq("#" + seriesSearchResultsTableId).dataTable(dataTableOptions);
+        var tbody = scanTable.tbody();
+
+        scans.forEach(function(scan){
+            var checkboxId = scan.seriesInstanceUid.replace(/\./g, "_");
+            tbody.tr()
+                .td([ spawn('input.selectable-select-one', {type: 'checkbox', name: 'selectedSeries', id: 'pacsSeriesFinderCheckbox' + checkboxId, value: checkboxId })])
+                .td(scan.seriesNumber)
+                .td(scan.seriesDescription)
+                .td(scan.modality)
+        });
+
+        $('#'+seriesSearchResultsDivId).empty().append(scanTable.table);
+
+        // jq("#" + seriesSearchResultsDivId).empty().html('<table cellpadding="0" cellspacing="0" border="0" id="' + seriesSearchResultsTableId + '"/>');
+        //
+        // var dataTableOptions = {
+        //     "aaData": data.ResultSet.Result,
+        //     "aoColumns": [
+        //         {
+        //             "bSearchable": false,
+        //             "bSortable": false,
+        //             "mData": function (source) {
+        //                 var checkboxId = source.seriesInstanceUid.replace(/\./g, "_");
+        //                 return '<input type="checkbox" id="pacsSeriesFinderCheckbox' + checkboxId + '" name="selectedSeries" value="' + checkboxId + '" onclick="DQR.selectAllHandler(this)" />';
+        //             }
+        //         },
+        //         {
+        //             "mData": "seriesDescription",
+        //             "sTitle": "Description"
+        //         },
+        //         {
+        //             "mData": "seriesNumber",
+        //             "sTitle": "Series"
+        //         },
+        //         {
+        //             "mData": "modality",
+        //             "sTitle": "Modality"
+        //         }
+        //
+        //     ],
+        //     "oLanguage": {
+        //         "sInfoPostFix": ""
+        //     },
+        //     "aaSorting": [
+        //         [that.constants.SERIES_NUMBER_COLUMN, "asc"]
+        //     ],
+        //     "bFilter": false,
+        //     "bPaginate": false,
+        //     "bLengthChange": false,
+        //     "bInfo": false
+        // };
+        //
+        // jq("#" + seriesSearchResultsTableId).dataTable(dataTableOptions);
 
         jq("#" + seriesSearchResultsFormId).validate({
             rules: {
@@ -111,10 +143,6 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
 
         jq("#" + seriesSearchResultsSubmitButtonId).removeAttr("disabled");
         jq("#" + seriesSearchResultsCheckAllButtonId).removeAttr("disabled");
-
-        // after table has rendered add "Select All" checkbox
-        var selectAll = '<input type="checkbox" id="selectAll" onclick="DQR.selectAllHandler()" />';
-        jq("#pacsSeriesFinderDivTable").find("thead").find("th").first().addClass("left").append(selectAll);
 
         closeModalPanel(this.constants.MODAL_WINDOW_NAME);
     };
@@ -202,41 +230,6 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     };
 }
 
-DQR.selectAllHandler = function(baseElement) {
-    var selectAll = $('input#selectAll');
-    if(!baseElement) {
-        baseElement = 'input[name=selectedSeries]';
-        if ($(selectAll).prop('indeterminate') || $(selectAll).is(':checked')) {
-            // if none or some checkboxes are selected, select all
-            $(baseElement).prop('checked', 'checked');
-            $(selectAll)
-                .prop('indeterminate', false);
-        } else {
-            // otherwise, deselect all
-            $(baseElement).prop('checked', false);
-            $(selectAll)
-                .prop('indeterminate', false);
-        }
-    } else {
-        baseElement = 'input[name='+ $(baseElement).prop('name') + ']';
-
-        // place Select All button in a default state.
-        $(selectAll)
-            .prop('checked', false)
-            .prop('indeterminate', true);
-
-        // compare the number of checked checkboxes to N number of checkboxes. '0' = an unchecked, determinate state for Select All. 'N' = a fully checked, determinate state for Select All.
-        if (document.querySelectorAll(baseElement+':checked').length === 0) {
-            $(selectAll)
-                .prop('indeterminate', false);
-        } else if (document.querySelectorAll(baseElement+':checked').length === document.querySelectorAll(baseElement).length) {
-            $(selectAll)
-                .prop('indeterminate', false)
-                .prop('checked', 'checked');
-        }
-    }
-};
-
 DQR.presetScanSelector = function(event,keywords,baseElement,source) {
     event.preventDefault();
     var clicked = event.target;
@@ -264,7 +257,4 @@ DQR.presetScanSelector = function(event,keywords,baseElement,source) {
     }
 
     if (matchesFound === 0) xmodal.alert("No scans were found matching keywords ["+keywords.join(', ')+"]");
-
-    // reset status of "Select All" button
-    DQR.selectAllHandler(baseElement);
-}
+};

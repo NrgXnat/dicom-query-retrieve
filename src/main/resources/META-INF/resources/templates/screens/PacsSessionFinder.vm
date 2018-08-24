@@ -1,9 +1,6 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 <!-- BEGIN templates/screens/PacsSessionFinder.vm -->
-<div id="breadcrumbs" style="padding-left: 0; font-size: 12px;">
-    <span class="crumb"><a href="$link.setAction("DisplayItemAction").addPathInfo("search_element","xnat:projectData").addPathInfo("search_field","xnat:projectData.ID").addPathInfo("search_value","$project.id")">$project.name</a></span>
-</div>
 
 <link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSessionFinder.css")">
 <link rel="stylesheet" type="text/css" href="$content.getURI("style/dqr/PacsSeriesFinder.css")">
@@ -20,6 +17,7 @@
 <script type="text/javascript" src="$content.getURI("scripts/dqr/CustomDataTablesFilters.js")"></script>
 
 <script type="text/javascript">
+
     jq(document).ready(function () {
         if (window.pacsSessionFinder == undefined) {
             window.pacsSessionFinder = new PacsSessionFinder("sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", "$content.getURI("images/dqr/")");
@@ -128,8 +126,8 @@
 </form>
 
 
-<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${project.id})" style="display:none;">
-    <input type="hidden" name="project" id="project" value="${project.id}" />
+<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${projectId.id})" style="display:none;">
+    <input type="hidden" name="project" id="project" value="${projectId.id}" />
     <input type="hidden" id="studyInstanceUid" name="studyInstanceUid"/>
     <input type="hidden" id="hiddenPacsId" name="pacsId"/>
 </form>

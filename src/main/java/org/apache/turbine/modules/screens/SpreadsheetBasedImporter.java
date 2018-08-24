@@ -59,7 +59,7 @@ public class SpreadsheetBasedImporter extends SecureScreen {
         String p = ((String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data));
         XnatProjectdataI project = XnatProjectdata.getXnatProjectdatasById(p, null, false);
 
-        context.put("project", project);
+        context.put("projectId", project);
 
 //        ArrayList<String> aesAndPorts = new ArrayList<>();
         ArrayList<DicomSCPInstance> enabledScps = new ArrayList<>();
