@@ -44,7 +44,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         var seriesSearchResultsTableId = seriesSearchResultsDivId + "Table";
 
         var scans = data.ResultSet.Result;
-        scans = scans.sort(function(a,b){ return (a.seriesNumber.toString() > b.seriesNumber.toString()) ? 1 : -1 });
+        scans = scans.sort(function(a,b){ return (parseInt(a.seriesNumber) > parseInt(b.seriesNumber)) ? 1 : -1 });
 
         var scanTable = XNAT.table({
             className: 'xnat-table selectable compact',
@@ -74,47 +74,6 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
         });
 
         $('#'+seriesSearchResultsDivId).empty().append(scanTable.table);
-
-        // jq("#" + seriesSearchResultsDivId).empty().html('<table cellpadding="0" cellspacing="0" border="0" id="' + seriesSearchResultsTableId + '"/>');
-        //
-        // var dataTableOptions = {
-        //     "aaData": data.ResultSet.Result,
-        //     "aoColumns": [
-        //         {
-        //             "bSearchable": false,
-        //             "bSortable": false,
-        //             "mData": function (source) {
-        //                 var checkboxId = source.seriesInstanceUid.replace(/\./g, "_");
-        //                 return '<input type="checkbox" id="pacsSeriesFinderCheckbox' + checkboxId + '" name="selectedSeries" value="' + checkboxId + '" onclick="DQR.selectAllHandler(this)" />';
-        //             }
-        //         },
-        //         {
-        //             "mData": "seriesDescription",
-        //             "sTitle": "Description"
-        //         },
-        //         {
-        //             "mData": "seriesNumber",
-        //             "sTitle": "Series"
-        //         },
-        //         {
-        //             "mData": "modality",
-        //             "sTitle": "Modality"
-        //         }
-        //
-        //     ],
-        //     "oLanguage": {
-        //         "sInfoPostFix": ""
-        //     },
-        //     "aaSorting": [
-        //         [that.constants.SERIES_NUMBER_COLUMN, "asc"]
-        //     ],
-        //     "bFilter": false,
-        //     "bPaginate": false,
-        //     "bLengthChange": false,
-        //     "bInfo": false
-        // };
-        //
-        // jq("#" + seriesSearchResultsTableId).dataTable(dataTableOptions);
 
         jq("#" + seriesSearchResultsFormId).validate({
             rules: {
@@ -158,6 +117,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     };
 
     this.requestSeries = function (project, selectedSeries, ae) {
+        that.project = project;
         openModalPanel("requestSeries", "Requesting " + selectedSeries.length + " selected series");
         var data = "SERIES_IDS=";
         for (var index = 0; index < selectedSeries.length; index++) {
@@ -205,7 +165,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
                         close: true,
                         action: function(obj){
                             xmodal.loading.open({title:'Please wait...'});
-                            window.location = serverRoot + "/app/template/PacsSessionFinder.vm";
+                            window.location = serverRoot + "/app/template/PacsSessionFinder.vm/projects/"+that.project;
                         }
                     }
                 ]

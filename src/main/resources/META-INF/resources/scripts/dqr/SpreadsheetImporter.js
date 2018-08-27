@@ -291,11 +291,25 @@ XNAT.app = getObject(XNAT.app || {});
                     xmodal.loading.close();
                     XNAT.ui.dialog.message({
                         title: 'Request Succesful',
-                        content: 'Your request for data was successful. Proceed to the <a href="'+XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm')+'">Prearchive</a>?',
-                        okAction: function(){
-                            XNAT.ui.dialog.closeAll();
-                            csvimporter.refresh();
-                        }
+                        width: 540,
+                        content: 'The selected series have been requested from the PACS and should be available in the system prearchive shortly. Contact your PACS administrator if your requested series are not imported in a timely manner.',
+                        buttons: [
+                            {
+                                label: 'Go to the Prearchive',
+                                isDefault: true,
+                                close: true,
+                                action: function (obj) {
+                                    xmodal.loading.open({title: 'Please wait...'});
+                                    window.location = serverRoot + "/app/template/XDATScreen_prearchives.vm";
+                                }
+                            },
+                            {
+                                label: 'Start Another Import',
+                                isDefault: false,
+                                close: true,
+                                action: csvimporter.refresh
+                            }
+                        ]
                     });
 
                 }
@@ -501,7 +515,8 @@ XNAT.app = getObject(XNAT.app || {});
     /* --- INIT --- */
 
     csvimporter.init = csvimporter.refresh = function(){
-        // reset the form
+        // close all dialogs and reset the form
+        XNAT.ui.dialog.closeAll(); 
         var $form = $('#pacsSeriesFinderForm');
         $form.find('.invalid').removeClass('invalid');
         $form.resetForm();
