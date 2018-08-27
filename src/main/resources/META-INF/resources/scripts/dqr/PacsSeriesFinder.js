@@ -42,7 +42,7 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
         this.sortResults(data.ResultSet.Result);
 
         var seriesDataTableIdSuffix = this.study.studyInstanceUid.replace(/\./g, "_");
-        var seriesDataTable = jq('<table id="pacsSeriesFinderSearchResults_' + seriesDataTableIdSuffix + '" cellpadding="0" cellspacing="0" border="0" class="pacsSeriesSearchResults"/>');
+        var seriesDataTable = jq('<table id="pacsSeriesFinderSearchResults_' + seriesDataTableIdSuffix + '" cellpadding="0" cellspacing="0" border="0" class="pacsSeriesSearchResults xnat-table compact clean alt1"/>');
         var that = this;
         var dataTableOptions = {
             "aaData": data.ResultSet.Result,
@@ -75,6 +75,8 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
         this.writeResultsToTarget(seriesDataTable);
 
         this.reattachRowExpansionHandler();
+
+        $('table.dataTable').removeClass('dataTable');
     };
 
     /*

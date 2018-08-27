@@ -12,7 +12,7 @@
 
 /*jslint white: true, browser: true, vars: true */
 /*global jq */
-function StudyDatePicker(fromDateFieldId, toDateFieldId, useTodaysDateCheckboxId, imagePath) {
+function StudyDatePicker(fromDateFieldId, toDateFieldId, useTodaysDateCheckboxId) {
     "use strict";
 
     var that = this;
@@ -60,7 +60,7 @@ function StudyDatePicker(fromDateFieldId, toDateFieldId, useTodaysDateCheckboxId
     this.toggleStudyDateEnabled = function (enabled) {
         jq("#" + fromDateFieldId).prop("disabled", !enabled);
         jq("#" + toDateFieldId).prop("disabled", !enabled);
-        var triggerIcons = jq("#" + fromDateFieldId).siblings("img");
+        var triggerIcons = jq("#" + fromDateFieldId).siblings("button");
         if (enabled) {
             triggerIcons.show();
             jq("#" + fromDateFieldId).focus();
@@ -93,8 +93,8 @@ function StudyDatePicker(fromDateFieldId, toDateFieldId, useTodaysDateCheckboxId
         defaultDate: "+0D",
         maxDate: "+0D",
         showOn: "button",
-        buttonImage: imagePath + "calendar.gif",
-        buttonImageOnly: true,
+        buttonText: "<i class='fa fa-calendar'></i>",
+        buttonImageOnly: false,
         changeMonth: true,
         changeYear: true
     };

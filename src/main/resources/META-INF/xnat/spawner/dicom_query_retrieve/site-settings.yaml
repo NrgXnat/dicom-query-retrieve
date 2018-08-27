@@ -16,7 +16,7 @@ dqrPacsPanel:
             tag: script|src="~/scripts/dqr/PacsAdministration.js"
 #            tag: script|src="/scripts/dqr/PacsAdministration.js"
         dqrPacsCss:
-            tag: link|href="~/style/dqr/PacsAdministration.css"|rel="stylesheet"|type="text/css"
+            tag: link|href="~/style/dqr/dqr.css"|rel="stylesheet"|type="text/css"
 dqrPushPreferencePanel:
     kind: panel.form
     name: dqrPushPreferencePanel

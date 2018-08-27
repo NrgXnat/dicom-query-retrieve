@@ -68,8 +68,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
     this.showSessionSearchResults = function (data) {
         var sessionSearchResultsTableId = sessionSearchResultsDivId + "Table";
 
-        jq("#" + sessionSearchResultsDivId).empty().html('<fieldset><table cellpadding="0" cellspacing="0" border="0" class="pacsSessionSearchResults" id="' + sessionSearchResultsTableId + '"/></fieldset>');
-
+        jq("#" + sessionSearchResultsDivId).empty().html('<div class="friendlyForm"><h4>PACS Query Results</h4></div><table cellpadding="0" cellspacing="0" border="0" class="pacsSessionSearchResults xnat-table data-table compact" id="' + sessionSearchResultsTableId + '"/>');
 
         var stringStartsWithFilter = new StringStartsWithFilter();
 
@@ -80,7 +79,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                     "bSearchable": false,
                     "bSortable": false,
                     "mData": null,
-                    "sDefaultContent": '<img src="' + that.getImageURI(that.constants.OPEN_ROW_IMAGE) + '" title="' + that.constants.OPEN_ROW_ALT + '" class="rowDetailsExpander"/>'
+                    "sDefaultContent": '<i title="' + that.constants.OPEN_ROW_ALT + '" class="fa fa-plus-square rowDetailsExpander" style="color: green; font-size: 1.25em;" />'
                 },
                 {
                     "mData": "patient.id",
@@ -161,22 +160,24 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
         this.bindProcessButtonHandler(sessionSearchResultsTableId);
 
+        $('table.dataTable').removeClass('dataTable');
+
         closeModalPanel(this.constants.MODAL_WINDOW_NAME);
         this.restoreFocusedField();
     };
 
     this.addColumnFilters = function (sessionSearchResultsTableId, dataTableColumns) {
-        var filterHeaderRowId = sessionSearchResultsTableId + "FilterHeaderRow";
-        jq("#" + sessionSearchResultsTableId).find('thead').prepend('<tr id="' + filterHeaderRowId + '">');
-        var i;
-        for (i = 0; i < dataTableColumns.length; i = i + 1) {
-            if (dataTableColumns[i].mData) {
+        var filterHeaderRowId = "filterHeaderRow";
+        jq("#" + sessionSearchResultsTableId).find('thead').append('<tr id="' + filterHeaderRowId + '" class="filter">');
+
+        dataTableColumns.forEach(function(column){
+            if (column.mData) {
                 var inputId = filterHeaderRowId + "Input" + i;
-                jq("#" + filterHeaderRowId).append('<th class="noPointer"><input type="text" id="' + inputId + '" name="' + inputId + '" value="filter..." class="filter_init" /></th>');
+                jq("#" + filterHeaderRowId).append('<th class="noPointer"><input type="text" id="' + inputId + '" name="' + inputId + '" placeholder="Filter..." class="filter_init" /></th>');
             } else {
                 jq("#" + filterHeaderRowId).append('<th class="noPointer"/>');
             }
-        }
+        });
 
         var asInitVals = [];
 
@@ -224,7 +225,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
             if (oTable.fnIsOpen(nTr)) {
                 // This row is already open - close it
 
-                this.src = that.getImageURI(that.constants.OPEN_ROW_IMAGE);
+                $(this).removeClass('fa-minus-square').addClass('fa-plus-square').css('color','green');
                 this.title = that.constants.OPEN_ROW_ALT;
                 oTable.fnClose(nTr);
             } else {
@@ -233,14 +234,14 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 // prevent overcaffeinated clicking of the image
                 jq(this).removeClass("rowDetailsExpander");
 
-                this.src = that.getImageURI(that.constants.CLOSED_ROW_IMAGE);
+                $(this).removeClass('fa-plus-square').addClass('fa-minus-square').css('color','#888');
                 this.title = that.constants.CLOSED_ROW_ALT;
                 var seriesRow = oTable.fnOpen(nTr, "Loading series...<img src=\"" + serverRoot + "/scripts/yui/build/assets/skins/images/wait.gif\"/>", 'rowDetailsExpanding');
                 var pacsSeriesFinder = new PacsSeriesFinder(oTable.fnGetData(nTr), jq(seriesRow).children().first(), this, rowExpansionHandler, that.currentPacsId);
                 pacsSeriesFinder.findSeries();
             }
         };
-        jq("#" + sessionSearchResultsTableId).on("click", "img.rowDetailsExpander", rowExpansionHandler);
+        jq("#" + sessionSearchResultsTableId).on("click", ".rowDetailsExpander", rowExpansionHandler);
     };
 
     this.bindProcessButtonHandler = function (sessionSearchResultsTableId) {

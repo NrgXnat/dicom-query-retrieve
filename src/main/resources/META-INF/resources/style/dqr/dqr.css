@@ -1,0 +1,81 @@
+/*
+ * /style/dqr/dqr.css
+ * DQR is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
+@CHARSET "ISO-8859-1";
+
+
+table.pacsSessionSearchResults thead input {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+table.pacsSessionSearchResults tbody td .rowDetailsExpander {
+    cursor: pointer;
+}
+
+table.pacsSessionSearchResults tbody td.rowDetailsExpanding {
+    background-color: #f0f0f0;
+}
+
+table.pacsSessionSearchResults tbody td.rowDetailsExpanded {
+    background-color: #f0f0f0;
+    text-align: left;
+}
+
+/* From PacsSeriesFinder.css */
+table.pacsSeriesSearchResults {
+    width: 100%;
+}
+
+table.pacsSeriesSearchResults thead th {
+    border-bottom: none;
+    text-align: left;
+    font-weight: normal;
+}
+
+/* From PacsAdministration.css */
+#pacsTable p { margin: 3px 0 }
+#pacsTable td p:first-of-type { margin-top: 0 }
+#pacsTable td p:last-of-type { margin-bottom: 0 }
+
+/* override datatable.css */
+.dataTables_length {
+    margin-bottom: 1em;
+}
+
+.paginate_disabled_previous, .paginate_enabled_previous,
+.paginate_disabled_next, .paginate_enabled_next {
+    background: none;
+}
+.paginate_disabled_previous:before, .paginate_enabled_previous:before,
+.paginate_disabled_next:after, .paginate_enabled_next:after {
+    font-family: "FontAwesome";
+    content: "\f053";
+    display: inline-block;
+    margin: 0 4px;
+    width: 1em;
+}
+.paginate_disabled_next:after, .paginate_enabled_next:after {
+    content: "\f054";
+}
+.paginate_disabled_previous:before, .paginate_disabled_next:before {
+    color: #f0f0f0;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 3px 7px;
+}
+
+body button.ui-datepicker-trigger {
+    font-size: 12px;
+    margin-left: 3px;
+    padding: 3px 6px;
+}
