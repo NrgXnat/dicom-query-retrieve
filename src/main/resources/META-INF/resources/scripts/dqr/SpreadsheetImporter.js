@@ -120,6 +120,11 @@ XNAT.app = getObject(XNAT.app || {});
     XNAT.app.dqr.csvimporter = csvimporter =
         getObject(XNAT.app.dqr.csvimporter || {});
 
+    var terms = getObject(XNAT.app.dqr.terms || {
+        termForPatient: "Patient",
+        termForStudy: "Study"
+    });
+
     csvimporter.queryParams = {};
     csvimporter.scpReceivers = {};
     csvimporter.installedProcessors = {};
@@ -163,11 +168,11 @@ XNAT.app = getObject(XNAT.app || {});
                 style: { width: '45px' },
                 html: '<input type="checkbox" class="selectable-select-all" id="toggle-all-scans" title="Toggle All Scans" />'
             })
-            .th('<b>Patient Name</b>')
-            .th('<b>Session Date</b>')
+            .th('<b>'+terms.termForPatient+' Name</b>')
+            .th('<b>'+terms.termForStudy+' Date</b>')
             .th('<b>Accession Num</b>')
-            .th('<b>Study ID</b>')
-            .th('<b>Study Description</b>');
+            .th('<b>'+terms.termForStudy+' ID</b>')
+            .th('<b>'+terms.termForStudy+' Description</b>');
 
         var resultsTableBody = resultsTable.tbody();
 
@@ -498,7 +503,7 @@ XNAT.app = getObject(XNAT.app || {});
     csvimporter.init = csvimporter.refresh = function(){
         // reset the form
         var $form = $('#pacsSeriesFinderForm');
-        $form.find('.invalid').removeClass('invalid'); 
+        $form.find('.invalid').removeClass('invalid');
         $form.resetForm();
 
         // populate the SCP receiver list if not already populated

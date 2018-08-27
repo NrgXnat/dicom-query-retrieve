@@ -7,6 +7,15 @@
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/SpreadsheetBasedImporter.vm -->
 
+<script>
+    var XNAT = getObject(XNAT || {});
+    XNAT.app = getObject(XNAT.app || {});
+    XNAT.app.dqr = getObject(XNAT.app.dqr || {});
+    XNAT.app.dqr.terms = {
+        termForPatient: "${displayManager.getSingularDisplayNameForSubject()}",
+        termForStudy: "${displayManager.getSingularDisplayNameForImageSession()}"
+    }
+</script>
 <script type="text/javascript" src="$content.getURI("scripts/dqr/SpreadsheetImporter.js")"></script>
 
 <script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
