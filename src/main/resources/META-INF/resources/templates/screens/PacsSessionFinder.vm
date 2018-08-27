@@ -16,10 +16,15 @@
 <script type="text/javascript" src="$content.getURI("scripts/dqr/CustomDataTablesFilters.js")"></script>
 
 <script type="text/javascript">
+    var terms = {
+        termForPatient: "${displayManager.getSingularDisplayNameForSubject()}",
+        termForStudy: "${displayManager.getSingularDisplayNameForImageSession()}"
+    }
 
     jq(document).ready(function () {
         if (window.pacsSessionFinder == undefined) {
-            window.pacsSessionFinder = new PacsSessionFinder("sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", "$content.getURI("images/dqr/")");
+            window.pacsSessionFinder = new PacsSessionFinder(
+                "sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", terms);
         }
 
         jq("#searchButton").click(function (event) {
@@ -38,7 +43,7 @@
         });
 
         if (window.studyDatePicker == undefined) {
-            window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday", "$content.getURI("images/dqr/")");
+            window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday");
         }
 
         var searchValidationRules = window.studyDatePicker.getStudyDateValidationRules();

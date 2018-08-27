@@ -14,7 +14,7 @@
 
 console.log('PacsSessionFinder.js');
 
-function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionSelectionStudyInstanceUidInputId, sessionSelectionPacsIdInputId, sessionSearchResultsDivId, imagePath) {
+function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionSelectionStudyInstanceUidInputId, sessionSelectionPacsIdInputId, sessionSearchResultsDivId, terms) {
     "use strict";
 
     var that = this;
@@ -28,7 +28,9 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
         "CLOSED_ROW_IMAGE": "row_details_close.png",
         "OPEN_ROW_ALT": "Show the series for this study",
         "CLOSED_ROW_ALT": "Hide the series for this study",
-        "PROCESS_BUTTON_CLASS": "processButton"
+        "PROCESS_BUTTON_CLASS": "processButton",
+        "PATIENT_TERM": terms.termForPatient,
+        "STUDY_TERM": terms.termForStudy
     };
 
     this.sessionSearchFormId = sessionSearchFormId;
@@ -40,8 +42,6 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
     this.sessionSelectionPacsIdInputId = sessionSelectionPacsIdInputId;
 
     this.sessionSearchResultsDivId = sessionSearchResultsDivId;
-
-    this.imagePath = imagePath;
 
     this.activeElementBeforeSearch = null;
 
@@ -83,14 +83,14 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": "patient.id",
-                    "sTitle": "Patient ID",
+                    "sTitle": that.constants.PATIENT_TERM + " ID",
                     "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": function (source) {
                         return source.patient.name.lastNameCommaFirstName;
                     },
-                    "sTitle": "Patient Name"
+                    "sTitle": that.constants.PATIENT_TERM + " Name"
                 },
                 {
                     "mData": "accessionNumber",
@@ -106,7 +106,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": "studyDescription",
-                    "sTitle": "Study Description"
+                    "sTitle": that.constants.STUDY_TERM + " Description"
                 },
                 {
                     "mData": "patient.sex",
@@ -121,15 +121,9 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": "studyId",
-                    "sTitle": "Study ID",
+                    "sTitle": that.constants.STUDY_TERM + " ID",
                     "dqrCustomFilter": stringStartsWithFilter
                 },
-                /* {
-                    "mData": function (source) {
-                        return source.referringPhysicianName.lastNameCommaFirstName;
-                    },
-                    "sTitle": "Referring Physician"
-                }, */
                 {
                     "bSearchable": false,
                     "bSortable": false,
@@ -305,9 +299,5 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
         var ageInMilliSeconds = Math.abs(dCurrent - dDob);
         var milliSecondsInAYear = 31556900000;
         return Math.floor(ageInMilliSeconds / milliSecondsInAYear);
-    };
-
-    this.getImageURI = function (imageName) {
-        return this.imagePath + imageName;
     };
 }
