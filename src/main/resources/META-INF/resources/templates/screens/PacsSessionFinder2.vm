@@ -101,16 +101,20 @@
                         <td>$!study.getPatient().getName().getLastNameCommaFirstName()</td>
                     </tr>
                     <tr>
-                        <th>${displayManager.getSingularDisplayNameForImageSession()}:</th>
-                        <td>$!study.getStudyDescription()</td>
-                    </tr>
-                    <tr>
                         <th>${displayManager.getSingularDisplayNameForImageSession()} Date:</th>
                         <td>$!study.getStudyDateFormattedAs("MM/dd/yyyy")</td>
                     </tr>
                     <tr>
-                        <th>#if (${displayManager.getSingularDisplayNameForImageSession().toLowerCase()} == "study")Accession Number: #else ${displayManager.getSingularDisplayNameForImageSession()} Label: #end</th>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} ID:</th>
+                        <td>$!study.getStudyId()</td>
+                    </tr>
+                    <tr>
+                        <th>DICOM Accession Number:</th>
                         <td>$!study.getAccessionNumber()</td>
+                    </tr>
+                    <tr>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} Description:</th>
+                        <td>$!study.getStudyDescription()</td>
                     </tr>
                 </table>
             </div>

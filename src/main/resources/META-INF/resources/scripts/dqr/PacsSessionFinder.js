@@ -93,26 +93,6 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                     "sTitle": that.constants.PATIENT_TERM + " Name"
                 },
                 {
-                    "mData": "accessionNumber",
-                    "sTitle": "Accession #",
-                    // "dqrCustomFilter": stringStartsWithFilter
-                },
-                {
-                    "mData": function (source) {
-                        return that.dateFormatter(source.studyDate);
-                    },
-                    "sTitle": "Study Date",
-                    // "dqrCustomFilter": stringStartsWithFilter
-                },
-                {
-                    "mData": "studyDescription",
-                    "sTitle": that.constants.STUDY_TERM + " Description"
-                },
-                {
-                    "mData": "patient.sex",
-                    "sTitle": "Gender"
-                },
-                {
                     "mData": function (source) {
                         return that.ageFormatter(source.patient.birthDate);
                     },
@@ -120,9 +100,29 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                     // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
+                    "mData": "patient.sex",
+                    "sTitle": "Gender"
+                },
+                {
                     "mData": "studyId",
                     "sTitle": that.constants.STUDY_TERM + " ID",
                     // "dqrCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": "accessionNumber",
+                    "sTitle": "Accession Number",
+                    // "dqrCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": function (source) {
+                        return that.dateFormatter(source.studyDate);
+                    },
+                    "sTitle": that.constants.STUDY_TERM + " Date",
+                    // "dqrCustomFilter": stringStartsWithFilter
+                },
+                {
+                    "mData": "studyDescription",
+                    "sTitle": that.constants.STUDY_TERM + " Description"
                 },
                 {
                     "bSearchable": false,

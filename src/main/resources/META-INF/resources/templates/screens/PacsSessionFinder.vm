@@ -102,21 +102,21 @@
             </p>
             <div style="display:none; background-color: #e4efff; margin-left: -2px; padding: 6px 2px 2px;" id="advFields"> <!-- advanced fields -->
                 <p>
-                    <label for="patientId">Patient ID</label>
+                    <label for="patientId">${displayManager.getSingularDisplayNameForSubject()} ID</label>
                     <input id="patientId" name="patientId" type="text" maxlength="50"/>
                 </p>
                 <p>
-                    <label for="patientName">Patient Name</label>
+                    <label for="patientName">${displayManager.getSingularDisplayNameForSubject()} Name</label>
                     <input id="patientName" name="patientName" type="text" maxlength="50"/>
                 </p>
                 <div style="line-height: 1">
-                    <label for="studyDateFrom">Study Date Range</label>
+                    <label for="studyDateFrom">${displayManager.getSingularDisplayNameForImageSession()} Date Range</label>
                     <span style="margin:0 6px 0 0;">From</span><input id="studyDateFrom" name="studyDateFrom" type="text" maxlength="10" style="width: 90px;" />
                     <span style="margin:0 6px;">To</span><input id="studyDateTo" name="studyDateTo" type="text" maxlength="10" style="width: 90px;" />
                 </div>
                 <p>
                     <label>&nbsp;</label>
-                    <input type="checkbox" id="studyDateIsToday" name="studyDateIsToday"/><em>The study happened today</em>
+                    <input type="checkbox" id="studyDateIsToday" name="studyDateIsToday"/><em>The ${displayManager.getSingularDisplayNameForImageSession()} happened today</em>
                 </p>
                 <span id="studyDateValidationErrorMessageHolder" style="color:red;"/>
             </div>

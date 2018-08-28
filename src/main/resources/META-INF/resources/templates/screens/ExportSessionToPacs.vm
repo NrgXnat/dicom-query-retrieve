@@ -61,8 +61,8 @@
                         <td>$!session.getDate()</td>
                     </tr>
                     <tr>
-                        <th>#if (${displayManager.getSingularDisplayNameForImageSession().toLowerCase()} == "study")Accession Number: #else ${displayManager.getSingularDisplayNameForImageSession()} Label: #end</th>
-                        <td><a href="$!{SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.id</a></td>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} ID: </th>
+                        <td><a href="$!{SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.label</a></td>
                     </tr>
                 </table>
             </div>

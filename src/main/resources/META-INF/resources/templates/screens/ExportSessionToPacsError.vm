@@ -27,7 +27,7 @@
 
 <p>The error that occurred was:</p>
 
-<p><code>${error.getMessage()}</code></p>
+<pre style="white-space: pre-wrap;">${error.getMessage()}</pre>
 
 <p><a onclick="toggleStackTrace();">Show error stack trace</a></p>
 <p id="stackTrace" style="display: none;"><code>
