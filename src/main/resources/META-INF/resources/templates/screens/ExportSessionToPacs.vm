@@ -61,7 +61,7 @@
                         <td>$!session.getDate()</td>
                     </tr>
                     <tr>
-                        <th>${displayManager.getSingularDisplayNameForImageSession()} ID: </th>
+                        <th>${displayManager.getSingularDisplayNameForImageSession()} Label: </th>
                         <td><a href="$!{SITE_ROOT}/REST/experiments/$session.id?format=html">$!session.label</a></td>
                     </tr>
                 </table>
