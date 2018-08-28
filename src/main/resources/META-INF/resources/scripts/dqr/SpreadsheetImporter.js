@@ -90,7 +90,7 @@ XNAT.app = getObject(XNAT.app || {});
         if (e.status === 500){
             if (e.responseText.toLowerCase().indexOf('remapping') >= 0) {
                 e.responseText = 'This XNAT SCP Receiver cannot perform the custom remapping you are requesting.';
-                return errorHandler(e, 'DICOM Remapping Error');
+                csvimporter.forceQuerySubmit();
             }
 
             if (e.responseText.toLowerCase().indexOf('criteria') >= 0) {
@@ -127,6 +127,7 @@ XNAT.app = getObject(XNAT.app || {});
 
     csvimporter.queryParams = {};
     csvimporter.scpReceivers = {};
+    csvimporter.selectedReceiver = {};
     csvimporter.installedProcessors = {};
 
     csvimporter.importJsonUrl = function(force){
@@ -144,12 +145,51 @@ XNAT.app = getObject(XNAT.app || {});
         return XNAT.url.csrfUrl('/xapi/dqr/csvimport/importFromJson?'+queryParams.join('&'));
     };
 
+    csvimporter.submitJsonToImport = function($form,force){
+        force = force || false;
+        var $selected = $form.find('.sessionSelector:checked');
+        var dataToImport = JSON.parse($form.find('.json-to-send').html());
+
+        if ($selected.length) {
+            csvimporter.submitQuery($selected, dataToImport, force);
+        }
+        else {
+            XNAT.ui.dialog.message('No sessions selected. Nothing to import.');
+        }
+    };
+
+    csvimporter.forceQuerySubmit = function(){
+        XNAT.ui.dialog.open({
+            title: 'Error found: Cannot Apply DICOM Remapping',
+            content: spawn('!', [
+                spawn('p',{ style: { 'font-weight': 'bold' }}, 'Error 500: Internal Server Error'),
+                spawn('p','This XNAT SCP Receiver cannot perform the custom remapping you are requesting. If you choose, you can import the requested sessions but remapping will not take place.')
+            ]),
+            buttons: [
+                {
+                    label: 'Cancel',
+                    isDefault: 'true',
+                    close: true,
+                    action: csvimporter.refresh
+                },
+                {
+                    label: 'Import Without Remapping',
+                    close: true,
+                    action: function(){
+                        var $form = $(document).find('#submitJsonForm');
+                        csvimporter.submitJsonToImport($form, true);
+                    }
+                }
+            ]
+        })
+    };
+
     csvimporter.displayQueryResults = function(data){
         // receive data as JSON blob, with an array of query results as the outer layer
         // present the results as an selectable table organized by query that allows users to confirm data to import
 
         // clean the JSON to send without assuming that any sessions have been selected
-        var jsonToSend = [];
+        var jsonToSend = [], requiresRemapping = false;
 
         // initialize the table - we'll add to it below
         var resultsTable = XNAT.table({
@@ -180,6 +220,7 @@ XNAT.app = getObject(XNAT.app || {});
         data.forEach(function(result, i){
             if (result.criteria) {
                 var anonScript = result.anonScript || '';
+                if (anonScript.length) requiresRemapping = true;
                 // add the criteria and anon to the JSON we'll send, without adding any sessions
                 jsonToSend.push({ 'criteria': result.criteria, 'anonScript': anonScript, 'studies': [] });
 
@@ -236,11 +277,15 @@ XNAT.app = getObject(XNAT.app || {});
         XNAT.ui.dialog.open({
             title: 'Select Sessions To Import',
             width: 800,
-            content: spawn('div.data-table-container.form-data'),
+            content: spawn('div#submitJsonForm.data-table-container.form-data'),
             beforeShow: function(obj){
                 var $container = obj.$modal.find('.data-table-container');
                 $container.append(resultsTable.table);
                 $container.append(spawn('div.hidden.json-to-send', JSON.stringify(jsonToSend) ));
+
+                if (requiresRemapping && !csvimporter.selectedReceiver['can-remap']) {
+                    $container.prepend(spawn('div.alert','Warning: You have requested field remapping on these sessions but your selected SCP Receiver and processor settings cannot support remapping.'))
+                }
             },
             buttons: [
                 {
@@ -249,15 +294,7 @@ XNAT.app = getObject(XNAT.app || {});
                     close: false,
                     action: function(obj){
                         var $form = obj.$modal.find('.form-data');
-                        var $selected = $form.find('.sessionSelector:checked');
-                        var dataToImport = JSON.parse($form.find('.json-to-send').html());
-
-                        if ($selected.length) {
-                            csvimporter.submitQuery($selected, dataToImport);
-                        }
-                        else {
-                            XNAT.ui.dialog.message('No sessions selected. Nothing to import.');
-                        }
+                        csvimporter.submitJsonToImport($form);
                     }
                 },
                 {
@@ -268,7 +305,8 @@ XNAT.app = getObject(XNAT.app || {});
         });
     };
 
-    csvimporter.submitQuery = function($sessions, dataToImport){
+    csvimporter.submitQuery = function($sessions, dataToImport, force){
+        force = force || false; // only force import without remapping if explicitly specified
 
         $sessions.each(function(){
             var criteriaIndex = $(this).data('criteria');
@@ -279,7 +317,7 @@ XNAT.app = getObject(XNAT.app || {});
         if (dataToImport.length) {
             xmodal.loading.open({ title: 'Submitting studies to PACS...' });
             XNAT.xhr.ajax({
-                url: csvimporter.importJsonUrl(),
+                url: csvimporter.importJsonUrl(force),
                 method: 'POST',
                 data: JSON.stringify(dataToImport),
                 contentType: 'application/json',
@@ -328,8 +366,8 @@ XNAT.app = getObject(XNAT.app || {});
     };
 
     function scpSanityChecks(scpId){
-        var receiver = csvimporter.scpReceivers[scpId], checks = [];
-        var receiverLabel = receiver['aeTitle']+':'+receiver['port'];
+        var selectedReceiver = csvimporter.selectedReceiver = csvimporter.scpReceivers[scpId], checks = [];
+        var receiverLabel = selectedReceiver['aeTitle']+':'+selectedReceiver['port'];
 
         XNAT.xhr.getJSON({
             url: XNAT.url.restUrl('/xapi/processors/site/enabled/receiver/'+receiverLabel),
@@ -356,11 +394,21 @@ XNAT.app = getObject(XNAT.app || {});
                 else {
                     $processorList.empty().append('No processors enabled for this SCP receiver')
                 }
+
+                XNAT.xhr.getJSON({
+                    url: XNAT.url.restUrl('/xapi/processors/site/canRemap/receiver/'+receiverLabel),
+                    fail: function(e){
+                        errorHandler(e, 'Could not determine remapping state for '+receiverLabel)
+                    },
+                    success: function(data){
+                        csvimporter.selectedReceiver['can-remap'] = data;
+                    }
+                })
             }
         });
 
         // check custom processing on SCP receiver
-        if (receiver.customProcessing === true) {
+        if (selectedReceiver.customProcessing === true) {
             // checks.push( spawn('div.success.sanity-check','<b>Custom processing:</b> Enabled.') );
             $('#scpProcessingStatus').empty().html('Enabled')
         }
@@ -370,9 +418,9 @@ XNAT.app = getObject(XNAT.app || {});
         }
 
         // check Dicom Object Identifier setting
-        if (receiver.identifier !== undefined && receiver.identifier !== 'dicomObjectIdentifier') {
+        if (selectedReceiver.identifier !== undefined && selectedReceiver.identifier !== 'dicomObjectIdentifier') {
             // checks.push(spawn('div.message.sanity-check', '<b>DICOM Object Identifier:</b> '+ receiver.identifier +'. Special handling may be applied to imported sessions.'));
-            $('#scpDicomIdentifier').empty().html(receiver.identifier + '. Special handling may be applied.')
+            $('#scpDicomIdentifier').empty().html(selectedReceiver.identifier + '. Special handling may be applied.')
         }
         else {
             // checks.push(spawn('div.success', '<b>DICOM Object Identifier:</b> Default. No special handling defined.'))
