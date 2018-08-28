@@ -84,7 +84,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 {
                     "mData": "patient.id",
                     "sTitle": that.constants.PATIENT_TERM + " ID",
-                    "dqrCustomFilter": stringStartsWithFilter
+                    // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": function (source) {
@@ -95,14 +95,14 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 {
                     "mData": "accessionNumber",
                     "sTitle": "Accession #",
-                    "dqrCustomFilter": stringStartsWithFilter
+                    // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": function (source) {
                         return that.dateFormatter(source.studyDate);
                     },
                     "sTitle": "Study Date",
-                    "dqrCustomFilter": stringStartsWithFilter
+                    // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": "studyDescription",
@@ -117,12 +117,12 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                         return that.ageFormatter(source.patient.birthDate);
                     },
                     "sTitle": "Age",
-                    "dqrCustomFilter": stringStartsWithFilter
+                    // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": "studyId",
                     "sTitle": that.constants.STUDY_TERM + " ID",
-                    "dqrCustomFilter": stringStartsWithFilter
+                    // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "bSearchable": false,
