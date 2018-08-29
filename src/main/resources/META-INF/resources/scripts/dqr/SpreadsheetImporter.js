@@ -114,7 +114,9 @@ XNAT.app = getObject(XNAT.app || {});
 
     /* ============ */
 
-    var csvimporter, undefined;
+    var csvimporter,
+        projectId = XNAT.data.context.projectID,
+        undefined;
 
     XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
@@ -130,6 +132,7 @@ XNAT.app = getObject(XNAT.app || {});
     csvimporter.scpReceivers = {};
     csvimporter.selectedReceiver = {};
     csvimporter.installedProcessors = {};
+    csvimporter.projectAnon = false;
 
     csvimporter.importJsonUrl = function(force){
         force = force || false;
@@ -244,16 +247,33 @@ XNAT.app = getObject(XNAT.app || {});
                 });
 
                 resultsTableBody.tr({ data: { 'criteria-index': i } })
-                    .th()
+                    .th('Criteria')
                     .th({
                         colSpan: 5,
                         addClass: 'left',
-                        html: 'Criteria: ' + criteriaLabel.join(', ')
+                        style: { 'font-weight': 'normal' },
+                        html: criteriaLabel.join(', ')
                     });
 
-                if (result.studies.length) {
-                    var listItems = [];
+                if (anonScript) {
+                    var remapEls = [];
+                    if (anonScript.indexOf('(0010,0010)') >= 0) remapEls.push(terms.termForPatient + ' Name');
+                    if (anonScript.indexOf('(0010,0030)') >= 0) remapEls.push(terms.termForPatient + ' Birth Date');
+                    if (anonScript.indexOf('(0010,0020)') >= 0) remapEls.push(terms.termForPatient + ' ID');
+                    if (anonScript.indexOf('(0008,0020)') >= 0) remapEls.push(terms.termForStudy + ' Date');
+                    if (anonScript.indexOf('(0008,0050)') >= 0) remapEls.push('Accession Number');
 
+                    resultsTableBody.tr()
+                        .th('Remap')
+                        .th({
+                            colSpan: 5,
+                            addClass: 'left',
+                            style: { 'font-weight': 'normal', 'max-width': '600px' },
+                            html: remapEls.join(', ')
+                        });
+                }
+
+                if (result.studies.length) {
                     result.studies.forEach(function(study){
                         var studyDate = dateFormatter(study.studyDate);
                         if (studyDate.trim().toLowerCase() === 'invalid date') studyDate = "Unknown";
@@ -393,7 +413,9 @@ XNAT.app = getObject(XNAT.app || {});
                     )
                 }
                 else {
-                    $processorList.empty().append('No processors enabled for this SCP receiver')
+                    var msg = 'No processors enabled for this SCP receiver.';
+                    if (!csvimporter.projectAnon) msg = '<div class="alert">'+ msg + ' No anonymization or remapping will be performed.</div>';
+                    $processorList.empty().append(msg);
                 }
 
                 XNAT.xhr.getJSON({
@@ -427,6 +449,8 @@ XNAT.app = getObject(XNAT.app || {});
             // checks.push(spawn('div.success', '<b>DICOM Object Identifier:</b> Default. No special handling defined.'))
             $('#scpDicomIdentifier').empty().html('Default. No special handling defined.');
         }
+
+        $('#customProcessingStatus').show();
     }
 
     function validateCsvForm($form){
@@ -564,11 +588,19 @@ XNAT.app = getObject(XNAT.app || {});
     /* --- INIT --- */
 
     csvimporter.init = csvimporter.refresh = function(){
+        if (!projectId) {
+            XNAT.ui.dialog.message('Page configuration error: No project context defined. Please return to your project page and begin the Import From PACS process again.');
+            return false;
+        }
+
         // close all dialogs and reset the form
         XNAT.ui.dialog.closeAll(); 
         var $form = $('#pacsSeriesFinderForm');
         $form.find('.invalid').removeClass('invalid');
         $form.resetForm();
+
+        // reset the AE-specific data import settings
+        $('#customProcessingStatus').hide();
 
         // populate the SCP receiver list if not already populated
         if (Object.keys(csvimporter.scpReceivers).length === 0) {
@@ -608,6 +640,22 @@ XNAT.app = getObject(XNAT.app || {});
                 }
             })
         }
+
+        // check for project anonymization script
+        XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/data/config/edit/projects/'+projectId+'/image/dicom/script'),
+            fail: function(e){
+                if (e.status.toString() === '404') {
+                    $('#projectAnonSetting').html('Not Active');
+                }
+                else errorHandler(e, 'Could not retrieve project anonymization script');
+            },
+            success: function(data){
+                if (data.ResultSet.Result.length) {
+                    csvimporter.projectAnon = true;
+                }
+            }
+        })
     };
     csvimporter.init();
 
