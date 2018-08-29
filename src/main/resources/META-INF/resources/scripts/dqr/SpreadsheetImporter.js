@@ -91,6 +91,7 @@ XNAT.app = getObject(XNAT.app || {});
             if (e.responseText.toLowerCase().indexOf('remapping') >= 0) {
                 e.responseText = 'This XNAT SCP Receiver cannot perform the custom remapping you are requesting.';
                 csvimporter.forceQuerySubmit();
+                return false;
             }
 
             if (e.responseText.toLowerCase().indexOf('criteria') >= 0) {
