@@ -50,14 +50,16 @@ dqrOtherPreferencePanel:
             kind: panel.input.text
             name: dqrCallingAe
             label: Calling AE Title
-            value: ''
-            placeholder: XNAT
+            value: 'XNAT'
+            placeholder: Calling AE Title
             description: >
-                The calling AE Title that should be used for all DICOM queries this site makes.
+                Enter the calling AE Title that should be used for all DICOM queries this site makes. This name is registered with remote PACS and DICOM AEs, along with your server's IP address and SCP Receiver port.
+                Changing the AE Title could affect your ability to communicate with your PACS systems.
         pacsAvailabilityCheckFrequency:
             kind: panel.input.text
             name: pacsAvailabilityCheckFrequency
             label: PACS Availability Check Frequency
+            value: '5 minutes'
             validation: interval onblur
             description: >
                 How often to check whether there are any PACS requests in the queue whose PACS are now available.
