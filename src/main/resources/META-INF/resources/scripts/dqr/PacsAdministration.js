@@ -187,14 +187,12 @@ XNAT.app = getObject(XNAT.app || {});
                             value: false,
                             addClass: 'toggle-query'
                         }),
-                        spawn('div.toggle-query-selector',{ style: { display: 'none' }},[
-                            XNAT.ui.panel.input.switchbox({
-                                name: 'defaultQueryRetrievePacs',
-                                label: 'Default Q/R AE',
-                                onText: 'Yes',
-                                offText: 'No'
-                            })
-                        ]),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'defaultQueryRetrievePacs',
+                            label: 'Default Q/R AE',
+                            onText: 'Yes',
+                            offText: 'No'
+                        }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'storable',
                             label: 'Storable',
@@ -203,15 +201,13 @@ XNAT.app = getObject(XNAT.app || {});
                             value: false,
                             addClass: 'toggle-store'
                         }),
-                        spawn('div.toggle-store-selector',{ style: { display: 'none' }},[
-                            XNAT.ui.panel.input.switchbox({
-                                name: 'defaultStoragePacs',
-                                label: 'Default Storage AE',
-                                onText: 'Yes',
-                                offText: 'No',
-                                value: false
-                            })
-                        ]),
+                        XNAT.ui.panel.input.switchbox({
+                            name: 'defaultStoragePacs',
+                            label: 'Default Storage AE',
+                            onText: 'Yes',
+                            offText: 'No',
+                            value: false
+                        }),
                         XNAT.ui.panel.input.text({
                             name: 'availabilityStart',
                             label: 'Availability Start Time',
@@ -227,8 +223,6 @@ XNAT.app = getObject(XNAT.app || {});
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
-                    if (pacs.storable && pacs.storable !== 'false') $form.find('.toggle-store-selector').show();
-                    if (pacs.queryable && pacs.queryable !== 'false') $form.find('.toggle-query-selector').show();
                 }
                 else {
                     $form.find('select').find('option').first().prop('selected','selected');
@@ -285,24 +279,6 @@ XNAT.app = getObject(XNAT.app || {});
 
     $(document).on('blur','.validate',function(){
         $(this).removeClass('invalid');
-    });
-    $(document).on('click','input.toggle-query',function(){
-        var $querySelector = $(this).parents('form').find('.toggle-query-selector');
-        if ($(this).is(':checked')) {
-            $querySelector.show();
-        }
-        else {
-            $querySelector.hide();
-        }
-    });
-    $(document).on('click','input.toggle-store',function(){
-        var $storeSelector = $(this).parents('form').find('.toggle-store-selector');
-        if ($(this).is(':checked')) {
-            $storeSelector.show();
-        }
-        else {
-            $storeSelector.hide();
-        }
     });
 
     function bindAddButtonHandler() {
