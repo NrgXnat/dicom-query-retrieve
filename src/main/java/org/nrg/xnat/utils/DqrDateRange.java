@@ -15,8 +15,8 @@ import java.util.Date;
 
 public class DqrDateRange extends DateRange{
 
-    private final static Date MIN_DATE = new Date(-100,1,1);//January 1, 1800.
-    private final static Date MAX_DATE = new Date(Long.MAX_VALUE);
+    private final static Date MIN_DATE = new Date(-100,0,1);//January 1, 1800
+    private final static Date MAX_DATE = new Date(1100,0,1);//January 1, 3000.
 
     private final Date start;
 
