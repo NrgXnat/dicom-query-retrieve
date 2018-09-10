@@ -161,9 +161,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "csvimport/uploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authenticated)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store", required = true) MultipartFile csv,
                                                         @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        if (!csv.getContentType().contains("csv")) {
-            throw new ServletRequestBindingException("Incorrect file format. Spreadsheet file must be of type: application/csv");
-        }
+//        if (!csv.getContentType().contains("csv")) {
+//            throw new ServletRequestBindingException("Incorrect file format. Spreadsheet file must be of type: application/csv");
+//        }
 
         File temp = File.createTempFile("xnat", "csv");
         FileOutputStream fos = new FileOutputStream(temp);
