@@ -17,10 +17,14 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.DateSerializer;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.nrg.dqr.restlet.JsonViews;
+import org.nrg.xnat.utils.DateAsStringSerializer;
 
 public class Study implements DqrDomainObject, Serializable {
 
@@ -72,6 +76,7 @@ public class Study implements DqrDomainObject, Serializable {
         this.studyInstanceUid = studyInstanceUid;
     }
 
+    @JsonSerialize(using=DateAsStringSerializer.class)
     public Date getStudyDate() {
         return studyDate;
     }

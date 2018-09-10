@@ -18,10 +18,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.DateSerializer;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.nrg.dqr.restlet.JsonViews;
+import org.nrg.xnat.utils.DateAsStringSerializer;
 
 public class Patient implements DqrDomainObject, Serializable {
 
@@ -31,6 +35,7 @@ public class Patient implements DqrDomainObject, Serializable {
 
     private PatientName name;
 
+    @JsonSerialize(using=DateAsStringSerializer.class)
     private Date birthDate;
 
     private String sex;

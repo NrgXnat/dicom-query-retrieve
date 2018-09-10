@@ -16,7 +16,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.nrg.xdat.om.base.BaseXnatPvisitdata;
-import org.nrg.xnat.utils.DateRange;
 
 import javax.validation.constraints.NotNull;
 

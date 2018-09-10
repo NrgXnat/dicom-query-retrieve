@@ -57,9 +57,8 @@ import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
 import org.nrg.xnat.restlet.extensions.*;
-import org.nrg.xnat.utils.DateRange;
-import org.nrg.xnat.utils.MethodName;
-import org.nrg.xnat.utils.WorkflowUtils;
+import org.nrg.xnat.utils.*;
+import org.nrg.xnat.utils.DqrDateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -477,12 +476,31 @@ public class BasicPacsService implements PacsService {
                     c.add(Calendar.DATE, 1);
                     Date endOfDay = c.getTime();
 
-                    searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                    searchCriteria.setStudyDateRange(new DqrDateRange(dateObject, endOfDay));
                     areThereSearchCriteriaForThisRow = true;
                 }
                 else{
-                    searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
-                    areThereSearchCriteriaForThisRow = true;
+                    String startDateString = studyDateCell.substring(0,dashIndex);
+                    String endDateString = studyDateCell.substring(dashIndex+1,studyDateCell.length());
+                    if(StringUtils.isNotBlank(startDateString)){
+                        if(StringUtils.isNotBlank(endDateString)){
+                            searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                        else{
+                            searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), null));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                    }
+                    else{
+                        if(StringUtils.isNotBlank(endDateString)){
+                            searchCriteria.setStudyDateRange(new DqrDateRange(null, formatter.parse(endDateString)));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                        else{
+                            //Range is open ended on both ends so no search criteria should be added.
+                        }
+                    }
                 }
             }
             if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
@@ -741,10 +759,27 @@ public class BasicPacsService implements PacsService {
                         c.add(Calendar.DATE, 1);
                         Date endOfDay = c.getTime();
 
-                        searchCriteria.setStudyDateRange(new DateRange(dateObject, endOfDay));
+                        searchCriteria.setStudyDateRange(new DqrDateRange(dateObject, endOfDay));
                     }
                     else{
-                        searchCriteria.setStudyDateRange(new DateRange(formatter.parse(studyDateCell.substring(0,dashIndex)), formatter.parse(studyDateCell.substring(dashIndex+1,studyDateCell.length()))));
+                        String startDateString = studyDateCell.substring(0,dashIndex);
+                        String endDateString = studyDateCell.substring(dashIndex+1,studyDateCell.length());
+                        if(StringUtils.isNotBlank(startDateString)){
+                            if(StringUtils.isNotBlank(endDateString)){
+                                searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
+                            }
+                            else{
+                                searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), null));
+                            }
+                        }
+                        else{
+                            if(StringUtils.isNotBlank(endDateString)){
+                                searchCriteria.setStudyDateRange(new DqrDateRange(null, formatter.parse(endDateString)));
+                            }
+                            else{
+                                //Range is open ended on both ends so no search criteria should be added.
+                            }
+                        }
                     }
                 }
                 if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
