@@ -108,8 +108,15 @@ XNAT.app = getObject(XNAT.app || {});
         return errorHandler(e);
     }
 
-    function dateFormatter(timestamp){
-        return (new Date(timestamp)).toLocaleDateString();
+    function dateFormatter(datestring){
+        // all dates for PACS queries should be formatted as YYYYMMDD and must be parsed before they can be processed as date objects.
+        var ydate;
+        if (datestring.length === 8){
+            ydate = datestring.toString();
+            ydate = ydate.slice(0,4)+ '-' +ydate.slice(4,6)+'-'+ydate.slice(6,8);
+        } else ydate = datestring;
+
+        return (new Date(ydate)).toLocaleDateString();
     }
 
     /* ============ */

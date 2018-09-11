@@ -94,7 +94,8 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": function (source) {
-                        return that.ageFormatter(source.patient.birthDate);
+                        // return source.patient.birthDate;
+                        return ageFormatter(source.patient.birthDate);
                     },
                     "sTitle": "Age",
                     // "dqrCustomFilter": stringStartsWithFilter
@@ -115,7 +116,8 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": function (source) {
-                        return that.dateFormatter(source.studyDate);
+                        // return source.studyDate;
+                        return dateFormatter(source.studyDate);
                     },
                     "sTitle": that.constants.STUDY_TERM + " Date",
                     // "dqrCustomFilter": stringStartsWithFilter
@@ -277,25 +279,35 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
         }
     };
 
-    this.dateFormatter = function (oData) {
+    var dateFormatter = function (oData) {
         if (!oData) {
             return "";
         }
-        // we're expecting the date as milliseconds since epoch
-        var oDate = new Date(oData);
+        // all dates from PACS are returned as YYYYMMDD and must be parsed before they can be processed as date objects.
+        var ydate;
+        if (oData.length === 8) {
+            ydate = oData.toString();
+            ydate = oData.slice(0,4)+'-'+oData.slice(4,6)+'-'+oData.slice(6,8);
+        }
 
-        return YAHOO.util.Date.format(oDate, {
-            format: "%m/%d/%Y"
-        });
+        var oDate = new Date(ydate);
+
+        return oDate.toLocaleDateString();
     };
 
-    this.ageFormatter = function (dob) {
+    var ageFormatter = function (dob) {
         if (!dob) {
             return "";
         }
-        // we're expecting the dob as milliseconds since epoch
+        // all dates from PACS are returned as YYYYMMDD and must be parsed before they can be processed as date objects.
+        var ydate;
+        if (dob.length === 8) {
+            ydate = dob.toString();
+            ydate = dob.slice(0,4)+'-'+dob.slice(4,6)+'-'+dob.slice(6,8);
+        }
+
         var dCurrent = new Date();
-        var dDob = new Date(dob);
+        var dDob = new Date(ydate);
         var ageInMilliSeconds = Math.abs(dCurrent - dDob);
         var milliSecondsInAYear = 31556900000;
         return Math.floor(ageInMilliSeconds / milliSecondsInAYear);
