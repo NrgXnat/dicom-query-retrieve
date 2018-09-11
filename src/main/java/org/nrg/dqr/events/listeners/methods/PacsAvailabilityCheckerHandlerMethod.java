@@ -6,6 +6,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.events.PacsRequestDequeuer;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xnat.security.ResetFailedLogins;
 import org.nrg.xnat.task.AbstractXnatRunnable;
@@ -33,7 +34,7 @@ import static org.nrg.framework.orm.DatabaseHelper.convertPGIntervalToIntSeconds
 @Accessors(prefix = "_")
 public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatPreferenceHandlerMethod {
     @Autowired
-    public PacsAvailabilityCheckerHandlerMethod(final SiteConfigPreferences preferences, final ThreadPoolTaskScheduler scheduler) {
+    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler) {
         super(scheduler, AVAILABILITY_CHECK_FREQUENCY);
         Object checkFrequencyObject = preferences.get(AVAILABILITY_CHECK_FREQUENCY);
         if(checkFrequencyObject!=null && StringUtils.isNotBlank(checkFrequencyObject.toString())){
@@ -71,7 +72,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
         }
     }
 
-    private static final String DEFAULT_CHECK_FREQUENCY = "10 minutes";
+    private static final String DEFAULT_CHECK_FREQUENCY = "5 minutes";
     private static final String AVAILABILITY_CHECK_FREQUENCY   = "pacsAvailabilityCheckFrequency";
     private final ArrayList<ScheduledFuture> _scheduledPacsRequestDequeuer = new ArrayList<>();
 

@@ -18,12 +18,13 @@ import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class CFindSCUPatientLevelById extends CFindSCUPatientLevel {
 
-    public CFindSCUPatientLevelById(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    public CFindSCUPatientLevelById(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                     final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

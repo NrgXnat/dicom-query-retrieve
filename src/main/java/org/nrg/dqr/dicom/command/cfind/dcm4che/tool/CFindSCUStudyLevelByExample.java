@@ -18,6 +18,7 @@ import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +26,9 @@ public class CFindSCUStudyLevelByExample extends CFindSCUStudyLevel {
 
     private final static Logger log = LoggerFactory.getLogger(CFindSCUStudyLevelByExample.class);
 
-    public CFindSCUStudyLevelByExample(final DicomConnectionProperties dicomConnectionProperties,
+    public CFindSCUStudyLevelByExample(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties,
                                        final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

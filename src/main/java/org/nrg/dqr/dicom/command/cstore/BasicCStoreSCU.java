@@ -21,6 +21,7 @@ import org.nrg.dcm.io.TransferCapabilityExtractor;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
@@ -45,11 +46,14 @@ public class BasicCStoreSCU implements CStoreSCU {
 
     private final DicomConnectionProperties _dicomConnectionProperties;
 
+    private final DqrPreferences _preferences;
+
     private final CEchoSCU _cechoSCU;
 
-    public BasicCStoreSCU(final DicomConnectionProperties dicomConnectionProperties) {
+    public BasicCStoreSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties) {
+        _preferences = preferences;
         _dicomConnectionProperties = dicomConnectionProperties;
-        _cechoSCU = new Dcm4cheToolCEchoSCU(dicomConnectionProperties);
+        _cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
     }
 
     @Override
@@ -130,7 +134,7 @@ public class BasicCStoreSCU implements CStoreSCU {
         } else {
             connection = new NetworkConnection();
         }
-        Object callingAeObject = XDAT.getSiteConfigPreferences().get("dqrCallingAe");
+        Object callingAeObject = _preferences.get("dqrCallingAe");
         String callingAe = _dicomConnectionProperties.getLocalAeTitle();
         if(callingAeObject!=null && callingAeObject.toString()!=null){
             callingAe = callingAeObject.toString();

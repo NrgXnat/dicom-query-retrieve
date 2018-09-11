@@ -17,12 +17,13 @@ import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevelById;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
 
-    public CFindSCUSeriesLevelByIdWithCMove(DicomConnectionProperties dicomConnectionProperties, CEchoSCU cechoSCU,
+    public CFindSCUSeriesLevelByIdWithCMove(final DqrPreferences preferences, DicomConnectionProperties dicomConnectionProperties, CEchoSCU cechoSCU,
                                             OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

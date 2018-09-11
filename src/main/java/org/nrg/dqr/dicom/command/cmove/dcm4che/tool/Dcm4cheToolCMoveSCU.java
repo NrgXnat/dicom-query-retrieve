@@ -20,6 +20,7 @@ import org.nrg.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.Series;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class Dcm4cheToolCMoveSCU implements CMoveSCU {
 
@@ -29,10 +30,13 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
 
     private OrmStrategy ormStrategy;
 
-    public Dcm4cheToolCMoveSCU(final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
+    private final DqrPreferences _preferences;
+
+    public Dcm4cheToolCMoveSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
         this.dicomConnectionProperties = dicomConnectionProperties;
-        cechoSCU = new Dcm4cheToolCEchoSCU(dicomConnectionProperties);
+        cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
         this.ormStrategy = ormStrategy;
+        _preferences = preferences;
     }
 
     @Override
@@ -44,6 +48,6 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
         if (series != null) {
             searchCriteria.setSeriesInstanceUid(series.getSeriesInstanceUid());
         }
-        new CMoveSCUSeriesLevel(dicomConnectionProperties, cechoSCU, ormStrategy).cmove(searchCriteria);
+        new CMoveSCUSeriesLevel(_preferences, dicomConnectionProperties, cechoSCU, ormStrategy).cmove(searchCriteria);
     }
 }

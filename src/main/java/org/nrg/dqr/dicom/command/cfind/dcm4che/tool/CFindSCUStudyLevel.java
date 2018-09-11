@@ -26,6 +26,7 @@ import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
 
@@ -38,9 +39,9 @@ public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
             Tag.ReferringPhysicianName
     };
 
-    public CFindSCUStudyLevel(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    public CFindSCUStudyLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                               final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

@@ -38,6 +38,7 @@ import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.framework.constants.Scope;
@@ -75,6 +76,13 @@ public class BasicPacsService implements PacsService {
     private static final String CLEAR_SIGNIFIER = "\"\"";
 
     private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
+
+    private final DqrPreferences _preferences;
+
+    public BasicPacsService(final DqrPreferences preferences) {
+        _preferences = preferences;
+    }
+
     private static Map<String, String> createHeaderToTagMap() {
         return new HashMap<String, String>() {{
             put("Accession Number Remapping", "(0008,0050)");
@@ -303,26 +311,26 @@ public class BasicPacsService implements PacsService {
     }
 
     private CEchoSCU buildCEchoSCU(final Pacs pacs) throws PacsNotQueryableException {
-        return new Dcm4cheToolCEchoSCU(buildDicomConnectionProperties(pacs));
+        return new Dcm4cheToolCEchoSCU(_preferences, buildDicomConnectionProperties(pacs));
     }
 
     private CFindSCU buildCFindSCU(final Pacs pacs) throws PacsNotQueryableException {
         if(!pacs.isQueryable()){
             throw new PacsNotQueryableException();
         }
-        return new Dcm4cheToolCFindSCU(buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
+        return new Dcm4cheToolCFindSCU(_preferences, buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
     }
 
     private CMoveSCU buildCMoveSCU(final Pacs pacs) {
-        return new Dcm4cheToolCMoveSCU(buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
+        return new Dcm4cheToolCMoveSCU(_preferences, buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
     }
 
     private CStoreSCU buildCStoreSCU(final Pacs pacs) {
-        return new BasicCStoreSCU(buildDicomConnectionProperties(pacs));
+        return new BasicCStoreSCU(_preferences, buildDicomConnectionProperties(pacs));
     }
 
     private CMoveSCU buildCMoveSCU(final Pacs pacs, final String receiverAETitle) {
-        return new Dcm4cheToolCMoveSCU(buildDicomConnectionProperties(pacs, receiverAETitle), getOrmStrategy(pacs));
+        return new Dcm4cheToolCMoveSCU(_preferences, buildDicomConnectionProperties(pacs, receiverAETitle), getOrmStrategy(pacs));
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {

@@ -25,6 +25,7 @@ import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> {
 
@@ -32,9 +33,9 @@ public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> 
             Tag.SeriesDescription
     };
 
-    public CFindSCUSeriesLevel(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    public CFindSCUSeriesLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

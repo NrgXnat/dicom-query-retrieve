@@ -18,12 +18,13 @@ import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class CFindSCUSeriesLevelById extends CFindSCUSeriesLevel {
 
-    public CFindSCUSeriesLevelById(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    public CFindSCUSeriesLevelById(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                    final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override

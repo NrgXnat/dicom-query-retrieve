@@ -34,6 +34,7 @@ import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xnat.utils.DateRange;
@@ -53,9 +54,9 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     private final OrmStrategy ormStrategy;
 
-    protected CFindSCUSpecificLevel(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                     final OrmStrategy ormStrategy) {
-        Object callingAeObject = XDAT.getSiteConfigPreferences().get("dqrCallingAe");
+        Object callingAeObject = preferences.get("dqrCallingAe");
         String callingAe = dicomConnectionProperties.getLocalAeTitle();
         if(callingAeObject!=null && callingAeObject.toString()!=null){
             callingAe = callingAeObject.toString();

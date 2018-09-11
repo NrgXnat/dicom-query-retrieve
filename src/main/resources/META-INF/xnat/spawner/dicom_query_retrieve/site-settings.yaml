@@ -43,7 +43,7 @@ dqrOtherPreferencePanel:
     name: dqrOtherPreferencePanel
     label: Other Preferences
     method: POST
-    url: /xapi/siteConfig
+    url: /xapi/dqr
     contentType: json
     contents:
         dqrCallingAe:

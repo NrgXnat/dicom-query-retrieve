@@ -22,6 +22,7 @@ import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class Dcm4cheToolCFindSCU implements CFindSCU {
 
@@ -31,15 +32,18 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
 
     private OrmStrategy ormStrategy;
 
-    public Dcm4cheToolCFindSCU(final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
+    private final DqrPreferences _preferences;
+
+    public Dcm4cheToolCFindSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
+        _preferences = preferences;
         this.dicomConnectionProperties = dicomConnectionProperties;
-        cechoSCU = new Dcm4cheToolCEchoSCU(dicomConnectionProperties);
+        cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
         this.ormStrategy = ormStrategy;
     }
 
     @Override
     public PacsSearchResults<String, Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria) {
-        return new CFindSCUPatientLevelByExample(dicomConnectionProperties, cechoSCU, ormStrategy)
+        return new CFindSCUPatientLevelByExample(_preferences, dicomConnectionProperties, cechoSCU, ormStrategy)
                 .cfind(searchCriteria);
     }
 
@@ -47,21 +51,21 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     public Patient cfindPatientById(final String patientId) {
         PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
         searchCriteria.setPatientId(patientId);
-        PacsSearchResults<String, Patient> searchResults = new CFindSCUPatientLevelById(dicomConnectionProperties,
+        PacsSearchResults<String, Patient> searchResults = new CFindSCUPatientLevelById(_preferences, dicomConnectionProperties,
                 cechoSCU, ormStrategy).cfind(searchCriteria);
         return searchResults.getFirstResult();
     }
 
     @Override
     public PacsSearchResults<String, Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria) {
-        return new CFindSCUStudyLevelByExample(dicomConnectionProperties, cechoSCU, ormStrategy).cfind(searchCriteria);
+        return new CFindSCUStudyLevelByExample(_preferences, dicomConnectionProperties, cechoSCU, ormStrategy).cfind(searchCriteria);
     }
 
     @Override
     public Study cfindStudyById(final String studyInstanceUid) {
         PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
         searchCriteria.setStudyInstanceUid(studyInstanceUid);
-        PacsSearchResults<String, Study> searchResults = new CFindSCUStudyLevelById(dicomConnectionProperties,
+        PacsSearchResults<String, Study> searchResults = new CFindSCUStudyLevelById(_preferences, dicomConnectionProperties,
                 cechoSCU, ormStrategy).cfind(searchCriteria);
         return searchResults.getFirstResult();
     }
@@ -72,14 +76,14 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
         if (null != study) {
             searchCriteria.setStudyInstanceUid(study.getStudyInstanceUid());
         }
-        return new CFindSCUSeriesLevelByStudy(dicomConnectionProperties, cechoSCU, ormStrategy).cfind(searchCriteria);
+        return new CFindSCUSeriesLevelByStudy(_preferences, dicomConnectionProperties, cechoSCU, ormStrategy).cfind(searchCriteria);
     }
 
     @Override
     public Series cfindSeriesById(final String seriesInstanceUid) {
         PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
         searchCriteria.setSeriesInstanceUid(seriesInstanceUid);
-        PacsSearchResults<String, Series> searchResults = new CFindSCUSeriesLevelById(dicomConnectionProperties,
+        PacsSearchResults<String, Series> searchResults = new CFindSCUSeriesLevelById(_preferences, dicomConnectionProperties,
                 cechoSCU, ormStrategy).cfind(searchCriteria);
         return searchResults.getFirstResult();
     }

@@ -16,14 +16,15 @@ import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public class CMoveSCUSeriesLevel {
 
     private CFindSCUSeriesLevelByIdWithCMove cfindSCU;
 
-    public CMoveSCUSeriesLevel(DicomConnectionProperties dicomConnectionProperties, CEchoSCU cechoSCU,
+    public CMoveSCUSeriesLevel(final DqrPreferences preferences, DicomConnectionProperties dicomConnectionProperties, CEchoSCU cechoSCU,
                                OrmStrategy ormStrategy) {
-        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(dicomConnectionProperties, cechoSCU, ormStrategy);
+        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     public void cmove(PacsSearchCriteria searchCriteria) {

@@ -15,6 +15,7 @@ package org.nrg.dqr.dicom.command.cecho.dcm4che.tool;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.XDAT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +30,8 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
     private final String _remoteAeTitle;
     private final int _remoteQrPort;
 
-    public Dcm4cheToolCEchoSCU(final DicomConnectionProperties dicomConnectionProperties) {
-        Object callingAeObject = XDAT.getSiteConfigPreferences().get("dqrCallingAe");
+    public Dcm4cheToolCEchoSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties) {
+        Object callingAeObject = preferences.get("dqrCallingAe");
         String callingAe = dicomConnectionProperties.getLocalAeTitle();
         if(callingAeObject!=null && callingAeObject.toString()!=null){
             callingAe = callingAeObject.toString();

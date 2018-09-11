@@ -24,14 +24,15 @@ import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
+import org.nrg.dqr.preferences.DqrPreferences;
 
 public abstract class CFindSCUPatientLevel extends CFindSCUSpecificLevel<Patient> {
 
     private final static int[] EMPTY_RETURN_TAG_PATHS = new int[0];
 
-    public CFindSCUPatientLevel(final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
+    public CFindSCUPatientLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
                                 final OrmStrategy ormStrategy) {
-        super(dicomConnectionProperties, cechoSCU, ormStrategy);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     @Override
