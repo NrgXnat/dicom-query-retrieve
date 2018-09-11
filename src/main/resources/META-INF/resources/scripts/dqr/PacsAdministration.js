@@ -122,6 +122,7 @@ XNAT.app = getObject(XNAT.app || {});
 
     function editPacsDialog(pacs) {
         pacs = pacs || {};
+        pacsList = XNAT.app.dqr.pacsList;
         var doWhat = Object.keys(pacs).length ? 'Modify' : 'Add New';
         var originalPacsLabel = (pacs.aeTitle) ? pacs.aeTitle.toLowerCase() : false;
 
@@ -326,8 +327,8 @@ XNAT.app = getObject(XNAT.app || {});
 
         // intialize PACS table container and PACS list
         $(constants.PACS_DIV).empty();
-        pacsList = [];
-        pacsObj = {};
+        XNAT.app.dqr.pacsList = pacsList = [];
+        // XNAT.app.dqr.pacsObj = pacsObj = {};
 
         var pacsTable = XNAT.table({
             className: 'xnat-table',
@@ -383,8 +384,8 @@ XNAT.app = getObject(XNAT.app || {});
             });
             pacsTableData.forEach(function(ae){
                 // add AE Title to Pacs List
-                pacsList.push(ae.aeTitle.toLowerCase());
-                pacsObj[ae.id] = ae;
+                XNAT.app.dqr.pacsList.push(ae.aeTitle.toLowerCase());
+                XNAT.app.dqr.pacsObj[ae.id] = ae;
 
                 // populate table row
                 pacsTable.tr({
@@ -554,12 +555,12 @@ XNAT.app = getObject(XNAT.app || {});
 
     function getQueryHistoryUrl(id){
         var appended = (id) ? '/request/'+id : '';
-        return XNAT.url.rootUrl('/xapi/dqr/query/history' + appended);
+        return XNAT.url.restUrl('/xapi/dqr/query/history' + appended);
     }
 
     function getQueryQueueUrl(id){
         var appended = (id) ? '/request/'+id : '';
-        return XNAT.url.rootUrl('/xapi/dqr/query/queue' + appended);
+        return XNAT.url.restUrl('/xapi/dqr/query/queue' + appended);
     }
 
     function viewHistoryDialog(e, onclose){
@@ -625,7 +626,8 @@ XNAT.app = getObject(XNAT.app || {});
     function formatDate(timestamp){
         var dateString = new Date(timestamp);
         if (dateString) {
-            return dateString.toISOString().replace('T',' ').replace('Z',' ').split('.')[0];
+            // return dateString.toISOString().replace('T',' ').replace('Z',' ').split('.')[0];
+            return dateString.toLocaleString();
         }
         else {
             return 'Unknown Date';
@@ -636,6 +638,7 @@ XNAT.app = getObject(XNAT.app || {});
 
         var $dataRows = [];
         tableType = (tableType || 'history');
+        pacsObj = XNAT.app.dqr.pacsObj;
 
         return {
             kind: 'table.dataTable',
@@ -667,14 +670,6 @@ XNAT.app = getObject(XNAT.app || {});
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
                 // a data item
-                id: {
-                    label: 'ID',
-                    td: { className: 'center' },
-                    filter: false,
-                    apply: function(){
-                        return this['id'];
-                    }
-                },
                 pacs: {
                     label: 'DICOM AE',
                     filter: true,
@@ -685,7 +680,7 @@ XNAT.app = getObject(XNAT.app || {});
                 DATE: {
                     label: 'Date',
                     th: { className: 'dqr-query center' },
-                    td: { className: 'dqr-query center mono'},
+                    td: { className: 'dqr-query'},
                     filter: function(table){
                         var MIN = 60*1000;
                         var HOUR = MIN*60;
@@ -875,6 +870,8 @@ XNAT.app = getObject(XNAT.app || {});
     });
 
     historyTable.viewQueueEntry = function(id){
+        pacsObj = XNAT.app.dqr.pacsObj;
+
         if (queryQueue[id]) {
             var queueEntry = XNAT.app.dqr.queryQueue[id];
             var queueDialogButtons = [
