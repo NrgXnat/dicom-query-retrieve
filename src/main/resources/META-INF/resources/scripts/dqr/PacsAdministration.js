@@ -643,6 +643,13 @@ XNAT.app = getObject(XNAT.app || {});
             id: 'dqr-'+tableType,
             // load: URL,
             data: sortedHistoryObj,
+            before: {
+                filterCss: {
+                    tag: 'style|type=text/css',
+                    content: '\n' +
+                    '#dqr-history tr.filter-timestamp { display: none } \n'
+                }
+            },
             table: {
                 classes: 'highlight hidden',
                 on: [
