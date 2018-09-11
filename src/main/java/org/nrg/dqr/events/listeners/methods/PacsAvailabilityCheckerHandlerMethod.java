@@ -72,7 +72,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
         }
     }
 
-    private static final String DEFAULT_CHECK_FREQUENCY = "5 minutes";
+    private static final String DEFAULT_CHECK_FREQUENCY = "10 minutes";
     private static final String AVAILABILITY_CHECK_FREQUENCY   = "pacsAvailabilityCheckFrequency";
     private final ArrayList<ScheduledFuture> _scheduledPacsRequestDequeuer = new ArrayList<>();
 
