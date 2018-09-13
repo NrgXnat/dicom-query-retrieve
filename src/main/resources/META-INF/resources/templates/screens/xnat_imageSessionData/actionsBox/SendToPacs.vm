@@ -3,7 +3,7 @@
     #* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
     <!-- Sequence: 20 -->
-    #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id))
+    #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id).addQueryData("project", $project))
     </ul>
     <ul>
     <li class="yuimenuitem">

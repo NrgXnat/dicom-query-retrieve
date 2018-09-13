@@ -48,6 +48,14 @@ public class ExportSessionToPacs extends SecureScreen {
             return;
         }
         context.put("session", session);
+        context.put("om", session);
+        context.put("subject", session.getSubjectData());
+        if(data.getParameters().get("project")!=null) {
+            context.put("project", data.getParameters().get("project"));
+        }
+        else{
+            context.put("project", session.getProject());
+        }
 
         final List<XnatImagescandataI> scans = session.getScans_scan();
         if (scans == null || scans.size() == 0) {
