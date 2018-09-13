@@ -88,7 +88,7 @@
                 <select id="pacsId" name="pacsId">
                     <option VALUE="">(SELECT)</option>
                     #foreach($pacs in $pacsList)
-                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs()) selected="true" #end>$pacs.getAeTitle()</option>
+                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs()) selected="true" #end>#if( ! $pacs.getLabel() )$pacs.getAeTitle() #else $pacs.getLabel() #end</option>
                     #end
                 </select>
             </p>

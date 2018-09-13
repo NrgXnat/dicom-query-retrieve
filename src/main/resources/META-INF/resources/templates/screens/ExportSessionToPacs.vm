@@ -42,7 +42,7 @@
                                 #else
                                     #set($selected = "")
                                 #end
-                                <option value="$pacs.id"$selected>$pacs.aeTitle:$pacs.queryRetrievePort ($pacs.host)</option>
+                                <option value="$pacs.id"$selected>#if( ! $pacs.getLabel() )$pacs.getAeTitle():$pacs.getQueryRetrievePort() ($pacs.getHost()) #else $pacs.getLabel() ($pacs.getHost()) #end</option>
                             #end
                         #end
                     </select>

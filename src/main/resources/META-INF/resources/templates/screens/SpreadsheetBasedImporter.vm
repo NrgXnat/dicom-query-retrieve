@@ -50,7 +50,7 @@
                     <option disabled value="">(SELECT)</option>
                     #foreach($currPacs in $pacsList)
                         <option VALUE="$currPacs.getId()" #if($currPacs.isDefaultQueryRetrievePacs())
-                                selected="true" #end>$currPacs.getAeTitle()</option>
+                                selected="true" #end>#if( ! $currPacs.getLabel() )$currPacs.getAeTitle() #else $currPacs.getLabel() #end</option>
                     #end
                 </select>
             </p>
