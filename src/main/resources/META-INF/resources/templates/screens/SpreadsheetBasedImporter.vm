@@ -57,14 +57,50 @@
             <input type="hidden" id="project" name="project" value="${projectId.id}" class="required" />
 
             <div id="pacsSeriesAeSelector">
-                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
-                <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
-                    <option disabled selected value="">(Select AE)</option>
+##                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
+##                <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
+##                    <option disabled selected value="">(Select AE)</option>
+##                    #foreach($scp in $enabledScps)
+##                        <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
+##                    #end
+##                </select>
+##                <div class="description" style="margin-top: 1em;"></div>
+
+                #if($enabledScps.size() == 1)
                     #foreach($scp in $enabledScps)
-                        <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
+                        <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
+                        <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end" />
                     #end
-                </select>
-                <div class="description" style="margin-top: 1em;"></div>
+                #else
+                    <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
+                    <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
+                        <option disabled selected value="">(Select AE)</option>
+                        #foreach($scp in $enabledScps)
+                            <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end">
+                                ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
+                            </option>
+                        #end
+                    </select>
+                    <div class="description"></div>
+                #end
+                <script>
+                    jq(document).ready(function(){
+                        var qrsEnabled=false, aeSelector = jq('#ae');
+                        if (aeSelector.prop('type') =='hidden') {
+                            if (aeSelector.data('qrs-enabled').toString() === "true") qrsEnabled=true;
+                        }
+                        else {
+                            aeSelector.find('option').each(function(){
+                                if (jq(this).data('qrs-enabled').toString() === "true"){
+                                    qrsEnabled = true;
+                                    jq(this).prop('selected','selected');
+                                }
+                            });
+                        }
+
+                        if (!qrsEnabled) jq('#pacsSeriesAeSelector').append('<br><div class="alert">Warning: None of your available SCP Receivers have QRS-enabled DICOM Object Identifiers. This may cause unexpected behavior on import. Consult your XNAT Admin.</div>');
+                    })
+                </script>
             </div>
 
             <div id="customProcessingStatus" style="display:none;">

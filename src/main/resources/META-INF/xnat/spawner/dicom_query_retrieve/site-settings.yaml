@@ -17,6 +17,20 @@ dqrPacsPanel:
 #            tag: script|src="/scripts/dqr/PacsAdministration.js"
         dqrPacsCss:
             tag: link|href="~/style/dqr/dqr.css"|rel="stylesheet"|type="text/css"
+dqrDicomIdentifierPanel:
+    kind: panel
+    name: dqrDicomIdentifierPanel
+    label: DICOM Object Identifiers
+    contents:
+        dqrDicomIdentifierHelptext:
+            tag: div.message
+            content: >
+                The DICOM Query Retrieve Plugin adds new DICOM Object Identifiers to your XNAT configuration. In general, these identifiers affect how DICOM metadata is mapped into XNAT-enabled datatypes. Each DICOM SCP Receiver that you have defined in your core XNAT administrative settings will be assigned to use one of these identifiers. <br><br>
+                In order to enable custom DICOM remapping using the QRS plugin, you must have an SCP Receiver defined that uses a QRS-enabled DICOM Object Identifier from this list. Then, your PACS must be configured to send to that SCP Receiver.
+            after: >
+                <br>
+        dqrDicomIdentifierTableContainer:
+            tag: div#dqrDicomIdentifierTableContainer
 dqrPushPreferencePanel:
     kind: panel.form
     name: dqrPushPreferencePanel
@@ -89,20 +103,20 @@ dqrHistoryPanel:
 siteSettings:
     kind: tabs
     name: dqrAdminPage
-    label: DQR Site Settings
     meta:
         tabGroups:
-            dqrTabGroup: DQR
+            dqrTabGroup: DICOM QRS
     contains: tabs
     tabs:
         dqrPacsTab:
             kind: tab
             name: dqrPacsTab
-            label: DICOM Q/R/S Settings
+            label: DICOM QRS Settings
             group: dqrTabGroup
             active: false
             contents:
               ${dqrPacsPanel}
+              ${dqrDicomIdentifierPanel}
               ${dqrPushPreferencePanel}
               ${dqrOtherPreferencePanel}
         dqrHistoryTab:

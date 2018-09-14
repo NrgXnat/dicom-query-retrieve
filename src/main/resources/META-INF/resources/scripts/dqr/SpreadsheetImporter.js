@@ -468,7 +468,7 @@ XNAT.app = getObject(XNAT.app || {});
             $('#scpDicomIdentifier').empty().html('Default. No special handling defined.');
         }
 
-        $('#customProcessingStatus').show();
+        // $('#customProcessingStatus').show();
     }
 
     function validateCsvForm($form){

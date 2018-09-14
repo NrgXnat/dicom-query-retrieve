@@ -497,8 +497,79 @@ XNAT.app = getObject(XNAT.app || {});
         openModalPanel(constants.MODAL_WINDOW_NAME, "Loading data...");
     }
 
+    function populateIdentifierTable(){
+        // ensure identifiers are installed
+        XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/dicomscp/identifiers'),
+            fail: function(e){ console.log('Could not import DICOM Object Identifier list',e) },
+            success: function(data){
+                var $container = $(document).find('#dqrDicomIdentifierTableContainer');
+                if (isObject(data) && Object.keys(data).length) {
+                    var receivers = [], identifierObj = data;
+
+                    // associate SCP receivers with identifiers
+                    XNAT.xhr.getJSON({
+                        url: XNAT.url.restUrl('/xapi/dicomscp'),
+                        fail: function(e){ console.log('Could not retrieve SCP receiver list', e) },
+                        success: function(data){
+                            receivers = data;
+
+                            var identifierTable = XNAT.table({
+                                className: 'xnat-table',
+                                style: {
+                                    'width': '100%'
+                                },
+                                id: 'dqrDicomIdentifierTable'
+                            });
+
+                            function isDqrEnabled(identifier){
+                                var enabledIdentifiers = ['dqrClassicExtractors','dqrObjectIdentifier'];
+                                if (enabledIdentifiers.indexOf(identifier) >= 0) return 'true'
+                            }
+                            function associatedReceivers(identifier){
+                                var associatedReceivers = [];
+                                receivers.forEach(function(receiver){
+                                    var label = receiver.aeTitle + ':' + receiver.port;
+                                    if (receiver.customProcessing) label += ' (Remapping Enabled)';
+                                    if (receiver.identifier === identifier) associatedReceivers.push(label);
+                                });
+                                return associatedReceivers.join('<br>');
+                            }
+
+                            // add table header row
+                            identifierTable.tr()
+                                .th({ addClass: 'left', html: '<b>Identifier Label</b>' })
+                                .th('<b>Identifier Class</b>')
+                                .th('<b>QRS-Enabled</b>')
+                                .th('<b>Associated SCP Receivers</b>')
+
+                            Object.keys(identifierObj).forEach(function(key){
+                                identifierTable.tr()
+                                    .td(key)
+                                    .td(identifierObj[key])
+                                    .td([ isDqrEnabled(key) ])
+                                    .td([ associatedReceivers(key) ])
+                            });
+
+                            $container.append(identifierTable.table);
+
+                            // add a link to the SCP Receiver admin panel
+                            $container.append('<p><a class="btn primary" href="'+XNAT.url.rootUrl('/app/template/Page.vm?view=admin#tab=dicom-scp-receivers-tab')+'">Configure SCP Receivers</a></p>');
+                        }
+
+                    });
+
+                }
+                else {
+                    $container.append('No identifiers found');
+                }
+            }
+        })
+    }
+
     pacsAdministration.init = function() {
         getAllPacs();
+        populateIdentifierTable();
     };
 
     pacsAdministration.cancelCurrentOperation = function() {
@@ -674,10 +745,7 @@ XNAT.app = getObject(XNAT.app || {});
                     label: 'ID',
                     filter: true,
                     apply: function(){
-                        return spawn('!', [
-                            spawn('i.hidden.sorting', zeroPad(this.id, 6)),
-                            this.id
-                        ]);
+                        return '<i class="hidden sorting">'+ zeroPad(this.id, 6) +'</i>'+ this.id.toString(); 
                     }
                 },
                 pacs: {
