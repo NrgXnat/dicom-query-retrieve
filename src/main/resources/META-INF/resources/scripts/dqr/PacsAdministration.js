@@ -589,7 +589,7 @@ XNAT.app = getObject(XNAT.app || {});
             .success(function(data){
                 if (data.length){
                     // sort data by ID
-                    data = data.sort(function(a,b){ return (a.id > b.id) ? 1 : -1 });
+                    data = data.sort(function(a,b){ return (a.id < b.id) ? 1 : -1 });
 
                     // copy the history listing into an object for individual reference
                     data.forEach(function(queueEntry){
@@ -610,7 +610,7 @@ XNAT.app = getObject(XNAT.app || {});
             .success(function(data){
                 if (data.length){
                     // sort data by ID
-                    data = data.sort(function(a,b){ return (a.id > b.id) ? 1 : -1 });
+                    data = data.sort(function(a,b){ return (a.id < b.id) ? 1 : -1 });
 
                     // copy the history listing into an object for individual reference
                     data.forEach(function(historyEntry){
@@ -665,11 +665,18 @@ XNAT.app = getObject(XNAT.app || {});
                 addDataAttrs(tr, { filter: '0' });
             },
             sortable: 'id, pacs, dataRequested, user, DATE, PROJECT',
-            filter: 'pacs, dataRequested, user, DATE, PROJECT',
+            filter: 'id, pacs, dataRequested, user, DATE, PROJECT',
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
-                // a data item
+                // a data item,
+                id: {
+                    label: 'ID',
+                    filter: true,
+                    apply: function(){
+                        return this.id;
+                    }
+                },
                 pacs: {
                     label: 'DICOM AE',
                     filter: true,
