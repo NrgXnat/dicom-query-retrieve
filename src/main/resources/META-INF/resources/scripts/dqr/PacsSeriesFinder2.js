@@ -68,7 +68,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
             var checkboxId = scan.seriesInstanceUid.replace(/\./g, "_");
             tbody.tr()
                 .td([ spawn('input.selectable-select-one', {type: 'checkbox', name: 'selectedSeries', id: 'pacsSeriesFinderCheckbox' + checkboxId, value: checkboxId })])
-                .td(scan.seriesNumber)
+                .td(scan.seriesNumber.toString())
                 .td(scan.seriesDescription)
                 .td(scan.modality)
         });
@@ -165,7 +165,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
                         close: true,
                         action: function(obj){
                             xmodal.loading.open({title:'Please wait...'});
-                            window.location = serverRoot + "/app/template/PacsSessionFinder.vm/projects/"+that.project;
+                            window.location = serverRoot + "/app/template/PacsSessionFinder.vm/project/"+that.project;
                         }
                     }
                 ]
