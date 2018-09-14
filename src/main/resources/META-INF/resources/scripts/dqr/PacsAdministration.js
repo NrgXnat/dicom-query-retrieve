@@ -674,7 +674,10 @@ XNAT.app = getObject(XNAT.app || {});
                     label: 'ID',
                     filter: true,
                     apply: function(){
-                        return this.id;
+                        return spawn('!', [
+                            spawn('i.hidden.sorting', zeroPad(this.id, 6)),
+                            this.id
+                        ]);
                     }
                 },
                 pacs: {
@@ -748,11 +751,12 @@ XNAT.app = getObject(XNAT.app || {});
                         }).element])
                     },
                     apply: function(){
-                        var dateString = formatDate(this['timestamp']);
-
+                        var timestamp = this['timestamp'];
+                        var dateString = formatDate(timestamp);
                         return spawn('!',[
+                            spawn('i.hidden.sorting', timestamp),
                             spawn('span', dateString ),
-                            spawn('input.hidden.query-timestamp.filtering|type=hidden', { value: this['timestamp'] } )
+                            spawn('input.hidden.query-timestamp.filtering|type=hidden', { value: timestamp } )
                         ])
                     }
                 },
@@ -781,8 +785,9 @@ XNAT.app = getObject(XNAT.app || {});
                     filter: true,
                     apply: function(){
                         var projectId = this['xnatProject'];
+                        var projectUrl = XNAT.url.rootUrl('/data/projects/' + projectId + '?format=html');
                         if (projectId) {
-                            return spawn('a',{ href: '/data/projects/'+ projectId + '?format=html', html: projectId });
+                            return spawn('a', { href: projectUrl, html: projectId });
                         } else {
                             return 'Unknown';
                         }
