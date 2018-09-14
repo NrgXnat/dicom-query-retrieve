@@ -111,10 +111,16 @@ XNAT.app = getObject(XNAT.app || {});
     function dateFormatter(datestring){
         // all dates for PACS queries should be formatted as YYYYMMDD and must be parsed before they can be processed as date objects.
         var ydate;
+        if (!datestring || !datestring.length) {
+            return '';
+        }
         if (datestring.length === 8){
             ydate = datestring.toString();
             ydate = ydate.slice(0,4)+ '-' +ydate.slice(4,6)+'-'+ydate.slice(6,8);
-        } else ydate = datestring;
+        }
+        else {
+            ydate = datestring;
+        }
 
         return (new Date(ydate)).toLocaleDateString();
     }
@@ -246,7 +252,7 @@ XNAT.app = getObject(XNAT.app || {});
                 var criteriaLabel = [];
                 Object.keys(criteria).forEach(function(c){
                     if (c === "studyDateRange") {
-                        criteriaLabel.push(c + ': "' + dateFormatter(criteria[c]['start']) + '&ndash;'+ dateFormatter(criteria[c]['end']) + '"');
+                        criteriaLabel.push(c + ': "' + (dateFormatter(criteria[c]['start']) || 'Unknown ') + '&ndash;'+ (dateFormatter(criteria[c]['end']) || ' Unknown') + '"');
                     }
                     else {
                         criteriaLabel.push(c + ': "' + criteria[c] + '"');
@@ -282,8 +288,12 @@ XNAT.app = getObject(XNAT.app || {});
 
                 if (result.studies.length) {
                     result.studies.forEach(function(study){
-                        var studyDate = dateFormatter(study.studyDate);
-                        if (studyDate.trim().toLowerCase() === 'invalid date') studyDate = "Unknown";
+
+                        var studyDate = dateFormatter(study.studyDate || '');
+
+                        if (!studyDate || studyDate.trim().toLowerCase() === 'invalid date') {
+                            studyDate = "Unknown";
+                        }
 
                         resultsTableBody.tr()
                             .td({
@@ -304,7 +314,8 @@ XNAT.app = getObject(XNAT.app || {});
 
         XNAT.ui.dialog.open({
             title: 'Select Sessions To Import',
-            width: 800,
+            width: 960,
+            maxBtn: true, // show 'maximize' button in title bar
             content: spawn('div#submitJsonForm.data-table-container.form-data'),
             beforeShow: function(obj){
                 var $container = obj.$modal.find('.data-table-container');
