@@ -531,6 +531,7 @@ XNAT.app = getObject(XNAT.app || {});
                                 receivers.forEach(function(receiver){
                                     var label = receiver.aeTitle + ':' + receiver.port;
                                     if (receiver.customProcessing) label += ' (Remapping Enabled)';
+                                    if (!receiver.identifier) receiver.identifier = 'dicomObjectIdentifier'; // XNAT default value if an identifier has never been explicitly associated with an SCP receiver
                                     if (receiver.identifier === identifier) associatedReceivers.push(label);
                                 });
                                 return associatedReceivers.join('<br>');
@@ -745,7 +746,7 @@ XNAT.app = getObject(XNAT.app || {});
                     label: 'ID',
                     filter: true,
                     apply: function(){
-                        return '<i class="hidden sorting">'+ zeroPad(this.id, 6) +'</i>'+ this.id.toString(); 
+                        return '<i class="hidden sorting">'+ zeroPad(this.id, 6) +'</i>'+ this.id.toString();
                     }
                 },
                 pacs: {
