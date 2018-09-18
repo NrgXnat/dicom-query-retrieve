@@ -14,9 +14,10 @@ package org.nrg.xnat.restlet.extensions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.DqrDomainObject;
+import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.NullValueSerializer;
@@ -35,12 +36,8 @@ import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-
+@Slf4j
 public abstract class PacsServiceResource extends SecureResource {
 
     public PacsServiceResource(final Context context, final Request request, final Response response) {
@@ -88,14 +85,14 @@ public abstract class PacsServiceResource extends SecureResource {
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid) {
         if (!StringUtils.isBlank(projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
+            if (log.isDebugEnabled()) {
+                log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
             }
             spaService.assign(studyInstanceUid, projectId, getUser().getLogin());
             return new Study(projectId, studyInstanceUid);
         } else {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
+            if (log.isDebugEnabled()) {
+                log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
             }
             return new Study(studyInstanceUid);
         }
@@ -162,8 +159,6 @@ public abstract class PacsServiceResource extends SecureResource {
             throw new PacsNotFoundException();
         }
     }
-
-    private final static Logger _log = LoggerFactory.getLogger(PacsServiceResource.class);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

@@ -1,7 +1,6 @@
 package org.nrg.dqr.services;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.daos.ExecutedPacsRequestDAO;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
@@ -16,10 +15,8 @@ import java.util.List;
  * Created by mike on 1/19/18.
  */
 @Service
+@Slf4j
 public class HibernateExecutedPacsRequestService extends AbstractHibernateEntityService<ExecutedPacsRequest, ExecutedPacsRequestDAO> implements ExecutedPacsRequestService {
-
-    private static final Log _log = LogFactory.getLog(HibernateExecutedPacsRequestService.class);
-
     @Override
     @Transactional
     public List<ExecutedPacsRequest> getAllForUser(UserI user){
@@ -40,5 +37,4 @@ public class HibernateExecutedPacsRequestService extends AbstractHibernateEntity
 
     @Inject
     private ExecutedPacsRequestDAO _dao;
-
 }

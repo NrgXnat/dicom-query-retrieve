@@ -1,9 +1,7 @@
 package org.nrg.dqr.events;
 
-import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
-import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
@@ -13,7 +11,6 @@ import org.nrg.dqr.services.PacsService;
 import org.nrg.dqr.services.QueuedPacsRequestService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -21,34 +18,27 @@ import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
-import org.nrg.xnat.restlet.extensions.*;
-import org.restlet.data.Status;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-import org.nrg.xnat.task.*;
-import java.time.LocalTime;
+import org.nrg.xnat.restlet.extensions.PacsServiceResourceContext;
+import org.nrg.xnat.task.AbstractXnatRunnable;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Created by mike on 1/23/18.
  */
+@Slf4j
 public class PacsRequestDequeuer extends AbstractXnatRunnable {
     public PacsRequestDequeuer(){
-        if (_log.isDebugEnabled()) {
-            _log.debug("Initializing the PACS request dequeuer job");
-        }
+        log.debug("Initializing the PACS request dequeuer job");
     }
 
     @Override
     public void runTask() {
         try {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Executing PACS request dequeuer function");
+            if (log.isDebugEnabled()) {
+                log.debug("Executing PACS request dequeuer function");
             }
             PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
             QueuedPacsRequestService queueService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
@@ -102,8 +92,8 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 context.put("seriesIds", Arrays.asList(seriesIds.split("\\s*,\\s*")));
 
                 try {
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
                     }
                     String subject = "Selected DICOM series requested";
                     String template = "SeriesRequested";
@@ -115,7 +105,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
 
 
                 } catch (Exception exception) {
-                    _log.warn("User " + username + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    log.warn("User " + username + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
                 }
 
                 final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
@@ -125,9 +115,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }
         } catch (Throwable exception) {
-            _log.error("Error executing a PACS request from the queue.", exception);
+            log.error("Error executing a PACS request from the queue.", exception);
         }
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(PacsRequestDequeuer.class);
 }

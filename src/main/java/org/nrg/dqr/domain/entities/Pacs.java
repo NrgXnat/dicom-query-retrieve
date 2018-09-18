@@ -12,8 +12,11 @@
 
 package org.nrg.dqr.domain.entities;
 
-import java.io.Serializable;
-import java.time.LocalTime;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -22,13 +25,7 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+import java.io.Serializable;
 
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aeTitle"}))
@@ -204,18 +201,16 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     @Override
     public String toString() {
-        final StringBuilder buffer = new StringBuilder("{ ");
-        buffer.append("aeTitle: ").append(_aeTitle).append(", ");
-        buffer.append("host: ").append(_host).append(", ");
-        buffer.append("label: ").append(_label).append(", ");
-        buffer.append("queryable: ").append(_queryable).append(", ");
-        buffer.append("queryRetrievePort: ").append(_queryRetrievePort).append(", ");
-        buffer.append("isDefaultQueryRetrievePacs: ").append(_defaultQueryRetrievePacs).append(", ");
-        buffer.append("storable: ").append(_storable).append(", ");
-        buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
-        buffer.append("availabilityStart: ").append(_availabilityStart).append(", ");
-        buffer.append("availabilityEnd: ").append(_availabilityEnd).append(", ");
-        buffer.append("supportsExtendedNegotiations: ").append(_supportsExtendedNegotiations).append(" }");
-        return buffer.toString();
+        return "{ " + "aeTitle: " + _aeTitle + ", "
+               + "host: " + _host + ", "
+               + "label: " + _label + ", "
+               + "queryable: " + _queryable + ", "
+               + "queryRetrievePort: " + _queryRetrievePort + ", "
+               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+               + "storable: " + _storable + ", "
+               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+               + "availabilityStart: " + _availabilityStart + ", "
+               + "availabilityEnd: " + _availabilityEnd + ", "
+               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
     }
 }

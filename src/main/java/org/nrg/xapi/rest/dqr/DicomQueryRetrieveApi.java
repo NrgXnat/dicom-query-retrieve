@@ -21,14 +21,10 @@ import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,7 +34,6 @@ import java.util.*;
 
 import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
 import static org.nrg.xdat.security.helpers.AccessLevel.Authenticated;
-import static org.nrg.xdat.security.helpers.AccessLevel.User;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 /**
@@ -282,7 +277,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<Map<String, Object>> getAllDqrPreferences() {
-        _log.info("User {} requested the system DQR settings.", getSessionUser().getUsername());
+        log.info("User {} requested the system DQR settings.", getSessionUser().getUsername());
         final Map<String, Object> map = new HashMap<>(_preferences);
         return new ResponseEntity<>(map, HttpStatus.OK);
     }
@@ -294,16 +289,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.POST, restrictTo = Admin)
     public ResponseEntity<Void> setBatchDqrPreferences(@ApiParam(value = "The map of DQR preferences to be set.", required = true) @RequestBody final Map<String, String> properties) {
-        _log.info("User {} requested to set a batch of DQR preferences.", getSessionUser().getUsername());
+        log.info("User {} requested to set a batch of DQR preferences.", getSessionUser().getUsername());
         // Is this call initializing the system?
         for (final String name : properties.keySet()) {
             try {
                 _preferences.set(properties.get(name), name);
-                if (_log.isInfoEnabled()) {
-                    _log.info("Set property {} to value: {}", name, properties.get(name));
+                if (log.isInfoEnabled()) {
+                    log.info("Set property {} to value: {}", name, properties.get(name));
                 }
             } catch (InvalidPreferenceName invalidPreferenceName) {
-                _log.error("Got an invalid preference name error for the preference: {}, failed to set value to: {}", name, properties.get(name));
+                log.error("Got an invalid preference name error for the preference: {}, failed to set value to: {}", name, properties.get(name));
             }
         }
 
@@ -315,8 +310,6 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     PacsPingService _pacsPingService;
     ExecutedPacsRequestService _executedRequestService;
     QueuedPacsRequestService _queuedRequestService;
-
-    private static final Logger _log = LoggerFactory.getLogger(DicomQueryRetrieveApi.class);
 
     private final DqrPreferences _preferences;
 }

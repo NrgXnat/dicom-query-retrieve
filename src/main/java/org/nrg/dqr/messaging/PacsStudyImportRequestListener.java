@@ -12,6 +12,7 @@
 
 package org.nrg.dqr.messaging;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -22,14 +23,10 @@ import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("unused")
+@Slf4j
 public class PacsStudyImportRequestListener {
-
-    private final static Logger log = LoggerFactory.getLogger(PacsStudyImportRequestListener.class);
-
     public void onPacsStudyImportRequest(final PacsStudyImportRequest pacsStudyImportRequest) throws Exception {
         try {
             //Study import requests are not currently set up to allow users to specify which AE to send the data to

@@ -12,13 +12,11 @@
 
 package org.nrg.dqr.messaging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@SuppressWarnings("unused")
+@Slf4j
 public class DlqListener {
-
-    private final static Logger log = LoggerFactory.getLogger(DlqListener.class);
-
     public void onReceiveDeadLetter(final Object o) throws Exception {
         if (o instanceof PacsStudyImportRequest) {
             new PacsStudyImportRequestDlqListener().onPacsStudyImportRequest((PacsStudyImportRequest) o);

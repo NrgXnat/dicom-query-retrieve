@@ -12,6 +12,7 @@
 
 package org.apache.turbine.modules.actions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.turbine.util.RunData;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
@@ -21,6 +22,7 @@ import org.nrg.xdat.turbine.modules.actions.SecureAction;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 
+@Slf4j
 public abstract class DqrSecureAction extends SecureAction {
 
     private final static String PACS_SESSION_KEY = "pacs";

@@ -9,6 +9,7 @@
 
 package org.nrg.dqr.preferences;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.configuration.ConfigPaths;
 import org.nrg.framework.services.NrgEventService;
 import org.nrg.framework.utilities.OrderedProperties;
@@ -17,15 +18,12 @@ import org.nrg.prefs.annotations.NrgPreferenceBean;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xdat.preferences.EventTriggeringAbstractPreferenceBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import static org.apache.fop.configuration.Configuration.getStringValue;
 
 @NrgPreferenceBean(toolId = DqrPreferences.DQR_TOOL_ID,
         toolName = "XNAT DQR Preferences",
         description = "Manages preferences and settings for the dicom query retrieve plugin.")
+@Slf4j
 public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String DQR_TOOL_ID = "dqr";
 
@@ -43,7 +41,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             set(dqrCallingAe, "dqrCallingAe");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name dqrCallingAe: something is very wrong here.", e);
+            log.error("Invalid preference name dqrCallingAe: something is very wrong here.", e);
         }
     }
 
@@ -56,9 +54,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             set(pacsAvailabilityCheckFrequency, "pacsAvailabilityCheckFrequency");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'pacsAvailabilityCheckFrequency': something is very wrong here.", e);
+            log.error("Invalid preference name 'pacsAvailabilityCheckFrequency': something is very wrong here.", e);
         }
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(DqrPreferences.class);
 }

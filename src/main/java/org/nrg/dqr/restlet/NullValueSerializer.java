@@ -16,25 +16,22 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
+@Slf4j
 public class NullValueSerializer extends JsonSerializer<Object> {
-
     @Override
     public void serialize(final Object entity, final JsonGenerator generator, final SerializerProvider provider) throws IOException {
         try {
             generator.writeString("");
         } catch (JsonProcessingException e) {
-            _log.error("Ran into a problem generating JSON", e);
+            log.error("Ran into a problem generating JSON", e);
             throw e;
         } catch (IOException e) {
-            _log.error("Got an I/O exception somehow", e);
+            log.error("Got an I/O exception somehow", e);
             throw e;
         }
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(NullValueSerializer.class);
 }

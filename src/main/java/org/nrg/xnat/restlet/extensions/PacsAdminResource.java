@@ -22,15 +22,9 @@ import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xnat.restlet.resources.SecureResource;
 import org.restlet.Context;
-import org.restlet.data.Form;
-import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.data.Status;
+import org.restlet.data.*;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
-
-import java.time.LocalTime;
 
 public abstract class PacsAdminResource extends SecureResource {
 

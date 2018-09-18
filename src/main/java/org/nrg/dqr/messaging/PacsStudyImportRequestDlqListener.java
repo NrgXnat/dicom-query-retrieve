@@ -12,17 +12,14 @@
 
 package org.nrg.dqr.messaging;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class PacsStudyImportRequestDlqListener {
-
-    private final static Logger log = LoggerFactory.getLogger(PacsStudyImportRequestDlqListener.class);
-
     public void onPacsStudyImportRequest(final PacsStudyImportRequest pacsStudyImportRequest) throws Exception {
         try {
             log.info("DLQ listener received study import request");

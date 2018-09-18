@@ -12,18 +12,13 @@
 
 package org.nrg.dqr.dicom.command.cfind.dcm4che.tool;
 
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
+import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
@@ -33,17 +28,19 @@ import org.nrg.dqr.domain.DqrDomainObject;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
-import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.util.DqrRuntimeException;
-import org.nrg.xdat.XDAT;
 import org.nrg.xnat.utils.DateRange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
 public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
-
-    private final static Logger log = LoggerFactory.getLogger(CFindSCUSpecificLevel.class);
 
     private final static DateFormat DICOM_DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
     private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
@@ -182,7 +179,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     protected PacsSearchResults<String, T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria,
                                                                           final List<DicomObject> dicomResults) {
-        final Map<String, T> domainResults = new HashMap<String, T>(dicomResults.size());
+        final Map<String, T> domainResults = new HashMap<>(dicomResults.size());
         for (final DicomObject d : dicomResults) {
             T domainObject = mapDicomObjectToDomainObject(d);
             domainResults.put(domainObject.getUniqueIdentifier(), domainObject);

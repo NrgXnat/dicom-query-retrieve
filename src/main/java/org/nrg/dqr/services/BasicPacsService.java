@@ -14,6 +14,7 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
@@ -33,13 +34,14 @@ import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
-import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.restlet.NullValueSerializer;
+import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
@@ -57,21 +59,22 @@ import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
-import org.nrg.xnat.restlet.extensions.*;
-import org.nrg.xnat.utils.*;
+import org.nrg.xnat.restlet.extensions.PacsNotAvailableException;
+import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
+import org.nrg.xnat.restlet.extensions.PacsNotQueryableException;
+import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.nrg.xnat.utils.DqrDateRange;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.nrg.xnat.utils.MethodName;
+import org.nrg.xnat.utils.WorkflowUtils;
 import org.springframework.stereotype.Service;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import org.nrg.dqr.util.CsvRow;
 
 @Service
+@Slf4j
 public class BasicPacsService implements PacsService {
-
-    private static final Logger _log = LoggerFactory.getLogger(BasicPacsService.class);
     //private static final String DELETE_SIGNIFIER = "DELETE";
     private static final String CLEAR_SIGNIFIER = "\"\"";
 
@@ -264,9 +267,7 @@ public class BasicPacsService implements PacsService {
 
                 for (String seriesId : Arrays.asList(request.getSeriesIds().split(","))) {
                     seriesId = seriesId.trim();
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Requesting series " + seriesId + " for study instance UID " + request.getStudyInstanceUid());
-                    }
+                    log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
                     Series series = new Series(seriesId);
 
                     PersistentWorkflowI workflow = null;
@@ -286,26 +287,38 @@ public class BasicPacsService implements PacsService {
                     }
                 }
             } catch (final CMoveTargetNotFoundException exception) {
-                _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
+                log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
             }
         }
     }
 
     @Override
     public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
-        PersistentWorkflowI workflow = null;
+        final boolean hasPacs   = pacs != null;
+        final boolean hasSeries = series != null;
+        if (!hasPacs || !hasSeries) {
+            if (hasPacs) {
+                log.error("User {} requested to export a series to the '{}:{}' PACS at {}, but the submitted series is null.", user.getUsername(), pacs.getAeTitle(), pacs.getQueryRetrievePort(), pacs.getHost());
+            } else if (hasSeries) {
+                log.error("User {} requested to export a series '{}: {}' from the image session '{}' to a PACS system, but the submitted PACS object is null.", user.getUsername(), series.getId(), series.getSeriesDescription(), series.getImageSessionId());
+            } else {
+                log.error("User {} requested to export a series to a PACS system, but both the submitted PACS and series objects are null.", user.getUsername());
+            }
+            return;
+        }
+        final PersistentWorkflowI workflow = buildOpenWorkflow(
+                user,
+                series.getXSIType(),
+                series.getId(),
+                series.getProject(),
+                EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
+                                            MethodName.currentMethodName(), null, series.getId()));
         try {
-            workflow = buildOpenWorkflow(
-                    user,
-                    series.getXSIType(),
-                    series.getId(),
-                    series.getProject(),
-                    EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
-                            MethodName.currentMethodName(), null, series.getId()));
             buildCStoreSCU(pacs).cstoreSeries(series);
             completeWorkflow(workflow);
         } catch (final Exception e) {
             failWorkflow(workflow);
+            log.error("An error occurred when user {} requested to export a series '{}: {}' from the image session '{}' to the '{}:{}' PACS at {}.", user.getUsername(), series.getId(), series.getSeriesDescription(), series.getImageSessionId(), pacs.getAeTitle(), pacs.getQueryRetrievePort(), pacs.getHost());
             throw new RuntimeException(e);
         }
     }
@@ -614,9 +627,7 @@ public class BasicPacsService implements PacsService {
             String login = AdminUtils.getAdminUser().getLogin();
             String studyId = currStudy.getStudyInstanceUid();
             final String path = "/studies/" + studyId;
-            if (_log.isDebugEnabled()) {
-                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-            }
+            log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, project);
             if (studyId == null) {
                 XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
             } else {
@@ -664,12 +675,14 @@ public class BasicPacsService implements PacsService {
                     prearchive.append("app/template/XDATScreen_prearchives.vm");
 
                     try {
-                        if (_log.isDebugEnabled()) {
-                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
+                        if (StringUtils.isNotBlank(project)) {
+                            log.debug("Completed DICOM request for study {} assigned to project {}", currStudy.getStudyInstanceUid(), project);
+                        } else {
+                            log.debug("Completed DICOM request for study {} with no project assignment.", currStudy.getStudyInstanceUid());
                         }
                         //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
                     } catch (Exception exception) {
-                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                        log.warn("User {} successfully requested one or more DICOM series, but an error occurred sending the notification email.", user.getUsername(), exception);
                     }
 
                     final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
@@ -691,25 +704,25 @@ public class BasicPacsService implements PacsService {
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
                 }
             } catch (final PacsNotFoundException exception) {
-                _log.warn("PACS not found somehow", exception);
+                log.warn("PACS not found somehow", exception);
             } catch (final PacsNotQueryableException exception) {
-                _log.warn("PACS not queryable somehow", exception);
+                log.warn("PACS not queryable somehow", exception);
             } catch (final PacsNotStorableException exception) {
-                _log.warn("PACS not storable somehow", exception);
+                log.warn("PACS not storable somehow", exception);
             } catch (final PacsNotAvailableException exception) {
-                _log.warn("PACS not available at this time", exception);
+                log.warn("PACS not available at this time", exception);
             } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                _log.warn("Error creating new workflow event", e);
+                log.warn("Error creating new workflow event", e);
             } catch (PersistentWorkflowUtils.IDAbsent e) {
-                _log.warn("ID absent when creating new workflow event", e);
+                log.warn("ID absent when creating new workflow event", e);
             } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                _log.warn("Justification absent but required when creating new workflow event", e);
+                log.warn("Justification absent but required when creating new workflow event", e);
             } catch (Exception e) {
                 final Throwable cause = e.getCause();
                 if (cause == null || !(cause instanceof Exception)) {
                 } else if (cause instanceof CMoveFailureException) {
                     final CMoveFailureException failure = (CMoveFailureException) cause;
-                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                 }
             }
         }
@@ -832,7 +845,7 @@ public class BasicPacsService implements PacsService {
                 }
             }
         } catch (final Throwable e) {
-            _log.error("Failed to get studies list from spreadsheet.", e);
+            log.error("Failed to get studies list from spreadsheet.", e);
         }
         for(Map.Entry<Study, String> entry : studiesListMappedToAnonScript.entrySet()){
             Study currStudy = entry.getKey();
@@ -845,9 +858,7 @@ public class BasicPacsService implements PacsService {
             String login = AdminUtils.getAdminUser().getLogin();
             String studyId = currStudy.getStudyInstanceUid();
             final String path = "/studies/" + studyId;
-            if (_log.isDebugEnabled()) {
-                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-            }
+            log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
             if (studyId == null) {
                 XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
             } else {
@@ -895,12 +906,14 @@ public class BasicPacsService implements PacsService {
                     prearchive.append("app/template/XDATScreen_prearchives.vm");
 
                     try {
-                        if (_log.isDebugEnabled()) {
-                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
+                        if (StringUtils.isNotBlank(project)) {
+                            log.debug("Completed DICOM request for study {} assigned to project {}", currStudy.getStudyInstanceUid(), project);
+                        } else {
+                            log.debug("Completed DICOM request for study {} with no project assignment.", currStudy.getStudyInstanceUid());
                         }
                         //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
                     } catch (Exception exception) {
-                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                        log.warn("User {} successfully requested one or more DICOM series, but an error occurred sending the notification email.", user.getUsername(), exception);
                     }
 
                     final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
@@ -922,25 +935,25 @@ public class BasicPacsService implements PacsService {
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
                 }
             } catch (final PacsNotFoundException exception) {
-                _log.warn("PACS not found somehow", exception);
+                log.warn("PACS not found somehow", exception);
             } catch (final PacsNotQueryableException exception) {
-                _log.warn("PACS not queryable somehow", exception);
+                log.warn("PACS not queryable somehow", exception);
             } catch (final PacsNotStorableException exception) {
-                _log.warn("PACS not storable somehow", exception);
+                log.warn("PACS not storable somehow", exception);
             } catch (final PacsNotAvailableException exception) {
-                _log.warn("PACS not available at this time", exception);
+                log.warn("PACS not available at this time", exception);
             } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                _log.warn("Error creating new workflow event", e);
+                log.warn("Error creating new workflow event", e);
             } catch (PersistentWorkflowUtils.IDAbsent e) {
-                _log.warn("ID absent when creating new workflow event", e);
+                log.warn("ID absent when creating new workflow event", e);
             } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                _log.warn("Justification absent but required when creating new workflow event", e);
+                log.warn("Justification absent but required when creating new workflow event", e);
             } catch (Exception e) {
                 final Throwable cause = e.getCause();
                 if (cause == null || !(cause instanceof Exception)) {
                 } else if (cause instanceof CMoveFailureException) {
                     final CMoveFailureException failure = (CMoveFailureException) cause;
-                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                 }
             }
         }
@@ -948,15 +961,11 @@ public class BasicPacsService implements PacsService {
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
         if (!StringUtils.isBlank(projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
-            }
+            log.debug("Assigning study instance UID {} to project {}", studyInstanceUid, projectId);
             XDAT.getContextService().getBean(StudyRoutingService.class).assign(studyInstanceUid, projectId, username);
             return new Study(projectId, studyInstanceUid);
         } else {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
-            }
+            log.debug("No project assignment specified for study instance UID {} , may be registered as Unassigned", studyInstanceUid);
             return new Study(studyInstanceUid);
         }
     }

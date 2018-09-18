@@ -13,6 +13,7 @@
 package org.nrg.dqr.messaging;
 
 import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
@@ -25,17 +26,13 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unused")
+@Slf4j
 public class PacsSessionExportRequestListener {
-
-    private final static Logger log = LoggerFactory.getLogger(PacsSessionExportRequestListener.class);
-
     public void onPacsSessionExportRequest(final PacsSessionExportRequest pacsSessionExportRequest) throws Exception {
         try {
             final PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);

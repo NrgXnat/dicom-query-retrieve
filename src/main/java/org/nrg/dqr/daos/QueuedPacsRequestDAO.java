@@ -3,7 +3,6 @@ package org.nrg.dqr.daos;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xft.security.UserI;
@@ -16,14 +15,12 @@ import java.util.List;
  */
 @Repository
 public class QueuedPacsRequestDAO extends AbstractHibernateDAO<QueuedPacsRequest> {
-
     public List<QueuedPacsRequest> findAllOrderedByDate(){
-        Criteria criteria = getCriteriaForType();
+        final Criteria criteria = getCriteriaForType();
         criteria.addOrder(Order.asc("queuedTime"));
-        if (criteria.list().size() == 0) {
-            return null;
-        }
-        return criteria.list();
+        //noinspection unchecked
+        final List<QueuedPacsRequest> requests = (List<QueuedPacsRequest>) criteria.list();
+        return  requests.isEmpty() ? null : requests;
     }
 
     public List<QueuedPacsRequest> findAllForUser(UserI user){

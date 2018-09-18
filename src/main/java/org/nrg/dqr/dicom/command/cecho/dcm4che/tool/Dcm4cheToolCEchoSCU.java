@@ -12,17 +12,14 @@
 
 package org.nrg.dqr.dicom.command.cecho.dcm4che.tool;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
-import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.xdat.XDAT;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class Dcm4cheToolCEchoSCU implements CEchoSCU {
-
-    private static final Logger log = LoggerFactory.getLogger(Dcm4cheToolCEchoSCU.class);
 
     private final DcmEcho _dcmEcho;
     private final String _aeTitle;

@@ -12,23 +12,21 @@
 
 package org.nrg.dqr.dicom.command.cstore;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.net.*;
 import org.dcm4che2.net.NetworkConnectionBuilder.TlsType;
 import org.nrg.dcm.DicomSender;
-import org.nrg.dicomtools.utilities.DicomUtils;
 import org.nrg.dcm.io.TransferCapabilityExtractor;
+import org.nrg.dicomtools.utilities.DicomUtils;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatAbstractresourceI;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -37,12 +35,11 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
+@Slf4j
 public class BasicCStoreSCU implements CStoreSCU {
 
     private static final String PROTOCOL_TLS = "TLS";
     private static final String DICOM_RESOURCE_FORMAT = "DICOM";
-
-    private static final Logger _log = LoggerFactory.getLogger(BasicCStoreSCU.class);
 
     private final DicomConnectionProperties _dicomConnectionProperties;
 
@@ -71,18 +68,18 @@ public class BasicCStoreSCU implements CStoreSCU {
                 final DicomObject dicomObject = DicomUtils.read(file);
                 final String result = dicomSender.send(dicomObject, DicomUtils.getTransferSyntaxUID(dicomObject));
                 if (null == result) {
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Successfully sent DICOM object from file {}", file.getAbsolutePath());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Successfully sent DICOM object from file {}", file.getAbsolutePath());
                     }
                     results.addSuccess(new CStoreResults.CStoreSuccess(file.getAbsolutePath()));
                 } else {
                     // this is officially a warning, not an error
                     // but as I'm not sure what types of warnings we expect to get,
                     // I'd rather fail fast for now.
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Failed sending DICOM object from file {}:\n{}", file.getAbsolutePath(), dicomObject.toString());
-                    } else if (_log.isWarnEnabled()) {
-                        _log.warn("Failed sending DICOM object from file {}", file.getAbsolutePath());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Failed sending DICOM object from file {}:\n{}", file.getAbsolutePath(), dicomObject.toString());
+                    } else if (log.isWarnEnabled()) {
+                        log.warn("Failed sending DICOM object from file {}", file.getAbsolutePath());
                     }
                     results.addFailure(new CStoreResults.CStoreFailure(file.getAbsolutePath(), result));
                     throw new CStoreFailureException(results);
@@ -90,8 +87,8 @@ public class BasicCStoreSCU implements CStoreSCU {
             } catch (Exception e) {
                 // Once we know more, we may want to soldier on if a single file fails.
                 // For now, I'm going to fail fast.
-                if (_log.isWarnEnabled()) {
-                    _log.warn("Failed sending DICOM object from file " + file.getAbsolutePath(), e);
+                if (log.isWarnEnabled()) {
+                    log.warn("Failed sending DICOM object from file " + file.getAbsolutePath(), e);
                 }
                 results.addFailure(new CStoreResults.CStoreFailure(file.getAbsolutePath(), e.getMessage()));
                 throw new CStoreFailureException(e, results);

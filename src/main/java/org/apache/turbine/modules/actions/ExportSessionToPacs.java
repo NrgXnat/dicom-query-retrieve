@@ -13,6 +13,7 @@
 package org.apache.turbine.modules.actions;
 
 import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
@@ -25,18 +26,14 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("unused")
+@Slf4j
 public class ExportSessionToPacs extends DqrSecureAction {
-
-    private static final Logger _log = LoggerFactory.getLogger(ExportSessionToPacs.class);
-
     private PacsService _service;
     private Pacs _pacs;
     private XnatImagesessiondata _session;
@@ -45,8 +42,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
 
     @Override
     public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
-
-        _user = TurbineUtils.getUser(data);
+        _user = XDAT.getUserDetails();
 
         ParameterParser params = data.getParameters();
         FileItem fi = params.getFileItem("csv_to_store");
@@ -75,7 +71,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
         try {
             _scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
             if (_scanIds == null) {
-                _log.debug("No scan IDs found to export, returning.");
+                log.debug("No scan IDs found to export, returning.");
                 context.put("numberOfProcessedScans", 0);
                 context.put("sessionId", _session.getId());
             } else {
@@ -84,9 +80,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
                 context.put("sessionId", _session.getId());
                 context.put("_user", _user);
                 context.put("StringUtils", new StringUtils());
-                if (_log.isDebugEnabled()) {
-                    _log.debug("User {} exported {} scans from session {}", _user.getLogin(), _scanIds.length, _session.getId());
-                }
+                log.debug("User {} exported {} scans from session {}", _user.getUsername(), _scanIds.length, _session.getId());
             }
 
             data.setScreenTemplate("ExportSessionToPacsRequested.vm");
@@ -112,9 +106,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
             for (String scanId : _scanIds) {
                 XnatImagescandata scan = _session.getScanById(scanId);
                 _service.exportSeries(_user, _pacs, scan);
-                if (_log.isInfoEnabled()) {
-                    _log.info("Exported series " + scanId + " from session " + _session.getId());
-                }
+                log.info("Exported series {} from session {}", scanId, _session.getId());
             }
         }
         else{
@@ -125,5 +117,4 @@ public class ExportSessionToPacs extends DqrSecureAction {
     private PacsEntityService getPacsEntityService() {
         return XDAT.getContextService().getBean(PacsEntityService.class);
     }
-
 }

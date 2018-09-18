@@ -12,6 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
@@ -26,12 +27,10 @@ import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @XnatRestlet("/services/pacs/{PACS_ID}/export/experiments/{ASSESSED_ID}/scans/{SCAN_ID}")
+@Slf4j
 public class PacsScanExporter extends ScanResource {
-
     public PacsScanExporter(final Context context, final Request request, final Response response) {
         super(context, request, response);
         pacsService = PacsServiceResource.initPacsService();
@@ -71,13 +70,13 @@ public class PacsScanExporter extends ScanResource {
                 } catch (final PacsNotStorableException e) {
                     getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
                 } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                    _log.warn("Error creating new workflow event", e);
+                    log.warn("Error creating new workflow event", e);
                     respondToException(e, Status.SERVER_ERROR_INTERNAL);
                 } catch (PersistentWorkflowUtils.IDAbsent e) {
-                    _log.warn("ID absent when creating new workflow event", e);
+                    log.warn("ID absent when creating new workflow event", e);
                     respondToException(e, Status.SERVER_ERROR_INTERNAL);
                 } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                    _log.warn("Justification absent but required when creating new workflow event", e);
+                    log.warn("Justification absent but required when creating new workflow event", e);
                     respondToException(e, Status.SERVER_ERROR_INTERNAL);
                 } catch (Exception e) {
                     respondToException(e, Status.SERVER_ERROR_INTERNAL);
@@ -97,8 +96,6 @@ public class PacsScanExporter extends ScanResource {
     public boolean allowPut() {
         return true;
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(PacsSeriesImporter.class);
 
     private final PacsService pacsService;
 }

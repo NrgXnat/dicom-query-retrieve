@@ -13,11 +13,12 @@
 package org.nrg.xnat.restlet.extensions;
 
 import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.dqr.services.PacsEntityService;
@@ -33,14 +34,15 @@ import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
 @XnatRestlet("/services/pacs/{PACS_ID}/import/series")
+@Slf4j
 public class PacsSeriesImporter extends PacsServiceResource {
 
     public PacsSeriesImporter(final Context context, final Request request, final Response response) {
@@ -60,11 +62,11 @@ public class PacsSeriesImporter extends PacsServiceResource {
         _ae = getBodyVariable("AE");
         _projectId = getBodyVariable("PROJECT");
         if (StringUtils.isBlank(_projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project ID set for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
+            if (log.isDebugEnabled()) {
+                log.debug("No project ID set for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
             }
-        } else if (_log.isDebugEnabled()) {
-            _log.debug("The project " + _projectId + " will be set as the destination for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
+        } else if (log.isDebugEnabled()) {
+            log.debug("The project " + _projectId + " will be set as the destination for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
         }
     }
 
@@ -111,12 +113,12 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     context.put("seriesIds", _seriesIds);
 
                     try {
-                        if (_log.isDebugEnabled()) {
-                            _log.debug("Completed DICOM request for study " + _studyInstanceUid + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
+                        if (log.isDebugEnabled()) {
+                            log.debug("Completed DICOM request for study " + _studyInstanceUid + (StringUtils.isBlank(_projectId) ? " with no project assignment." : " assigned to project " + _projectId));
                         }
                         sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
                     } catch (Exception exception) {
-                        _log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                        log.warn("User " + getUser().getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
                     }
 
                     final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
@@ -139,33 +141,33 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
                 }
             } catch (final PacsNotFoundException exception) {
-                _log.warn("PACS not found somehow", exception);
+                log.warn("PACS not found somehow", exception);
                 respondWithPacsNotFound();
             } catch (final PacsNotQueryableException exception) {
-                _log.warn("PACS not queryable somehow", exception);
+                log.warn("PACS not queryable somehow", exception);
                 respondWithPacsNotFound();
             } catch (final PacsNotStorableException exception) {
-                _log.warn("PACS not storable somehow", exception);
+                log.warn("PACS not storable somehow", exception);
                 respondWithPacsNotFound();
             } catch (final PacsNotAvailableException exception) {
-                _log.warn("PACS not available at this time", exception);
+                log.warn("PACS not available at this time", exception);
                 respondWithPacsNotFound();
             } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                _log.warn("Error creating new workflow event", e);
+                log.warn("Error creating new workflow event", e);
                 respondToException(e, Status.SERVER_ERROR_INTERNAL);
             } catch (PersistentWorkflowUtils.IDAbsent e) {
-                _log.warn("ID absent when creating new workflow event", e);
+                log.warn("ID absent when creating new workflow event", e);
                 respondToException(e, Status.SERVER_ERROR_INTERNAL);
             } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                _log.warn("Justification absent but required when creating new workflow event", e);
+                log.warn("Justification absent but required when creating new workflow event", e);
                 respondToException(e, Status.SERVER_ERROR_INTERNAL);
             } catch (Exception e) {
                 final Throwable cause = e.getCause();
-                if (cause == null || !(cause instanceof Exception)) {
+                if (!(cause instanceof Exception)) {
                     respondToException(e, Status.SERVER_ERROR_INTERNAL);
                 } else if (cause instanceof CMoveFailureException) {
                     final CMoveFailureException failure = (CMoveFailureException) cause;
-                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                     getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, failure.getMessage());
                 } else if (cause instanceof CMoveTargetNotFoundException) {
                     respondToException((CMoveTargetNotFoundException) cause, Status.SERVER_ERROR_INTERNAL);
@@ -185,8 +187,6 @@ public class PacsSeriesImporter extends PacsServiceResource {
     public boolean allowPut() {
         return true;
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(PacsSeriesImporter.class);
 
     private final String _projectId;
     private final String _studyInstanceUid;

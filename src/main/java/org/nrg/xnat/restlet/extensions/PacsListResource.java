@@ -12,9 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.security.helpers.Roles;
@@ -26,21 +24,21 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
-@XnatRestlet("/pacs")
-public class PacsListResource extends PacsAdminResource {
-    static Logger logger = Logger.getLogger(PacsListResource.class);
+import java.util.List;
 
+@XnatRestlet("/pacs")
+@Slf4j
+public class PacsListResource extends PacsAdminResource {
     public PacsListResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
     }
 
     @Override
-    public Representation represent(final Variant variant) throws ResourceException {
+    public Representation represent(final Variant variant) {
         if(getUser().isGuest()){
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
             return null;

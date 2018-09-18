@@ -12,17 +12,14 @@
 
 package org.nrg.dqr.messaging;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class PacsSessionExportRequestDlqListener {
-
-    private final static Logger log = LoggerFactory.getLogger(PacsSessionExportRequestDlqListener.class);
-
     public void onPacsSessionExportRequest(final PacsSessionExportRequest pacsSessionExportRequest) throws Exception {
         try {
             log.info("DLQ listener received session export request");
@@ -48,9 +45,7 @@ public class PacsSessionExportRequestDlqListener {
                             "Sorry!  The system was unable to export the study you requested to the PACS.  We're looking into it...");
         } catch (final UserNotFoundException e) {
             // not much to do here - was their account deleted since they made the request?
-            log.error(
-                    String.format("User %s queued up a PACS import request, but their user account cannot be found to send them a failure email."),
-                    pacsSessionExportRequest.getRequestingUser().getLogin());
+            log.error("User {} queued up a PACS import request, but their user account cannot be found to send them a failure email.", pacsSessionExportRequest.getRequestingUser().getLogin());
         }
     }
 }

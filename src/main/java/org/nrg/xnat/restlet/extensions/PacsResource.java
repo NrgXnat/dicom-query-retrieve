@@ -12,7 +12,6 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import org.apache.log4j.Logger;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.security.helpers.Roles;
@@ -24,21 +23,18 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
 @XnatRestlet("/pacs/{PACS_ID}")
 public class PacsResource extends PacsAdminResource {
-    static Logger logger = Logger.getLogger(PacsResource.class);
-
     public PacsResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
     }
 
     @Override
-    public Representation represent(final Variant variant) throws ResourceException {
+    public Representation represent(final Variant variant) {
         try {
             final Pacs pacs = retrievePacs();
             return jsonRepresentation(pacs);
