@@ -71,36 +71,38 @@
         <div style="display: inline-block; vertical-align: top; width: 60%;">
             <h4>Select Scan Series to Send (Required)</h4>
 
-            <table id="scansToExport" class="xnat-table condensed" width="100%">
-                <thead>
+            <div id="pacsExportScanSelectorContainer" class="data-table-container data-table-wrapper">
+                <table id="scansToExport" class="xnat-table condensed selectable" width="100%">
+                    <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll" title="Select / Deselect All" /></th>
+                        <th width="45"><input type="checkbox" class="selectable-select-all" id="selectAll" title="Select / Deselect All" /></th>
                         <th>Series</th>
                         <th>Description</th>
                         <th>Sequence</th>
                         <th>Scan Date</th>
                     </tr>
-                </thead>
-                <tbody>
-                #set($scanCounter =0)
-                #foreach($scan in $scans)
-                    ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
-                    <tr #if($session.getProperty("date") == $scan.getProperty("start_date")) class="original" #else class="modified" #end>
-                        <td><input type="checkbox" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
-                        <td class="scan-id">$!scan.id</td>
-                        <td>$!scan.seriesDescription</td>
-                        #set($scanType = $!scan.xSIType)
-                        #if($scanType == "xnat:mrScanData" && $!scan.getProperty("parameters.sequence"))
-                            <td>$!scan.getProperty("parameters.sequence")</td>
-                        #else
-                            <td>$!scan.getType()</td>
+                    </thead>
+                    <tbody>
+                        #set($scanCounter =0)
+                        #foreach($scan in $scans)
+                        ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
+                        <tr #if($session.getProperty("date") == $scan.getProperty("start_date")) class="original" #else class="modified" #end>
+                            <td width="45" class="center"><input type="checkbox" class="selectable-select-one" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
+                            <td class="scan-id">$!scan.id</td>
+                            <td>$!scan.seriesDescription</td>
+                            #set($scanType = $!scan.xSIType)
+                            #if($scanType == "xnat:mrScanData" && $!scan.getProperty("parameters.sequence"))
+                                <td>$!scan.getProperty("parameters.sequence")</td>
+                            #else
+                                <td>$!scan.getType()</td>
+                            #end
+                            <td>$!scan.getProperty("start_date")</td>
+                        </tr>
+                            #set($scanCounter = $scanCounter +1)
                         #end
-                        <td>$!scan.getProperty("start_date")</td>
-                    </tr>
-                    #set($scanCounter = $scanCounter +1)
-                #end
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
 
             <div id="scan-exclusion-warning" #if(${siteConfig.dqrPushPreference} == "true") class="hidden alert" #else class="alert" #end>
                 <em>Scans that were a part of the originally imported session have been excluded.</em>
@@ -113,6 +115,8 @@
         </div>
     </form>
 
+    <link rel="stylesheet" href="$content.getURI("/scripts/xnat/app/scanTable/scanTable.css")" />
+    <script src="$content.getURI("/scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
     <script src="$content.getURI("/scripts/dqr/SendToPacs.js")"></script>
     <script>
         console.log('exportSessionToPacs.vm');

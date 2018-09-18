@@ -84,7 +84,6 @@ XNAT.app = getObject(XNAT.app || {});
                 .addClass('hidden')
                 .parents('tr').addClass('disabled');
         });
-        setSelectAll();
         $('#scan-exclusion-warning').removeClass('hidden');
 
         var allScansLength = $('table#scansToExport').find('tbody').find('tr').length;
@@ -105,30 +104,9 @@ XNAT.app = getObject(XNAT.app || {});
                 .removeClass('hidden')
                 .parents('tr').removeClass('disabled');
         });
-        setSelectAll();
         $('#scan-exclusion-warning').addClass('hidden');
         $('#submitScansToPacs').prop('disabled', false);
     };
-
-    // Select-all Behavior
-    $('#selectAll').on('click', function(){
-        if ($(this).prop('indeterminate') || $(this).is(':checked')) {
-            // if none or some checkboxes are selected, select all
-            $('input[name=scansToExport]').prop('checked','checked');
-            $(this).prop('indeterminate',false)
-        }
-        else {
-            // otherwise, deselect all
-            $('input[name=scansToExport]').prop('checked',false);
-            $(this).prop('indeterminate',false)
-        }
-    });
-
-    // Set Select-all status based on external event
-    $('input[name=scansToExport]').on('click',function(){
-        // place Select All button in a default state.
-        setSelectAll();
-    });
 
     // original scan toggle
     $('#dqrPushSetting').on('click',function(){
@@ -139,22 +117,6 @@ XNAT.app = getObject(XNAT.app || {});
             XNAT.app.disableOriginalScans();
         }
     });
-
-    function setSelectAll() {
-        $('#selectAll')
-            .prop('checked',false)
-            .prop('indeterminate',true)
-
-        // compare the number of checked checkboxes to N number of checkboxes. '0' = an unchecked, determinate state for Select All. 'N' = a fully checked, determinate state for Select All.
-        if (document.querySelectorAll('input[name=scansToExport]:checked').length === 0) {
-            $('#selectAll')
-                .prop('indeterminate',false);
-        } else if (document.querySelectorAll('input[name=scansToExport]:checked').length === document.querySelectorAll('input[name=scansToExport]').length) {
-            $('#selectAll')
-                .prop('indeterminate',false)
-                .prop('checked','checked')
-        }
-    }
 
     XNAT.app.SendToPacs = function (pacsId, sessionId, scanIds) {
 
