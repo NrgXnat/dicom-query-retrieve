@@ -141,6 +141,9 @@ dependencies {
     compileAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
         transitive = false
     }
+    compileAndInclude("commons-cli:commons-cli:1.4") {
+        transitive = false
+    }
 
     testCompile "junit:junit"
     testCompile "org.springframework:spring-test"
