@@ -87,6 +87,7 @@ public class BasicPacsService implements PacsService {
         return new HashMap<String, String>() {{
             put("Accession Number Remapping", "(0008,0050)");
             put("Study Date Remapping", "(0008,0020)");
+            put("Study ID Remapping", "(0020,0010)");
             put("Patient ID Remapping", "(0010,0020)");
             put("Patient Name Remapping", "(0010,0010)");
             put("Patient Birth Date Remapping", "(0010,0030)");

@@ -273,6 +273,7 @@ XNAT.app = getObject(XNAT.app || {});
                     if (anonScript.indexOf('(0010,0010)') >= 0) remapEls.push(terms.termForPatient + ' Name');
                     if (anonScript.indexOf('(0010,0030)') >= 0) remapEls.push(terms.termForPatient + ' Birth Date');
                     if (anonScript.indexOf('(0010,0020)') >= 0) remapEls.push(terms.termForPatient + ' ID');
+                    if (anonScript.indexOf('(0020,0010)') >= 0) remapEls.push(terms.termForStudy + ' ID');
                     if (anonScript.indexOf('(0008,0020)') >= 0) remapEls.push(terms.termForStudy + ' Date');
                     if (anonScript.indexOf('(0008,0050)') >= 0) remapEls.push('Accession Number');
 
