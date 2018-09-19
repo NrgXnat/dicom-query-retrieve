@@ -227,7 +227,7 @@ XNAT.app = getObject(XNAT.app || {});
             })
             .th('<b>'+terms.termForPatient+' Name</b>')
             .th('<b>'+terms.termForStudy+' Date</b>')
-            .th('<b>Accession Num</b>')
+            .th({ style: { 'max-width':'140px', 'word-wrap':'break-word' }},'<b>Accession Num</b>')
             .th('<b>'+terms.termForStudy+' ID</b>')
             .th('<b>'+terms.termForStudy+' Description</b>');
 
@@ -264,7 +264,7 @@ XNAT.app = getObject(XNAT.app || {});
                     .th({
                         colSpan: 5,
                         addClass: 'left',
-                        style: { 'font-weight': 'normal' },
+                        style: { 'font-weight': 'normal', 'white-space': 'normal' },
                         html: criteriaLabel.join(', ')
                     });
 
