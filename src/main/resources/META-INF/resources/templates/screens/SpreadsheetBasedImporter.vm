@@ -76,7 +76,7 @@
                     <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
                         <option disabled selected value="">(Select AE)</option>
                         #foreach($scp in $enabledScps)
-                            <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end">
+                            <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#else false#end">
                                 ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
                             </option>
                         #end
@@ -90,7 +90,7 @@
                             if (aeSelector.data('qrs-enabled').toString() === "true") qrsEnabled=true;
                         }
                         else {
-                            aeSelector.find('option').each(function(){
+                            aeSelector.find('option').not(':disabled').each(function(){
                                 if (jq(this).data('qrs-enabled').toString() === "true"){
                                     qrsEnabled = true;
                                     jq(this).prop('selected','selected');

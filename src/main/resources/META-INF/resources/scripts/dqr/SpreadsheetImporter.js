@@ -227,7 +227,7 @@ XNAT.app = getObject(XNAT.app || {});
             })
             .th('<b>'+terms.termForPatient+' Name</b>')
             .th('<b>'+terms.termForStudy+' Date</b>')
-            .th({ style: { 'max-width':'140px', 'word-wrap':'break-word' }},'<b>Accession Num</b>')
+            .th('<b>Accession Num</b>')
             .th('<b>'+terms.termForStudy+' ID</b>')
             .th('<b>'+terms.termForStudy+' Description</b>');
 
@@ -301,7 +301,7 @@ XNAT.app = getObject(XNAT.app || {});
                             })
                             .td( study.patient.name.lastNameCommaFirstName )
                             .td( studyDate )
-                            .td( study.accessionNumber )
+                            .td({ style: { 'max-width':'140px', 'word-wrap':'break-word' }}, study.accessionNumber )
                             .td( study.studyId )
                             .td( study.studyDescription )
                     });
