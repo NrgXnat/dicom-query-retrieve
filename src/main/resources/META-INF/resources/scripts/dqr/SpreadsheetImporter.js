@@ -405,7 +405,7 @@ XNAT.app = getObject(XNAT.app || {});
         })
     };
 
-    function scpSanityChecks(scpId){
+    csvimporter.scpSanityChecks = function(scpId){
         var selectedReceiver = csvimporter.selectedReceiver = csvimporter.scpReceivers[scpId], checks = [];
         var receiverLabel = selectedReceiver['aeTitle']+':'+selectedReceiver['port'];
 
@@ -470,7 +470,7 @@ XNAT.app = getObject(XNAT.app || {});
         }
 
         // $('#customProcessingStatus').show();
-    }
+    };
 
     function validateCsvForm($form){
         var canSubmit = true,
@@ -554,7 +554,7 @@ XNAT.app = getObject(XNAT.app || {});
 
     $(document).on('change','select#ae',function(){
         var scpId = $(this).find('option:selected').data('id');
-        scpSanityChecks(scpId);
+        csvimporter.scpSanityChecks(scpId);
     });
 
     $(document).on('click','a.processor-info',function(){
@@ -606,11 +606,14 @@ XNAT.app = getObject(XNAT.app || {});
 
     /* --- INIT --- */
 
-    csvimporter.init = csvimporter.refresh = function(){
+    csvimporter.init = csvimporter.refresh = function(scpId){
         if (!projectId) {
             XNAT.ui.dialog.message('Page configuration error: No project context defined. Please return to your project page and begin the Import From PACS process again.');
             return false;
         }
+
+        // if an scpId is fed as a parameter, we should do a sanity check on that receiver on startup
+        scpId = scpId || false;
 
         // close all dialogs and reset the form
         XNAT.ui.dialog.closeAll(); 
@@ -635,6 +638,7 @@ XNAT.app = getObject(XNAT.app || {});
                             csvimporter.scpReceivers[receiver.id] = receiver;
                         })
                     }
+                    if (scpId) csvimporter.scpSanityChecks(scpId);
                 }
             })
         }
@@ -676,6 +680,10 @@ XNAT.app = getObject(XNAT.app || {});
             }
         })
     };
-    csvimporter.init();
+
+    // if the page loads with only a single default SCP receiver initialized, perform the sanity check on that receiver on startup
+    var presetScpId = $('#default-scp-id').val();
+    presetScpId = presetScpId || false;
+    csvimporter.init(presetScpId);
 
 }));

@@ -16,10 +16,6 @@
         termForStudy: "${displayManager.getSingularDisplayNameForImageSession()}"
     }
 </script>
-<script type="text/javascript" src="$content.getURI("scripts/dqr/SpreadsheetImporter.js")"></script>
-
-<script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
-<link rel="stylesheet" href="$content.getURI("scripts/xnat/app/scanTable/scanTable.css")" />
 
 
 <h2 class="edit_title">Import List of ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getPluralDisplayNameForImageSession()} from PACS</h2>
@@ -57,14 +53,6 @@
             <input type="hidden" id="project" name="project" value="${projectId.id}" class="required" />
 
             <div id="pacsSeriesAeSelector">
-##                <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
-##                <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
-##                    <option disabled selected value="">(Select AE)</option>
-##                    #foreach($scp in $enabledScps)
-##                        <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="$scp.getId()">${scp.getAeTitle()}:${scp.getPort()}</option>
-##                    #end
-##                </select>
-##                <div class="description" style="margin-top: 1em;"></div>
 
                 #if($enabledScps.size() == 1)
                     #set($scp = $enabledScps[0])
@@ -74,6 +62,7 @@
                             ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
                         </option>
                     </select>
+                    <input type="hidden" id="default-scp-id" value="${scp.getId()}" />
                 #else
                     <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
                     <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
@@ -96,7 +85,7 @@
                             aeSelector.find('option').not(':disabled').each(function(){
                                 if (jq(this).data('qrs-enabled').toString() === "true"){
                                     qrsEnabled = true;
-                                    jq(this).prop('selected','selected');
+//                                    jq(this).prop('selected','selected');
                                 }
                             });
                         }
@@ -134,6 +123,10 @@
         </div>
 
     </form>
+
+    <script type="text/javascript" src="$content.getURI("scripts/dqr/SpreadsheetImporter.js")"></script>
+    <script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
+    <link rel="stylesheet" href="$content.getURI("scripts/xnat/app/scanTable/scanTable.css")" />
 
 #end
 
