@@ -7,7 +7,7 @@
  * Released under the Simplified BSD.
  */
 
-def pluginVersion = '1.0.0-DEMO'
+def pluginVersion = '1.0.0-PRERELEASE'
 def vXnatDev = "1.7.5-RC1-SNAPSHOT"
 def vXnat = '1.7.5-SNAPSHOT'
 def vJunit = '4.12'
