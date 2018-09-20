@@ -67,10 +67,13 @@
 ##                <div class="description" style="margin-top: 1em;"></div>
 
                 #if($enabledScps.size() == 1)
-                    #foreach($scp in $enabledScps)
-                        <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
-                        <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end" />
-                    #end
+                    #set($scp = $enabledScps[0])
+                    <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
+                    <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required hidden" aria-required="true">
+                        <option selected value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#else false#end">
+                            ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
+                        </option>
+                    </select>
                 #else
                     <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
                     <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required" aria-required="true">
