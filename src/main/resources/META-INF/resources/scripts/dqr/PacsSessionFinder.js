@@ -292,7 +292,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
         var oDate = new Date(ydate);
 
-        return oDate.toLocaleDateString();
+        return oDate.toISOString().substring(0,10);
     };
 
     var ageFormatter = function (dob) {
