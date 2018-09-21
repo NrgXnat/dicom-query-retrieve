@@ -20,6 +20,14 @@
         background-color: #f0f0f0;
         color: #a8a8a8;
     }
+    .xnat-table td.max200 {
+        max-width: 200px;
+        word-wrap: break-word; 
+    }
+    .xnat-table td.max120 {
+        max-width: 120px; 
+        word-wrap: break-word; 
+    }
 </style>
 
 <h2 class="edit_title" style="text-transform: capitalize">Export ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} $session.label to PACS</h2>
@@ -88,13 +96,13 @@
                         ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
                         <tr #if($session.getProperty("date") == $scan.getProperty("start_date")) class="original" #else class="modified" #end>
                             <td width="45" class="center"><input type="checkbox" class="selectable-select-one" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
-                            <td class="scan-id">$!scan.id</td>
-                            <td>$!scan.seriesDescription</td>
+                            <td class="scan-id max120">$!scan.id</td>
+                            <td class="max200">$!scan.seriesDescription</td>
                             #set($scanType = $!scan.xSIType)
                             #if($scanType == "xnat:mrScanData" && $!scan.getProperty("parameters.sequence"))
-                                <td>$!scan.getProperty("parameters.sequence")</td>
+                                <td class="max200">$!scan.getProperty("parameters.sequence")</td>
                             #else
-                                <td>$!scan.getType()</td>
+                                <td class="max200">$!scan.getType()</td>
                             #end
                             <td>$!scan.getProperty("start_date")</td>
                         </tr>
