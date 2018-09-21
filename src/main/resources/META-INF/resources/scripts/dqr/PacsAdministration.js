@@ -171,7 +171,9 @@ XNAT.app = getObject(XNAT.app || {});
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'queryRetrievePort',
-                            label: 'Port'
+                            label: 'Port',
+                            addClass: 'validate',
+                            validation: 'required'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'extendedNegotiations',
