@@ -70,14 +70,14 @@ XNAT.app = getObject(XNAT.app || {});
 
     /* ============ */
 
-    var pacsAdministration, pacsObj, pacsList;
+    var PacsAdministration, pacsObj, pacsList;
 
     XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
     XNAT.app.dqr.pacsObj = pacsObj = {};
     XNAT.app.dqr.pacsList = pacsList = [];
 
-    XNAT.app.dqr.PacsAdministration = pacsAdministration =
+    XNAT.app.dqr.PacsAdministration = PacsAdministration =
         getObject(XNAT.app.dqr.PacsAdministration);
 
 
@@ -378,6 +378,9 @@ XNAT.app = getObject(XNAT.app || {});
             if (ae.queryRetrievePort) summary.push( spawn('p', 'Port: '+ae.queryRetrievePort));
             return spawn('!',summary);
         }
+        function pingPacs(id){
+            return spawn('button.btn-sm.ping-pacs', { title: 'Check PACS Network Status', data: { 'pacs-id': id }}, 'Ping');
+        }
 
         // add data rows
         if (pacsTableData.length) {
@@ -410,7 +413,7 @@ XNAT.app = getObject(XNAT.app || {});
                     .td([ displayAeSummary(ae) ])
                     .td({ addClass: 'center' },[ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
                     .td({ addClass: 'center' },[ showDefault(ae.storable, ae.defaultStoragePacs) ])
-                    .td({ addClass: 'center'}, '(Ping Status)')
+                    .td({ addClass: 'center'}, [ pingPacs(ae.id) ])
                     .td({ addClass: 'center'}, [ editButton(), spawn('!',' '), deleteButton() ]);
             })
 
@@ -570,16 +573,50 @@ XNAT.app = getObject(XNAT.app || {});
         })
     }
 
-    pacsAdministration.init = function() {
+    PacsAdministration.checkPacsStatus = function(id, button){
+        id = parseInt(id);
+        var $button = $(button);
+        var url = XNAT.url.rootUrl('/xapi/dqr/pacsStatus/ping/'+id);
+
+        function showPingError(errorObj){
+            xmodal.loading.close();
+            console.log('Could not ping PACS',errorObj);
+            XNAT.ui.banner.top(3000,'Error: Could not check PACS status','error');
+        }
+
+        function showPingStatus(response){
+            xmodal.loading.close();
+            if (!response || !response.successful) {
+                XNAT.ui.banner.top(3000,'Error: No response from PACS','error');
+                return false;
+            }
+            if (!response.enabled) {
+                XNAT.ui.banner.top(3000,'PACS Status: Down','alert');
+                return true;
+            }
+            if (response.enabled){
+                XNAT.ui.banner.top(3000,'PACS Status: Up','success');
+            }
+        }
+
+        xmodal.loading.open({ title: 'Checking PACS Status' })
+        XNAT.xhr.getJSON({
+            url: url,
+            fail: function(e) { showPingError(e) },
+            success: function(d) { showPingStatus(d) }
+        });
+    };
+
+    PacsAdministration.init = function() {
         getAllPacs();
         populateIdentifierTable();
     };
 
-    pacsAdministration.cancelCurrentOperation = function() {
+    PacsAdministration.cancelCurrentOperation = function() {
         currentOperation.enable();
     };
 
-    pacsAdministration.submitCurrentOperation = function() {
+    PacsAdministration.submitCurrentOperation = function() {
         if (currentOperation.type === constants.OPERATION_DELETE) {
             xmodal.close();
             deletePacs();
@@ -593,8 +630,13 @@ XNAT.app = getObject(XNAT.app || {});
         currentOperation.enable();
     };
 
-    pacsAdministration.ormStrategies = ormStrategies;
+    PacsAdministration.ormStrategies = ormStrategies;
 
+    $(document).on('click','.ping-pacs', function() {
+        var id = $(this).data('pacs-id');
+        XNAT.app.dqr.PacsAdministration.checkPacsStatus(id, this);
+    });
+    
     $(document).ready(function(){
         XNAT.app.dqr.PacsAdministration.init();
     });
