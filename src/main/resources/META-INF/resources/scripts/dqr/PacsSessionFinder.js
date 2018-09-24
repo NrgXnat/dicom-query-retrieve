@@ -107,11 +107,13 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 {
                     "mData": "studyId",
                     "sTitle": that.constants.STUDY_TERM + " ID",
+                    "sClass": "max200"
                     // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
                     "mData": "accessionNumber",
                     "sTitle": "Accession Number",
+                    "sClass": "max200"
                     // "dqrCustomFilter": stringStartsWithFilter
                 },
                 {
@@ -124,7 +126,8 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
                 },
                 {
                     "mData": "studyDescription",
-                    "sTitle": that.constants.STUDY_TERM + " Description"
+                    "sTitle": that.constants.STUDY_TERM + " Description",
+                    "sClass": "max200"
                 },
                 {
                     "bSearchable": false,

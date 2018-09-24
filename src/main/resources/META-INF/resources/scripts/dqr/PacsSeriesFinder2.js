@@ -68,7 +68,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
             var checkboxId = scan.seriesInstanceUid.replace(/\./g, "_");
             tbody.tr()
                 .td([ spawn('input.selectable-select-one', {type: 'checkbox', name: 'selectedSeries', id: 'pacsSeriesFinderCheckbox' + checkboxId, value: checkboxId })])
-                .td(scan.seriesNumber.toString())
+                .td({ addClass: 'max120' }, scan.seriesNumber.toString())
                 .td(scan.seriesDescription)
                 .td(scan.modality)
         });

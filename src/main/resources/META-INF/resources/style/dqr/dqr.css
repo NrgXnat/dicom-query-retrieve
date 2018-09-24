@@ -79,3 +79,17 @@ body button.ui-datepicker-trigger {
     margin-left: 3px;
     padding: 3px 6px;
 }
+
+/* enforce cell width */
+.xnat-table td.max200 {
+    max-width: 200px;
+    word-wrap: break-word;
+}
+.xnat-table td.max180 {
+    max-width: 180px;
+    word-wrap: break-word;
+}
+.xnat-table td.max120 {
+    max-width: 120px;
+    word-wrap: break-word;
+}

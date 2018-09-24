@@ -636,7 +636,7 @@ XNAT.app = getObject(XNAT.app || {});
         var id = $(this).data('pacs-id');
         XNAT.app.dqr.PacsAdministration.checkPacsStatus(id, this);
     });
-    
+
     $(document).ready(function(){
         XNAT.app.dqr.PacsAdministration.init();
     });
@@ -742,8 +742,8 @@ XNAT.app = getObject(XNAT.app || {});
     function formatDate(timestamp){
         var dateString = new Date(timestamp);
         if (dateString) {
-            // return dateString.toISOString().replace('T',' ').replace('Z',' ').split('.')[0];
-            return dateString.toLocaleString();
+            return dateString.toISOString().replace('T',' ').replace('Z',' ').split('.')[0];
+            // return dateString.toLocaleString();
         }
         else {
             return 'Unknown Date';

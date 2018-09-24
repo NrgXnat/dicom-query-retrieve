@@ -122,7 +122,7 @@ XNAT.app = getObject(XNAT.app || {});
             ydate = datestring;
         }
 
-        return (new Date(ydate)).toLocaleDateString();
+        return (new Date(ydate)).toISOString().substring(0,10);
     }
 
     /* ============ */
@@ -252,7 +252,7 @@ XNAT.app = getObject(XNAT.app || {});
                 var criteriaLabel = [];
                 Object.keys(criteria).forEach(function(c){
                     if (c === "studyDateRange") {
-                        criteriaLabel.push(c + ': "' + (dateFormatter(criteria[c]['start']) || 'Unknown ') + '&ndash;'+ (dateFormatter(criteria[c]['end']) || ' Unknown') + '"');
+                        criteriaLabel.push(c + ': "' + (dateFormatter(criteria[c]['start']) || 'Unknown ') + ' to '+ (dateFormatter(criteria[c]['end']) || ' Unknown') + '"');
                     }
                     else {
                         criteriaLabel.push(c + ': "' + criteria[c] + '"');

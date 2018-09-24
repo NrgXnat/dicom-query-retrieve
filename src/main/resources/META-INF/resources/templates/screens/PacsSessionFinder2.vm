@@ -17,6 +17,7 @@
 
 <script type="text/javascript" src="$content.getURI("scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
 <link rel="stylesheet" href="$content.getURI("scripts/xnat/app/scanTable/scanTable.css")" />
+<link rel="stylesheet" href="$content.getURI("/style/dqr/dqr.css")" />
 
 <script type="text/javascript" src="$content.getURI("scripts/dqr/PacsSeriesFinder2.js")"></script>
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
@@ -98,7 +99,7 @@
                                 if (aeSelector.data('qrs-enabled').toString() === 'true') qrsEnabled=true;
                             }
                             else {
-                                aeSelector.find('option').each(function(){
+                                aeSelector.find('option').not(':disabled').each(function(){
                                     if (jq(this).data('qrs-enabled').toString() === 'true'){
                                         qrsEnabled = true;
                                         jq(this).prop('selected','selected');
@@ -116,23 +117,23 @@
                 <table id="studyInfoTable" class="xnat-table condensed alt1" width="100%">
                     <tr>
                         <th>$displayManager.getSingularDisplayNameForSubject():</th>
-                        <td style="max-width: 180px; word-wrap: break-word">$!study.getPatient().getName().getLastNameCommaFirstName()</td>
+                        <td class="max180">$!study.getPatient().getName().getLastNameCommaFirstName()</td>
                     </tr>
                     <tr>
                         <th>${displayManager.getSingularDisplayNameForImageSession()} Date:</th>
-                        <td style="max-width: 180px; word-wrap: break-word">$!study.getStudyDateFormattedAs("MM/dd/yyyy")</td>
+                        <td class="max180">$!study.getStudyDateFormattedAs("yyyy-MM-dd")</td>
                     </tr>
                     <tr>
                         <th>${displayManager.getSingularDisplayNameForImageSession()} ID:</th>
-                        <td style="max-width: 180px; word-wrap: break-word">$!study.getStudyId()</td>
+                        <td class="max180">$!study.getStudyId()</td>
                     </tr>
                     <tr>
                         <th>DICOM <br>Accession Number:</th>
-                        <td style="max-width: 180px; word-wrap: break-word">$!study.getAccessionNumber()</td>
+                        <td class="max180">$!study.getAccessionNumber()</td>
                     </tr>
                     <tr>
                         <th>${displayManager.getSingularDisplayNameForImageSession()} Description:</th>
-                        <td style="max-width: 180px; word-wrap: break-word">$!study.getStudyDescription()</td>
+                        <td class="max180">$!study.getStudyDescription()</td>
                     </tr>
                 </table>
             </div>
