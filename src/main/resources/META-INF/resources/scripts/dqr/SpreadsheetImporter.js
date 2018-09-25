@@ -233,6 +233,17 @@ XNAT.app = getObject(XNAT.app || {});
 
         var resultsTableBody = resultsTable.tbody();
 
+        function showSessionLink(linkText,json){
+            return spawn('a.show-session-info',{
+                href: '#!',
+                html: linkText,
+                data: {
+                    'result-data': JSON.stringify(json)
+                },
+                style: { 'font-weight': 'bold' }
+            })
+        }
+
 
         data.forEach(function(result, i){
             if (result.criteria) {
@@ -300,7 +311,7 @@ XNAT.app = getObject(XNAT.app || {});
                             .td({
                                 html: '<input type="checkbox" class="selectable-select-one sessionSelector" data-id="'+study.studyId+'" data-criteria="'+i+'" data-json=\''+JSON.stringify(study) +'\' />'
                             })
-                            .td( study.patient.name.lastNameCommaFirstName )
+                            .td([ showSessionLink(study.patient.name.lastNameCommaFirstName, study) ])
                             .td( studyDate )
                             .td({ style: { 'max-width':'140px', 'word-wrap':'break-word' }}, study.accessionNumber )
                             .td( study.studyId )
@@ -550,11 +561,72 @@ XNAT.app = getObject(XNAT.app || {});
         });
     }
 
+    function displayDicomInfo(dicomObj){
+        // build nice-looking history entry table
+        var dsrTable = XNAT.table({
+            className: 'xnat-table compact',
+            style: {
+                width: '100%',
+                marginTop: '15px',
+                marginBottom: '15px'
+            }
+        });
+
+        // add table header row
+        dsrTable.tr()
+            .th({ addClass: 'left', html: '<b>Key</b>' })
+            .th({ addClass: 'left', html: '<b>Value</b>' });
+
+        for (var key in dicomObj){
+            var val = dicomObj[key], formattedVal = '';
+            if (key === 'seriesIds') val = val.split(',');
+
+            if (Array.isArray(val)) {
+                var items = [];
+                val.forEach(function(item){
+                    if (typeof item === 'object') item = JSON.stringify(item);
+                    items.push(spawn('li',[ spawn('code',item) ]));
+                });
+                formattedVal = spawn('ul',{ style: { 'list-style-type': 'none', 'padding-left': '0' }}, items);
+            } else if (typeof val === 'object' ) {
+                formattedVal = spawn('code', JSON.stringify(val));
+            } else if (!val) {
+                formattedVal = spawn('code','false');
+            } else {
+                formattedVal = spawn('code',val);
+            }
+
+            dsrTable.tr()
+                .td('<b>'+key+'</b>')
+                .td([ spawn('div',{ style: { 'word-break': 'break-all','max-width':'600px' }}, formattedVal) ]);
+        }
+
+        // display PACS info on queried session
+        XNAT.ui.dialog.open({
+            title: 'Query Result: '+dicomObj.studyId,
+            width: 800,
+            scroll: true,
+            content: dsrTable.table,
+            buttons: [
+                {
+                    label: 'OK',
+                    isDefault: true,
+                    close: true
+                }
+            ]
+        });
+    }
+
     /* -- User Event Handlers -- */
 
     $(document).on('change','select#ae',function(){
         var scpId = $(this).find('option:selected').data('id');
         csvimporter.scpSanityChecks(scpId);
+    });
+
+    $(document).on('click','a.show-session-info',function(){
+        var dicomObj = $(this).data('result-data');
+        displayDicomInfo(dicomObj);
     });
 
     $(document).on('click','a.processor-info',function(){
