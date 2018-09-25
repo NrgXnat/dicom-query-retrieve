@@ -410,44 +410,44 @@ XNAT.app = getObject(XNAT.app || {});
         var receiverLabel = selectedReceiver['aeTitle']+':'+selectedReceiver['port'];
 
         XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/processors/site/enabled/receiver/'+receiverLabel),
+            url: XNAT.url.restUrl('/xapi/processors/site/canRemap/receiver/'+receiverLabel),
             fail: function(e){
-                errorHandler(e, 'Could not retrieve processors for this receiver')
+                errorHandler(e, 'Could not determine remapping state for '+receiverLabel)
             },
             success: function(data){
-                var enabledScpProcessors = data,
-                    $processorList = $('#installedProcessorList'),
-                    processorItems = [];
-
-                if (enabledScpProcessors.length) {
-                    enabledScpProcessors.forEach(function(processor){
-                        processorItems.push(
-                            spawn('li',[
-                                spawn('a.processor-info',{ href:'#!',data: {'id': processor.id, 'json': JSON.stringify(processor) }}, processor.label)
-                            ])
-                        )
-                    });
-                    $processorList.empty().append(
-                        spawn('ul',processorItems)
-                    )
-                }
-                else {
-                    var msg = 'No processors enabled for this SCP receiver.';
-                    if (!csvimporter.projectAnon) msg = '<div class="alert">'+ msg + ' No anonymization or remapping will be performed.</div>';
-                    $processorList.empty().append(msg);
-                }
-
-                XNAT.xhr.getJSON({
-                    url: XNAT.url.restUrl('/xapi/processors/site/canRemap/receiver/'+receiverLabel),
-                    fail: function(e){
-                        errorHandler(e, 'Could not determine remapping state for '+receiverLabel)
-                    },
-                    success: function(data){
-                        csvimporter.selectedReceiver['can-remap'] = data;
-                    }
-                })
+                csvimporter.selectedReceiver['can-remap'] = data;
             }
         });
+
+        // XNAT.xhr.getJSON({
+        //     url: XNAT.url.restUrl('/xapi/processors/site/enabled/receiver/'+receiverLabel),
+        //     fail: function(e){
+        //         errorHandler(e, 'Could not retrieve processors for this receiver')
+        //     },
+        //     success: function(data){
+        //         var enabledScpProcessors = data,
+        //             $processorList = $('#installedProcessorList'),
+        //             processorItems = [];
+        //
+        //         if (enabledScpProcessors.length) {
+        //             enabledScpProcessors.forEach(function(processor){
+        //                 processorItems.push(
+        //                     spawn('li',[
+        //                         spawn('a.processor-info',{ href:'#!',data: {'id': processor.id, 'json': JSON.stringify(processor) }}, processor.label)
+        //                     ])
+        //                 )
+        //             });
+        //             $processorList.empty().append(
+        //                 spawn('ul',processorItems)
+        //             )
+        //         }
+        //         else {
+        //             var msg = 'No processors enabled for this SCP receiver.';
+        //             if (!csvimporter.projectAnon) msg = '<div class="alert">'+ msg + ' No anonymization or remapping will be performed.</div>';
+        //             $processorList.empty().append(msg);
+        //         }
+        //     }
+        // });
 
         // check custom processing on SCP receiver
         if (selectedReceiver.customProcessing === true) {
@@ -646,7 +646,7 @@ XNAT.app = getObject(XNAT.app || {});
         // populate the list of known processors if not already populated
         if (isObject(csvimporter.installedProcessors) && Object.keys(csvimporter.installedProcessors).length === 0) {
             XNAT.xhr.getJSON({
-                url: XNAT.url.restUrl('/xapi/processors/site/enabled'),
+                url: XNAT.url.restUrl('/xapi/processors/site/enabled/summary'),
                 fail: function(e){
                     errorHandler(e, 'Could not retrieve installed processors')
                 },
@@ -654,7 +654,7 @@ XNAT.app = getObject(XNAT.app || {});
                     // transform the data into an object sorted by ID
                     if (data.length && isArray(data)) {
                         data.forEach(function(processor){
-                            csvimporter.installedProcessors[processor.id] = processor;
+                            csvimporter.installedProcessors[processor.processorClass] = processor;
                         })
                     }
                     else {
