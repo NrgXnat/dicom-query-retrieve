@@ -788,7 +788,33 @@ XNAT.app = getObject(XNAT.app || {});
                 // a data item,
                 id: {
                     label: 'ID',
-                    filter: true,
+                    th: { style: { width: '80px' }},
+                    td: { style: { width: '80px' }},
+                    filter: function(table){
+                        return spawn('div.center', [ XNAT.ui.input({
+                            element: {
+                                placeholder: 'ID',
+                                width: '80',
+                                size: '5',
+                                on: { keyup: function(){
+                                    var FILTERCLASS = 'filter-id';
+                                    var selectedValue = parseInt(this.value);
+                                    $dataRows = $dataRows.length ? $dataRows : $$(table).find('tbody').find('tr');
+                                    if (!selectedValue && selectedValue.toString() !== '0') {
+                                        $dataRows.removeClass(FILTERCLASS);
+                                    }
+                                    else {
+                                        $dataRows.addClass(FILTERCLASS).filter(function(){
+                                            // remove zero-padding
+                                            var queryId = parseInt($(this).find('td.id .sorting').html()).toString();
+                                            return (queryId.indexOf(selectedValue) >= 0);
+                                        }).removeClass(FILTERCLASS)
+                                    }
+                                } }
+                            }
+
+                        }).element ])
+                    },
                     apply: function(){
                         return '<i class="hidden sorting">'+ zeroPad(this.id, 6) +'</i>'+ this.id.toString();
                     }
