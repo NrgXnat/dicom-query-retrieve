@@ -24,10 +24,12 @@ import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.QueuedPacsRequestService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
+import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.Request;
@@ -85,6 +87,16 @@ public class PacsSeriesImporter extends PacsServiceResource {
                 boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
 
                 if(pacsIsAvailable) {
+                    try {
+                        String script = DefaultAnonUtils.getService().getStudyScript(_studyInstanceUid);
+                        if (StringUtils.isNotBlank(script)) {
+                            DefaultAnonUtils.getService().disableStudy(AdminUtils.getAdminUser().getLogin(), _studyInstanceUid);
+                        }
+                    }
+                    catch(Exception e){
+                        _log.error("Error when clearing study remapping information.",e);
+                    }
+
                     ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                     pacsReq.setPacsId(getPacsId(getRequest()));
                     pacsReq.setUsername(getUser().getUsername());

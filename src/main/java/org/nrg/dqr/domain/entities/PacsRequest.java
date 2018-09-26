@@ -19,6 +19,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     protected String _xnatProject;
     protected String _studyInstanceUid;
     protected String _seriesIds;
+    protected String _remappingScript;
 
     protected String _destinationAeTitle;
 
@@ -79,5 +80,14 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setSeriesIds(String _seriesIds) {
         this._seriesIds = _seriesIds;
+    }
+
+    @Column(columnDefinition = "TEXT")
+    public String getRemappingScript() {
+        return _remappingScript;
+    }
+
+    public void setRemappingScript(String remappingScript) {
+        this._remappingScript = remappingScript;
     }
 }

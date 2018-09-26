@@ -33,7 +33,7 @@ public class QueuedPacsRequest extends PacsRequest {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
-                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_destinationAeTitle)
+                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_remappingScript).append(_destinationAeTitle)
                 .append(_queuedTime).toHashCode();
     }
 
@@ -51,8 +51,8 @@ public class QueuedPacsRequest extends PacsRequest {
         final QueuedPacsRequest other = (QueuedPacsRequest) obj;
         return new EqualsBuilder().append(_username, other._username).append(_pacsId, other._pacsId)
                 .append(_xnatProject, other._xnatProject).append(_studyInstanceUid, other._studyInstanceUid)
-                .append(_seriesIds, other._seriesIds).append(_destinationAeTitle, other._destinationAeTitle)
-                .append(_queuedTime, other._queuedTime).isEquals();
+                .append(_seriesIds, other._seriesIds).append(_remappingScript, other._remappingScript)
+                .append(_destinationAeTitle, other._destinationAeTitle).append(_queuedTime, other._queuedTime).isEquals();
     }
 
     @Override
@@ -63,6 +63,7 @@ public class QueuedPacsRequest extends PacsRequest {
         buffer.append("xnatProject: ").append(_xnatProject).append(", ");
         buffer.append("studyId: ").append(_studyInstanceUid).append(", ");
         buffer.append("seriesIds: ").append(_seriesIds).append(", ");
+        buffer.append("remappingScript: ").append(_remappingScript).append(", ");
         buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
         buffer.append("queuedTime: ").append(_queuedTime).append(", ");
         return buffer.toString();

@@ -11,16 +11,19 @@ import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.dqr.services.QueuedPacsRequestService;
+import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
+import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
+import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.restlet.extensions.*;
 import org.restlet.data.Status;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -66,6 +69,21 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 }
             }
             if (requestToDequeue != null) {
+                String login = AdminUtils.getAdminUser().getLogin();
+                String studyId = requestToDequeue.getStudyInstanceUid();
+                String currAnonScript = requestToDequeue.getRemappingScript();
+                final String path = "/studies/" + studyId;
+                if (_log.isDebugEnabled()) {
+                    _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+                }
+                if (studyId == null) {
+                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                } else {
+                    XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
+                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                    XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                }
+
                 ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                 pacsReq.setPacsId(requestToDequeue.getPacsId());
                 String username = requestToDequeue.getUsername();

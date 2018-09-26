@@ -845,16 +845,16 @@ public class BasicPacsService implements PacsService {
 //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
             String login = AdminUtils.getAdminUser().getLogin();
             String studyId = currStudy.getStudyInstanceUid();
-            final String path = "/studies/" + studyId;
-            if (_log.isDebugEnabled()) {
-                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-            }
-            if (studyId == null) {
-                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-            } else {
-                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-            }
+//            final String path = "/studies/" + studyId;
+//            if (_log.isDebugEnabled()) {
+//                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+//            }
+//            if (studyId == null) {
+//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+//            } else {
+//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+//                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+//            }
 
 
 
@@ -875,6 +875,17 @@ public class BasicPacsService implements PacsService {
                 PacsEntityService pacsEntityService = getPacsEntityService();
                 boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
                 if(pacsIsAvailable) {
+                    final String path = "/studies/" + studyId;
+                    if (_log.isDebugEnabled()) {
+                        _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+                    }
+                    if (studyId == null) {
+                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                    } else {
+                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                        XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                    }
+
                     ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                     pacsReq.setPacsId(pacsId);
                     pacsReq.setUsername(user.getUsername());
@@ -919,7 +930,7 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setSeriesIds(_seriesIdsString);
                     pacsReq.setDestinationAeTitle(ae);
                     pacsReq.setQueuedTime(new Date());
-
+                    pacsReq.setRemappingScript(currAnonScript);
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
                 }
             } catch (final PacsNotFoundException exception) {
