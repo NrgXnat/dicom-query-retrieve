@@ -61,7 +61,7 @@
                     </tr>
                     <tr>
                         <th>${displayManager.getSingularDisplayNameForImageSession()} Label: </th>
-                        <td><a href="$!{SITE_ROOT}/data/experiments/$session.id?format=html">$!session.label</a></td>
+                        <td>$!session.label</td>
                     </tr>
                 </table>
             </div>
@@ -70,47 +70,11 @@
         <div style="display: inline-block; vertical-align: top; width: 60%;">
             <h4>Select Scan Series to Send (Required)</h4>
 
-            <div id="pacsExportScanSelectorContainer" class="data-table-container data-table-wrapper">
-                <table id="scansToExport" class="xnat-table condensed selectable" width="100%">
-                    <thead>
-                    <tr>
-                        <th width="40"><input type="checkbox" class="selectable-select-all" id="selectAll" title="Select / Deselect All" /></th>
-                        <th>Series</th>
-                        <th>Description</th>
-                        <th>Sequence</th>
-                        <th>Scan Date</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                        #set($scanCounter =0)
-                        #foreach($scan in $scans)
-                        ## <tr class="#if($scanCounter%2 > 0) odd #else even #end">
-                        <tr #if($session.getProperty("date") == $scan.getProperty("start_date")) class="original" #else class="modified" #end>
-                            <td width="40" class="center"><input type="checkbox" class="selectable-select-one" id="scan-$!scan.id" name="scansToExport" value="$!scan.id" /></td>
-                            <td class="scan-id max120">$!scan.id</td>
-                            <td class="max200">$!scan.seriesDescription</td>
-                            #set($scanType = $!scan.xSIType)
-                            #if($scanType == "xnat:mrScanData" && $!scan.getProperty("parameters.sequence"))
-                                <td class="max200">$!scan.getProperty("parameters.sequence")</td>
-                            #else
-                                <td class="max200">$!scan.getType()</td>
-                            #end
-                            <td>$!scan.getProperty("start_date")</td>
-                        </tr>
-                            #set($scanCounter = $scanCounter +1)
-                        #end
-                    </tbody>
-                </table>
-            </div>
+            <div id="pacsExportScanSelectorContainer">
+                <div class="data-table-container data-table-wrapper"></div>
 
-            <div id="scan-exclusion-warning" #if(${siteConfig.dqrPushPreference} == "true") class="hidden alert" #else class="alert" #end>
-                <em>Scans that were a part of the originally imported session have been excluded.</em>
+                <p><button id="submitScansToPacs" class="btn1">Send Selected Series to PACS</button></p>
             </div>
-
-            <p>
-                <label><input id="dqrPushSetting" type="checkbox" #if(${siteConfig.dqrPushPreference} == "true") checked #end /> Enable original scans to be sent</label>
-            </p>
-            <p><button id="submitScansToPacs" class="btn1">Send Selected Series to PACS</button></p>
         </div>
     </form>
 
@@ -119,7 +83,7 @@
     <script src="$content.getURI("/scripts/dqr/SendToPacs.js")"></script>
     <script>
         console.log('exportSessionToPacs.vm');
-        var enableAllScans = '${siteConfig.dqrPushPreference}';
+##        var enableAllScans = ('${siteConfig.dqrPushPreference}'.toLowerCase() === 'true');
 
         $(document).ready(function(){
             // clean up display of patient name
@@ -127,10 +91,7 @@
             patientName = patientName.replace(' ',', '); // add a comma after the first listed name
             $('#patientName').html(patientName);
 
-            // Find original scans and toggle selectability if necessary
-            if (enableAllScans.toLowerCase() !== 'true') {
-                XNAT.app.disableOriginalScans();
-            }
+            XNAT.app.dqr.exportScans.init();
         });
     </script>
 #end

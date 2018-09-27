@@ -15,6 +15,7 @@ console.log('SendToPacs.js');
 
 var XNAT = getObject(XNAT || {});
 XNAT.app = getObject(XNAT.app || {});
+XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
 (function(factory){
     if (typeof define === 'function' && define.amd) {
@@ -27,98 +28,12 @@ XNAT.app = getObject(XNAT.app || {});
         return factory();
     }
 }(function(){
-    if (typeof jq === 'undefined') var jq = jQuery;
 
-    var originalScans = [];
+    var exportScans;
 
-    jq('#submitScansToPacs').on('click',function(e){
-        e.preventDefault();
-        var scansToSubmit = [];
+    XNAT.app.dqr.exportScans = exportScans = {};
 
-        jq('#editPacsForm').find('input[name=scansToExport]').not(':disabled').each(function(){
-            if (jq(this).prop('checked')) {
-                scansToSubmit.push(jq(this).val());
-            }
-        });
-
-        if (scansToSubmit.length > 0) {
-            jq('#editPacsForm').submit();
-        }
-        else {
-            xmodal.message('Error', "<p>Please select a valid scan to send.</p>", 'OK');
-        }
-
-    });
-
-    function getSessionId() {
-        var urlParams = window.location.search.substring(1).split('&'),
-            params = {};
-        urlParams.forEach(function(urlParam){
-            var keyPair = urlParam.split('=');
-            params[keyPair[0]] = keyPair[1];
-        });
-
-        return (params.sessionid) ? params.sessionid : false;
-    }
-
-    // A scan's "original" status is populated in the Velocity construction of the scan table by comparing scan attributes to session attributes
-    var findOriginalScans = function() {
-
-        $('table#scansToExport').find('tbody').find('tr').each(function(){
-            if ($(this).hasClass("original")) {
-                var scanId = $(this).find('.scan-id').html();
-                originalScans.push(scanId);
-            } else {
-                canSendScans = true;
-            }
-        });
-    };
-    findOriginalScans();
-
-    XNAT.app.disableOriginalScans = function(){
-
-        // iterate over the list of original scans and disable their checkbox
-        originalScans.forEach(function(scanId){
-            $('input#scan-'+scanId)
-                .prop('disabled','disabled')
-                .addClass('hidden')
-                .parents('tr').addClass('disabled');
-        });
-        $('#scan-exclusion-warning').removeClass('hidden');
-
-        var allScansLength = $('table#scansToExport').find('tbody').find('tr').length;
-        var canSendScans = (allScansLength > originalScans.length);
-
-        // don't allow user to submit form if no scans can be sent
-        if (!canSendScans) {
-            $('#submitScansToPacs').prop('disabled', 'disabled');
-            XNAT.ui.dialog.message({ title: false, content: 'This data only contains scans that were a part of the original image session. To send any scans to PACS, enable original scans to be sent.' });
-        }
-    };
-
-    XNAT.app.enableOriginalScans = function(){
-        // iterate over the list of original scans and enable their checkbox
-        originalScans.forEach(function(scanId){
-            $('input#scan-'+scanId)
-                .prop('disabled',false)
-                .removeClass('hidden')
-                .parents('tr').removeClass('disabled');
-        });
-        $('#scan-exclusion-warning').addClass('hidden');
-        $('#submitScansToPacs').prop('disabled', false);
-    };
-
-    // original scan toggle
-    $('#dqrPushSetting').on('click',function(){
-        if ($(this).prop('checked')) {
-            XNAT.app.enableOriginalScans();
-        }
-        else {
-            XNAT.app.disableOriginalScans();
-        }
-    });
-
-    XNAT.app.SendToPacs = function (pacsId, sessionId, scanIds) {
+    exportScans.SendToPacs = function (pacsId, sessionId, scanIds) {
 
         try {
             xmodal.open({
@@ -162,4 +77,136 @@ XNAT.app = getObject(XNAT.app || {});
             xmodal.message('Error', 'An unexpected error has occurred while processing ' + sessionId + '. Please contact your administrator. Status code: ' + results.status, 'OK');
         };
     };
+
+    // Populate Scan Table
+    function hasDicomResource(scan){
+        // only return true if the scan has DICOM-formatted file resources, regardless of how they are labeled
+        if (!scan.file) return false;
+        return (scan.file['_format'] === 'DICOM');
+    }
+
+    function scanCheckbox(scan){
+        return spawn('input.selectable-select-one', {
+            type: 'checkbox',
+            name: 'scansToExport',
+            value: scan['_ID'],
+            id: 'scan-'+scan['_ID']
+        })
+    }
+
+    var spawnScanTable = function(scans,sessionTime){
+        var scanTable = XNAT.table({
+            id: 'scansToExport',
+            addClass: 'xnat-table condensed selectable',
+            style: { width: '100%' }
+        });
+        scanTable.thead().tr()
+            .th({style: { 'width': '40px' }}, '<input type="checkbox" class="selectable-select-all" id="select-all" title="Select / Deselect All" />')
+            .th({addClass: 'left' }, '<b>Series</b>')
+            .th('<b>Description</b>')
+            .th('<b>Sequence</b>')
+            .th('<b>Scan Date</b>');
+
+        var tbody = scanTable.tbody();
+
+        function showSeriesDescription(scan){
+            return (scan.series_description) ? scan.series_description.toString() : 'unknown'
+        }
+        function showScanType(scan){
+            if (scan.modality === 'MR' && scan.parameters.scanSequence) {
+                return scan.parameters.scanSequence
+            }
+            else return scan['_type'];
+        }
+        function showScanDate(scan){
+            return (scan.start_date) ? scan.start_date.toString() : 'unknown';
+        }
+
+        scans.forEach(function(scan){
+            // keep track of which scans are original to the session
+            // if (isOriginalScan(scan,sessionTime) && exportScans.originalScans.indexOf(scan['_ID']) < 0) exportScans.originalScans.push(scan['_ID']);
+
+            if (hasDicomResource(scan)) {
+                tbody.tr({
+                    // addClass: (isOriginalScan(scan,sessionTime)) ? 'original' : '',
+                    data: { 'scan-id': scan['_ID'] }
+                })
+                    .td({ style: { 'width': '40px' }},[ scanCheckbox(scan) ])
+                    .td({ addClass: 'scan-id max120' }, scan['_ID'])
+                    .td({ addClass: 'max200' },[ showSeriesDescription(scan) ])
+                    .td({ addClass: 'max200' },[ showScanType(scan) ])
+                    .td([ showScanDate(scan) ] )
+            }
+            else {
+                tbody.tr({
+                    addClass: 'disabled',
+                    data: { 'scan-id': scan['_ID'] }
+                })
+                    .td()
+                    .td({ addClass: 'scan-id max120' }, scan['_ID'])
+                    .td({ colSpan: '3' }, 'Error: No DICOM Resource found. Cannot send scan.')
+            }
+        });
+
+        return scanTable.table;
+    };
+
+
+    /* User event handlers */
+
+    $('#submitScansToPacs').on('click',function(e){
+        e.preventDefault();
+        var scansToSubmit = [];
+
+        $('#editPacsForm').find('input[name=scansToExport]').not(':disabled').each(function(){
+            if ($(this).prop('checked')) {
+                scansToSubmit.push($(this).val());
+            }
+        });
+
+        if (scansToSubmit.length > 0) {
+            $('#editPacsForm').submit();
+        }
+        else {
+            xmodal.message('Error', "<p>Please select a valid scan to send.</p>", 'OK');
+        }
+
+    });
+
+    /* Page Init */
+
+    exportScans.init = exportScans.refresh = function(sessionId){
+        sessionId = sessionId || XNAT.data.context.ID;
+        var $tableContainer = $('#pacsExportScanSelectorContainer').find('.data-table-container');
+        $tableContainer.empty();
+
+        // get the XML description of the image session and process it as JSON
+        // requires core JS library /lib/x2js/xml2json.js
+        var x2js = new X2JS();
+
+        XNAT.xhr.get({
+            url: XNAT.url.rootUrl('/data/experiments/'+sessionId+'?format=xml'),
+            fail: function(e){
+                console.log('Could not load session data for '+sessionId, e);
+            },
+            success: function(xmlData){
+                var sessionJson = x2js.xml2json(xmlData).MRSession;
+                var scans = sessionJson.scans.scan;
+
+                if (isArray(scans) && scans.length) {
+                    $tableContainer.append(spawnScanTable(scans));
+                }
+                else if (isObject(scans) && Object.keys(scans).length) {
+                    var scanArray = []; scanArray.push(scans);
+                    $tableContainer.append(spawnScanTable(scanArray))
+                }
+                else {
+                    $tableContainer.append(spawn('p', 'No scans found to export.'));
+                }
+            }
+        })
+
+    };
+    // exportScans.init();
+
 }));

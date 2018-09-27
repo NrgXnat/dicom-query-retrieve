@@ -31,27 +31,7 @@ dqrDicomIdentifierPanel:
                 <br>
         dqrDicomIdentifierTableContainer:
             tag: div#dqrDicomIdentifierTableContainer
-dqrPushPreferencePanel:
-    kind: panel.form
-    name: dqrPushPreferencePanel
-    label: Image Push Preferences
-    method: POST
-    url: /xapi/siteConfig
-    contentType: json
-    contents:
-        dqrPushInfo:
-            tag: div.message
-            content: >
-                This setting toggles a site-wide preference for whether an image-push operation should be allowed to include scans that were originally imported with an image session. Enabling this could lead to overwriting data on your DICOM AE destination.
-            after: >
-                <br>
-        dqrPushPreference:
-            kind: panel.input.switchbox
-            name: dqrPushPreference
-            label: Default Scan Send Behavior
-            onText: Allow all scans to be sent to DICOM AE
-            offText: Allow only new / edited scans to be sent to DICOM AE
-            value: "true"
+
 dqrOtherPreferencePanel:
     kind: panel.form
     name: dqrOtherPreferencePanel
@@ -117,7 +97,6 @@ siteSettings:
             contents:
               ${dqrPacsPanel}
               ${dqrDicomIdentifierPanel}
-              ${dqrPushPreferencePanel}
               ${dqrOtherPreferencePanel}
         dqrHistoryTab:
             kind: tab
