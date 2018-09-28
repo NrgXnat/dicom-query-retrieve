@@ -555,7 +555,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public void processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+    public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
@@ -567,7 +567,7 @@ public class BasicPacsService implements PacsService {
             aeTitle = parts[0];
             port = parts[1];
         }
-
+        boolean valueToReturn = true;
         Map<Study,String> studiesListMappedToAnonScript = new HashMap<>();
         for(CsvRow row : rows) {
             if(row!=null&&row.getStudies()!=null) {
@@ -690,6 +690,7 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                    valueToReturn = false;
                 }
             } catch (final PacsNotFoundException exception) {
                 _log.warn("PACS not found somehow", exception);
@@ -714,6 +715,7 @@ public class BasicPacsService implements PacsService {
                 }
             }
         }
+        return valueToReturn;
     }
 
     @Override
