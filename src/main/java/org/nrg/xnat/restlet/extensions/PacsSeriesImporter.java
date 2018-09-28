@@ -14,6 +14,9 @@ package org.nrg.xnat.restlet.extensions;
 
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.HttpHead;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.Pacs;
@@ -32,9 +35,11 @@ import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
+import org.restlet.data.Form;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
+import org.restlet.util.Series;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,7 +153,11 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                    getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
+                    getResponse().setStatus(Status.SUCCESS_OK);
+
+                    Form responseHeaders = new Form();
+                    getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
+                    responseHeaders.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
                 }
             } catch (final PacsNotFoundException exception) {
                 _log.warn("PACS not found somehow", exception);
