@@ -82,7 +82,14 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
     function hasDicomResource(scan){
         // only return true if the scan has DICOM-formatted file resources, regardless of how they are labeled
         if (!scan.file) return false;
-        return (scan.file['_format'] === 'DICOM');
+        if (isArray(scan.file)) {
+            var dicomFound = false;
+            scan.file.forEach(function(file){
+                if (file['_format'] === 'DICOM') dicomFound = true;
+            });
+            return dicomFound;
+        }
+        else return (scan.file['_format'] === 'DICOM');
     }
 
     function scanCheckbox(scan){

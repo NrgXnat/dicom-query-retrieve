@@ -249,9 +249,9 @@ XNAT.app = getObject(XNAT.app || {});
                         });
 
                         if (invalidFields.length) {
-                            XNAT.ui.dialog.open({
-                                title: 'Form Validation Errors Found',
-                                content: 'Please fix errors found in the following fields: <b>'+invalidFields.join(", ")+'</b>'
+                            XNAT.ui.dialog.message({
+                                title: false,
+                                content: '<h4>Form Validation Errors Found</h4><p>Please fix errors found in the following fields: <b>'+invalidFields.join(", ")+'</b></p>'
                             });
                             return false;
                         }
@@ -996,15 +996,9 @@ XNAT.app = getObject(XNAT.app || {});
             });
         } else {
             console.log(id);
-            XNAT.ui.dialog.open({
+            XNAT.ui.dialog.message({
+                title: false,
                 content: 'Sorry, could not display this history item.',
-                buttons: [
-                    {
-                        label: 'OK',
-                        isDefault: true,
-                        close: true
-                    }
-                ]
             });
         }
     };
@@ -1128,15 +1122,9 @@ XNAT.app = getObject(XNAT.app || {});
             });
         } else {
             console.log(id);
-            XNAT.ui.dialog.open({
+            XNAT.ui.dialog.message({
+                title:false,
                 content: 'Sorry, could not display this queue entry.',
-                buttons: [
-                    {
-                        label: 'OK',
-                        isDefault: true,
-                        close: true
-                    }
-                ]
             });
         }
     };

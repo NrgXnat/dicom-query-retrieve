@@ -1,6 +1,4 @@
 #if($item.canEdit($user))
-    #* @vtlvariable name="om" type="org.nrg.xdat.om.XnatImagesessiondata" *#
-    #* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
     <!-- Sequence: 20 -->
     #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id).addQueryData("project", $project))
