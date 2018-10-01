@@ -197,7 +197,9 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
                 console.log('Could not load session data for '+sessionId, e);
             },
             success: function(xmlData){
-                var sessionJson = x2js.xml2json(xmlData).MRSession;
+                var dataObject = x2js.xml2json(xmlData);
+                var sessionJson = dataObject[Object.keys(dataObject)[0]];
+
                 var scans = sessionJson.scans.scan;
 
                 if (isArray(scans) && scans.length) {
