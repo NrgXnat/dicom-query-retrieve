@@ -17,11 +17,16 @@ import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.om.XnatExperimentdata;
+import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
+import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -220,6 +225,73 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(true);
+    }
+
+    @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Scans sent to PACS."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 500, message = "Unexpected error")})
+    @XapiRequestMapping(value = "send/toPacs",
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            restrictTo = Authenticated)
+    public ResponseEntity<Map<String, Object>> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId", required = true) final String pacs,
+                                                  @ApiParam("XNAT session to send.") @RequestParam(name = "session", required = true) final String session,
+                                                 @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport", required = true) final String[] scansToExport) throws Exception {
+        UserI user = getSessionUser();
+        Map<String, Object> dataToSend = new HashMap<>();
+
+        final long pacsId = Long.valueOf(pacs);
+        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        Pacs _pacs = pacsEntityService.retrieve(pacsId);
+
+        if (_pacs == null) {
+            throw new PacsNotFoundException();
+        }
+        PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
+
+        if (StringUtils.isBlank(session)) {
+            throw new RuntimeException("You must specify a session ID for this operation.");
+        }
+        XnatExperimentdata temp = XnatExperimentdata.getXnatExperimentdatasById(session,user,false);
+        XnatImagesessiondata sessionObject = null;
+        if(temp instanceof XnatImagesessiondata) {
+            sessionObject = (XnatImagesessiondata) temp;
+        }
+        if (sessionObject == null) {
+            throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
+        }
+        dataToSend.put("session", session);
+        try {
+            if (scansToExport == null) {
+                throw new RuntimeException("No scan IDs found to export, returning.");
+            } else {
+                ArrayList<String> scans = new ArrayList<>();
+                if(_pacs.isStorable()) {
+                    for (String scanId : scansToExport) {
+                        XnatImagescandata scan = sessionObject.getScanById(scanId);
+                        scans.add(scanId);
+                        pacsService.exportSeries(user, _pacs, scan);
+                        if (_log.isInfoEnabled()) {
+                            _log.info("Exported series " + scanId + " from session " + sessionObject.getId());
+                        }
+                    }
+                }
+                else{
+                    throw new PacsNotStorableException();
+                }
+                dataToSend.put("scans", scans);
+
+                if (_log.isDebugEnabled()) {
+                    _log.debug("User {} exported {} scans from session {}", user.getLogin(), scansToExport.length, sessionObject.getId());
+                }
+            }
+        } catch (Exception exception) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<>(dataToSend, HttpStatus.OK);
     }
 
     @ApiOperation(value = "Ping a PACS.", notes = "The ping PACS function returns whether the PACS was responsive.", response = PacsPing.class)
