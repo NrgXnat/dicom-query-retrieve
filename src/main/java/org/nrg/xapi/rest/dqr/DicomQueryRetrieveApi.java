@@ -2,12 +2,10 @@ package org.nrg.xapi.rest.dqr;
 
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsPing;
-import org.nrg.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.dqr.util.CsvRow;
@@ -15,6 +13,7 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.xapi.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.ProjectId;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatExperimentdata;
@@ -29,6 +28,8 @@ import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,14 +37,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.net.URLConnection;
+import java.sql.SQLException;
 import java.util.*;
 
-import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
-import static org.nrg.xdat.security.helpers.AccessLevel.Authenticated;
-import static org.nrg.xdat.security.helpers.AccessLevel.User;
+import static org.apache.commons.io.FileUtils.getFile;
+import static org.nrg.xdat.security.helpers.AccessLevel.*;
+import static org.nrg.xnat.web.http.AbstractZipStreamingResponseBody.MEDIA_TYPE;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 /**
@@ -55,7 +60,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @RequestMapping(value = "/dqr")
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
-    protected DicomQueryRetrieveApi(DqrPreferences prefs, UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService, QueuedPacsRequestService queuedRequestService, PacsService pacsService, PacsEntityService pacsEntityService, PacsPingService pacsPingService) {
+    protected DicomQueryRetrieveApi(DqrPreferences prefs, UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService, QueuedPacsRequestService queuedRequestService, PacsService pacsService, PacsEntityService pacsEntityService, PacsPingService pacsPingService, ProjectIrbInfoEntityService projectIrbInfoEntityService) {
         super(userManagementService, roleHolder);
         _preferences = prefs;
         _executedRequestService = requestService;
@@ -63,6 +68,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         _pacsService = pacsService;
         _pacsEntityService = pacsEntityService;
         _pacsPingService = pacsPingService;
+        _projectIrbInfoEntityService = projectIrbInfoEntityService;
     }
 
     @ApiOperation(value = "Get list of all DICOM query requests.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
@@ -385,8 +391,117 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Get stored IRB number for project.", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "An IRB number."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Owner)
+    public ResponseEntity<String> getIrbNumber(@PathVariable("projectId") @ProjectId final String projectId) {
+        return new ResponseEntity<>(_projectIrbInfoEntityService.findIrbNumberForProject(projectId), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get stored IRB file for project.", response = Object.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "An IRB file."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB file."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", produces = {"application/java-vm","application/x-java-serialized-object","application/xml","image/gif","image/x-bitmap","image/x-pixmap","image/png","image/jpeg","image/vnd.fpx","audio/basic","audio/x-wav"} , method = RequestMethod.GET, restrictTo = Owner)
+    @ResponseBody
+    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+        ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        final byte[] bytes = info.getIrbFile();
+        String fileName = info.getIrbFileName();
+
+        HttpHeaders responseHeaders = new HttpHeaders();
+        InputStream is = new BufferedInputStream(new ByteArrayInputStream(bytes));
+        String mimeType = URLConnection.guessContentTypeFromStream(is);
+
+
+        ByteArrayResource resource = new ByteArrayResource(bytes);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, mimeType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .contentType(MediaType.parseMediaType("application/octet-stream"))
+                .body(resource);
+
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.CONTENT_TYPE, mimeType)
+//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+//                .body(bytes);
+
+
+//        .body((StreamingResponseBody) new StreamingResponseBody() {
+//            @Override
+//            public void writeTo(final OutputStream outputStream) throws IOException {
+//                InputStream inputStream = new BufferedInputStream(new ByteArrayInputStream(bytes));
+//                IOUtils.copy(inputStream, outputStream);
+//            }
+//        });
+    }
+
+    @ApiOperation(value = "Update IRB number for project.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "IRB number updated."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB number."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Owner)
+    public ResponseEntity<Boolean> putIrbNumber(@PathVariable("projectId") @ProjectId final String projectId,
+                                                @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber", required = true) final String irbNumber) {
+        ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        if(info!=null) {
+            info.setIrbNumber(irbNumber);
+            _projectIrbInfoEntityService.update(info);
+        }
+        else{
+            //Create new IRB info object
+            final ProjectIrbInfo projectIrbInfo = new ProjectIrbInfo();
+            projectIrbInfo.setProjectId(projectId);
+            projectIrbInfo.setIrbNumber(irbNumber);
+            _projectIrbInfoEntityService.create(projectIrbInfo);
+        }
+        return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Update IRB file for project.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "IRB file updated."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB file."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Owner)
+    public ResponseEntity<Boolean> putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile", required = true) MultipartFile irbFile,
+                                              @PathVariable("projectId") @ProjectId final String projectId) {
+        File temp = null;
+        try {
+            String fileName = irbFile.getOriginalFilename();
+            temp = File.createTempFile(fileName, null);
+            byte[] bytes = irbFile.getBytes();
+            ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+            if(info!=null) {
+                info.setIrbFileName(fileName);
+                info.setIrbFile(bytes);
+                _projectIrbInfoEntityService.update(info);
+
+            }
+            else{
+                //Create new IRB info object
+                final ProjectIrbInfo projectIrbInfo = new ProjectIrbInfo();
+                projectIrbInfo.setProjectId(projectId);
+                info.setIrbFileName(fileName);
+                projectIrbInfo.setIrbFile(bytes);
+                _projectIrbInfoEntityService.create(projectIrbInfo);
+            }
+        } catch (IOException e) {
+            _log.error("IO exception when updating IRB file.", e);
+            return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
     PacsService _pacsService;
     PacsEntityService _pacsEntityService;
+    ProjectIrbInfoEntityService _projectIrbInfoEntityService;
     PacsPingService _pacsPingService;
     ExecutedPacsRequestService _executedRequestService;
     QueuedPacsRequestService _queuedRequestService;
