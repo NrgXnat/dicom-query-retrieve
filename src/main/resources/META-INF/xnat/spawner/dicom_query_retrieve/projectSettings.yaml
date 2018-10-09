@@ -1,0 +1,58 @@
+####
+#### DQR Project Settings Panels
+####
+
+projectSettings:
+    kind: tabs
+    name: dqrAdminPage
+    groups:
+        dqrSettings: DICOM QRS
+    contents:
+        ${irbSettingsTab}
+
+# IRB Settings
+irbSettingsTab:
+    kind: tab
+    label: IRB Management
+    group: dqrSettings
+    contents:
+        ${irbSettings}
+
+irbSettings:
+    kind: panel
+    label: IRB Management
+    footer: false
+    contents:
+        irbNumberInput:
+            kind: panel.element
+            label: IRB Number
+            contents:
+                irbNumber:
+                    tag: input#irb-number|name=irbNumber|type=text|size=30|style=width:236px;margin-right:10px;
+                irbNumberSave:
+                    tag: button#save-irb-number.btn.btn1.btn-sm|type=button
+                    content: Save
+        irbFileDownload:
+            tag: div#irb-file-download.hidden
+            contents:
+                irbFileLinkElement:
+                    kind: panel.element
+                    label: IRB File
+                    contents:
+                        irbFileLink:
+                            tag: a#irb-file-link|href=#!
+                            content: (none)
+                        irbFileLinkDesc:
+                            tag: div.description
+                            content: (click to download)
+        irbFile:
+            kind: panel.input.upload
+            name: irbFile
+            label: Upload IRB File
+            method: PUT
+            action: ~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile
+            description: Upload new or replace existing IRB file.
+        irbSettingsJS:
+            tag: script|src=~/scripts/dqr/irbSettings.js
+
+#end

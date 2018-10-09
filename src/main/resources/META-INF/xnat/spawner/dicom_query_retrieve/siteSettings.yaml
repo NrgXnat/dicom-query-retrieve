@@ -1,6 +1,26 @@
 ####
-#### DQR Settings Panels
+#### DQR Site Settings Panels
 ####
+
+dqrPacsTab:
+    kind: tab
+    name: dqrPacsTab
+    label: DICOM QRS Settings
+    group: dqrTabGroup
+    active: false
+    contents:
+        ${dqrPacsPanel}
+        ${dqrDicomIdentifierPanel}
+        ${dqrOtherPreferencePanel}
+
+dqrHistoryTab:
+    kind: tab
+    name: dqrHistoryTab
+    label: Query History
+    group: dqrTabGroup
+    active: false
+    contents:
+        ${dqrHistoryPanel}
 
 dqrPacsPanel:
     kind: panel
@@ -14,9 +34,9 @@ dqrPacsPanel:
                     No DICOM AE connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/dqr/PacsAdministration.js"
-#            tag: script|src="/scripts/dqr/PacsAdministration.js"
         dqrPacsCss:
             tag: link|href="~/style/dqr/dqr.css"|rel="stylesheet"|type="text/css"
+
 dqrDicomIdentifierPanel:
     kind: panel
     name: dqrDicomIdentifierPanel
@@ -73,7 +93,88 @@ dqrHistoryPanel:
             tag: div#dqr-queue-container
         dqrHistoryTableContainer:
             tag: div#dqr-history-container
-            contents: No history to display yet
+            content: >
+                No history to display yet
+
+# PACS Access
+pacsAccessTab:
+    kind: tab
+    label: PACS Access
+    group: dqrTabGroup
+    contents:
+        ${pacsAccessInfo}
+        ${pacsAccessPanel}
+
+pacsAccessInfo:
+    tag: div.message|style=margin-bottom:20px
+    content: >
+        Use the controls below to restrict which PACS systems are displayed when initiating an import.
+
+pacsAccessPanel:
+    kind: panel
+    label: PACS Access Settings
+    contents:
+        infoText:
+            tag: div
+            content: >
+                (PACS access controls go here)
+
+dqrAnon:
+    kind: tab
+    label: Anonymization
+    group: dqrTabGroup
+    contents:
+        ${dqrAnonPanel}
+
+dqrAnonPanel:
+    kind: panel.form
+    label: PACS Import Anonymization
+    method: POST
+    url: ~/xapi/dqr/anon
+    contentType: json
+    contents:
+        projectId:
+            kind: input.hidden
+            name: projectId
+        dqrAnonEnabled:
+            kind: panel.input.switchbox
+            name: dqrAnonEnabled
+            label: Enabled
+            onText: Anon script enabled
+            offText: Anon script disabled
+            description: >
+                Apply anon script to incoming PACS data?
+        dqrAnonApplyAll:
+            kind: panel.input.switchbox
+            name: dqrAnonApplyAll
+            label: Apply script
+            onText: Apply to <i>all</i> PACS
+            offText: Apply only to <i>specified</i> PACS
+            description: >
+                Apply anon script to ALL PACS defined on this system.
+        dqrAnonPACSItems:
+            tag: div#dqr-anon-select-pacs.panel-element.disabled
+            contents:
+                dqrAnonPACS:
+                    kind: panel.select.multi
+                    name: dqrAnonPACS
+                    label: Select PACS
+                    options: "$? */data/pacs $:json | :ResultSet:Result"
+                    optionMap:
+                        label: aeTitle
+                    element:
+                        style:
+                            minWidth: 300px
+                    description: >
+                        Select PACS system(s) for which to anonymize incoming data.
+        dqrAnonScript:
+            kind: panel.textarea
+            name: anonScript
+            label: Anon Script
+            code: text
+            description: >
+                Anonymization script to apply to incoming PACS data. (Double-click to open in a code editor dialog.)
+
 
 
 #################################################
@@ -83,26 +184,11 @@ dqrHistoryPanel:
 siteSettings:
     kind: tabs
     name: dqrAdminPage
-    meta:
-        tabGroups:
-            dqrTabGroup: DICOM QRS
-    contains: tabs
-    tabs:
-        dqrPacsTab:
-            kind: tab
-            name: dqrPacsTab
-            label: DICOM QRS Settings
-            group: dqrTabGroup
-            active: false
-            contents:
-              ${dqrPacsPanel}
-              ${dqrDicomIdentifierPanel}
-              ${dqrOtherPreferencePanel}
-        dqrHistoryTab:
-            kind: tab
-            name: dqrHistoryTab
-            label: Query History
-            group: dqrTabGroup
-            active: false
-            contents:
-              ${dqrHistoryPanel}
+    groups:
+        dqrTabGroup: DICOM QRS
+    contents:
+        ${dqrPacsTab}
+        ${dqrHistoryTab}
+        #${dqrAnon}
+
+# end
