@@ -22,6 +22,7 @@ import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -39,6 +40,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -453,6 +455,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if(info!=null) {
             info.setIrbNumber(irbNumber);
             _projectIrbInfoEntityService.update(info);
+            if(info.getIrbFile()!=null){
+                notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
+            }
         }
         else{
             //Create new IRB info object
@@ -482,7 +487,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                 info.setIrbFileName(fileName);
                 info.setIrbFile(bytes);
                 _projectIrbInfoEntityService.update(info);
-
+                if(info.getIrbNumber()!=null){
+                    notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
+                }
             }
             else{
                 //Create new IRB info object
@@ -497,6 +504,18 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
+    private void notifyAdminOfCompleteIrbInfo(final String projectId, final ProjectIrbInfo info, final UserI user) {
+        try {
+            String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
+            XDAT.getMailService().sendMessage(adminEmail, new String[] { XDAT.getSiteConfigPreferences().getAdminEmail() }, new String[] {},
+                    String.format("[ %s ] Project IRB Info Stored",TurbineUtils.GetSystemName()),
+                    String.format("IRB info (containing IRB number %s) has been stored for project %s by user %s. You can review this info by going to the project's Project Settings page. If this IRB info is acceptable, you can add the project to the list of projects that are permitted to use DQR in Plugin Settings.",info.getIrbNumber(),projectId,user.getUsername()));
+        } catch (final Exception e) {
+            log.error(String.format("User %s saved IRB info for project %s but there was an error notifying the admin.",user.getUsername(),
+                    projectId));
+        }
     }
 
     PacsService _pacsService;
