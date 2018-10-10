@@ -16,7 +16,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-
+import org.hibernate.envers.Audited;
 import javax.persistence.Entity;
 import javax.persistence.Lob;
 import javax.persistence.Table;
@@ -28,6 +28,7 @@ import java.sql.Blob;
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"projectId"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Audited
 public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;

@@ -412,35 +412,42 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        if(info==null){
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         final byte[] bytes = info.getIrbFile();
         String fileName = info.getIrbFileName();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         InputStream is = new BufferedInputStream(new ByteArrayInputStream(bytes));
         String mimeType = URLConnection.guessContentTypeFromStream(is);
-
+        if(StringUtils.endsWith(fileName,".pdf")){
+            mimeType = MediaType.APPLICATION_PDF_VALUE;
+        }
 
         ByteArrayResource resource = new ByteArrayResource(bytes);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, mimeType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-                .contentType(MediaType.parseMediaType("application/octet-stream"))
                 .body(resource);
+    }
 
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.CONTENT_TYPE, mimeType)
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-//                .body(bytes);
-
-
-//        .body((StreamingResponseBody) new StreamingResponseBody() {
-//            @Override
-//            public void writeTo(final OutputStream outputStream) throws IOException {
-//                InputStream inputStream = new BufferedInputStream(new ByteArrayInputStream(bytes));
-//                IOUtils.copy(inputStream, outputStream);
-//            }
-//        });
+    @ApiOperation(value = "Get stored IRB filename for project.", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "An IRB filename."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB filename."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE , method = RequestMethod.GET, restrictTo = Owner)
+    @ResponseBody
+    public ResponseEntity<String> getIrbFilename(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+        ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        if(info==null){
+            return new ResponseEntity<>("", HttpStatus.OK);
+        }
+        else{
+            return new ResponseEntity<>(info.getIrbFileName(), HttpStatus.OK);
+        }
     }
 
     @ApiOperation(value = "Update IRB number for project.", response = Boolean.class)
