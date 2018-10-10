@@ -488,7 +488,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                 //Create new IRB info object
                 final ProjectIrbInfo projectIrbInfo = new ProjectIrbInfo();
                 projectIrbInfo.setProjectId(projectId);
-                info.setIrbFileName(fileName);
+                projectIrbInfo.setIrbFileName(fileName);
                 projectIrbInfo.setIrbFile(bytes);
                 _projectIrbInfoEntityService.create(projectIrbInfo);
             }
