@@ -13,6 +13,7 @@ import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.xapi.rest.AbstractXapiRestController;
+import org.nrg.xapi.rest.AuthorizedRoles;
 import org.nrg.xapi.rest.ProjectId;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.XDAT;
@@ -78,7 +79,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGet() {
         final UserI user = getSessionUser();
         if(Roles.isSiteAdmin(user)){
@@ -94,7 +96,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/history/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "query/history/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
     public ResponseEntity<ExecutedPacsRequest> queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable("id") final String id) {
         try {
             final UserI user = getSessionUser();
@@ -114,7 +117,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
     public ResponseEntity<List<QueuedPacsRequest>> queryQueueGet() {
         final UserI user = getSessionUser();
         if(Roles.isSiteAdmin(user)){
@@ -130,7 +134,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
     public ResponseEntity<QueuedPacsRequest> queryQueueGet(@ApiParam(value = "ID of the queued query request to fetch", required = true) @PathVariable("id") final String id) {
         try {
             final UserI user = getSessionUser();
@@ -150,7 +155,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
             @ApiResponse(code = 404, message = "The queued DICOM query request wasn't found."),
             @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Role)
     public ResponseEntity<Boolean> queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable("id") final String id) throws Exception {
         try {
             final UserI user = getSessionUser();
@@ -176,7 +182,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @ApiOperation(value = "Uses the uploaded csv to generate JSON containing information about what would be imported if the user decides to continue.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
-    @XapiRequestMapping(value = "csvimport/uploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authenticated)
+    @AuthorizedRoles({"Dqr","Administrator"})
+    @XapiRequestMapping(value = "csvimport/uploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Role)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store", required = true) MultipartFile csv,
                                                         @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
 //        if (!csv.getContentType().contains("csv")) {
@@ -213,11 +220,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthorizedRoles({"Dqr","Administrator"})
     @XapiRequestMapping(value = "csvimport/importFromJson",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE,
-            restrictTo = Authenticated)
+            restrictTo = Role)
     public ResponseEntity<Boolean> importFromPacs(@RequestBody final CsvRow[] rows,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId", required = true) final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae", required = true) final String ae,
@@ -239,11 +247,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "Scans sent to PACS."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthorizedRoles({"Dqr","Administrator"})
     @XapiRequestMapping(value = "send/toPacs",
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE,
-            restrictTo = Authenticated)
+            restrictTo = Role)
     public ResponseEntity<Map<String, Object>> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId", required = true) final String pacs,
                                                   @ApiParam("XNAT session to send.") @RequestParam(name = "session", required = true) final String session,
                                                  @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport", required = true) final String[] scansToExport) throws Exception {
