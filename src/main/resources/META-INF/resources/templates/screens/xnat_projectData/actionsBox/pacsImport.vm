@@ -1,7 +1,6 @@
 <!-- Sequence: 9 -->
 #set($userHelper = $data.getSession().getAttribute("userHelper"))
-#if($userHelper.canEdit("xnat:subjectData/project", $project.getId()))
-
+#if(($userHelper.canEdit("xnat:subjectData/project", $project.getId()) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
 <li class="yuimenuitem">
     <a class="yuimenuitemlabel" href="#insertbox">Import From PACS</a>
     <div id="insertbox" class="yuimenu">
