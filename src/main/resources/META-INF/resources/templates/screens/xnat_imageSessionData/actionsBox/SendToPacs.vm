@@ -1,4 +1,4 @@
-#if($item.canEdit($user))
+#if (($item.canEdit($user) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
     <!-- Sequence: 20 -->
     #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id).addQueryData("project", $project))
@@ -47,11 +47,11 @@
         });
     </script>
     <!-- END /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
-#else
-</ul>
-    <ul>
-        <li class="yuimenuitem">
-            <a href="#">Can't send to pacs</a>
-        </li>
+###else
+##</ul>
+##    <ul>
+##        <li class="yuimenuitem">
+##            <a href="#">Can't send to pacs</a>
+##        </li>
 #end
 
