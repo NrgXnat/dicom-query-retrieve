@@ -8,7 +8,7 @@
  */
 
 def pluginVersion = '1.0.0-PRERELEASE'
-def vXnatDev = "1.7.5-RC1-SNAPSHOT"
+def vXnatDev = "1.7.5-SNAPSHOT"
 def vXnat = '1.7.5-SNAPSHOT'
 def vJunit = '4.12'
 
@@ -50,7 +50,7 @@ buildscript {
         classpath "org.apache.maven.plugins:maven-antrun-plugin:1.8"
         classpath "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
         classpath "javax.validation:validation-api:2.0.0.Final"
-        classpath "org.nrg.xdat:core:1.7.5-RC1-SNAPSHOT"
+        classpath "org.nrg.xdat:core:1.7.5-SNAPSHOT"
         classpath "org.nrg:framework:1.7.5-SNAPSHOT"
         classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.5-SNAPSHOT"){
             exclude group:'torque'
