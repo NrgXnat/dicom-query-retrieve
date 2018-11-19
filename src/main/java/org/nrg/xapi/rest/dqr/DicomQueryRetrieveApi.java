@@ -232,16 +232,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae", required = true) final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project", required = true) final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        HttpHeaders headers = new HttpHeaders();
-        if(!_pacsService.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff)){
-            headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
+        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
+        if (existingSettings == null) {
+            //You cannot import into a project that does not have DQR enabled.
+            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
+        }else {
+            HttpHeaders headers = new HttpHeaders();
+            if (!_pacsService.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff)) {
+                headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
+            } else {
+                headers.add(HttpHeaders.WARNING, "Query Submitted.");
+            }
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(true);
         }
-        else{
-            headers.add(HttpHeaders.WARNING, "Query Submitted.");
-        }
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(true);
     }
 
     @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
