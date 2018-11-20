@@ -420,7 +420,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Owner)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     public ResponseEntity<String> getIrbNumber(@PathVariable("projectId") @ProjectId final String projectId) {
         return new ResponseEntity<>(_projectIrbInfoEntityService.findIrbNumberForProject(projectId), HttpStatus.OK);
     }
@@ -430,7 +430,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB file."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", produces = {"application/java-vm","application/x-java-serialized-object","application/xml","image/gif","image/x-bitmap","image/x-pixmap","image/png","image/jpeg","image/vnd.fpx","audio/basic","audio/x-wav"} , method = RequestMethod.GET, restrictTo = Owner)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", produces = {"application/java-vm","application/x-java-serialized-object","application/xml","image/gif","image/x-bitmap","image/x-pixmap","image/png","image/jpeg","image/vnd.fpx","audio/basic","audio/x-wav"} , method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
     public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
@@ -460,7 +460,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB filename."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE , method = RequestMethod.GET, restrictTo = Owner)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE , method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
     public ResponseEntity<String> getIrbFilename(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
@@ -477,7 +477,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB number."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Owner)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Delete)
     public ResponseEntity<Boolean> putIrbNumber(@PathVariable("projectId") @ProjectId final String projectId,
                                                 @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber", required = true) final String irbNumber) {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
@@ -503,7 +503,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB file."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Owner)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Delete)
     public ResponseEntity<Boolean> putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile", required = true) MultipartFile irbFile,
                                               @PathVariable("projectId") @ProjectId final String projectId) {
         File temp = null;
