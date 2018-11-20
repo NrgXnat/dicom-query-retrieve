@@ -20,6 +20,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
@@ -233,10 +234,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project", required = true) final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
+        UserI user = getSessionUser();
         if (existingSettings == null) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
-        }else {
+        }
+        else if(!Permissions.canEditProject(user, project) && !Roles.checkRole(user,"Administrator") && !Roles.checkRole(user,"DataManager")){
+            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
+        }
+        else {
             HttpHeaders headers = new HttpHeaders();
             if (!_pacsService.processSpreadsheetImportFromRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff)) {
                 headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
