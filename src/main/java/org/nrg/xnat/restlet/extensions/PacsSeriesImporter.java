@@ -29,6 +29,7 @@ import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.QueuedPacsRequestService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.AdminUtils;
@@ -89,7 +90,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
         else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user must have the Dqr role to import using DQR.");
         }
-        else if(!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user,"Administrator") && !Roles.checkRole(user,"DataManager")){
+        else if(!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user,"Administrator") && !Groups.hasAllDataAccess(user)){
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to import.");
         }
         else {

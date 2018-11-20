@@ -20,6 +20,7 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
@@ -239,7 +240,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         }
-        else if(!Permissions.canEditProject(user, project) && !Roles.checkRole(user,"Administrator") && !Roles.checkRole(user,"DataManager")){
+        else if(!Permissions.canEditProject(user, project) && !Roles.checkRole(user,"Administrator") && !Groups.hasAllDataAccess(user)){
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         }
         else {
