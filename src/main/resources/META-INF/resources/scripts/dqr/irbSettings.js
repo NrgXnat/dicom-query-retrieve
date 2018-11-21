@@ -80,7 +80,7 @@
             success: function(filename){
                 if (filename) {
                     link.textContent = filename;
-                    link.href = XNAT.url.rootUrl(baseUrl + '/irbFile');
+                    link.href = XNAT.url.rootUrl(baseUrl + '/irbFile/'+filename);
                     link.classList.add('link');
                     div.classList.remove('hidden');
                 }

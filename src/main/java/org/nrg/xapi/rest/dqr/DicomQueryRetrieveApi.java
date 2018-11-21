@@ -430,9 +430,11 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB file."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", produces = {"application/java-vm","application/x-java-serialized-object","application/xml","image/gif","image/x-bitmap","image/x-pixmap","image/png","image/jpeg","image/vnd.fpx","audio/basic","audio/x-wav"} , method = RequestMethod.GET, restrictTo = Delete)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{passedFileName}", method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId, @PathVariable("passedFileName") final String passedFileName) throws IOException {
+        //Filename is included in the URL to avoid confusing some browsers (even though it's unused).
+
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if(info==null){
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
