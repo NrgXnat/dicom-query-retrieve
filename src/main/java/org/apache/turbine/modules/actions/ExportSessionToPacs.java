@@ -87,6 +87,15 @@ public class ExportSessionToPacs extends DqrSecureAction {
                 if (_log.isDebugEnabled()) {
                     _log.debug("User {} exported {} scans from session {}", _user.getLogin(), _scanIds.length, _session.getId());
                 }
+//              We should later try to get a notification like this working when users export to PACS.
+//                XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
+//                        "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request Complete",
+//                        "The session you requested has been successfully exported to the PACS.");
+//                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_COMPLETE");
+//                eventDetails.setComment("Series: " + Joiner.on(", ").join(getSeriesIds(pacsSessionExportRequest.getScans())));
+//                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, pacsSessionExportRequest.getSession().getId(), pacsSessionExportRequest.getSession().getProject(), eventDetails);
+//                assert wrk != null;
+//                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }
 
             data.setScreenTemplate("ExportSessionToPacsRequested.vm");
