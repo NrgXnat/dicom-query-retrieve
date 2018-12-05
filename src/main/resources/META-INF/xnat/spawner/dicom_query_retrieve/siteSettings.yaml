@@ -73,7 +73,7 @@ dqrOtherPreferencePanel:
             kind: panel.input.text
             name: pacsAvailabilityCheckFrequency
             label: PACS Availability Check Frequency
-            value: '5 minutes'
+            value: '1 minute'
             validation: interval onblur
             description: >
                 How often to check whether there are any PACS requests in the queue whose PACS are now available.
