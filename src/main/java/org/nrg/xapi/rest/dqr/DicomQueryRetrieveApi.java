@@ -8,6 +8,7 @@ import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.dqr.util.CsvRow;
+import org.nrg.dqr.util.SimpleCsvRow;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
@@ -53,7 +54,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @RequestMapping(value = "/dqr")
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @Autowired
-    protected DicomQueryRetrieveApi(DqrPreferences prefs, UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService, QueuedPacsRequestService queuedRequestService, PacsService pacsService, PacsEntityService pacsEntityService, PacsPingService pacsPingService, ProjectIrbInfoEntityService projectIrbInfoEntityService, DqrAdminSettingsForProjectService adminSettingsForProjectService) {
+    protected DicomQueryRetrieveApi(DqrPreferences prefs, UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService, QueuedPacsRequestService queuedRequestService, PacsService pacsService, PacsEntityService pacsEntityService, PacsPingService pacsPingService, ProjectIrbInfoEntityService projectIrbInfoEntityService, DqrAdminSettingsForProjectService adminSettingsForProjectService, PacsAvailabilityEntityService pacsAvailabilityEntityService) {
         super(userManagementService, roleHolder);
         _preferences = prefs;
         _executedRequestService = requestService;
@@ -63,6 +64,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         _pacsPingService = pacsPingService;
         _projectIrbInfoEntityService = projectIrbInfoEntityService;
         _adminSettingsForProjectService = adminSettingsForProjectService;
+        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
     }
 
     @ApiOperation(value = "Get list of all DICOM query requests.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
@@ -233,6 +235,41 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return ResponseEntity.ok()
                                  .headers(headers)
                                  .body(true);
+        }
+    }
+
+    @ApiOperation(value = "Issues the PACS import requests specified in the simple JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "csvimport/importFromSimpleJson",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE,
+            restrictTo = Role)
+    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final SimpleCsvRow[] rows,
+                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
+                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
+                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
+                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
+        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
+        UserI                      user             = getSessionUser();
+        if (existingSettings == null) {
+            //You cannot import into a project that does not have DQR enabled.
+            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
+        } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
+            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
+        } else {
+            HttpHeaders headers = new HttpHeaders();
+            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff)) {
+                headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
+            } else {
+                headers.add(HttpHeaders.WARNING, "Query Submitted.");
+            }
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(true);
         }
     }
 
@@ -610,6 +647,108 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return new ResponseEntity<>(_adminSettingsForProjectService.findSettingsByProject(projectId), HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Creates a new PACS availability interval from the submitted attributes.", notes = "Returns the newly created PACS availability interval with the submitted attributes.", response = PacsAvailability.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns the newly created PACS availability interval."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to create the PACS availability interval."),
+            @ApiResponse(code = 404, message = "The requested PACS availability interval wasn't found."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "pacsAvailability/window", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<PacsAvailability> createPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
+        if (StringUtils.isBlank(settings.getDayOfWeek()) || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+            log.error("User {} tried to create a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        PacsAvailability created = _pacsAvailabilityEntityService.create(settings);
+        return new ResponseEntity<>(created, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Updates the requested PACS availability interval using the submitted attributes.", notes = "Returns the updated PACS availability interval.", response = PacsAvailability.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns the updated PACS availability interval."),
+            @ApiResponse(code = 304, message = "The requested PACS availability interval is the same as the submitted PACS availability interval."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to edit the requested PACS availability interval."),
+            @ApiResponse(code = 404, message = "The requested PACS availability interval wasn't found."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<PacsAvailability> updatePacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId, @RequestBody final PacsAvailability settings) throws Exception {
+        PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId));
+        if (existingSettings == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        boolean isDirty = false;
+        // Only update fields that are actually included in the submitted data and differ from the original source.
+        if (StringUtils.isNotBlank(settings.getDayOfWeek()) && !StringUtils.equals(settings.getDayOfWeek(), existingSettings.getDayOfWeek())) {
+            existingSettings.setDayOfWeek(settings.getDayOfWeek());
+            isDirty = true;
+        }
+        if (StringUtils.isNotBlank(settings.getAvailabilityStart()) && !StringUtils.equals(settings.getAvailabilityStart(), existingSettings.getAvailabilityStart())) {
+            existingSettings.setAvailabilityStart(settings.getAvailabilityStart());
+            isDirty = true;
+        }
+        if (StringUtils.isNotBlank(settings.getAvailabilityEnd()) && !StringUtils.equals(settings.getAvailabilityEnd(), existingSettings.getAvailabilityEnd())) {
+            existingSettings.setAvailabilityEnd(settings.getAvailabilityEnd());
+            isDirty = true;
+        }
+        if (settings.getSessionsPerHour()!=existingSettings.getSessionsPerHour()) {
+            existingSettings.setSessionsPerHour(settings.getSessionsPerHour());
+            isDirty = true;
+        }
+        if (settings.getPacsId()!=existingSettings.getPacsId()) {
+            existingSettings.setPacsId(settings.getPacsId());
+            isDirty = true;
+        }
+        _pacsAvailabilityEntityService.update(existingSettings);
+        if (isDirty) {
+            return new ResponseEntity<>(existingSettings, HttpStatus.OK);
+        }
+
+        return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+    }
+
+    @ApiOperation(value = "Deletes the requested PACS availability interval.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "PACS availability interval was successfully removed."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to delete the PACS availability interval."),
+            @ApiResponse(code = 404, message = "The requested PACS availability interval wasn't found."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<Boolean> deletePacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId) throws Exception {
+        PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId));
+        if (existingSettings == null) {
+            return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
+        }
+        try{
+            _pacsAvailabilityEntityService.delete(existingSettings.getId());
+            return new ResponseEntity<>(true, HttpStatus.OK);
+        }
+        catch(Throwable t){
+            log.error("An error occurred deleting the PACS availability interval with id " + pacsAvailabilityId, t);
+            return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @ApiOperation(value = "Get PACS availability interval with the specified ID.", notes = "The get PACS availability interval function returns the PACS availability intervals with the specified ID.", response = PacsAvailability.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability interval."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<PacsAvailability> getPacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId) throws Exception {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId)), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get PACS availability intervals for the specified PACS.", notes = "The get PACS availability intervals function returns the PACS availability intervals for the specified PACS.", response = PacsAvailability.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability intervals for the PACS."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "pacsAvailability/windows/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<List<PacsAvailability>> getPacsAvailabilityIntervals(@PathVariable("pacsId") final String pacsId) {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacs(Long.parseLong(pacsId)), HttpStatus.OK);
+    }
+
+
     private final PacsService                       _pacsService;
     private final PacsEntityService                 _pacsEntityService;
     private final ProjectIrbInfoEntityService       _projectIrbInfoEntityService;
@@ -618,4 +757,5 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     private final QueuedPacsRequestService          _queuedRequestService;
     private final DqrAdminSettingsForProjectService _adminSettingsForProjectService;
     private final DqrPreferences                    _preferences;
+    private final PacsAvailabilityEntityService     _pacsAvailabilityEntityService;
 }

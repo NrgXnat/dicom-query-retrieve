@@ -7,10 +7,7 @@ import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
-import org.nrg.dqr.services.ExecutedPacsRequestService;
-import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.dqr.services.PacsService;
-import org.nrg.dqr.services.QueuedPacsRequestService;
+import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -53,6 +50,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 _log.debug("Executing PACS request dequeuer function");
             }
             PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+            PacsAvailabilityEntityService pacsAvailabilityEntityService = XDAT.getContextService().getBean(PacsAvailabilityEntityService.class);
             QueuedPacsRequestService queueService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
             List<QueuedPacsRequest> queue = queueService.getAllOrderedByDate();
             QueuedPacsRequest requestToDequeue = null;
@@ -60,7 +58,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
             if(queue!=null){
                 for (QueuedPacsRequest req : queue) {
                     pacs = pacsEntityService.retrieve(req.getPacsId());
-                    if (pacs.isQueryable() && pacsEntityService.isAvailable(pacs)) {
+                    if (pacs.isQueryable() && pacsAvailabilityEntityService.isAvailableByPacs(req.getPacsId())) {
                         //this is the request to dequeue
                         requestToDequeue = req;
                         break;

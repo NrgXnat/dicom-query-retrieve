@@ -41,6 +41,7 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
+import org.nrg.dqr.util.SimpleCsvRow;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
@@ -194,6 +195,26 @@ public class BasicPacsService implements PacsService {
                     EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
                             MethodName.currentMethodName(), null, MAPPER.writeValueAsString(study)));
             final PacsSearchResults<String, Series> results = buildCFindSCU(pacs).cfindSeriesByStudy(study);
+            completeWorkflow(workflow);
+            return results;
+        } catch (final Exception e) {
+            failWorkflow(workflow);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+        PersistentWorkflowI workflow = null;
+        try {
+            workflow = buildOpenWorkflow(
+                    user,
+                    "pacs:query",
+                    pacs.getAeTitle(),
+                    null,
+                    EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.WEB_SERVICE,
+                            MethodName.currentMethodName(), null, studyUid));
+            final PacsSearchResults<String, Series> results = buildCFindSCU(pacs).cfindSeriesByStudyUid(studyUid);
             completeWorkflow(workflow);
             return results;
         } catch (final Exception e) {
@@ -706,6 +727,115 @@ public class BasicPacsService implements PacsService {
 //                _log.warn("ID absent when creating new workflow event", e);
 //            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
 //                _log.warn("Justification absent but required when creating new workflow event", e);
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause == null || !(cause instanceof Exception)) {
+                } else if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                }
+            }
+        }
+        return valueToReturn;
+    }
+
+    @Override
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException();
+        }
+        String aeTitle = ae;
+        String port = "";
+        if(ae!=null && ae.contains(":")){
+            String[] parts = ae.split(":");
+            aeTitle = parts[0];
+            port = parts[1];
+        }
+        boolean valueToReturn = true;
+        Map<String,String> studiesListMappedToAnonScript = new HashMap<>();
+        for(SimpleCsvRow row : rows) {
+            if(row!=null&&row.getStudyInstanceUIDs()!=null) {
+                for (String currStudy : row.getStudyInstanceUIDs()) {
+                    if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
+                        String anon = row.getAnonScript();
+                        studiesListMappedToAnonScript.put(currStudy, anon);
+                        if (StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff) {
+                            DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+                            if (scpInstance == null) {
+                                throw new Exception("Invalid DICOM SCP Receiver ID.");
+                            }
+                            if (!scpInstance.isEnabled()) {
+                                throw new Exception("Invalid DICOM SCP Receiver ID.");
+                            }
+                            if (!scpInstance.getCustomProcessing()) {
+                                throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
+                            }
+                            List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
+                            if (processorInstances.isEmpty()) {
+                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                            } else {
+                                boolean hasProcessorOtherThanSiteAnon = false;
+                                for (ArchiveProcessorInstance instance : processorInstances) {
+                                    if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
+                                        hasProcessorOtherThanSiteAnon = true;
+                                    }
+                                }
+                                if (!hasProcessorOtherThanSiteAnon) {
+                                    throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for(Map.Entry<String, String> entry : studiesListMappedToAnonScript.entrySet()){
+            String currStudy = entry.getKey();
+            String currAnonScript = entry.getValue();
+
+            //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+//            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
+            String login = AdminUtils.getAdminUser().getLogin();
+            final String path = "/studies/" + currStudy;
+            if (_log.isDebugEnabled()) {
+                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, currStudy);
+            }
+            if (currStudy == null) {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+            } else {
+                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, currStudy);
+                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, currStudy);
+            }
+
+
+
+            final PacsSearchResults<String, Series> series = getSeriesByStudyUid(XDAT.getUserDetails(), pacs, currStudy);
+            String _seriesIdsString = "";
+            ArrayList<String> seriesIdsList = new ArrayList<>();
+            Object[] seriesResults = series.getResults().toArray();
+            for(int index = 0; index<seriesResults.length; index++){
+                if (index > 0) {
+                    _seriesIdsString += ",";
+                }
+                String result = ((Series)seriesResults[index]).getSeriesInstanceUid();
+                _seriesIdsString += result;
+                seriesIdsList.add(result);
+            }
+
+            try {
+                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                pacsReq.setPacsId(pacsId);
+                pacsReq.setUsername(user.getUsername());
+                pacsReq.setXnatProject(project);
+                pacsReq.setStudyInstanceUid(currStudy);
+                pacsReq.setSeriesIds(_seriesIdsString);
+                pacsReq.setDestinationAeTitle(aeTitle);
+                pacsReq.setQueuedTime(new Date());
+
+                XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                valueToReturn = false;
             } catch (Exception e) {
                 final Throwable cause = e.getCause();
                 if (cause == null || !(cause instanceof Exception)) {

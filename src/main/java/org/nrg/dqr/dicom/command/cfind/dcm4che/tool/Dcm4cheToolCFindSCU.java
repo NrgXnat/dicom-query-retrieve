@@ -80,6 +80,15 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
+    public PacsSearchResults<String, Series> cfindSeriesByStudyUid(final String studyUid) {
+        PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+        if (null != studyUid) {
+            searchCriteria.setStudyInstanceUid(studyUid);
+        }
+        return new CFindSCUSeriesLevelByStudy(_preferences, dicomConnectionProperties, cechoSCU, ormStrategy).cfind(searchCriteria);
+    }
+
+    @Override
     public Series cfindSeriesById(final String seriesInstanceUid) {
         PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
         searchCriteria.setSeriesInstanceUid(seriesInstanceUid);

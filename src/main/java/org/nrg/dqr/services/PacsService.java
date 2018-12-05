@@ -21,6 +21,7 @@ import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
+import org.nrg.dqr.util.SimpleCsvRow;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -47,6 +48,8 @@ public interface PacsService {
 
     Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid);
 
+    PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid);
+
     void importSeries(UserI user, final Pacs pacs, final Study study, final Series series, final String ae);
 
     void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
@@ -56,6 +59,8 @@ public interface PacsService {
     boolean aeIsStorable(final String ae);
 
     boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
+
+    boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
     void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
 

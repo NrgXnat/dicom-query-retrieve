@@ -30,5 +30,7 @@ public interface CFindSCU {
 
     PacsSearchResults<String, Series> cfindSeriesByStudy(final Study Study);
 
+    PacsSearchResults<String, Series> cfindSeriesByStudyUid(final String studyUid);
+
     Series cfindSeriesById(final String seriesInstanceUid);
 }
