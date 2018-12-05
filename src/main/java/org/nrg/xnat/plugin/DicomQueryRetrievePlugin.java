@@ -1,22 +1,16 @@
 package org.nrg.xnat.plugin;
 
-import org.nrg.dqr.events.PacsRequestDequeuer;
-import org.nrg.framework.annotations.XnatDataModel;
 import org.nrg.framework.annotations.XnatPlugin;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
-import org.springframework.context.annotation.Bean;
+import org.nrg.xnat.configuration.DicomImportConfig;
+import org.nrg.xnat.configuration.DqrConfig;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.scheduling.config.TriggerTask;
-import org.springframework.scheduling.support.PeriodicTrigger;
-
-import java.util.concurrent.TimeUnit;
+import org.springframework.context.annotation.Import;
 
 @XnatPlugin(value = "dicom_query_retrieve", name = "DICOM Query Retrieve Plugin", description = "Enables users to search for images in PACS, retrieve them, and push them.",
-    entityPackages = "org.nrg.dqr.domain.entities")
+            entityPackages = "org.nrg.dqr.domain.entities")
 @ComponentScan({"org.nrg.dqr.services", "org.nrg.dqr.daos", "org.nrg.dcm.scp", "org.nrg.dqr.processors", "org.nrg.dcm.edit.mizer",
-        "org.nrg.dicom.dicomedit.mizer", "org.nrg.dicom.mizer.service.impl", "org.nrg.dqr.events", "org.nrg.dqr.preferences"})
+                "org.nrg.dicom.dicomedit.mizer", "org.nrg.dicom.mizer.service.impl", "org.nrg.dqr.events", "org.nrg.dqr.preferences"})
+@Import({DicomImportConfig.class, DqrConfig.class})
 public class DicomQueryRetrievePlugin {
 
 //    @Bean

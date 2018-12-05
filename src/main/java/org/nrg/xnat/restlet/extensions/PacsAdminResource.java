@@ -30,8 +30,6 @@ import org.restlet.data.Status;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.time.LocalTime;
-
 public abstract class PacsAdminResource extends SecureResource {
 
     public PacsAdminResource(final Context context, final Request request, final Response response) {

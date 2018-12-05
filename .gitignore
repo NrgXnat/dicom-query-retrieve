@@ -1,2 +1,5 @@
-build/
+*.log
 .gradle
+build/
+dep*.txt
+out/

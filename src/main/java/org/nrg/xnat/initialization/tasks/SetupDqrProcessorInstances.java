@@ -10,31 +10,21 @@
 package org.nrg.xnat.initialization.tasks;
 
 import org.nrg.dqr.processors.DqrAnonArchiveProcessor;
-import org.nrg.xnat.initialization.tasks.AbstractInitializingTask;
-import org.nrg.xnat.initialization.tasks.InitializingTaskException;
 import org.nrg.xnat.archive.operations.ProcessorGradualDicomImportOperation;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
-import org.nrg.xnat.processors.MizerArchiveProcessor;
-import org.nrg.xnat.processors.StudyRemappingArchiveProcessor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.nrg.xdat.XDAT;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
-@SuppressWarnings("SqlDialectInspection")
 @Component
 public class SetupDqrProcessorInstances extends AbstractInitializingTask {
     @Autowired
-    public SetupDqrProcessorInstances(final JdbcTemplate template, final ArchiveProcessorInstanceService archiveProcessorInstanceService) {
+    public SetupDqrProcessorInstances(final ArchiveProcessorInstanceService archiveProcessorInstanceService) {
         super();
-        _template = template;
         _archiveProcessorInstanceService = archiveProcessorInstanceService;
     }
 
@@ -67,8 +57,5 @@ public class SetupDqrProcessorInstances extends AbstractInitializingTask {
         }
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(SetupDqrProcessorInstances.class);
-
-    private final JdbcTemplate _template;
     private final ArchiveProcessorInstanceService _archiveProcessorInstanceService;
 }
