@@ -33,4 +33,11 @@ public class QueuedPacsRequestDAO extends AbstractHibernateDAO<QueuedPacsRequest
     public List<QueuedPacsRequest> findByIdForUser(Long id, UserI user){
         return findByCriteria(Restrictions.eq("id", id),Restrictions.eq("username", user.getUsername()));
     }
+
+    public List<QueuedPacsRequest> findAllForPacsOrderedByDate(Long pacsId){
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.addOrder(Order.asc("queuedTime"));
+        return criteria.list();
+    }
 }

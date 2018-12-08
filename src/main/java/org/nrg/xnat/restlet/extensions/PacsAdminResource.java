@@ -69,9 +69,11 @@ public abstract class PacsAdminResource extends SecureResource {
                 pacs.setQueryRetrievePort(Integer.valueOf(requestForm.getFirstValue("queryRetrievePort")));
             }
             pacs.setDefaultQueryRetrievePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("defaultQueryRetrievePacs"))));
-            pacs.setAvailabilityStart(requestForm.getFirstValue("availabilityStart"));
-            pacs.setAvailabilityEnd(requestForm.getFirstValue("availabilityEnd"));
             pacs.setSupportsExtendedNegotiations(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("extendedNegotiations"))));
+            pacs.setDefaultSessionsPerHour(null);
+            if (!StringUtils.isBlank(requestForm.getFirstValue("defaultSessionsPerHour"))) {
+                pacs.setDefaultSessionsPerHour(Integer.valueOf(requestForm.getFirstValue("defaultSessionsPerHour")));
+            }
             pacs.setOrmStrategySpringBeanId(requestForm.getFirstValue("ormStrategySpringBeanId"));
             return pacs;
         } catch (final NumberFormatException e) {

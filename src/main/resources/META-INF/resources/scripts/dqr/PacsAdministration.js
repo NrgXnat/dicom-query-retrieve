@@ -212,14 +212,8 @@ XNAT.app = getObject(XNAT.app || {});
                             value: false
                         }),
                         XNAT.ui.panel.input.text({
-                            name: 'availabilityStart',
-                            label: 'Availability Start Time',
-                            description: 'Time is specified in military time, <br>aka "20:00" rather than "10:00 pm"'
-                        }),
-                        XNAT.ui.panel.input.text({
-                            name: 'availabilityEnd',
-                            label: 'Availability End Time',
-                            description: 'Time is specified in military time, <br>aka "20:00" rather than "10:00 pm"'
+                            name: 'defaultSessionsPerHour',
+                            label: 'Default Sessions Per Hour'
                         })
                     ])
                 );
@@ -404,8 +398,7 @@ XNAT.app = getObject(XNAT.app || {});
                         defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
                         storable: ae.storable,
                         defaultStoragePacs: ae.defaultStoragePacs,
-                        availabilityStart: ae.availabilityStart,
-                        availabilityEnd: ae.availabilityEnd,
+                        defaultSessionsPerHour: ae.defaultSessionsPerHour,
                         ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                         supportsExtendedNegotiations: ae.supportsExtendedNegotiations
                     }
@@ -1111,10 +1104,7 @@ XNAT.app = getObject(XNAT.app || {});
                     obj.$modal.find('.xnat-dialog-content').prepend(
                         spawn(
                             'div.message',
-                            'This request is currently queued. Items in the queue will be processed during the PACS\'s availability window. ' +
-                            'The availability window for '+pacsObj[queueEntry['pacsId']].aeTitle+' opens at <strong>'+
-                            pacsObj[queueEntry['pacsId']].availabilityStart+ '</strong> and closes at <strong>'+
-                            pacsObj[queueEntry['pacsId']].availabilityEnd+'</strong>.'
+                            'This request is currently queued.'
                         )
                     );
                 },

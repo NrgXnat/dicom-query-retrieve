@@ -13,8 +13,12 @@
 package org.nrg.dqr.daos;
 
 import org.hibernate.criterion.Restrictions;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsAvailability;
+import org.nrg.dqr.services.PacsAvailabilityEntityService;
+import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
+import org.nrg.xdat.XDAT;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -25,7 +29,4 @@ public class PacsAvailabilityDAO extends AbstractHibernateDAO<PacsAvailability> 
         return findByCriteria(Restrictions.eq("pacsId", pacsId));
     }
 
-    public int findCurrentSessionsPerHourByPacs(Long pacsId){
-        return 0;
-    }
 }

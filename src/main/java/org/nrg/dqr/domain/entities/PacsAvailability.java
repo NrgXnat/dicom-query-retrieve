@@ -31,13 +31,12 @@ import java.io.Serializable;
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"pacsId","dayOfWeek","availabilityStart"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
-@PortNotNullIfDefaultPacs
 public class PacsAvailability extends AbstractHibernateEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     private Long _pacsId;
-    private String _dayOfWeek;
+    private int _dayOfWeek;
     private String _availabilityStart;
     private String _availabilityEnd;
     private int _sessionsPerHour;
@@ -54,13 +53,11 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         this._pacsId = pacsId;
     }
 
-    @NotBlank
-    @Size(max = 100)
-    public String getDayOfWeek() {
+    public int getDayOfWeek() {
         return _dayOfWeek;
     }
 
-    public void setDayOfWeek(String dayOfWeek) {
+    public void setDayOfWeek(int dayOfWeek) {
         this._dayOfWeek = dayOfWeek;
     }
 
@@ -101,7 +98,7 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         PacsAvailability that = (PacsAvailability) o;
 
         if (_pacsId != null ? !_pacsId.equals(that._pacsId) : that._pacsId != null) return false;
-        if (_dayOfWeek != null ? !_dayOfWeek.equals(that._dayOfWeek) : that._dayOfWeek != null) return false;
+        if (_dayOfWeek != that._dayOfWeek) return false;
         if (_availabilityStart != null ? !_availabilityStart.equals(that._availabilityStart) : that._availabilityStart != null)
             return false;
         if (_availabilityEnd != null ? !_availabilityEnd.equals(that._availabilityEnd) : that._availabilityEnd != null)
@@ -113,7 +110,7 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (_pacsId != null ? _pacsId.hashCode() : 0);
-        result = 31 * result + (_dayOfWeek != null ? _dayOfWeek.hashCode() : 0);
+        result = 31 * result + _dayOfWeek;
         result = 31 * result + (_availabilityStart != null ? _availabilityStart.hashCode() : 0);
         result = 31 * result + (_availabilityEnd != null ? _availabilityEnd.hashCode() : 0);
         result = 31 * result + _sessionsPerHour;

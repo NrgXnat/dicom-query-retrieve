@@ -19,5 +19,4 @@ import java.util.List;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
     List<PacsAvailability> findSettingsByPacs(Long pacsId);
-    boolean isAvailableByPacs(Long pacsId);
 }

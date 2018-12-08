@@ -6,6 +6,7 @@ import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
@@ -28,9 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.nrg.xnat.task.*;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -52,92 +53,173 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
             PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
             PacsAvailabilityEntityService pacsAvailabilityEntityService = XDAT.getContextService().getBean(PacsAvailabilityEntityService.class);
             QueuedPacsRequestService queueService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
-            List<QueuedPacsRequest> queue = queueService.getAllOrderedByDate();
-            QueuedPacsRequest requestToDequeue = null;
-            Pacs pacs = null;
-            if(queue!=null){
-                for (QueuedPacsRequest req : queue) {
-                    pacs = pacsEntityService.retrieve(req.getPacsId());
-                    if (pacs.isQueryable() && pacsAvailabilityEntityService.isAvailableByPacs(req.getPacsId())) {
-                        //this is the request to dequeue
-                        requestToDequeue = req;
-                        break;
+            ExecutedPacsRequestService executedService = XDAT.getContextService().getBean(ExecutedPacsRequestService.class);
+            List<QueuedPacsRequest> requestsToDequeue = new ArrayList<>();
+
+            List<Pacs> pacsList = pacsEntityService.findAllQueryable();
+            for(Pacs currPacs: pacsList){
+                Long pacsId = currPacs.getId();
+                Integer defSecsPerHour = currPacs.getDefaultSessionsPerHour();
+                if (defSecsPerHour > 0) {
+                    Long millisBetweenPacsRequests = (3600000L / defSecsPerHour);
+                    List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
+                    for (PacsAvailability availability : availabilityList) {
+                        String availabilityStartTimeString = availability.getAvailabilityStart();
+                        String availabilityEndTimeString = availability.getAvailabilityEnd();
+                        int availabilityDay = availability.getDayOfWeek();
+
+                        //If hour is one digit, pad with a zero.
+                        if (availabilityStartTimeString.charAt(1) == ':') {
+                            availabilityStartTimeString = "0" + availabilityStartTimeString;
+                        }
+                        if (availabilityEndTimeString.charAt(1) == ':') {
+                            availabilityEndTimeString = "0" + availabilityEndTimeString;
+                        }
+                        Calendar currentCal = Calendar.getInstance();
+                        int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
+
+                        long currMillis = currentCal.getTimeInMillis();
+
+                        long startMillis = 0L;
+                        long endMillis = 0L;
+
+                        if (StringUtils.isNotBlank(availabilityStartTimeString)) {
+                            try {
+                                Calendar startCal = (Calendar) currentCal.clone();
+                                String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
+                                startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
+                                startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
+                                startMillis = startCal.getTimeInMillis();
+                            } catch (Exception e) {
+
+                            }
+                        }
+                        if (StringUtils.isNotBlank(availabilityEndTimeString)) {
+                            try {
+                                Calendar endCal = (Calendar) currentCal.clone();
+                                String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
+                                endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
+                                endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
+                                endMillis = endCal.getTimeInMillis();
+                            } catch (Exception e) {
+
+                            }
+                        }
+
+                        boolean isAvailable = false;
+                        if (endMillis < startMillis) {
+                            //That means that the availability interval contains midnight.
+                            if ((currMillis > startMillis && currentDayOfWeek==availabilityDay) || (currMillis < endMillis && currentDayOfWeek==(availabilityDay+1))) {
+                                isAvailable = true;
+                            }
+                        } else {
+                            if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek==availabilityDay) {
+                                isAvailable = true;
+                            }
+                        }
+
+                        if (isAvailable) {
+                            long sessionsPerHour = availability.getSessionsPerHour();
+                            if (sessionsPerHour == 0L) {
+                                millisBetweenPacsRequests = 0L;
+                            } else {
+                                millisBetweenPacsRequests = (3600000 / sessionsPerHour);
+                            }
+                            break;
+                        }
+                    }
+
+                    ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
+                    if (lastReq != null) {
+                        Date executedTime = lastReq.getExecutedTime();
+                        Date currTime = new Date();
+
+                        if (millisBetweenPacsRequests != 0L && executedTime != null) {
+                            if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
+                                List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                if (reqs != null && reqs.size() > 0) {
+                                    requestsToDequeue.add(reqs.get(0));
+                                }
+                            }
+                        }
                     }
                 }
             }
-            if (requestToDequeue != null) {
-                String login = AdminUtils.getAdminUser().getLogin();
-                String studyId = requestToDequeue.getStudyInstanceUid();
-                String currAnonScript = requestToDequeue.getRemappingScript();
-                final String path = "/studies/" + studyId;
-                if (_log.isDebugEnabled()) {
-                    _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-                }
-                if (studyId == null) {
-                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-                } else {
-                    XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
-                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                    XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-                }
 
-                ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
-                pacsReq.setPacsId(requestToDequeue.getPacsId());
-                String username = requestToDequeue.getUsername();
-                XDATUser user = new XDATUser(username);
-                pacsReq.setUsername(username);
-                String projectId = requestToDequeue.getXnatProject();
-                pacsReq.setXnatProject(projectId);
-                String studyInstanceUid = requestToDequeue.getStudyInstanceUid();
-                pacsReq.setStudyInstanceUid(studyInstanceUid);
-                String seriesIds = requestToDequeue.getSeriesIds();
-                pacsReq.setSeriesIds(seriesIds);
-                pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
-                pacsReq.setExecutedTime(new Date());
-                pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
-
-                XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
-
-                PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-                pacsService.importFromPacsRequest(pacsReq);
-
-                queueService.delete(requestToDequeue.getId());
-
-
-                final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
-                final StringBuilder prearchive = new StringBuilder(siteUrl);
-                if (!siteUrl.endsWith("/")) {
-                    prearchive.append("/");
-                }
-                prearchive.append("app/template/XDATScreen_prearchives.vm");
-
-                final PacsServiceResourceContext context = new PacsServiceResourceContext();
-                context.put("prearchive", prearchive.toString());
-                context.put("studyId", studyInstanceUid);
-                context.put("seriesIds", Arrays.asList(seriesIds.split("\\s*,\\s*")));
-
-                try {
+            if (requestsToDequeue != null && requestsToDequeue.size()>0) {
+                for(QueuedPacsRequest requestToDequeue: requestsToDequeue) {
+                    String login = AdminUtils.getAdminUser().getLogin();
+                    String studyId = requestToDequeue.getStudyInstanceUid();
+                    String currAnonScript = requestToDequeue.getRemappingScript();
+                    final String path = "/studies/" + studyId;
                     if (_log.isDebugEnabled()) {
-                        _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
+                        _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
                     }
-                    String subject = "Selected DICOM series requested";
-                    String template = "SeriesRequested";
-                    final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
-                    context.put("pacs", pacs);
-                    context.put("adminEmail", adminEmail);
-                    final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-                    XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName()+"] " + subject, body);
+                    if (studyId == null) {
+                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                    } else {
+                        XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
+                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                        XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                    }
+
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
+                    pacsReq.setPacsId(requestToDequeue.getPacsId());
+                    String username = requestToDequeue.getUsername();
+                    XDATUser user = new XDATUser(username);
+                    pacsReq.setUsername(username);
+                    String projectId = requestToDequeue.getXnatProject();
+                    pacsReq.setXnatProject(projectId);
+                    String studyInstanceUid = requestToDequeue.getStudyInstanceUid();
+                    pacsReq.setStudyInstanceUid(studyInstanceUid);
+                    String seriesIds = requestToDequeue.getSeriesIds();
+                    pacsReq.setSeriesIds(seriesIds);
+                    pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
+                    pacsReq.setExecutedTime(new Date());
+                    pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
+
+                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
+
+                    PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
+                    pacsService.importFromPacsRequest(pacsReq);
+
+                    queueService.delete(requestToDequeue.getId());
 
 
-                } catch (Exception exception) {
-                    _log.warn("User " + username + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
+                    final StringBuilder prearchive = new StringBuilder(siteUrl);
+                    if (!siteUrl.endsWith("/")) {
+                        prearchive.append("/");
+                    }
+                    prearchive.append("app/template/XDATScreen_prearchives.vm");
+
+                    final PacsServiceResourceContext context = new PacsServiceResourceContext();
+                    context.put("prearchive", prearchive.toString());
+                    context.put("studyId", studyInstanceUid);
+                    context.put("seriesIds", Arrays.asList(seriesIds.split("\\s*,\\s*")));
+
+                    try {
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
+                        }
+                        String subject = "Selected DICOM series requested";
+                        String template = "SeriesRequested";
+                        final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
+                        context.put("adminEmail", adminEmail);
+                        final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
+                        XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
+
+
+                    } catch (Exception exception) {
+                        _log.warn("User " + username + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                    }
+
+                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                    eventDetails.setComment("Series: " + seriesIds);
+                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
+                    assert wrk != null;
+                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
                 }
-
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-                eventDetails.setComment("Series: " + seriesIds);
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }
         } catch (Throwable exception) {
             _log.error("Error executing a PACS request from the queue.", exception);

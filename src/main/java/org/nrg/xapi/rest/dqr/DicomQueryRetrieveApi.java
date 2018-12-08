@@ -655,7 +655,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/window", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
     public ResponseEntity<PacsAvailability> createPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
-        if (StringUtils.isBlank(settings.getDayOfWeek()) || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+        if (settings.getDayOfWeek()==0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             log.error("User {} tried to create a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -679,7 +679,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
         boolean isDirty = false;
         // Only update fields that are actually included in the submitted data and differ from the original source.
-        if (StringUtils.isNotBlank(settings.getDayOfWeek()) && !StringUtils.equals(settings.getDayOfWeek(), existingSettings.getDayOfWeek())) {
+        if (settings.getDayOfWeek()!=0 && settings.getDayOfWeek()!=existingSettings.getDayOfWeek()) {
             existingSettings.setDayOfWeek(settings.getDayOfWeek());
             isDirty = true;
         }

@@ -48,4 +48,10 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernateEntitySe
             return list.get(0);
         }
     }
+
+    @Override
+    @Transactional
+    public List<QueuedPacsRequest> getAllForPacsOrderedByDate(Long pacsId){
+        return _dao.findAllForPacsOrderedByDate(pacsId);
+    }
 }

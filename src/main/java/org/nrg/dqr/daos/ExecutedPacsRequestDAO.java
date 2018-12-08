@@ -1,5 +1,7 @@
 package org.nrg.dqr.daos;
 
+import org.hibernate.Criteria;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
@@ -21,5 +23,12 @@ public class ExecutedPacsRequestDAO extends AbstractHibernateDAO<ExecutedPacsReq
 
     public List<ExecutedPacsRequest> findByIdForUser(Long id, UserI user){
         return findByCriteria(Restrictions.eq("id", id),Restrictions.eq("username", user.getUsername()));
+    }
+
+    public List<ExecutedPacsRequest> findByPacsidOrderedByMostRecent(Long pacsId){
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.addOrder(Order.desc("executedTime"));
+        return criteria.list();
     }
 }

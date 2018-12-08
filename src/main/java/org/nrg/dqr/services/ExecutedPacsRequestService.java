@@ -12,4 +12,5 @@ import java.util.List;
 public interface ExecutedPacsRequestService extends BaseHibernateService<ExecutedPacsRequest> {
     List<ExecutedPacsRequest> getAllForUser(UserI user);
     ExecutedPacsRequest getByIdForUser(Long id, UserI user);
+    ExecutedPacsRequest getMostRecentForPacs(Long pacsId);
 }

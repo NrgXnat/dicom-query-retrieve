@@ -14,4 +14,5 @@ public interface QueuedPacsRequestService extends BaseHibernateService<QueuedPac
     List<QueuedPacsRequest> getAllOrderedByDate();
     List<QueuedPacsRequest> getAllForUser(UserI user);
     QueuedPacsRequest getByIdForUser(Long id, UserI user);
+    List<QueuedPacsRequest> getAllForPacsOrderedByDate(Long pacsId);
 }

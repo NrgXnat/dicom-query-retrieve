@@ -662,45 +662,6 @@ public class BasicPacsService implements PacsService {
             }
 
             try {
-//                PacsEntityService pacsEntityService = getPacsEntityService();
-//                boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
-//                if(pacsIsAvailable) {
-//                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
-//                    pacsReq.setPacsId(pacsId);
-//                    pacsReq.setUsername(user.getUsername());
-//                    pacsReq.setXnatProject(project);
-//                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
-//                    pacsReq.setSeriesIds(_seriesIdsString);
-//                    pacsReq.setDestinationAeTitle(aeTitle);
-//                    pacsReq.setExecutedTime(new Date());
-//
-//                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
-//
-//                    importFromPacsRequest(pacsReq);
-//
-//                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
-//                    final StringBuilder prearchive = new StringBuilder(siteUrl);
-//                    if (!siteUrl.endsWith("/")) {
-//                        prearchive.append("/");
-//                    }
-//                    prearchive.append("app/template/XDATScreen_prearchives.vm");
-//
-//                    try {
-//                        if (_log.isDebugEnabled()) {
-//                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
-//                        }
-//                        //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
-//                    } catch (Exception exception) {
-//                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
-//                    }
-//
-//                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-//                    eventDetails.setComment("Series: " + _seriesIdsString);
-//                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, currStudy.getStudyId(), project, eventDetails);
-//                    assert wrk != null;
-//                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-//                }
-//                else{
                     QueuedPacsRequest pacsReq = new QueuedPacsRequest();
                     pacsReq.setPacsId(pacsId);
                     pacsReq.setUsername(user.getUsername());
@@ -712,21 +673,6 @@ public class BasicPacsService implements PacsService {
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
                     valueToReturn = false;
-//                }
-//            } catch (final PacsNotFoundException exception) {
-//                _log.warn("PACS not found somehow", exception);
-//            } catch (final PacsNotQueryableException exception) {
-//                _log.warn("PACS not queryable somehow", exception);
-//            } catch (final PacsNotStorableException exception) {
-//                _log.warn("PACS not storable somehow", exception);
-//            } catch (final PacsNotAvailableException exception) {
-//                _log.warn("PACS not available at this time", exception);
-//            } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-//                _log.warn("Error creating new workflow event", e);
-//            } catch (PersistentWorkflowUtils.IDAbsent e) {
-//                _log.warn("ID absent when creating new workflow event", e);
-//            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-//                _log.warn("Justification absent but required when creating new workflow event", e);
             } catch (Exception e) {
                 final Throwable cause = e.getCause();
                 if (cause == null || !(cause instanceof Exception)) {
