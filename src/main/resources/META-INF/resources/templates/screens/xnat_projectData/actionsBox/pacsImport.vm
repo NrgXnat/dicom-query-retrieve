@@ -1,19 +1,9 @@
 <!-- Sequence: 9 -->
-#set($userHelper = $data.getSession().getAttribute("userHelper"))
-#if(($userHelper.canEdit("xnat:subjectData/project", $project.getId()) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
+#set ($SITE_ROOT = $content.getURI(""))
+#set ($projectId = $project.getId())
+#set ($userHelper = $data.getSession().getAttribute("userHelper"))
+#if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
 <li class="yuimenuitem">
-    <a class="yuimenuitemlabel" href="#insertbox">Import From PACS</a>
-    <div id="insertbox" class="yuimenu">
-        <div class="bd">
-            <ul class="first-of-type" style="width: 170px;">
-                <li class="yuimenuitem">
-                    <a href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${project.getId()}")">Import Single ${displayManager.getSingularDisplayNameForSubject()}</a>
-                </li>
-                <li class="yuimenuitem">
-                    <a href="$link.setPage("SpreadsheetBasedImporter.vm").addPathInfo("project","${project.getId()}")">Import ${displayManager.getSingularDisplayNameForSubject()} List</a>
-                </li>
-            </ul>
-        </div>
-    </div>
+    <a class="yuimenuitemlabel" href="${SITE_ROOT}/app/template/Page.vm?view=dqr/import&project=$projectId">Import From PACS</a>
 </li>
 #end
