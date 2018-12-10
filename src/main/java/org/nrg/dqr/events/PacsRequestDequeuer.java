@@ -109,11 +109,11 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         boolean isAvailable = false;
                         if (endMillis < startMillis) {
                             //That means that the availability interval contains midnight.
-                            if ((currMillis > startMillis && currentDayOfWeek==availabilityDay) || (currMillis < endMillis && currentDayOfWeek==(availabilityDay+1))) {
+                            if ((currMillis > startMillis && currentDayOfWeek == availabilityDay) || (currMillis < endMillis && currentDayOfWeek == (availabilityDay + 1))) {
                                 isAvailable = true;
                             }
                         } else {
-                            if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek==availabilityDay) {
+                            if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek == availabilityDay) {
                                 isAvailable = true;
                             }
                         }
@@ -128,18 +128,24 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                             break;
                         }
                     }
+                    if (millisBetweenPacsRequests != 0L) {
+                        ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
+                        if (lastReq != null) {
+                            Date executedTime = lastReq.getExecutedTime();
+                            Date currTime = new Date();
 
-                    ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
-                    if (lastReq != null) {
-                        Date executedTime = lastReq.getExecutedTime();
-                        Date currTime = new Date();
-
-                        if (millisBetweenPacsRequests != 0L && executedTime != null) {
-                            if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
-                                List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
-                                if (reqs != null && reqs.size() > 0) {
-                                    requestsToDequeue.add(reqs.get(0));
+                            if (executedTime != null) {
+                                if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
+                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                    if (reqs != null && reqs.size() > 0) {
+                                        requestsToDequeue.add(reqs.get(0));
+                                    }
                                 }
+                            }
+                        } else {
+                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                            if (reqs != null && reqs.size() > 0) {
+                                requestsToDequeue.add(reqs.get(0));
                             }
                         }
                     }
