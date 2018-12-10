@@ -48,6 +48,8 @@ irbSettings:
         irbFile:
             kind: panel.input.upload
             name: irbFile
+            element:
+                name: irbFile
             label: Upload IRB File
             method: PUT
             action: ~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile
