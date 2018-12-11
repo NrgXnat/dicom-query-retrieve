@@ -44,13 +44,13 @@ var XNAT = getObject(XNAT || {});
                 pacsMenu.add(spawn('option', {
                     value: item.id,
                     title: item.aeTitle
-                }, item.label))
+                }, item.label || item.aeTitle))
             }
             if (item.defaultQueryRetrievePacs) {
                 $selectPacsMenu.changeVal(item.id);
-                menuUpdate($selectPacsMenu);
             }
-        })
+        });
+        menuUpdate($selectPacsMenu);
     }
 
     XNAT.xhr.get({
@@ -64,7 +64,7 @@ var XNAT = getObject(XNAT || {});
         dqr.searchResults = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
-        $pacsSearchResults.empty().append($noResultsTemplate.html());
+        $pacsSearchResults.empty().html($noResultsTemplate.html());
     }
 
     // immediately render the 'no results' message
@@ -75,14 +75,15 @@ var XNAT = getObject(XNAT || {});
 
     // initialize date fields
     $pacsSearchFields.find('.study-date')
-                     .mask('99/99/9999', { placeholder: '  /  /    ' })
-    // .datetimepicker({
-    //     timepicker: false,
-    //     // today is max date, disallow future date selection
-    //     // maxDate:    '+1970/01/01',
-    //     //format:     'm/d/Y'
-    //     format: 'Y-m-d' // ISO standard date format
-    // })
+                     // .attr('autocomplete', 'off')
+                     .mask('99/99/9999', { placeholder: 'MM/DD/YYYY' })
+                     // .datetimepicker({
+                     //     timepicker: false,
+                     //     // today is max date, disallow future date selection
+                     //     maxDate:    XNAT.data.todaysDate.ISO,
+                     //     format:     'm/d/Y'
+                     //     // format: 'Y-m-d' // ISO standard date format
+                     // })
     ;
 
     // click the 'today' checkbox to fill in today's date
@@ -90,12 +91,24 @@ var XNAT = getObject(XNAT || {});
         var $studyDateFrom = $('#study-date-from');
         var $studyDateTo = $('#study-date-to');
         if (this.checked) {
-            $studyDateFrom.val(XNAT.data.todaysDate.US).attr('readonly', 'readonly').addClass('disabled');
-            $studyDateTo.val(XNAT.data.todaysDate.US).attr('readonly', 'readonly').addClass('disabled');
+            $studyDateFrom.val(XNAT.data.todaysDate.US)
+                          // .attr('readonly', 'readonly')
+                          // .addClass('disabled')
+            ;
+            $studyDateTo.val(XNAT.data.todaysDate.US)
+                        // .attr('readonly', 'readonly')
+                        // .addClass('disabled')
+            ;
         }
         else {
-            $studyDateFrom.val('').removeAttr('readonly').removeClass('disabled');
-            $studyDateTo.val('').removeAttr('readonly').removeClass('disabled');
+            $studyDateFrom.val('')
+                          // .removeAttr('readonly')
+                          // .removeClass('disabled')
+            ;
+            $studyDateTo.val('')
+                        // .removeAttr('readonly')
+                        // .removeClass('disabled')
+            ;
         }
     });
 
@@ -110,6 +123,10 @@ var XNAT = getObject(XNAT || {});
             return spawn('a.link.remap-auto-fill|href=#!', 'Auto-fill');
         }
     };
+
+    function randomFromArray(arr){
+        return arr[Math.floor(Math.random() * (arr.length))]
+    }
 
     function renderResultsTable(json){
 
@@ -146,10 +163,16 @@ var XNAT = getObject(XNAT || {});
                         return ckbxLabel(ckbx);
                     },
                     apply: function(){
+                        var uid = this.studyInstanceUid;
                         var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
-                            checked: true,
-                            value: this.studyInstanceUid
+                            value: uid,
+                            on: [
+                                ['click', function(){
+                                    dqr.allSearchResults[uid].checked = this.checked
+                                }]
+                            ]
                         });
+                        ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, true);
                         return ckbxLabel(ckbx);
                     }
                 },
@@ -158,7 +181,10 @@ var XNAT = getObject(XNAT || {});
                     filter: true,
                     sort: true,
                     apply: function(){
-                        return this.patient.name.lastNameCommaFirstName
+                        var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
+                        return spawn('div.truncate', {
+                            title: patientName
+                        }, patientName)
                     }
                 },
                 RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
@@ -170,7 +196,8 @@ var XNAT = getObject(XNAT || {});
                 studyId: {
                     label: 'Study ID',
                     filter: true,
-                    sort: true
+                    sort: true,
+                    html: '<div class="truncate">__VALUE__</div>'
                 },
                 RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
                     label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Study ID',
@@ -178,14 +205,44 @@ var XNAT = getObject(XNAT || {});
                         return spawn('input.relabel-study-id|type=text')
                     }
                 }),
-                patientId: {
-                    label: 'Patient ID',
+                studyDate: {
+                    label: 'Study Date',
                     filter: true,
                     sort: true,
                     apply: function(){
-                        return this.patient.id
+                        var studyDateStr = this.studyDate + '';
+                        return spawn('div.center.mono', this.studyDate ? [
+                            // ['i.hidden.sort', studyDateStr],
+                            studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
+                        ] : '<i class="hidden">0</i>&ndash;' )
                     }
                 },
+                MODALITY: {
+                    label: 'Modality',
+                    filter: true,
+                    sort: true,
+                    apply: function(){
+                        // TODO: REPLACE MODALITY FILLER WITH VALUE WHEN AVAILABLE
+                        if (/MR/i.test(this.patient.id)) {
+                            return 'MR'
+                        }
+                        if (/PET/i.test(this.patient.id)) {
+                            return 'PET'
+                        }
+                        if (/CT/i.test(this.patient.id)) {
+                            return 'CT'
+                        }
+                        return randomFromArray(['MR', 'MR', 'CT', 'PET', 'PET', 'MR', 'MR', 'CT', 'PET', 'PET'])
+                    }
+                },
+                // patientId: {
+                //     label: 'Patient ID',
+                //     filter: true,
+                //     sort: true,
+                //     apply: function(){
+                //         return this.patient.id
+                //     }
+                // },
                 accessionNumber: 'Accession Number'
             }
         });

@@ -9,7 +9,7 @@ included and parsed in both JSP and Velocity parent pages.
     <div class="pad" style="padding:20px 0;">
         <h2 class="pull-left" style="margin:0;">Import Sessions from PACS</h2>
         <div id="select-pacs-menu-container" class="pull-right">
-            <label for="select-pacs"><b>Selected PACS:</b></label>
+            <label for="select-pacs"><b>Source PACS:</b></label>
             <select id="select-pacs" style="min-width:200px;">
                 <option value="">Select PACS&hellip;</option>
             </select>
@@ -50,16 +50,16 @@ included and parsed in both JSP and Velocity parent pages.
 
             <form id="pacs-search-fields" class="pull-left">
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="accessionNumber" placeholder="*">
+                    <input type="text" name="accessionNumber" placeholder="All">
                     <b>Accession Number</b>
                 </label>
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="patientId" placeholder="*">
+                    <input type="text" name="patientId" placeholder="All">
                     <b>Patient ID</b>
                 </label>
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="patientName" placeholder="*">
-                    <b>Patient Name</b>
+                    <input type="text" name="patientName" placeholder="All">
+                    <b>Patient Name <i style="font-weight:normal;font-style:normal;">(Last^First)</i></b>
                 </label>
                 <label class="pacs-search-item pull-left">
                     <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" placeholder="from date">
@@ -85,6 +85,9 @@ included and parsed in both JSP and Velocity parent pages.
 
             <div id="pacs-search-results"></div>
 
+            <!-- immediately insert the default 'no results' message -->
+            <script>$('#pacs-search-results').html($('#no-search-results').html())</script>
+
         </div>
     </div>
 
@@ -106,33 +109,16 @@ included and parsed in both JSP and Velocity parent pages.
             $container.find(CKBX_ONE).prop('checked', checked);
         }
 
-        function selectAll($container){
-            console.log('select all');
-            toggleAll($container, true);
-        }
-
-        function selectNone($container){
-            console.log('select none');
-            toggleAll($container, false);
-        }
-
         function selectOne(ckbx, $container){
             var $ckbxAll = $container.find(CKBX_ALL);
             var $ckbxs = $container.find(CKBX_ONE);
             // if all checkboxes are checked now, check the 'all' checkbox
-            if ($ckbxs.filter(':checked') === $ckbxs.length) {
-                $ckbxAll.removeAttr(IND).prop('checked', true);
+            var checkedCount = $ckbxs.filter(':checked').length;
+            if (checkedCount === 0 || checkedCount === $ckbxs.length) {
+                $ckbxAll.prop(IND, false).prop('checked', !!checkedCount);
             }
             else {
-                $ckbxAll.prop('checked', false).attr(IND, IND);
-            }
-            if (ckbx.checked) {
-                if ($ckbxAll[0].checked) {
-                    $ckbxAll.attr(IND, IND)
-                }
-                else {
-                    $ckbxAll.removeAttr(IND)
-                }
+                $ckbxAll.prop('checked', false).prop(IND, true);
             }
         }
 
@@ -144,12 +130,11 @@ included and parsed in both JSP and Velocity parent pages.
             $container.on('click', CKBX_ALL, function(e){
                 console.log('select-all clicked');
                 if (this.checked) {
-                    selectAll($container);
+                    toggleAll($container, true);
                 }
                 else {
-                    selectNone($container);
+                    toggleAll($container, false);
                 }
-                // selectAll($container)
             });
 
             $container.on('click', CKBX_ONE, function(e){
