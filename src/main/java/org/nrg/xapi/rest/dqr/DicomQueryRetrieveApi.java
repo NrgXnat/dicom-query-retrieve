@@ -4,7 +4,9 @@ import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.entities.*;
+import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.dqr.util.CsvRow;
@@ -748,6 +750,30 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacs(Long.parseLong(pacsId)), HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
+    @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the series."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies/{studyUids}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    public ResponseEntity<Map<String,PacsSearchResults<String, Series>>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable("pacsId") final String pacsId,
+                                                  @ApiParam("List of studies to get series for.") @PathVariable(name = "studyUids") final String studyUids) {
+        Map<String,PacsSearchResults<String, Series>> seriesMap = new HashMap<>();
+        final UserI user = getSessionUser();
+        final String[] studiesArray = org.apache.commons.lang.StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
+        if(studiesArray!=null && pacsId!=null){
+            final Long pacsIdLong = Long.valueOf(pacsId);
+            final Pacs pacs       = _pacsEntityService.retrieve(pacsIdLong);
+            for(String studyUid:studiesArray){
+                PacsSearchResults<String, Series> results = _pacsService.getSeriesByStudyUid(user, pacs, studyUid);
+                if(results!=null){
+                    seriesMap.put(studyUid,results);
+                }
+            }
+        }
+        return new ResponseEntity<>(seriesMap, HttpStatus.OK);
+    }
 
     private final PacsService                       _pacsService;
     private final PacsEntityService                 _pacsEntityService;
