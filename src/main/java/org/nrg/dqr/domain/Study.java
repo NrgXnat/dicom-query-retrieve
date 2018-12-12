@@ -46,6 +46,8 @@ public class Study implements DqrDomainObject, Serializable {
 
     private String studyDescription;
 
+    private String modalitiesInStudy;
+
     public Study() {
     }
 
@@ -129,6 +131,14 @@ public class Study implements DqrDomainObject, Serializable {
         this.studyDescription = studyDescription;
     }
 
+    public String getModalitiesInStudy() {
+        return modalitiesInStudy;
+    }
+
+    public void setModalitiesInStudy(String modalitiesInStudy) {
+        this.modalitiesInStudy = modalitiesInStudy;
+    }
+
     @Override
     public String getUniqueIdentifier() {
         return getStudyInstanceUid();
@@ -137,7 +147,7 @@ public class Study implements DqrDomainObject, Serializable {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(59, 419).append(patient).append(studyInstanceUid).append(studyDate)
-                .append(referringPhysicianName).append(studyId).append(accessionNumber).append(studyDescription)
+                .append(referringPhysicianName).append(studyId).append(accessionNumber).append(studyDescription).append(modalitiesInStudy)
                 .toHashCode();
     }
 
@@ -156,7 +166,7 @@ public class Study implements DqrDomainObject, Serializable {
         return new EqualsBuilder().append(patient, other.patient).append(studyInstanceUid, other.studyInstanceUid)
                 .append(studyDate, other.studyDate).append(referringPhysicianName, other.referringPhysicianName)
                 .append(studyId, other.studyId).append(accessionNumber, other.accessionNumber)
-                .append(studyDescription, other.studyDescription).isEquals();
+                .append(studyDescription, other.studyDescription).append(modalitiesInStudy, other.modalitiesInStudy).isEquals();
     }
 
     @Override

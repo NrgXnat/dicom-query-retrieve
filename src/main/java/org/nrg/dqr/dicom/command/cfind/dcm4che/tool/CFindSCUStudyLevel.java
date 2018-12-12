@@ -36,7 +36,8 @@ public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
             Tag.PatientBirthDate,
             Tag.PatientSex,
             Tag.StudyDescription,
-            Tag.ReferringPhysicianName
+            Tag.ReferringPhysicianName,
+            Tag.ModalitiesInStudy
     };
 
     public CFindSCUStudyLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
@@ -67,6 +68,7 @@ public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
         study.setStudyId(StringUtils.trim(d.getString(Tag.StudyID)));
         study.setAccessionNumber(StringUtils.trim(d.getString(Tag.AccessionNumber)));
         study.setStudyDescription(StringUtils.trim(d.getString(Tag.StudyDescription)));
+        study.setModalitiesInStudy(StringUtils.trim(d.getString(Tag.ModalitiesInStudy)));
         return study;
     }
 
