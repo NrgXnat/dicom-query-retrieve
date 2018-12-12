@@ -254,6 +254,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
+                                                  @ApiParam("Comma delimited series descriptions of the series to get from PACS.") @RequestParam(name = "seriesDescriptions") final String seriesDescriptions,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
         UserI                      user             = getSessionUser();
@@ -264,7 +265,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else {
             HttpHeaders headers = new HttpHeaders();
-            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, importEvenIfCustomProcessingIsOff)) {
+            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, seriesDescriptions, importEvenIfCustomProcessingIsOff)) {
                 headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
             } else {
                 headers.add(HttpHeaders.WARNING, "Query Submitted.");

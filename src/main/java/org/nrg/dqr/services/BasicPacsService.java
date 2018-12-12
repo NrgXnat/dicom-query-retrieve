@@ -686,7 +686,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
@@ -698,6 +698,12 @@ public class BasicPacsService implements PacsService {
             aeTitle = parts[0];
             port = parts[1];
         }
+        List<String> seriesDescriptionsList = new ArrayList<>();
+        if(StringUtils.isNotBlank(seriesDescriptions)){
+            final String[] seriesDescriptionsArray = org.apache.commons.lang.StringUtils.trimToEmpty(seriesDescriptions).split("\\s*,\\s*");
+            seriesDescriptionsList.addAll(Arrays.asList(seriesDescriptionsArray));
+        }
+
         boolean valueToReturn = true;
         Map<String,String> studiesListMappedToAnonScript = new HashMap<>();
         for(SimpleCsvRow row : rows) {
@@ -737,7 +743,7 @@ public class BasicPacsService implements PacsService {
             }
         }
 
-        for(Map.Entry<String, String> entry : studiesListMappedToAnonScript.entrySet()){
+        for(Map.Entry<String, String> entry : studiesListMappedToAnonScript.entrySet()) {
             String currStudy = entry.getKey();
             String currAnonScript = entry.getValue();
 
@@ -756,38 +762,44 @@ public class BasicPacsService implements PacsService {
             }
 
 
-
             final PacsSearchResults<String, Series> series = getSeriesByStudyUid(XDAT.getUserDetails(), pacs, currStudy);
+            Collection<Series> seriesResults = series.getResults();
+
             String _seriesIdsString = "";
             ArrayList<String> seriesIdsList = new ArrayList<>();
-            Object[] seriesResults = series.getResults().toArray();
-            for(int index = 0; index<seriesResults.length; index++){
-                if (index > 0) {
+
+
+            for (Series currSeries : seriesResults) {
+                if (_seriesIdsString.length() != 0) {
                     _seriesIdsString += ",";
                 }
-                String result = ((Series)seriesResults[index]).getSeriesInstanceUid();
-                _seriesIdsString += result;
-                seriesIdsList.add(result);
+                String result = currSeries.getSeriesInstanceUid();
+
+                if (seriesDescriptionsList.isEmpty() || seriesDescriptionsList.contains(currSeries.getSeriesDescription())) {
+                    _seriesIdsString += result;
+                    seriesIdsList.add(result);
+                }
             }
+            if (StringUtils.isNotBlank(_seriesIdsString)) {
+                try {
+                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                    pacsReq.setPacsId(pacsId);
+                    pacsReq.setUsername(user.getUsername());
+                    pacsReq.setXnatProject(project);
+                    pacsReq.setStudyInstanceUid(currStudy);
+                    pacsReq.setSeriesIds(_seriesIdsString);
+                    pacsReq.setDestinationAeTitle(aeTitle);
+                    pacsReq.setQueuedTime(new Date());
 
-            try {
-                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                pacsReq.setPacsId(pacsId);
-                pacsReq.setUsername(user.getUsername());
-                pacsReq.setXnatProject(project);
-                pacsReq.setStudyInstanceUid(currStudy);
-                pacsReq.setSeriesIds(_seriesIdsString);
-                pacsReq.setDestinationAeTitle(aeTitle);
-                pacsReq.setQueuedTime(new Date());
-
-                XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                valueToReturn = false;
-            } catch (Exception e) {
-                final Throwable cause = e.getCause();
-                if (cause == null || !(cause instanceof Exception)) {
-                } else if (cause instanceof CMoveFailureException) {
-                    final CMoveFailureException failure = (CMoveFailureException) cause;
-                    _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+                    valueToReturn = false;
+                } catch (Exception e) {
+                    final Throwable cause = e.getCause();
+                    if (cause == null || !(cause instanceof Exception)) {
+                    } else if (cause instanceof CMoveFailureException) {
+                        final CMoveFailureException failure = (CMoveFailureException) cause;
+                        _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                    }
                 }
             }
         }
