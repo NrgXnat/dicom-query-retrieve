@@ -98,54 +98,52 @@ included and parsed in both JSP and Velocity parent pages.
 <!-- #[[ -->
 <script>
     // simpler selectable table behavior
-    (function(){
+    // init on a <table> or *any* container element
+    XNAT.app.selectableItems = function(container){
+
+        var $container = $$(container || document);
 
         var CKBX_ALL = '.selectable-select-all';
         var CKBX_ONE = '.selectable-select-one';
-        var IND = 'indeterminate';
+        var INDET    = 'indeterminate';
 
-        function toggleAll($container, checked){
-            $container.find(CKBX_ALL).prop(IND, false);
-            $container.find(CKBX_ONE).prop('checked', checked);
+        // namespaced event name
+        var CLICK    = 'click.multicheck';
+
+        var $ckbxAll = $container.find(CKBX_ALL);
+        var $ckbxs   = $container.find(CKBX_ONE);
+
+        function toggleAll(checked){
+            $ckbxAll.prop(INDET, false);
+            $ckbxs.prop('checked', checked);
         }
 
-        function selectOne(ckbx, $container){
-            var $ckbxAll = $container.find(CKBX_ALL);
-            var $ckbxs = $container.find(CKBX_ONE);
+        function multichecker(){
             // if all checkboxes are checked now, check the 'all' checkbox
             var checkedCount = $ckbxs.filter(':checked').length;
             if (checkedCount === 0 || checkedCount === $ckbxs.length) {
-                $ckbxAll.prop(IND, false).prop('checked', !!checkedCount);
+                $ckbxAll.prop(INDET, false).prop('checked', !!checkedCount);
             }
             else {
-                $ckbxAll.prop('checked', false).prop(IND, true);
+                $ckbxAll.prop('checked', false).prop(INDET, true);
             }
         }
+        // fire this on init to set the initial
+        // state of the 'all' checkbox
+        multichecker();
 
-        // init on a <table> or *any* container element
-        XNAT.app.selectableItems = function(container){
+        // unbind any existing 'multicheck' click handlers
+        $container.off(CLICK);
 
-            var $container = $$(container || document);
+        $container.on(CLICK, CKBX_ALL, function(e){
+            toggleAll(!!this.checked);
+        });
 
-            $container.on('click', CKBX_ALL, function(e){
-                console.log('select-all clicked');
-                if (this.checked) {
-                    toggleAll($container, true);
-                }
-                else {
-                    toggleAll($container, false);
-                }
-            });
+        $container.on(CLICK, CKBX_ONE, function(e){
+            multichecker();
+        });
 
-            $container.on('click', CKBX_ONE, function(e){
-                console.log('select-one clicked');
-                selectOne(this, $container);
-            })
-
-
-        }
-
-    })();
+    }
 </script>
 <!-- ]]# -->
 <script src="${SITE_ROOT}/scripts/dqr/import.js"></script>

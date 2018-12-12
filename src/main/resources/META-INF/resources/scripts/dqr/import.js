@@ -16,7 +16,7 @@ var XNAT = getObject(XNAT || {});
     }
 }(function(){
 
-    console.log('dqr-import.js');
+    console.log('dqr/import.js');
 
     var dqr;
 
@@ -53,11 +53,19 @@ var XNAT = getObject(XNAT || {});
         menuUpdate($selectPacsMenu);
     }
 
-    XNAT.xhr.get({
-        url: XNAT.url.restUrl('/data/pacs'),
-        success: function(json){
-            renderPacsMenu(json.ResultSet.Result)
-        }
+    function getPacsList(fn){
+        return XNAT.xhr.get({
+            url: XNAT.url.restUrl('/data/pacs'),
+            success: function(json){
+                if (isFunction(fn)) {
+                    fn.apply(this, arguments);
+                }
+            }
+        });
+    }
+
+    getPacsList(function fn(json){
+        renderPacsMenu(json.ResultSet.Result)
     });
 
     function resetResults(){
@@ -73,23 +81,24 @@ var XNAT = getObject(XNAT || {});
     // and bind to the 'Clear Search Results' button
     $('#clear-search-results').on('click', resetResults);
 
+    var $studyDateFrom = $('#study-date-from');
+    var $studyDateTo = $('#study-date-to');
+
     // initialize date fields
     $pacsSearchFields.find('.study-date')
-                     // .attr('autocomplete', 'off')
+                     .attr('autocomplete', 'off')
                      .mask('99/99/9999', { placeholder: 'MM/DD/YYYY' })
-                     // .datetimepicker({
-                     //     timepicker: false,
-                     //     // today is max date, disallow future date selection
-                     //     maxDate:    XNAT.data.todaysDate.ISO,
-                     //     format:     'm/d/Y'
-                     //     // format: 'Y-m-d' // ISO standard date format
-                     // })
+                     .datetimepicker({
+                         timepicker: false,
+                         // today is max date, disallow future date selection
+                         maxDate:    XNAT.data.todaysDate.ISO,
+                         format:     'm/d/Y'
+                         // format: 'Y-m-d' // ISO standard date format
+                     })
     ;
 
     // click the 'today' checkbox to fill in today's date
     $('#study-date-today').on('click', function(e){
-        var $studyDateFrom = $('#study-date-from');
-        var $studyDateTo = $('#study-date-to');
         if (this.checked) {
             $studyDateFrom.val(XNAT.data.todaysDate.US)
                           // .attr('readonly', 'readonly')
@@ -124,21 +133,35 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
+    function randomizer(length, prefix) {
+        var pre = (isDefined(prefix)) ? prefix : 'rndx' ;
+        var newId = pre + (Math.random() + 1).toString(36).substr(2,8);
+        if (isDefined(length)) {
+            if (newId.length > length) {
+                return newId.slice(0, length);
+            }
+            else {
+                return randomizer(length, newId)
+            }
+        }
+        return newId;
+    }
+
     function randomFromArray(arr){
         return arr[Math.floor(Math.random() * (arr.length))]
     }
 
     function renderResultsTable(json){
 
-        console.log(json);
+        // console.log(json);
 
-        json.forEach(function(item){
+        forEach(json, function(item){
             if (!dqr.allSearchResults.hasOwnProperty(item.studyInstanceUid)) {
                 dqr.allSearchResults[item.studyInstanceUid] = item;
             }
         });
 
-        console.log(dqr.allSearchResults);
+        // console.log(dqr.allSearchResults);
 
         function ckbxLabel(ckbx){
             return spawn('label.center', {
@@ -158,7 +181,15 @@ var XNAT = getObject(XNAT || {});
                     filter: function(){
                         var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
                             checked: true,
-                            value: '*'
+                            value: '*',
+                            on: [
+                                ['click', function(){
+                                    var ckbx = this;
+                                    forEach(Object.keys(dqr.allSearchResults), function(uid){
+                                        dqr.allSearchResults[uid].checked = !!ckbx.checked;
+                                    });
+                                }]
+                            ]
                         });
                         return ckbxLabel(ckbx);
                     },
@@ -305,11 +336,11 @@ var XNAT = getObject(XNAT || {});
         var searchCriteria = $pacsSearchFields.getValues();
         searchCriteria.pacsId = selectedPacs;
 
-        console.log(searchCriteria);
+        // console.log(searchCriteria);
 
         var searchUrl = XNAT.url.csrfUrl('/data/services/pacs/' + selectedPacs + '/search/studies');
 
-        console.log(searchUrl);
+        // console.log(searchUrl);
 
         XNAT.xhr.post({
             url: searchUrl,
@@ -356,10 +387,10 @@ var XNAT = getObject(XNAT || {});
                         var results = [];
                         if (data.length) {
                             // pluck the data out of the response
-                            data.forEach(function(item){
+                            forEach(data, function(item){
                                 // since each search criteria returns its own
                                 // results, it's necessary to
-                                item.studies.forEach(function(study){
+                                forEach(item.studies, function(study){
                                     results.push(study)
                                 })
                             })
