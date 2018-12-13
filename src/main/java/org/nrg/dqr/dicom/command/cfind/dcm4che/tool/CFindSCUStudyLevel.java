@@ -12,13 +12,14 @@
 
 package org.nrg.dqr.dicom.command.cfind.dcm4che.tool;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.PersonName;
 import org.dcm4che2.data.Tag;
-import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
+import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat.QueryRetrieveLevel;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.dqr.domain.ReferringPhysicianName;

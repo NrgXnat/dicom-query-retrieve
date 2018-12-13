@@ -12,7 +12,7 @@
 
 package org.nrg.dqr.dicom.command.cmove.dcm4che.tool;
 
-import org.dcm4che2.tool.dcmqr.DcmQR;
+import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat;
 import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevelById;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
@@ -32,7 +32,7 @@ public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
     }
 
     @Override
-    protected DcmQR createDcmQR(String localAETitle) {
+    protected DcmQRXnat createDcmQR(String localAETitle) {
         return new DqrCMoveDcmQR(localAETitle);
     }
 }

@@ -22,8 +22,8 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
-import org.dcm4che2.tool.dcmqr.DcmQR;
-import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
+import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat;
+import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat.QueryRetrieveLevel;
 import org.nrg.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.dicom.net.DicomConnectionProperties;
@@ -48,7 +48,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     private final static DateFormat DICOM_DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
     private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
 
-    private final DcmQR dcmQR;
+    private final DcmQRXnat dcmQR;
 
     private final CEchoSCU cechoSCU;
 
@@ -73,8 +73,8 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         this.ormStrategy = ormStrategy;
     }
 
-    protected DcmQR createDcmQR(String localAETitle) {
-        return new DcmQR(localAETitle);
+    protected DcmQRXnat createDcmQR(String localAETitle) {
+        return new DcmQRXnat(localAETitle);
     }
 
     /**
@@ -208,7 +208,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         throw new CMoveTargetNotFoundException(searchCriteria.toString());
     }
 
-    protected DcmQR getDcmQR() {
+    protected DcmQRXnat getDcmQR() {
         return dcmQR;
     }
 
