@@ -254,22 +254,12 @@ var XNAT = getObject(XNAT || {});
                         ] : '<i class="hidden">0</i>&ndash;' )
                     }
                 },
-                MODALITY: {
+                modalitiesInStudy: {
                     label: 'Modality',
                     filter: true,
                     sort: true,
-                    apply: function(){
-                        // TODO: REPLACE MODALITY FILLER WITH VALUE WHEN AVAILABLE
-                        if (/MR/i.test(this.patient.id)) {
-                            return 'MR'
-                        }
-                        if (/PET/i.test(this.patient.id)) {
-                            return 'PET'
-                        }
-                        if (/CT/i.test(this.patient.id)) {
-                            return 'CT'
-                        }
-                        return randomFromArray(['MR', 'MR', 'CT', 'PET', 'PET', 'MR', 'MR', 'CT', 'PET', 'PET'])
+                    apply: function(val){
+                        return [].concat(val).join(', ');
                     }
                 },
                 // patientId: {
@@ -374,7 +364,7 @@ var XNAT = getObject(XNAT || {});
                 // pick up value of selected PACS
                 value: $('#select-pacs').val()
             }],
-            ['input|type=file|name=csv_to_store']
+            ['input|type=file|name=csv_to_store|accept=.csv']
         ]);
         XNAT.dialog.open({
             title: 'Upload CSV',
