@@ -18,7 +18,7 @@ var XNAT = getObject(XNAT || {});
 
     console.log('dqr/import.js');
 
-    var dqr;
+    var dqr, undef;
 
     XNAT.plugin =
         getObject(XNAT.plugin || {});
@@ -154,6 +154,12 @@ var XNAT = getObject(XNAT || {});
     function renderResultsTable(json){
 
         // console.log(json);
+
+        // `json` must be an array containing SOMETHING
+        // in order to render the results table
+        if (!isArray(json) || !json.length) {
+            return undef;
+        }
 
         forEach(json, function(item){
             if (!dqr.allSearchResults.hasOwnProperty(item.studyInstanceUid)) {
@@ -351,7 +357,7 @@ var XNAT = getObject(XNAT || {});
             failure: function(){
                 console.warn('Error:');
                 console.warn(arguments);
-                XNAT.dialog.message('Error')
+                XNAT.dialog.message('Error', 'No sessions were found for the specified search criteria.')
             }
         });
     });
@@ -393,9 +399,9 @@ var XNAT = getObject(XNAT || {});
                                 forEach(item.studies, function(study){
                                     results.push(study)
                                 })
-                            })
+                            });
+                            renderResultsTable(results);
                         }
-                        renderResultsTable(results);
                         obj.close();
                         // XNAT.ui.banner.top(3000, 'Saved changes to DICOM AE connection', 'success');
                     },
