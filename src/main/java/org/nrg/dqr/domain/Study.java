@@ -46,7 +46,7 @@ public class Study implements DqrDomainObject, Serializable {
 
     private String studyDescription;
 
-    private String modalitiesInStudy;
+    private String[] modalitiesInStudy;
 
     public Study() {
     }
@@ -131,11 +131,11 @@ public class Study implements DqrDomainObject, Serializable {
         this.studyDescription = studyDescription;
     }
 
-    public String getModalitiesInStudy() {
+    public String[] getModalitiesInStudy() {
         return modalitiesInStudy;
     }
 
-    public void setModalitiesInStudy(String modalitiesInStudy) {
+    public void setModalitiesInStudy(String[] modalitiesInStudy) {
         this.modalitiesInStudy = modalitiesInStudy;
     }
 
