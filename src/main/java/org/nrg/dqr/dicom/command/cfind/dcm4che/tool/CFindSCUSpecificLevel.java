@@ -92,6 +92,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             dcmQR.setCancelAfter(getMaxResults());
             dcmQR.setQueryLevel(getQueryLevel());
             dcmQR.addDefReturnKeys();//This needed to be added because between the 2.0.25 and 2.0.29 versions of dcm4che2, this stopped being done by the setQueryLevel method
+            if (dcmQR.getKeys().contains(Tag.NumberOfStudyRelatedInstances)) dcmQR.getKeys().remove(Tag.NumberOfStudyRelatedInstances);
             for (int returnTagPath : getReturnTagPaths()) {
                 dcmQR.addReturnKey(dicomTagPathToArray(returnTagPath));
             }
