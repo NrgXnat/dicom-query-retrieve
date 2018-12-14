@@ -19,10 +19,10 @@ import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.net.Association;
 import org.dcm4che2.net.CommandUtils;
-import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat;
+import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 
-public class DqrCMoveDcmQR extends DcmQRXnat {
+public class DqrCMoveDcmQR extends DcmQR {
 
     private boolean success;
 

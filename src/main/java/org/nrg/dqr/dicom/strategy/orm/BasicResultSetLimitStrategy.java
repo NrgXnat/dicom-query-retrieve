@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.dicom.command.cfind.dcm4che.tool.DcmQRXnat.QueryRetrieveLevel;
+import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.domain.PatientName;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
