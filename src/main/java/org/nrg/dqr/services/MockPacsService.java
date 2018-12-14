@@ -30,7 +30,8 @@ import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
-import org.nrg.dqr.util.SimpleCsvRow;
+import org.nrg.dqr.util.FindRow;
+import org.nrg.dqr.util.ImportRow;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -136,7 +137,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws PacsNotFoundException, ConfigServiceException {
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws PacsNotFoundException, ConfigServiceException {
         throw new RuntimeException("method not implemented");
     }
 
@@ -147,6 +148,11 @@ public class MockPacsService implements PacsService {
 
     @Override
     public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         throw new RuntimeException("method not implemented");
     }
 }

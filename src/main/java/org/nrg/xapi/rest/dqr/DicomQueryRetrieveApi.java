@@ -10,7 +10,8 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.dqr.util.CsvRow;
-import org.nrg.dqr.util.SimpleCsvRow;
+import org.nrg.dqr.util.FindRow;
+import org.nrg.dqr.util.ImportRow;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
@@ -205,6 +206,37 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
     }
 
+    @ApiOperation(value = "Uses the uploaded csv to generate JSON (with the format the new importer wants) containing information about what would be imported if the user decides to continue.", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "csvimport/newUploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Role)
+    public ResponseEntity<List<FindRow>> newUploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") MultipartFile csv,
+                                                        @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+        final File temp = File.createTempFile("xnat", "csv");
+        try (final FileOutputStream fos = new FileOutputStream(temp)) {
+            fos.write(csv.getBytes());
+        }
+        final List<FindRow> rows = _pacsService.extractNewImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
+
+        boolean anonScriptFound = false;
+        for (FindRow row : rows) {
+            Map<String,String> relabelMap = row.getRelabelMap();
+            if (row != null && relabelMap!=null && relabelMap.size()>0) {
+                anonScriptFound = true;
+            }
+        }
+        if (anonScriptFound) {
+            return new ResponseEntity<>(rows, HttpStatus.OK);
+        } else {
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.WARNING, "The generated JSON has no anon script.");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(rows);
+        }
+    }
+
     @ApiOperation(value = "Issues the PACS import requests specified in the JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
     @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -245,12 +277,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "csvimport/importFromSimpleJson",
+    @XapiRequestMapping(value = "csvimport/newImportFromJson",
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = Role)
-    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final SimpleCsvRow[] rows,
+    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final ImportRow[] rows,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,

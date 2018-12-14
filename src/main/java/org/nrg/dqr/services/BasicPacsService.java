@@ -41,18 +41,17 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.restlet.NullValueSerializer;
 import org.nrg.dqr.util.DqrRuntimeException;
-import org.nrg.dqr.util.SimpleCsvRow;
+import org.nrg.dqr.util.FindRow;
+import org.nrg.dqr.util.ImportRow;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
@@ -576,6 +575,122 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
+    public List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException();
+        }
+        ArrayList<FindRow> resultRows = new ArrayList<>();
+
+        List<List<String>> rows = FileUtils.CSVFileToArrayList(csv);
+        List<String> columnHeaders = rows.get(0); //The first row must contain the column headers
+        int accessionNumberColumn = columnHeaders.indexOf("Accession Number");
+        int studyDateColumn = columnHeaders.indexOf("Study Date");
+        int patientIdColumn = columnHeaders.indexOf("Patient ID");
+        int lastNameColumn = columnHeaders.indexOf("Last Name");
+        int firstNameColumn = columnHeaders.indexOf("First Name");
+        int dobColumn = columnHeaders.indexOf("DOB");
+        int modalityColumn = columnHeaders.indexOf("Modality");
+
+        HashMap<Integer, String> columnToColumnHeaderMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
+            int indexOfHeader = columnHeaders.indexOf(entry.getKey());
+            if (indexOfHeader != -1) {
+                columnToColumnHeaderMap.put(indexOfHeader, entry.getKey());
+            }
+        }
+
+        for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
+            List<String> row = rows.get(index);
+            boolean areThereSearchCriteriaForThisRow = false;
+
+            final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
+            if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
+                searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                searchCriteria.setPatientName(lastName+","+firstName);
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
+                searchCriteria.setPatientId(row.get(patientIdColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
+                String studyDateCell = row.get(studyDateColumn);
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+                int dashIndex = studyDateCell.indexOf("-");
+                if(dashIndex==-1){
+                    Date dateObject = formatter.parse(studyDateCell);
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(dateObject);
+                    c.add(Calendar.DATE, 1);
+                    Date endOfDay = c.getTime();
+
+                    searchCriteria.setStudyDateRange(new DqrDateRange(dateObject, endOfDay));
+                    areThereSearchCriteriaForThisRow = true;
+                }
+                else{
+                    String startDateString = studyDateCell.substring(0,dashIndex);
+                    String endDateString = studyDateCell.substring(dashIndex+1,studyDateCell.length());
+                    if(StringUtils.isNotBlank(startDateString)){
+                        if(StringUtils.isNotBlank(endDateString)){
+                            searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                        else{
+                            searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), null));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                    }
+                    else{
+                        if(StringUtils.isNotBlank(endDateString)){
+                            searchCriteria.setStudyDateRange(new DqrDateRange(null, formatter.parse(endDateString)));
+                            areThereSearchCriteriaForThisRow = true;
+                        }
+                        else{
+                            //Range is open ended on both ends so no search criteria should be added.
+                        }
+                    }
+                }
+            }
+            if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
+                searchCriteria.setDob(row.get(dobColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
+                searchCriteria.setModality(row.get(modalityColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if(!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs){
+                throw new Exception("No search criteria found. Users must specify at least one valid search criteria.");
+            }
+
+            final PacsSearchResults<String, Study> studies = getStudiesByExample(
+                    XDAT.getUserDetails(), pacs, searchCriteria);
+
+            boolean anonymizeThisRow = false;
+            Map<String,String> anonMapForThisRow = new HashMap<>();
+            for(Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()){
+                String stringToRemapTo = row.get(entry.getKey());
+                if(StringUtils.isNotBlank(stringToRemapTo)) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        anonMapForThisRow.put(entry.getValue(),"\"\"");
+                    } else {
+                        anonMapForThisRow.put(entry.getValue(),stringToRemapTo);
+                    }
+                }
+            }
+            FindRow currResult = new FindRow(searchCriteria,anonMapForThisRow,new ArrayList<>(studies.getResults()));
+            resultRows.add(currResult);
+        }
+        return resultRows;
+    }
+
+    @Override
     public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
@@ -686,7 +801,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
@@ -706,35 +821,50 @@ public class BasicPacsService implements PacsService {
 
         boolean valueToReturn = true;
         Map<String,String> studiesListMappedToAnonScript = new HashMap<>();
-        for(SimpleCsvRow row : rows) {
+        for(ImportRow row : rows) {
             if(row!=null&&row.getStudyInstanceUIDs()!=null) {
                 for (String currStudy : row.getStudyInstanceUIDs()) {
                     if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
-                        String anon = row.getAnonScript();
-                        studiesListMappedToAnonScript.put(currStudy, anon);
-                        if (StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff) {
-                            DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
-                            if (scpInstance == null) {
-                                throw new Exception("Invalid DICOM SCP Receiver ID.");
-                            }
-                            if (!scpInstance.isEnabled()) {
-                                throw new Exception("Invalid DICOM SCP Receiver ID.");
-                            }
-                            if (!scpInstance.getCustomProcessing()) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
-                            }
-                            List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
-                            if (processorInstances.isEmpty()) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                            } else {
-                                boolean hasProcessorOtherThanSiteAnon = false;
-                                for (ArchiveProcessorInstance instance : processorInstances) {
-                                    if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
-                                        hasProcessorOtherThanSiteAnon = true;
+                        Map<String,String> relabelMap = row.getRelabelMap();
+                        if(relabelMap!=null && relabelMap.size()>0) {
+                            String anonScriptForThisRow = "version \"6.1\"" + System.lineSeparator();
+                            for (Map.Entry<String, String> entry : relabelMap.entrySet()) {
+                                String tag = HEADER_TO_TAG_MAP.get(entry.getKey());
+                                String newValue = entry.getValue();
+
+                                if (StringUtils.isNotBlank(newValue)) {
+                                    if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
+                                        anonScriptForThisRow += tag + " := \"\"" + System.lineSeparator();
+                                    } else {
+                                        anonScriptForThisRow += tag + " := \"" + newValue + "\"" + System.lineSeparator();
                                     }
                                 }
-                                if (!hasProcessorOtherThanSiteAnon) {
+                            }
+                            studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow);
+                            if (StringUtils.isNotBlank(anonScriptForThisRow) && !importEvenIfCustomProcessingIsOff) {
+                                DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+                                if (scpInstance == null) {
+                                    throw new Exception("Invalid DICOM SCP Receiver ID.");
+                                }
+                                if (!scpInstance.isEnabled()) {
+                                    throw new Exception("Invalid DICOM SCP Receiver ID.");
+                                }
+                                if (!scpInstance.getCustomProcessing()) {
+                                    throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
+                                }
+                                List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
+                                if (processorInstances.isEmpty()) {
                                     throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                                } else {
+                                    boolean hasProcessorOtherThanSiteAnon = false;
+                                    for (ArchiveProcessorInstance instance : processorInstances) {
+                                        if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
+                                            hasProcessorOtherThanSiteAnon = true;
+                                        }
+                                    }
+                                    if (!hasProcessorOtherThanSiteAnon) {
+                                        throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                                    }
                                 }
                             }
                         }
@@ -754,12 +884,12 @@ public class BasicPacsService implements PacsService {
             if (_log.isDebugEnabled()) {
                 _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, currStudy);
             }
-            if (currStudy == null) {
-                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-            } else {
-                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, currStudy);
-                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, currStudy);
-            }
+//            if (currStudy == null) {
+//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+//            } else {
+//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, currStudy);
+//                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, currStudy);
+//            }
 
 
             final PacsSearchResults<String, Series> series = getSeriesByStudyUid(XDAT.getUserDetails(), pacs, currStudy);
@@ -789,6 +919,7 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setStudyInstanceUid(currStudy);
                     pacsReq.setSeriesIds(_seriesIdsString);
                     pacsReq.setDestinationAeTitle(aeTitle);
+                    pacsReq.setRemappingScript(currAnonScript);
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
@@ -1019,8 +1150,8 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
                     pacsReq.setSeriesIds(_seriesIdsString);
                     pacsReq.setDestinationAeTitle(ae);
-                    pacsReq.setQueuedTime(new Date());
                     pacsReq.setRemappingScript(currAnonScript);
+                    pacsReq.setQueuedTime(new Date());
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
 //                }
 //            } catch (final PacsNotFoundException exception) {

@@ -1,30 +1,24 @@
 package org.nrg.dqr.util;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.dqr.domain.Study;
-import org.nrg.dqr.domain.entities.PacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 
-import javax.persistence.Entity;
-import javax.persistence.Table;
 import java.util.List;
+import java.util.Map;
 
-public class CsvRow {
+public class FindRow {
 
-    public CsvRow() {
+    public FindRow() {
     }
 
-    public CsvRow(PacsSearchCriteria criteria, String anonScript, List<Study> studies) {
+    public FindRow(PacsSearchCriteria criteria, Map<String,String> relabelMap, List<Study> studies) {
         this.criteria = criteria;
-        this.anonScript = anonScript;
+        this.relabelMap = relabelMap;
         this.studies = studies;
     }
 
     protected PacsSearchCriteria criteria;
-    protected String anonScript;
+    protected Map<String,String> relabelMap;
     protected List<Study> studies;
 
     public PacsSearchCriteria getCriteria() {
@@ -35,12 +29,12 @@ public class CsvRow {
         this.criteria = criteria;
     }
 
-    public String getAnonScript() {
-        return anonScript;
+    public Map<String,String> getRelabelMap() {
+        return relabelMap;
     }
 
-    public void setAnonScript(String anonScript) {
-        this.anonScript = anonScript;
+    public void setRelabelMap(Map<String,String> relabelMap) {
+        this.relabelMap = relabelMap;
     }
 
     public List<Study> getStudies() {
@@ -56,26 +50,26 @@ public class CsvRow {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        CsvRow csvRow = (CsvRow) o;
+        FindRow findRow = (FindRow) o;
 
-        if (criteria != null ? !criteria.equals(csvRow.criteria) : csvRow.criteria != null) return false;
-        if (anonScript != null ? !anonScript.equals(csvRow.anonScript) : csvRow.anonScript != null) return false;
-        return studies != null ? studies.equals(csvRow.studies) : csvRow.studies == null;
+        if (criteria != null ? !criteria.equals(findRow.criteria) : findRow.criteria != null) return false;
+        if (relabelMap != null ? !relabelMap.equals(findRow.relabelMap) : findRow.relabelMap != null) return false;
+        return studies != null ? studies.equals(findRow.studies) : findRow.studies == null;
     }
 
     @Override
     public int hashCode() {
         int result = criteria != null ? criteria.hashCode() : 0;
-        result = 31 * result + (anonScript != null ? anonScript.hashCode() : 0);
+        result = 31 * result + (relabelMap != null ? relabelMap.hashCode() : 0);
         result = 31 * result + (studies != null ? studies.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
-        return "CsvRow{" +
+        return "FindRow{" +
                 "criteria=" + criteria +
-                ", anonScript='" + anonScript + '\'' +
+                ", anonScript='" + relabelMap + '\'' +
                 ", studies=" + studies +
                 '}';
     }

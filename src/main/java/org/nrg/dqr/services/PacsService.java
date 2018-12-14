@@ -21,7 +21,8 @@ import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
-import org.nrg.dqr.util.SimpleCsvRow;
+import org.nrg.dqr.util.FindRow;
+import org.nrg.dqr.util.ImportRow;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -60,9 +61,11 @@ public interface PacsService {
 
     boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
-    boolean processSpreadsheetImportFromSimpleRows(UserI user, List<SimpleCsvRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception;
+    boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
     void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException;
 
     List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception;
+
+    List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception;
 }
