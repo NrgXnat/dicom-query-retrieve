@@ -801,7 +801,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, List<String> seriesDescriptionsList, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException();
@@ -812,11 +812,6 @@ public class BasicPacsService implements PacsService {
             String[] parts = ae.split(":");
             aeTitle = parts[0];
             port = parts[1];
-        }
-        List<String> seriesDescriptionsList = new ArrayList<>();
-        if(StringUtils.isNotBlank(seriesDescriptions)){
-            final String[] seriesDescriptionsArray = org.apache.commons.lang.StringUtils.trimToEmpty(seriesDescriptions).split("\\s*,\\s*");
-            seriesDescriptionsList.addAll(Arrays.asList(seriesDescriptionsArray));
         }
 
         boolean valueToReturn = true;

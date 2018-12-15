@@ -11,6 +11,7 @@ import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.FindRow;
+import org.nrg.dqr.util.ImportRequest;
 import org.nrg.dqr.util.ImportRow;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.framework.exceptions.NotFoundException;
@@ -282,11 +283,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE,
             restrictTo = Role)
-    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final ImportRow[] rows,
+    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final ImportRequest request,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
-                                                  @ApiParam("Comma delimited series descriptions of the series to get from PACS.") @RequestParam(name = "seriesDescriptions") final String seriesDescriptions,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
         UserI                      user             = getSessionUser();
@@ -297,7 +297,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else {
             HttpHeaders headers = new HttpHeaders();
-            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), Arrays.asList(rows), ae, project, pacsId, seriesDescriptions, importEvenIfCustomProcessingIsOff)) {
+            if(request==null || request.getImportRows()==null || request.getSeriesDescriptions()==null){
+                return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), request.getImportRows(), ae, project, pacsId, request.getSeriesDescriptions(), importEvenIfCustomProcessingIsOff)) {
                 headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
             } else {
                 headers.add(HttpHeaders.WARNING, "Query Submitted.");

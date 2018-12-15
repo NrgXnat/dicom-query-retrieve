@@ -137,7 +137,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, String seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws PacsNotFoundException, ConfigServiceException {
+    public boolean processSpreadsheetImportFromSimpleRows(UserI user, List<ImportRow> rows, String ae, String project, long pacsId, List<String> seriesDescriptions, boolean importEvenIfCustomProcessingIsOff) throws PacsNotFoundException, ConfigServiceException {
         throw new RuntimeException("method not implemented");
     }
 
