@@ -32,6 +32,10 @@ var XNAT = getObject(XNAT || {});
     var $searchInputs = $pacsSearchFields.find('.pacs-search-item input');
     var $searchSubmit = $('#submit-pacs-search');
     var $pacsSearchResults = $('#pacs-search-results');
+    var $searchResultsHeader = $pacsSearchResults.find('.results-header');
+    var $searchResultsBody = $pacsSearchResults.find('.results-body');
+    var $searchResultsSubmit = $pacsSearchResults.find('.results-submit');
+    var $pacsNoResults = $('#pacs-no-results');
     var $noResultsTemplate = $('#no-search-results');
 
     function renderPacsMenu(items){
@@ -72,7 +76,10 @@ var XNAT = getObject(XNAT || {});
         dqr.searchResults = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
-        $pacsSearchResults.empty().html($noResultsTemplate.html());
+        $pacsNoResults.empty().html($noResultsTemplate.html());
+        $searchResultsHeader.empty();
+        $searchResultsBody.empty();
+        $searchResultsSubmit.empty();
     }
 
     // immediately render the 'no results' message
@@ -87,24 +94,24 @@ var XNAT = getObject(XNAT || {});
     // initialize date fields
     $pacsSearchFields.find('.study-date')
                      .attr('autocomplete', 'off')
-                     .mask('99/99/9999', { placeholder: 'MM/DD/YYYY' })
+                     .mask('9999-99-99', { placeholder: 'YYYY-MM-DD' })
                      .datetimepicker({
                          timepicker: false,
                          // today is max date, disallow future date selection
                          maxDate:    XNAT.data.todaysDate.ISO,
-                         format:     'm/d/Y'
-                         // format: 'Y-m-d' // ISO standard date format
+                         // format:     'm/d/Y'
+                         format: 'Y-m-d' // ISO standard date format
                      })
     ;
 
     // click the 'today' checkbox to fill in today's date
     $('#study-date-today').on('click', function(e){
         if (this.checked) {
-            $studyDateFrom.val(XNAT.data.todaysDate.US)
+            $studyDateFrom.val(XNAT.data.todaysDate.ISO)
                           // .attr('readonly', 'readonly')
                           // .addClass('disabled')
             ;
-            $studyDateTo.val(XNAT.data.todaysDate.US)
+            $studyDateTo.val(XNAT.data.todaysDate.ISO)
                         // .attr('readonly', 'readonly')
                         // .addClass('disabled')
             ;
@@ -129,7 +136,7 @@ var XNAT = getObject(XNAT || {});
             }
         },
         filter: function(){
-            return spawn('a.link.remap-auto-fill|href=#!', 'Auto-fill');
+            return '&nbsp;' || spawn('a.link.remap-auto-fill|href=#!', 'Auto-fill');
         }
     };
 
@@ -161,6 +168,8 @@ var XNAT = getObject(XNAT || {});
             return undef;
         }
 
+        $pacsNoResults.empty();
+
         forEach(json, function(item){
             if (!dqr.allSearchResults.hasOwnProperty(item.studyInstanceUid)) {
                 dqr.allSearchResults[item.studyInstanceUid] = item;
@@ -171,130 +180,251 @@ var XNAT = getObject(XNAT || {});
 
         function ckbxLabel(ckbx){
             return spawn('label.center', {
-                style: { display: 'block', width: '40px' }
+                style: { display: 'block', textAlign: 'center' }
             }, ckbx);
         }
 
-        var resultsTable = XNAT.table.dataTable(dqr.allSearchResults, {
-            table: {
-                id: 'all-search-results',
-                classes: 'compact'
-            },
-            items: {
-                _studyInstanceUid: '~data-uid',
-                SELECT_SESSIONS: {
-                    label: '<label for="toggle-all-sessions">&nbsp;</label>',
-                    filter: function(){
-                        var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
-                            checked: true,
-                            value: '*',
-                            on: [
-                                ['click', function(){
-                                    var ckbx = this;
-                                    forEach(Object.keys(dqr.allSearchResults), function(uid){
-                                        dqr.allSearchResults[uid].checked = !!ckbx.checked;
-                                    });
-                                }]
-                            ]
-                        });
-                        return ckbxLabel(ckbx);
+        var WIDTHS = {
+            select: '4%',
+            name: '14%',
+            nameRelabel: '16%',
+            study: '14%',
+            studyRelabel: '16%',
+            date: '12%',
+            mod: '10%',
+            acc: '14%'
+        };
+
+        function renderHeader(){
+            return XNAT.table.dataTable([], {
+                container: $searchResultsHeader,
+                body: false,
+                table: {
+                    classes: 'compact table-group-member',
+                    style: { tableLayout: 'fixed' }
+                },
+                overflowY: 'scroll',
+                columns: {
+                    SELECT_SESSIONS: {
+                        label: '<label for="toggle-all-sessions">&nbsp;</label>',
+                        th: {
+                            style: { width: WIDTHS.select }
+                        },
+                        filter: function(){
+                            var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
+                                checked: true,
+                                value: '*',
+                                on: [
+                                    ['click', function(){
+                                        var ckbx = this;
+                                        forEach(Object.keys(dqr.allSearchResults), function(uid){
+                                            dqr.allSearchResults[uid].checked = !!ckbx.checked;
+                                        });
+                                    }]
+                                ]
+                            });
+                            return ckbxLabel(ckbx);
+                        }
                     },
-                    apply: function(){
-                        var uid = this.studyInstanceUid;
-                        var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
-                            value: uid,
-                            on: [
-                                ['click', function(){
-                                    dqr.allSearchResults[uid].checked = this.checked
-                                }]
-                            ]
-                        });
-                        ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, true);
-                        return ckbxLabel(ckbx);
+                    patientName: {
+                        label: 'Patient Name',
+                        filter: true,
+                        sort: true,
+                        th: {
+                            style: { width: WIDTHS.name }
+                        }
+                    },
+                    RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
+                        label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Patient Name',
+                        th: {
+                            style: { width: WIDTHS.nameRelabel }
+                        }
+                    }),
+                    studyId: {
+                        label: 'Study ID',
+                        filter: true,
+                        sort: true,
+                        th: {
+                            style: { width: WIDTHS.study }
+                        }
+                    },
+                    RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
+                        label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Study ID',
+                        th: {
+                            style: { width: WIDTHS.studyRelabel }
+                        }
+                    }),
+                    studyDate: {
+                        label: 'Study Date',
+                        filter: true,
+                        sort: true,
+                        th: {
+                            style: { width: WIDTHS.date }
+                        }
+                    },
+                    modalitiesInStudy: {
+                        label: 'Modality',
+                        filter: true,
+                        sort: true,
+                        th: {
+                            style: { width: WIDTHS.mod }
+                        }
+                    },
+                    accessionNumber: {
+                        label: 'Accession Number',
+                        th: {
+                            style: { width: WIDTHS.acc }
+                        }
                     }
+                }
+
+            });
+        }
+
+        if ($searchResultsHeader.find('table').length === 0) {
+            renderHeader();
+        }
+
+        function renderBody(){
+            $searchResultsBody.empty();
+            return XNAT.table.dataTable(dqr.allSearchResults, {
+                container: $searchResultsBody,
+                header: false,
+                table: {
+                    id: 'all-search-results',
+                    classes: 'compact table-data',
+                    style: { tableLayout: 'fixed' }
                 },
-                patientName: {
-                    label: 'Patient Name',
-                    filter: true,
-                    sort: true,
-                    apply: function(){
-                        var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
-                        return spawn('div.truncate', {
-                            title: patientName
-                        }, patientName)
+                overflowY: 'scroll',
+                maxHeight: '402px',
+                columns: {
+                    // _studyInstanceUid: '~data-uid',
+                    SELECT_SESSIONS: {
+                        label: false,
+                        td: { style: { width: WIDTHS.select } },
+                        apply: function(){
+                            var uid = this.studyInstanceUid;
+                            var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
+                                value: uid,
+                                on: [
+                                    ['click', function(){
+                                        dqr.allSearchResults[uid].checked = this.checked
+                                    }]
+                                ]
+                            });
+                            ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, true);
+                            return ckbxLabel(ckbx);
+                        }
+                    },
+                    patientName: {
+                        label: false,
+                        td: { style: { width: WIDTHS.name } },
+                        apply: function(){
+                            var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
+                            return spawn('div.truncate', {
+                                title: patientName
+                            }, patientName)
+                        }
+                    },
+                    RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.nameRelabel }
+                        },
+                        filter: false,
+                        apply: function(){
+                            return spawn('input.relabel.relabel-patient-name|type=text')
+                        }
+                    }),
+                    studyId: {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.study }
+                        },
+                        html: '<div class="truncate" title="__VALUE__">__VALUE__</div>'
+                    },
+                    RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.studyRelabel }
+                        },
+                        filter: false,
+                        apply: function(){
+                            return spawn('input.relabel.relabel-study-id|type=text')
+                        }
+                    }),
+                    studyDate: {
+                        label: false,
+                        // filter: true,
+                        // sort: true,
+                        td: {
+                            style: { width: WIDTHS.date }
+                        },
+                        apply: function(){
+                            var studyDateStr = this.studyDate + '';
+                            return spawn('div.center.mono', this.studyDate ? [
+                                // ['i.hidden.sort', studyDateStr],
+                                studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
+                            ] : '<i class="hidden">0</i>&ndash;' )
+                        }
+                    },
+                    modalitiesInStudy: {
+                        label: false,
+                        // filter: true,
+                        // sort: true,
+                        td: {
+                            style: { width: WIDTHS.mod }
+                        },
+                        apply: function(val){
+                            return [].concat(val).join(', ');
+                        }
+                    },
+                    // patientId: {
+                    //     label: 'Patient ID',
+                    //     filter: true,
+                    //     sort: true,
+                    //     apply: function(){
+                    //         return this.patient.id
+                    //     }
+                    // },
+                    accessionNumber: {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.acc }
+                        },
+                        html: '<div class="truncate" title="__VALUE__">__VALUE__</div>'
                     }
-                },
-                RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
-                    label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Patient Name',
-                    apply: function(){
-                        return spawn('input.relabel-patient-name|type=text')
-                    }
-                }),
-                studyId: {
-                    label: 'Study ID',
-                    filter: true,
-                    sort: true,
-                    html: '<div class="truncate">__VALUE__</div>'
-                },
-                RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
-                    label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Study ID',
-                    apply: function(){
-                        return spawn('input.relabel-study-id|type=text')
-                    }
-                }),
-                studyDate: {
-                    label: 'Study Date',
-                    filter: true,
-                    sort: true,
-                    apply: function(){
-                        var studyDateStr = this.studyDate + '';
-                        return spawn('div.center.mono', this.studyDate ? [
-                            // ['i.hidden.sort', studyDateStr],
-                            studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
-                        ] : '<i class="hidden">0</i>&ndash;' )
-                    }
-                },
-                modalitiesInStudy: {
-                    label: 'Modality',
-                    filter: true,
-                    sort: true,
-                    apply: function(val){
-                        return [].concat(val).join(', ');
-                    }
-                },
-                // patientId: {
-                //     label: 'Patient ID',
-                //     filter: true,
-                //     sort: true,
-                //     apply: function(){
-                //         return this.patient.id
+                }
+            });
+                // .done(function(){
+                //     if ($pacsSearchResults.has('table.data-table')) {
+                //         return $pacsSearchResults;
                 //     }
-                // },
-                accessionNumber: 'Accession Number'
-            }
-        });
-        // .done(function(){
-        //     if ($pacsSearchResults.has('table.data-table')) {
-        //         return $pacsSearchResults;
-        //     }
-        //     this.render($pacsSearchResults.empty());
-        // })
-        resultsTable.render($pacsSearchResults.empty());
+                //     this.render($pacsSearchResults.empty());
+                // })
+
+                // since the 'container' value is specified, the table will render there
+                // resultsTable.render($pacsSearchResults.empty());
+        }
+
+        renderBody();
 
         // init the selectable stuff
-        XNAT.app.selectableItems(resultsTable.table);
+        XNAT.app.selectableItems($pacsSearchResults);
 
-        $pacsSearchResults.spawn('br');
+        $searchResultsSubmit.empty();
 
-        $pacsSearchResults.spawn('button#import-selected-sessions.btn.btn1.pull-right|type=button', {
-            html: 'Import Selected',
+        $searchResultsSubmit.spawn('br');
+
+        $searchResultsSubmit.spawn('button#import-selected-sessions.btn.btn1.pull-right|type=button', {
+            html: 'Begin Import',
             on: [
                 ['click', function(e){
                     e.preventDefault();
                     console.log('importing...');
-                    var UIDs = [];
+                    var uids = [];
                     $pacsSearchResults.find('input.select-session:checked').each(function(){
-                        UIDs.push(this.value);
+                        uids.push(this.value);
                     });
                     XNAT.dialog.open({
                         title: 'Import from Pacs',
@@ -313,24 +443,43 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    $searchSubmit.on('click', function(e){
+    function pingPACS(id, callback){
+        if (!id) {
+            console.warn('id required');
+            return;
+        }
+        return XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
+            success: function(json) {
+                if (json && json.successful) {
+                    if (isFunction(callback)) {
+                        callback.call(this, id);
+                    }
+                }
+            },
+            failure: function(){
+                console.warn('PACS ping failed');
+                console.warn(arguments);
+            }
+        })
+    }
+
+    function searchPACS(id){
 
         console.log('PACS search...');
 
-        var selectedPacs = $selectPacsMenu.val();
-
-        if (!selectedPacs) {
-            XNAT.dialog.message('Error', 'Please select a PACS to query.', {
-                okAction: function(obj){
-                    // $selectPacsMenu.click();
-                    // menuUpdate($selectPacsMenu);
-                }
-            });
-            return;
-        }
+        var selectedPacs = id || dqr.selectedPacs || $selectPacsMenu.val();
 
         var searchCriteria = $pacsSearchFields.getValues();
         searchCriteria.pacsId = selectedPacs;
+
+        // transform date to expected format
+        if (searchCriteria.studyDateFrom) {
+            searchCriteria.studyDateFrom = (new SplitDate(searchCriteria.studyDateFrom)).US;
+        }
+        if (searchCriteria.studyDateTo) {
+            searchCriteria.studyDateTo = (new SplitDate(searchCriteria.studyDateTo)).US;
+        }
 
         // console.log(searchCriteria);
 
@@ -338,7 +487,7 @@ var XNAT = getObject(XNAT || {});
 
         // console.log(searchUrl);
 
-        XNAT.xhr.post({
+        return XNAT.xhr.post({
             url: searchUrl,
             data: searchCriteria,
             success: function(json){
@@ -350,6 +499,26 @@ var XNAT = getObject(XNAT || {});
                 XNAT.dialog.message('Error', 'No sessions were found for the specified search criteria.')
             }
         });
+
+    }
+
+    // process anon script and insert it into `dqr.allSearchResults` object
+    function processAnonScript(anonScript){
+        // TODO: write this function
+    }
+
+    $searchSubmit.on('click', function(e){
+        dqr.selectedPacs = $selectPacsMenu.val();
+        if (!dqr.selectedPacs) {
+            XNAT.dialog.message('Error', 'Please select a PACS to query.', {
+                okAction: function(obj){
+                    // $selectPacsMenu.click();
+                    // menuUpdate($selectPacsMenu);
+                }
+            });
+            return;
+        }
+        pingPACS(dqr.selectedPacs, searchPACS)
     });
 
     // handle CSV import
@@ -390,6 +559,7 @@ var XNAT = getObject(XNAT || {});
                                     results.push(study)
                                 })
                             });
+                            console.log(results);
                             renderResultsTable(results);
                         }
                         obj.close();
