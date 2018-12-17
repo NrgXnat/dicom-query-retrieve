@@ -375,8 +375,8 @@ var XNAT = getObject(XNAT || {});
                         td: {
                             style: { width: WIDTHS.mod }
                         },
-                        apply: function(val){
-                            return [].concat(val).join(', ');
+                        apply: function(){
+                            return [].concat(this.modalitiesInStudy).join(', ');
                         }
                     },
                     // patientId: {
@@ -432,7 +432,7 @@ var XNAT = getObject(XNAT || {});
                             console.log('confirm...');
                             return spawn('div#pacs-import-confirm', [
                                 ['p', 'Sessions with the following study instance UIDs will be imported:'],
-                                ['ul', '<li>' + UIDs.join('</li><li>') + '</li>']
+                                ['ul', '<li>' + uids.join('</li><li>') + '</li>']
                             ])
                         })(),
                         okLabel: 'Import'
