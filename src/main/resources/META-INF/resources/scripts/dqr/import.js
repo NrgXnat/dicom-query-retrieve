@@ -98,7 +98,7 @@ var XNAT = getObject(XNAT || {});
                      .datetimepicker({
                          timepicker: false,
                          // today is max date, disallow future date selection
-                         maxDate:    XNAT.data.todaysDate.ISO,
+                         maxDate: XNAT.data.todaysDate.ISO,
                          // format:     'm/d/Y'
                          format: 'Y-m-d' // ISO standard date format
                      })
@@ -140,9 +140,9 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
-    function randomizer(length, prefix) {
-        var pre = (isDefined(prefix)) ? prefix : 'rndx' ;
-        var newId = pre + (Math.random() + 1).toString(36).substr(2,8);
+    function randomizer(length, prefix){
+        var pre = (isDefined(prefix)) ? prefix : 'rndx';
+        var newId = pre + (Math.random() + 1).toString(36).substr(2, 8);
         if (isDefined(length)) {
             if (newId.length > length) {
                 return newId.slice(0, length);
@@ -158,6 +158,120 @@ var XNAT = getObject(XNAT || {});
         return arr[Math.floor(Math.random() * (arr.length))]
     }
 
+    function importSelected(){
+
+    }
+
+    function selectScanTypes(){
+
+    }
+
+    function getScanTypes(pacsId, uids){
+        var UIDS = [].concat(uids).join(',');
+        var URL = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
+        return XNAT.xhr.get(URL);
+    }
+
+    function collectScanTypes(json){
+
+        console.log('collectScanTypes');
+
+        dqr.seriesDescriptions = {};
+
+        forOwn(json, function(uid, obj){
+            forEach(obj.results, function(item){
+                var seriesDescriptionItem = dqr.seriesDescriptions[item.seriesDescription] || {};
+                seriesDescriptionItem.name = (item.seriesDescription || '(none)');
+                seriesDescriptionItem.count = (seriesDescriptionItem.count || 0);
+                seriesDescriptionItem.count++;
+                seriesDescriptionItem.uids = seriesDescriptionItem.uids || [];
+                if (seriesDescriptionItem.uids.indexOf(item.studyInstanceUid) === -1) {
+                    seriesDescriptionItem.uids.push(item.studyInstanceUid);
+                }
+                dqr.seriesDescriptions[item.seriesDescription] = seriesDescriptionItem;
+            });
+        });
+
+        // RESET SCAN TYPES LIST
+        dqr.scanTypesList = [];
+
+        forOwn(dqr.seriesDescriptions, function(name, obj){
+            dqr.scanTypesList.push(obj);
+        });
+
+        return dqr.scanTypesList
+
+    }
+
+    function scanTypesList(){
+        var scanTypesList = dqr.scanTypesList;
+        function itemId(item){
+            return 'study-desc-' + (item.name)
+        }
+        var scanTypesTable = XNAT.table.dataTable(scanTypesList, {
+            table: {
+                classes: 'rows-only compact highlight'
+            },
+            columns: {
+                CHECKBOX: {
+                    label: '&nbsp;',
+                    td: {
+                        classes: 'center'
+                    },
+                    filter: function(){
+                        return spawn('div.center', [
+                            ['input.selectable-select-all|type=checkbox']
+                        ])
+                    },
+                    apply: function(){
+                        var item = this;
+                        return spawn('div.center', [
+                            ['input.selectable-select-one.select-scan-type|type=checkbox', {
+                                value: item.name
+                            }]
+                        ]);
+                    }
+                },
+                name: {
+                    label: 'Study Descriptions',
+                    filter: !!(scanTypesList.length > 6),
+                    apply: function(){
+                        var item = this;
+                        return spawn('label.scan-type-label', {
+                            attr: { 'for': itemId(item) }
+                        }, item.name)
+                    }
+                },
+                count: 'Count'
+            }
+        }).get();
+        XNAT.app.selectableItems(scanTypesTable);
+        return scanTypesTable;
+    }
+
+    function scanTypesDialog(pacsId, uids){
+        console.log('scanTypesDialog');
+        getScanTypes(pacsId, uids).done(function(json){
+            console.log('getScanTypes');
+            collectScanTypes(json);
+            var scanTypesTable = scanTypesList();
+            XNAT.dialog.open({
+                title: 'Import from Pacs',
+                content: scanTypesTable,
+                okLabel: 'Import Selected',
+                okClose: false,
+                okAction: function(obj){
+                    XNAT.dialog.message('Go', 'Import the things', {
+                        okAction: function(){
+                            obj.close();
+                        }
+                    })
+                }
+            })
+        });
+
+    }
+
     function renderResultsTable(json){
 
         // console.log(json);
@@ -171,6 +285,7 @@ var XNAT = getObject(XNAT || {});
         $pacsNoResults.empty();
 
         forEach(json, function(item){
+            item.relabelMap = item.relabelMap || {};
             if (!dqr.allSearchResults.hasOwnProperty(item.studyInstanceUid)) {
                 dqr.allSearchResults[item.studyInstanceUid] = item;
             }
@@ -237,7 +352,8 @@ var XNAT = getObject(XNAT || {});
                     RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
                         label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Patient Name',
                         th: {
-                            style: { width: WIDTHS.nameRelabel }
+                            style: { width: WIDTHS.nameRelabel },
+                            title: 'Patient Name Remapping'
                         }
                     }),
                     studyId: {
@@ -251,7 +367,8 @@ var XNAT = getObject(XNAT || {});
                     RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
                         label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Study ID',
                         th: {
-                            style: { width: WIDTHS.studyRelabel }
+                            style: { width: WIDTHS.studyRelabel },
+                            title: 'Study ID Remapping'
                         }
                     }),
                     studyDate: {
@@ -293,24 +410,33 @@ var XNAT = getObject(XNAT || {});
                 table: {
                     id: 'all-search-results',
                     classes: 'compact table-data',
-                    style: { tableLayout: 'fixed' }
+                    style: { tableLayout: 'fixed' },
+                    on: [
+                        ['change', 'input.select-session', function(){
+                            var uid = this.value;
+                            console.log(uid);
+                            dqr.allSearchResults[uid].checked = this.checked
+                        }],
+                        ['blur', 'input.relabel', function(e){
+                            var uid = $(this).closest('tr').data('uid');
+                            console.log(uid);
+                            if (this.value) {
+                                dqr.allSearchResults[uid].relabelMap[this.title] = this.value
+                            }
+                        }]
+                    ]
                 },
                 overflowY: 'scroll',
                 maxHeight: '402px',
                 columns: {
-                    // _studyInstanceUid: '~data-uid',
+                    _studyInstanceUid: '~data-uid',  // this will add a [data-uid="1.234.567890"] attribute to each row's <tr> element
                     SELECT_SESSIONS: {
                         label: false,
                         td: { style: { width: WIDTHS.select } },
                         apply: function(){
                             var uid = this.studyInstanceUid;
                             var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
-                                value: uid,
-                                on: [
-                                    ['click', function(){
-                                        dqr.allSearchResults[uid].checked = this.checked
-                                    }]
-                                ]
+                                value: uid
                             });
                             ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, true);
                             return ckbxLabel(ckbx);
@@ -320,7 +446,8 @@ var XNAT = getObject(XNAT || {});
                         label: false,
                         td: { style: { width: WIDTHS.name } },
                         apply: function(){
-                            var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
+                            // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
+                            var patientName = this.patient.name.lastNameCommaFirstName || '';
                             return spawn('div.truncate', {
                                 title: patientName
                             }, patientName)
@@ -329,11 +456,15 @@ var XNAT = getObject(XNAT || {});
                     RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
                         label: false,
                         td: {
-                            style: { width: WIDTHS.nameRelabel }
+                            style: { width: WIDTHS.nameRelabel },
+                            title: 'Patient Name Remapping'
                         },
                         filter: false,
                         apply: function(){
-                            return spawn('input.relabel.relabel-patient-name|type=text')
+                            return spawn('input.relabel.relabel-patient-name|type=text', {
+                                title: 'Patient Name Remapping',
+                                value: this.relabelMap ? (this.relabelMap['Patient Name Remapping'] || '') : ''
+                            })
                         }
                     }),
                     studyId: {
@@ -341,7 +472,10 @@ var XNAT = getObject(XNAT || {});
                         td: {
                             style: { width: WIDTHS.study }
                         },
-                        html: '<div class="truncate" title="__VALUE__">__VALUE__</div>'
+                        apply: function(){
+                            var studyId = this.studyId || '';
+                            return spawn('div.truncate', { title: studyId }, studyId);
+                        }
                     },
                     RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
                         label: false,
@@ -350,7 +484,10 @@ var XNAT = getObject(XNAT || {});
                         },
                         filter: false,
                         apply: function(){
-                            return spawn('input.relabel.relabel-study-id|type=text')
+                            return spawn('input.relabel.relabel-study-id|type=text', {
+                                title: 'Study ID Remapping',
+                                value: this.relabelMap ? (this.relabelMap['Study ID Remapping'] || '') : ''
+                            })
                         }
                     }),
                     studyDate: {
@@ -365,7 +502,7 @@ var XNAT = getObject(XNAT || {});
                             return spawn('div.center.mono', this.studyDate ? [
                                 // ['i.hidden.sort', studyDateStr],
                                 studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
-                            ] : '<i class="hidden">0</i>&ndash;' )
+                            ] : '<i class="hidden">0</i>&ndash;')
                         }
                     },
                     modalitiesInStudy: {
@@ -392,7 +529,10 @@ var XNAT = getObject(XNAT || {});
                         td: {
                             style: { width: WIDTHS.acc }
                         },
-                        html: '<div class="truncate" title="__VALUE__">__VALUE__</div>'
+                        apply: function(){
+                            var accNum = this.accessionNumber || '';
+                            return spawn('div.truncate', { title: accNum }, accNum);
+                        }
                     }
                 }
             });
@@ -426,17 +566,8 @@ var XNAT = getObject(XNAT || {});
                     $pacsSearchResults.find('input.select-session:checked').each(function(){
                         uids.push(this.value);
                     });
-                    XNAT.dialog.open({
-                        title: 'Import from Pacs',
-                        content: (function(){
-                            console.log('confirm...');
-                            return spawn('div#pacs-import-confirm', [
-                                ['p', 'Sessions with the following study instance UIDs will be imported:'],
-                                ['ul', '<li>' + uids.join('</li><li>') + '</li>']
-                            ])
-                        })(),
-                        okLabel: 'Import'
-                    })
+                    dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                    scanTypesDialog(dqr.selectedPacs, uids)
                 }]
             ]
         })
@@ -450,7 +581,7 @@ var XNAT = getObject(XNAT || {});
         }
         return XNAT.xhr.getJSON({
             url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
-            success: function(json) {
+            success: function(json){
                 if (json && json.successful) {
                     if (isFunction(callback)) {
                         callback.call(this, id);
@@ -496,7 +627,7 @@ var XNAT = getObject(XNAT || {});
             failure: function(){
                 console.warn('Error:');
                 console.warn(arguments);
-                XNAT.dialog.message('Error', 'No sessions were found for the specified search criteria.')
+                XNAT.dialog.message('Error', 'No results were found for the specified search criteria.')
             }
         });
 
@@ -543,19 +674,29 @@ var XNAT = getObject(XNAT || {});
             okClose: false,
             okAction: function(obj){
                 var postCsv = XNAT.xhr.post({
-                    url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/uploadCsv'),
+                    url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/newUploadCsv'),
                     data: (new FormData(fileForm)),
                     cache: false,
                     contentType: false,
                     processData: false,
                     success: function(data){
+                        console.log(data);
                         var results = [];
                         if (data.length) {
                             // pluck the data out of the response
                             forEach(data, function(item){
-                                // since each search criteria returns its own
-                                // results, it's necessary to
+                                var searchId = randomizer(16, 'dqrx' + (Date.now() + '').slice(-8, -2) + 'x');
+                                dqr.searchIds = dqr.searchIds || {};
+                                dqr.searchIds[searchId] = item;
+                                dqr.csvSearchResults = dqr.csvSearchResults || {};
+                                dqr.csvSearchResults[searchId] = item;
+                                // dqr.allSearchResults[searchId] = {
+                                //     anonScript: item.anonScript || ''
+                                // };
+                                console.log(dqr.csvSearchResults);
                                 forEach(item.studies, function(study){
+                                    study.searchId = searchId;
+                                    study.relabelMap = item.relabelMap;
                                     results.push(study)
                                 })
                             });
