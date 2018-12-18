@@ -19,7 +19,10 @@
 ###parse("PacsList.vm")
 
 #set ($pacsId = $turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
-<script>window.selectedPacs = '$!{pacsId}'</script>
+<script>
+    window.projectId = '$!{projectId}';
+    window.selectedPacs = '$!{pacsId}';
+</script>
 
 
 #if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))

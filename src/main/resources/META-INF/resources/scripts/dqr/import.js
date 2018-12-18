@@ -204,14 +204,16 @@ var XNAT = getObject(XNAT || {});
     }
 
     function scanTypesList(){
-        var scanTypesList = dqr.scanTypesList;
+        var scanTypesList = sortObjects(dqr.scanTypesList, 'name');
         function itemId(item){
             return 'study_desc_' + (item.name || '').replace(/[\W\s]/g, '_');
         }
         var scanTypesTable = XNAT.table.dataTable(scanTypesList, {
+            id: 'scan-types-list',
             table: {
                 classes: 'rows-only compact highlight'
             },
+            sortable: 'name, count',
             columns: {
                 CHECKBOX: {
                     label: '&nbsp;',
@@ -220,7 +222,9 @@ var XNAT = getObject(XNAT || {});
                     },
                     filter: function(){
                         return spawn('div.center', [
-                            ['input.selectable-select-all|type=checkbox']
+                            ['input.selectable-select-all|type=checkbox', {
+                                checked: true
+                            }]
                         ])
                     },
                     apply: function(){
@@ -228,13 +232,14 @@ var XNAT = getObject(XNAT || {});
                         return spawn('div.center', [
                             ['input.selectable-select-one.select-scan-type|type=checkbox', {
                                 value: item.name,
-                                id: itemId(item)
+                                id: itemId(item),
+                                checked: true
                             }]
                         ]);
                     }
                 },
                 name: {
-                    label: 'Study Descriptions',
+                    label: 'Series Descriptions',
                     filter: !!(scanTypesList.length > 6),
                     apply: function(){
                         var item = this;
@@ -250,6 +255,70 @@ var XNAT = getObject(XNAT || {});
         return scanTypesTable;
     }
 
+
+    function importSessionsOfSelectedTypeToProject(){
+        var $searchResultsTable = $('#all-search-results');
+        var selectedSessions = $searchResultsTable.find('input.select-session:checked');
+
+        var uids = selectedSessions.toArray().map(function(ckbx, i){
+            return ckbx.value;
+        });
+
+        console.log(uids);
+
+        var ae = $('#ae-menu').val();
+
+        var projectId = window.projectId || getQueryStringValue('project');
+
+        var selectedScanTypes = $('#scan-types-list').find('input.select-scan-type:checked');
+
+        var scanTypes = selectedScanTypes.toArray().map(function(ckbx, i){
+            return ckbx.value;
+        });
+
+        var jsonDataExample = {
+            "importRows": [
+                {
+                    "relabelMap": {},
+                    "studyInstanceUIDs": [
+                        "string"
+                    ]
+                }
+            ],
+            "seriesDescriptions": [
+                "string"
+            ]
+        };
+
+        var jsonData = {
+            importRows: uids.map(function(uid, i){
+                return {
+                    relabelMap: {},
+                    studyInstanceUIDs: [].concat(uid)
+                }
+            }),
+            seriesDescriptions: scanTypes
+        };
+
+        console.log('to submit:');
+        console.log(jsonData);
+
+        XNAT.xhr.postJSON({
+            url: XNAT.url.restUrl('/xapi/dqr/csvimport/newImportFromJson', {
+                pacsId: $selectPacsMenu.val(),
+                ae: ae,
+                project: projectId
+            }, false),
+            data: JSON.stringify(jsonData),
+            success: function(){
+                console.log(arguments);
+                XNAT.dialog.message('Import has started...');
+            }
+        })
+
+    }
+
+
     function scanTypesDialog(pacsId, uids){
         console.log('scanTypesDialog');
         getScanTypes(pacsId, uids).done(function(json){
@@ -257,17 +326,22 @@ var XNAT = getObject(XNAT || {});
             collectScanTypes(json);
             var scanTypesTable = scanTypesList();
             XNAT.dialog.open({
-                title: 'Import from Pacs',
+                title: 'Import from PACS',
                 content: scanTypesTable,
-                okLabel: 'Import Selected',
-                okClose: false,
-                okAction: function(obj){
-                    XNAT.dialog.message('Go', 'Import the things', {
-                        okAction: function(){
-                            obj.close();
+                buttons: [
+                    {
+                        label: 'Import Selected',
+                        isDefault: true,
+                        close: false,
+                        action: function(obj){
+                            importSessionsOfSelectedTypeToProject();
                         }
-                    })
-                }
+                    },
+                    {
+                        label: 'Cancel',
+                        close: true
+                    }
+                ]
             })
         });
 
@@ -331,12 +405,12 @@ var XNAT = getObject(XNAT || {});
                                 checked: true,
                                 value: '*',
                                 on: [
-                                    ['click', function(){
-                                        var ckbx = this;
-                                        forEach(Object.keys(dqr.allSearchResults), function(uid){
-                                            dqr.allSearchResults[uid].checked = !!ckbx.checked;
-                                        });
-                                    }]
+                                    // ['click', function(){
+                                    //     var ckbx = this;
+                                    //     forEach(Object.keys(dqr.allSearchResults), function(uid){
+                                    //         dqr.allSearchResults[uid].checked = !!ckbx.checked;
+                                    //     });
+                                    // }]
                                 ]
                             });
                             return ckbxLabel(ckbx);
@@ -557,21 +631,64 @@ var XNAT = getObject(XNAT || {});
 
         $searchResultsSubmit.spawn('br');
 
-        $searchResultsSubmit.spawn('button#import-selected-sessions.btn.btn1.pull-right|type=button', {
-            html: 'Begin Import',
-            on: [
-                ['click', function(e){
-                    e.preventDefault();
-                    console.log('importing...');
-                    var uids = [];
-                    $pacsSearchResults.find('input.select-session:checked').each(function(){
-                        uids.push(this.value);
-                    });
-                    dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                    scanTypesDialog(dqr.selectedPacs, uids)
+        function renderBottom(receivers){
+
+            var aeMenu = spawn('select#ae-menu');
+
+            forEach(receivers, function(item, i){
+                var AE = item.aeTitle + ':' + item.port;
+                console.log(AE);
+                aeMenu.appendChild(spawn('option.receiver', {
+                    title: AE,
+                    value: AE,
+                    data: {
+                        id: (item.id + ''),
+                        identifier: item.identifier
+                    },
+                    disabled: !item.enabled
+                }, AE));
+            });
+
+            $searchResultsSubmit.spawn('div.pull-right', [
+                'Select SCP Receiver: ',
+                aeMenu,
+                '&nbsp;&nbsp;',
+                ['button#import-selected-sessions.btn.btn1|type=button', {
+                    html: 'Begin Import',
+                    on: [
+                        ['click', function(e){
+                            e.preventDefault();
+                            console.log('importing...');
+                            var uids = [];
+                            $pacsSearchResults.find('input.select-session:checked').each(function(){
+                                uids.push(this.value);
+                            });
+                            dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                            scanTypesDialog(dqr.selectedPacs, uids)
+                        }]
+                    ]
                 }]
-            ]
-        })
+            ]);
+
+        }
+
+        XNAT.xhr.get({
+            url: XNAT.url.restUrl('/xapi/dicomscp'),
+            success: function(json){
+                var aeExample = {
+                    "enabled": true,
+                    "identifier": "dqrObjectIdentifier",
+                    "port": 8104,
+                    "id": 1,
+                    "aeTitle": "XNAT",
+                    "customProcessing": true
+                };
+                renderBottom(json);
+            },
+            failure: function(e){
+                console.warn('Could not retrieve SCP Receivers')
+            }
+        });
 
     }
 
