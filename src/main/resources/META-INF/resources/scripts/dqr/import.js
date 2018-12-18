@@ -206,7 +206,7 @@ var XNAT = getObject(XNAT || {});
     function scanTypesList(){
         var scanTypesList = dqr.scanTypesList;
         function itemId(item){
-            return 'study-desc-' + (item.name)
+            return 'study_desc_' + (item.name || '').replace(/[\W\s]/g, '_');
         }
         var scanTypesTable = XNAT.table.dataTable(scanTypesList, {
             table: {
@@ -227,7 +227,8 @@ var XNAT = getObject(XNAT || {});
                         var item = this;
                         return spawn('div.center', [
                             ['input.selectable-select-one.select-scan-type|type=checkbox', {
-                                value: item.name
+                                value: item.name,
+                                id: itemId(item)
                             }]
                         ]);
                     }
