@@ -384,8 +384,8 @@ var XNAT = getObject(XNAT || {});
             select: '4%',
             name: '14%',
             nameRelabel: '16%',
-            study: '14%',
-            studyRelabel: '16%',
+            patientId: '14%',
+            patientIdRelabel: '16%',
             date: '12%',
             mod: '10%',
             acc: '14%'
@@ -409,17 +409,15 @@ var XNAT = getObject(XNAT || {});
                         filter: function(){
                             var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
                                 checked: true,
-                                value: '*',
-                                on: [
-                                    // ['click', function(){
-                                    //     var ckbx = this;
-                                    //     forEach(Object.keys(dqr.allSearchResults), function(uid){
-                                    //         dqr.allSearchResults[uid].checked = !!ckbx.checked;
-                                    //     });
-                                    // }]
-                                ]
+                                value: '*'
                             });
                             return ckbxLabel(ckbx);
+                        }
+                    },
+                    accessionNumber: {
+                        label: 'Accession Number',
+                        th: {
+                            style: { width: WIDTHS.acc }
                         }
                     },
                     patientName: {
@@ -430,26 +428,30 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.name }
                         }
                     },
-                    RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
-                        label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Patient Name',
+                    nameRelabel: extend(true, {}, relabelColumn, {
+                        label: '' +
+                            '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
+                            'Relabel Patient Name',
                         th: {
                             style: { width: WIDTHS.nameRelabel },
                             title: 'Patient Name Remapping'
                         }
                     }),
-                    studyId: {
-                        label: 'Study ID',
+                    patientId: {
+                        label: 'Patient ID',
                         filter: true,
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.study }
+                            style: { width: WIDTHS.patientId }
                         }
                     },
-                    RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
-                        label: '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;Relabel Study ID',
+                    patientIdRelabel: extend(true, {}, relabelColumn, {
+                        label: '' +
+                            '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
+                            'Relabel Patient ID',
                         th: {
-                            style: { width: WIDTHS.studyRelabel },
-                            title: 'Study ID Remapping'
+                            style: { width: WIDTHS.patientIdRelabel },
+                            title: 'Patient ID Remapping'
                         }
                     }),
                     studyDate: {
@@ -466,12 +468,6 @@ var XNAT = getObject(XNAT || {});
                         sort: true,
                         th: {
                             style: { width: WIDTHS.mod }
-                        }
-                    },
-                    accessionNumber: {
-                        label: 'Accession Number',
-                        th: {
-                            style: { width: WIDTHS.acc }
                         }
                     }
                 }
@@ -523,6 +519,16 @@ var XNAT = getObject(XNAT || {});
                             return ckbxLabel(ckbx);
                         }
                     },
+                    accessionNumber: {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.acc }
+                        },
+                        apply: function(){
+                            var accNum = this.accessionNumber || '';
+                            return spawn('div.truncate', { title: accNum }, accNum);
+                        }
+                    },
                     patientName: {
                         label: false,
                         td: { style: { width: WIDTHS.name } },
@@ -534,7 +540,7 @@ var XNAT = getObject(XNAT || {});
                             }, patientName)
                         }
                     },
-                    RELABEL_PATIENT_NAME: extend(true, {}, relabelColumn, {
+                    nameRelabel: extend(true, {}, relabelColumn, {
                         label: false,
                         td: {
                             style: { width: WIDTHS.nameRelabel },
@@ -548,26 +554,26 @@ var XNAT = getObject(XNAT || {});
                             })
                         }
                     }),
-                    studyId: {
+                    patiendId: {
                         label: false,
                         td: {
-                            style: { width: WIDTHS.study }
+                            style: { width: WIDTHS.patientId }
                         },
                         apply: function(){
-                            var studyId = this.studyId || '';
-                            return spawn('div.truncate', { title: studyId }, studyId);
+                            var patientId = this.patient.id || '';
+                            return spawn('div.truncate', { title: patientId }, patientId);
                         }
                     },
-                    RELABEL_STUDY_ID: extend(true, {}, relabelColumn, {
+                    patientIdRelabel: extend(true, {}, relabelColumn, {
                         label: false,
                         td: {
-                            style: { width: WIDTHS.studyRelabel }
+                            style: { width: WIDTHS.patientIdRelabel }
                         },
                         filter: false,
                         apply: function(){
                             return spawn('input.relabel.relabel-study-id|type=text', {
-                                title: 'Study ID Remapping',
-                                value: this.relabelMap ? (this.relabelMap['Study ID Remapping'] || '') : ''
+                                title: 'Patient ID Remapping',
+                                value: this.relabelMap ? (this.relabelMap['Patient ID Remapping'] || '') : ''
                             })
                         }
                     }),
@@ -596,7 +602,7 @@ var XNAT = getObject(XNAT || {});
                         apply: function(){
                             return [].concat(this.modalitiesInStudy).join(', ');
                         }
-                    },
+                    }//,
                     // patientId: {
                     //     label: 'Patient ID',
                     //     filter: true,
@@ -605,16 +611,6 @@ var XNAT = getObject(XNAT || {});
                     //         return this.patient.id
                     //     }
                     // },
-                    accessionNumber: {
-                        label: false,
-                        td: {
-                            style: { width: WIDTHS.acc }
-                        },
-                        apply: function(){
-                            var accNum = this.accessionNumber || '';
-                            return spawn('div.truncate', { title: accNum }, accNum);
-                        }
-                    }
                 }
             });
                 // .done(function(){
@@ -632,6 +628,8 @@ var XNAT = getObject(XNAT || {});
 
         // init the selectable stuff
         XNAT.app.selectableItems($pacsSearchResults);
+
+        XNAT.app.searchableItems($pacsSearchResults);
 
         $searchResultsSubmit.empty();
 
