@@ -318,7 +318,32 @@ var XNAT = getObject(XNAT || {});
             data: JSON.stringify(jsonData),
             success: function(){
                 console.log(arguments);
-                XNAT.dialog.message('Import has started...');
+                XNAT.dialog.message({
+                    title: ' ',
+                    width: 400,
+                    content: (function(){
+                        return '<div style="margin:20px;">' +
+                            '<p style="font-size:15px;line-height:20px;">' +
+                            'PACS data import has begun. You may close this dialog ' +
+                            'to start a new search.</p>' +
+                            '<p style="font-size:15px;line-height:20px;">' +
+                            'You can also ' +
+                            '<a href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
+                            'check on the import progress in the prearchive</a> or ' +
+                            '<a href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
+                            'go back to the project page.</a></p>' +
+                            '</div>';
+                    })(),
+                    okLabel: 'Close',
+                    okAction: function(){
+                        XNAT.dialog.loading.open();
+                        window.location.reload(true);
+                    }
+                });
+            },
+            failure: function(){
+                XNAT.dialog.message('Error', 'An error has occurred during data import.');
+                console.warn(arguments);
             }
         })
 
