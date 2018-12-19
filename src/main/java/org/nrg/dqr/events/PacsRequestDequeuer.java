@@ -161,14 +161,15 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                     if (_log.isDebugEnabled()) {
                         _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
                     }
-                    if (studyId == null) {
-                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-                    } else {
-                        XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
-                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                        XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                    if(currAnonScript!=null) {
+                        if (studyId == null) {
+                            XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                        } else {
+                            XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
+                            XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                            XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                        }
                     }
-
                     ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                     pacsReq.setPacsId(requestToDequeue.getPacsId());
                     String username = requestToDequeue.getUsername();

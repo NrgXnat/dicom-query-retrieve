@@ -64,6 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.io.File;
+import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import org.nrg.dqr.util.CsvRow;
@@ -267,6 +268,13 @@ public class BasicPacsService implements PacsService {
         PacsEntityService pacsEntityService = getPacsEntityService();
         Pacs pacs = pacsEntityService.retrieve(request.getPacsId());
         String destinationAeAndPort = request.getDestinationAeTitle();
+
+        try{
+            destinationAeAndPort = URLDecoder.decode(destinationAeAndPort, "UTF-8");
+        }
+        catch(Exception e){
+        }
+
         String destinationAe = destinationAeAndPort;
         if (destinationAe != null && destinationAe.contains(":")) {
             String[] parts = destinationAe.split(":");
@@ -433,6 +441,7 @@ public class BasicPacsService implements PacsService {
     public boolean aeIsStorable(final String ae){
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
         Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
+
         boolean hasPort = ae.contains(":");
         for (DicomSCPInstance scp : scps){
             if(((hasPort&&StringUtils.equals(scp.getAeTitle()+":"+scp.getPort(),ae))||(!hasPort&&StringUtils.equals(scp.getAeTitle(),ae))) && scp.isEnabled()){
@@ -863,6 +872,9 @@ public class BasicPacsService implements PacsService {
                                 }
                             }
                         }
+                        else{
+                            studiesListMappedToAnonScript.put(currStudy, null);
+                        }
                     }
                 }
             }
@@ -914,7 +926,9 @@ public class BasicPacsService implements PacsService {
                     pacsReq.setStudyInstanceUid(currStudy);
                     pacsReq.setSeriesIds(_seriesIdsString);
                     pacsReq.setDestinationAeTitle(aeTitle);
-                    pacsReq.setRemappingScript(currAnonScript);
+                    if(currAnonScript!=null) {
+                        pacsReq.setRemappingScript(currAnonScript);
+                    }
                     pacsReq.setQueuedTime(new Date());
 
                     XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
