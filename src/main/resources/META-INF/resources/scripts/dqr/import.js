@@ -310,11 +310,11 @@ var XNAT = getObject(XNAT || {});
         console.log(jsonData);
 
         XNAT.xhr.postJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/csvimport/newImportFromJson', {
-                pacsId: $selectPacsMenu.val(),
-                ae: ae,
-                project: projectId
-            }, false),
+            url: XNAT.url.restUrl('/xapi/dqr/csvimport/newImportFromJson', [
+                'pacsId=' + $selectPacsMenu.val(),
+                'ae=' + ae,
+                'project=' + projectId
+            ], false),
             data: JSON.stringify(jsonData),
             success: function(){
                 console.log(arguments);
