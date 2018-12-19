@@ -257,6 +257,7 @@ var XNAT = getObject(XNAT || {});
 
 
     function importSessionsOfSelectedTypeToProject(){
+
         var $searchResultsTable = $('#all-search-results');
         var selectedSessions = $searchResultsTable.find('input.select-session:checked');
 
@@ -292,8 +293,13 @@ var XNAT = getObject(XNAT || {});
 
         var jsonData = {
             importRows: uids.map(function(uid, i){
+                var relabelMap = {};
+                var $importRow = $searchResultsTable.find('tr[data-uid="' + uid +'"]');
+                $importRow.find('input.relabel').each(function(){
+                    relabelMap[this.title] = this.value || '';
+                });
                 return {
-                    relabelMap: {},
+                    relabelMap: relabelMap,
                     studyInstanceUIDs: [].concat(uid)
                 }
             }),
