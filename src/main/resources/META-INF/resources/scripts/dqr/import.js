@@ -38,6 +38,9 @@ var XNAT = getObject(XNAT || {});
     var $pacsNoResults = $('#pacs-no-results');
     var $noResultsTemplate = $('#no-search-results');
 
+    // string 'constants'
+    var NONE = '(none)';
+
     function renderPacsMenu(items){
         var pacsMenu = $selectPacsMenu[0];
         forEach(items || [], function(item, i){
@@ -181,7 +184,7 @@ var XNAT = getObject(XNAT || {});
         forOwn(json, function(uid, obj){
             forEach(obj.results, function(item){
                 var seriesDescriptionItem = dqr.seriesDescriptions[item.seriesDescription] || {};
-                seriesDescriptionItem.name = (item.seriesDescription || '(none)');
+                seriesDescriptionItem.name = (item.seriesDescription || NONE);
                 seriesDescriptionItem.count = (seriesDescriptionItem.count || 0);
                 seriesDescriptionItem.count++;
                 seriesDescriptionItem.uids = seriesDescriptionItem.uids || [];
@@ -231,7 +234,7 @@ var XNAT = getObject(XNAT || {});
                         var item = this;
                         return spawn('div.center', [
                             ['input.selectable-select-one.select-scan-type|type=checkbox', {
-                                value: item.name,
+                                value: item.name !== NONE ? item.name : '',
                                 id: itemId(item),
                                 checked: true
                             }]
@@ -328,9 +331,9 @@ var XNAT = getObject(XNAT || {});
                             'to start a new search.</p>' +
                             '<p style="font-size:15px;line-height:20px;">' +
                             'You can also ' +
-                            '<a href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
                             'check on the import progress in the prearchive</a> or ' +
-                            '<a href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
                             'go back to the project page.</a></p>' +
                             '</div>';
                     })(),
@@ -433,7 +436,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         filter: function(){
                             var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
-                                checked: true,
+                                checked: false,
                                 value: '*'
                             });
                             return ckbxLabel(ckbx);
@@ -540,7 +543,7 @@ var XNAT = getObject(XNAT || {});
                             var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
                                 value: uid
                             });
-                            ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, true);
+                            ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
                             return ckbxLabel(ckbx);
                         }
                     },
