@@ -912,7 +912,7 @@ public class BasicPacsService implements PacsService {
                 }
                 String result = currSeries.getSeriesInstanceUid();
 
-                if (seriesDescriptionsList.isEmpty() || seriesDescriptionsList.contains(currSeries.getSeriesDescription())) {
+                if (seriesDescriptionsList.isEmpty() || seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription()==null&&seriesDescriptionsList.contains(""))) {
                     _seriesIdsString += result;
                     seriesIdsList.add(result);
                 }
