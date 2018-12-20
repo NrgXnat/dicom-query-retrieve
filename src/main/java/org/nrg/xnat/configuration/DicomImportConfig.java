@@ -36,6 +36,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -76,7 +77,9 @@ public class DicomImportConfig {
 //        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
 //        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
 //        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), dqrSessionIdent(), dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
+        ArrayList<Extractor> classicSessionExtractorList = new ArrayList<>();
+        classicSessionExtractorList.add(new TextExtractor(Tag.PatientID));
+        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), classicSessionExtractorList, dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
     }
 
     @Bean
