@@ -6,14 +6,24 @@
 <li id="import-from-pacs-action" class="yuimenuitem hidden">
     <a class="yuimenuitemlabel" href="${SITE_ROOT}/app/template/Page.vm?view=dqr/import&project=${projectId}">Import From PACS</a>
 </li>
-    <script>
+<script>
+    (function(){
+        var importActionItem = $('#import-from-pacs-action');
         XNAT.xhr.get({
             url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings/$!{projectId}'),
-            success: function(data) {
+            success: function(data){
                 if (data && data.enabled) {
-                    $('#import-from-pacs-action').removeClass('hidden').show();
+                    importActionItem.removeClass('hidden').show();
                 }
+                else {
+                    importActionItem.remove();
+                }
+            },
+            failure: function(){
+                console.warn(arguments);
+                importActionItem.remove();
             }
         });
-    </script>
+    })()
+</script>
 #end
