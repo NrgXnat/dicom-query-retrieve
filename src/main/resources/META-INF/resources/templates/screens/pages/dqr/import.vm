@@ -27,12 +27,46 @@
 
 #if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
 
-    <div id="page-body">
+    <div id="page-body" class="hidden">
         <div class="pad">
 
            #parse("/page/dqr/import/view.html")
 
         </div>
     </div>
+
+    <script>
+        $(function(){
+
+            var pageBody = $('#page-body');
+
+            function showConfigErrorMessage(){
+                pageBody.find('> .pad').empty().html('' +
+                    '<div class="error">' +
+                    'This project is not configured for DICOM PACS import. ' +
+                    'Please contact your system administrator if you need DICOM PACS import enabled.' +
+                    '</div>' +
+                    '');
+            }
+
+            XNAT.xhr.get({
+                url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings/$!{projectId}'),
+                success: function(data){
+                    if (data && data.enabled) {
+                        pageBody.removeClass('hidden').show();
+                    }
+                    else {
+                        showConfigErrorMessage();
+                    }
+                },
+                failure: function(){
+                    console.warn(arguments);
+                    showConfigErrorMessage();
+                }
+            });
+            
+        });
+    </script>
+
 
 #end
