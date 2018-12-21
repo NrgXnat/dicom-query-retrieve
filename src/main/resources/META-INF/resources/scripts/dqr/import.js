@@ -582,7 +582,7 @@ var XNAT = getObject(XNAT || {});
                             })
                         }
                     }),
-                    patiendId: {
+                    patientId: {
                         label: false,
                         td: {
                             style: { width: WIDTHS.patientId }
