@@ -280,6 +280,11 @@ var XNAT = getObject(XNAT || {});
             return ckbx.value;
         });
 
+        if (!scanTypes.length) {
+            XNAT.dialog.message(false, 'Please select at least one series to import.');
+            return false;
+        }
+
         var jsonDataExample = {
             "importRows": [
                 {
@@ -327,8 +332,8 @@ var XNAT = getObject(XNAT || {});
                     content: (function(){
                         return '<div style="margin:20px;">' +
                             '<p style="font-size:15px;line-height:20px;">' +
-                            'PACS data import has begun. You may close this dialog ' +
-                            'to start a new search.</p>' +
+                            'PACS data has been queued for import. You may close ' +
+                            'this dialog to start a new search.</p>' +
                             '<p style="font-size:15px;line-height:20px;">' +
                             'You can also ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
@@ -576,7 +581,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         filter: false,
                         apply: function(){
-                            return spawn('input.relabel.relabel-patient-name|type=text', {
+                            return spawn('input.relabel.relabel-patient-name|type=text|tabindex=1', {
                                 title: 'Patient Name Remapping',
                                 value: this.relabelMap ? (this.relabelMap['Patient Name Remapping'] || '') : ''
                             })
@@ -599,7 +604,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         filter: false,
                         apply: function(){
-                            return spawn('input.relabel.relabel-study-id|type=text', {
+                            return spawn('input.relabel.relabel-study-id|type=text|tabindex=1', {
                                 title: 'Patient ID Remapping',
                                 value: this.relabelMap ? (this.relabelMap['Patient ID Remapping'] || '') : ''
                             })
@@ -695,6 +700,10 @@ var XNAT = getObject(XNAT || {});
                             $pacsSearchResults.find('input.select-session:checked').each(function(){
                                 uids.push(this.value);
                             });
+                            if (!uids.length) {
+                                XNAT.dialog.message(false, 'Please select at least one study to import.');
+                                return false;
+                            }
                             dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
                             scanTypesDialog(dqr.selectedPacs, uids)
                         }]
