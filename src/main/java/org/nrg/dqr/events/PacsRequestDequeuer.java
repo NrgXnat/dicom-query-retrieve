@@ -59,9 +59,10 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
             List<Pacs> pacsList = pacsEntityService.findAllQueryable();
             for(Pacs currPacs: pacsList){
                 Long pacsId = currPacs.getId();
-                Integer defSecsPerHour = currPacs.getDefaultSessionsPerHour();
-                if (defSecsPerHour > 0) {
-                    Long millisBetweenPacsRequests = (3600000L / defSecsPerHour);
+                Integer defaultDequeuesPerHour = currPacs.getDefaultDequeuesPerHour();
+                Integer sessionsPerDequeue = currPacs.getDefaultSessionsPerDequeue();
+                if (defaultDequeuesPerHour!=null && sessionsPerDequeue!=null && defaultDequeuesPerHour > 0) {
+                    Long millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
                     List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
                     for (PacsAvailability availability : availabilityList) {
                         String availabilityStartTimeString = availability.getAvailabilityStart();
@@ -119,12 +120,14 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         }
 
                         if (isAvailable) {
-                            long sessionsPerHour = availability.getSessionsPerHour();
+                            long sessionsPerHour = availability.getDequeuesPerHour();
                             if (sessionsPerHour == 0L) {
                                 millisBetweenPacsRequests = 0L;
+
                             } else {
                                 millisBetweenPacsRequests = (3600000 / sessionsPerHour);
                             }
+                            sessionsPerDequeue = availability.getSessionsPerDequeue();
                             break;
                         }
                     }
@@ -138,14 +141,29 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                 if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
                                     List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
                                     if (reqs != null && reqs.size() > 0) {
-                                        requestsToDequeue.add(reqs.get(0));
+                                        int added = 0;
+                                        for(QueuedPacsRequest req:reqs){
+                                            requestsToDequeue.add(req);
+                                            added++;
+                                            if(added>=sessionsPerDequeue){
+                                                break;
+                                            }
+                                        }
+
                                     }
                                 }
                             }
                         } else {
                             List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
                             if (reqs != null && reqs.size() > 0) {
-                                requestsToDequeue.add(reqs.get(0));
+                                int added = 0;
+                                for(QueuedPacsRequest req:reqs){
+                                    requestsToDequeue.add(req);
+                                    added++;
+                                    if(added>=sessionsPerDequeue){
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }

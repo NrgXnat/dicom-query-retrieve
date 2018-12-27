@@ -50,7 +50,8 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private String _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
 
-    private Integer _defaultSessionsPerHour;
+    private Integer _defaultSessionsPerDequeue;
+    private Integer _defaultDequeuesPerHour;
 
     // for Hibernate
     public Pacs() {
@@ -154,12 +155,20 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _ormStrategySpringBeanId = ormStrategySpringBeanId;
     }
 
-    public Integer getDefaultSessionsPerHour() {
-        return _defaultSessionsPerHour;
+    public Integer getDefaultSessionsPerDequeue() {
+        return _defaultSessionsPerDequeue;
     }
 
-    public void setDefaultSessionsPerHour(final Integer defaultSessionsPerHour) {
-        _defaultSessionsPerHour = defaultSessionsPerHour;
+    public void setDefaultSessionsPerDequeue(final Integer defaultSessionsPerDequeue) {
+        _defaultSessionsPerDequeue = defaultSessionsPerDequeue;
+    }
+
+    public Integer getDefaultDequeuesPerHour() {
+        return _defaultDequeuesPerHour;
+    }
+
+    public void setDefaultDequeuesPerHour(final Integer defaultDequeuesPerHour) {
+        _defaultDequeuesPerHour = defaultDequeuesPerHour;
     }
 
     @Override
@@ -167,7 +176,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host)
                 .append(_label).append(_storable).append(_defaultStoragePacs).append(_queryable)
                 .append(_queryRetrievePort).append(_defaultQueryRetrievePacs)
-                .append(_defaultSessionsPerHour).toHashCode();
+                .append(_defaultSessionsPerDequeue).append(_defaultDequeuesPerHour).toHashCode();
     }
 
     @Override
@@ -188,7 +197,8 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
                 .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
                 .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
                 .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId)
-                .append(_defaultSessionsPerHour, other._defaultSessionsPerHour).isEquals();
+                .append(_defaultSessionsPerDequeue, other._defaultSessionsPerDequeue)
+                .append(_defaultDequeuesPerHour, other._defaultDequeuesPerHour).isEquals();
     }
 
     @Override
@@ -203,7 +213,8 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         buffer.append("storable: ").append(_storable).append(", ");
         buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
         buffer.append("supportsExtendedNegotiations: ").append(_supportsExtendedNegotiations).append(", ");
-        buffer.append("defaultSessionsPerHour: ").append(_defaultSessionsPerHour).append(" }");
+        buffer.append("defaultSessionsPerDequeue: ").append(_defaultSessionsPerDequeue).append(", ");
+        buffer.append("defaultDequeuesPerHour: ").append(_defaultDequeuesPerHour).append(" }");
         return buffer.toString();
     }
 }

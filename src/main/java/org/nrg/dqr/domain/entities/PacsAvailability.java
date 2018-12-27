@@ -39,7 +39,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
     private int _dayOfWeek;
     private String _availabilityStart;
     private String _availabilityEnd;
-    private int _sessionsPerHour;
+    private int _dequeuesPerHour;
+    private int _sessionsPerDequeue;
 
     // for Hibernate
     public PacsAvailability() {
@@ -81,12 +82,20 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         this._availabilityEnd = availabilityEnd;
     }
 
-    public int getSessionsPerHour() {
-        return _sessionsPerHour;
+    public int getDequeuesPerHour() {
+        return _dequeuesPerHour;
     }
 
-    public void setSessionsPerHour(int sessionsPerHour) {
-        this._sessionsPerHour = sessionsPerHour;
+    public void setDequeuesPerHour(int dequeuesPerHour) {
+        this._dequeuesPerHour = dequeuesPerHour;
+    }
+
+    public int getSessionsPerDequeue() {
+        return _sessionsPerDequeue;
+    }
+
+    public void setSessionsPerDequeue(int sessionsPerDequeue) {
+        this._sessionsPerDequeue = sessionsPerDequeue;
     }
 
     @Override
@@ -103,7 +112,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
             return false;
         if (_availabilityEnd != null ? !_availabilityEnd.equals(that._availabilityEnd) : that._availabilityEnd != null)
             return false;
-        return _sessionsPerHour==that._sessionsPerHour;
+        if (_dequeuesPerHour != that._dequeuesPerHour) return false;
+        return _sessionsPerDequeue==that._sessionsPerDequeue;
     }
 
     @Override
@@ -113,7 +123,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         result = 31 * result + _dayOfWeek;
         result = 31 * result + (_availabilityStart != null ? _availabilityStart.hashCode() : 0);
         result = 31 * result + (_availabilityEnd != null ? _availabilityEnd.hashCode() : 0);
-        result = 31 * result + _sessionsPerHour;
+        result = 31 * result + _dequeuesPerHour;
+        result = 31 * result + _sessionsPerDequeue;
         return result;
     }
 
@@ -124,7 +135,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
                 ", dayOfWeek='" + _dayOfWeek + '\'' +
                 ", availabilityStart='" + _availabilityStart + '\'' +
                 ", availabilityEnd='" + _availabilityEnd + '\'' +
-                ", sessionsPerHour=" + _sessionsPerHour +
+                ", dequeuesPerHour='" + _dequeuesPerHour + '\'' +
+                ", sessionsPerDequeue=" + _sessionsPerDequeue +
                 '}';
     }
 }
