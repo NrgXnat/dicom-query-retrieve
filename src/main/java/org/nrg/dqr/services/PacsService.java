@@ -12,6 +12,7 @@
 
 package org.nrg.dqr.services;
 
+import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
@@ -23,6 +24,7 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.FindRow;
 import org.nrg.dqr.util.ImportRow;
+import org.nrg.dqr.util.StudyImportInformation;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -31,6 +33,7 @@ import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
@@ -58,6 +61,8 @@ public interface PacsService {
     void exportSeries(UserI user, final Pacs pacs, final XnatImagescandata series);
 
     boolean aeIsStorable(final String ae);
+
+    boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
     boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 

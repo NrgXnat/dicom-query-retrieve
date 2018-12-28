@@ -32,6 +32,7 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.FindRow;
 import org.nrg.dqr.util.ImportRow;
+import org.nrg.dqr.util.StudyImportInformation;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
@@ -128,6 +129,11 @@ public class MockPacsService implements PacsService {
 
     @Override
     public boolean aeIsStorable(final String ae) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         throw new RuntimeException("method not implemented");
     }
 
