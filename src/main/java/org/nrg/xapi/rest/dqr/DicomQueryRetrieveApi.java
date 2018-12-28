@@ -356,17 +356,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     public ResponseEntity<Map<String, Object>> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId") final String pacs,
                                                           @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String session,
                                                           @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport") final String[] scansToExport) throws Exception {
-        UserI               user       = getSessionUser();
+        final UserI         user       = getSessionUser();
         Map<String, Object> dataToSend = new HashMap<>();
 
         final long        pacsId            = Long.valueOf(pacs);
         PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        Pacs              _pacs             = pacsEntityService.retrieve(pacsId);
+        final Pacs        _pacs             = pacsEntityService.retrieve(pacsId);
 
         if (_pacs == null) {
             throw new PacsNotFoundException();
         }
-        PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
 
         if (StringUtils.isBlank(session)) {
             throw new RuntimeException("You must specify a session ID for this operation.");
@@ -387,9 +386,13 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                 ArrayList<String> scans = new ArrayList<>();
                 if (_pacs.isStorable()) {
                     for (String scanId : scansToExport) {
-                        XnatImagescandata scan = sessionObject.getScanById(scanId);
+                        final XnatImagescandata scan = sessionObject.getScanById(scanId);
                         scans.add(scanId);
-                        pacsService.exportSeries(user, _pacs, scan);
+                        new Thread() {
+                            public void run() {
+                                _pacsService.exportSeries(user, _pacs, scan);
+                            }
+                        }.start();
                         log.info("Exported series {} from session {}", scanId, sessionObject.getId());
                     }
                 } else {
