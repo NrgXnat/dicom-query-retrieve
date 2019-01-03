@@ -91,6 +91,22 @@ var XNAT = getObject(XNAT || {});
     // and bind to the 'Clear Search Results' button
     $('#clear-search-results').on('click', resetResults);
 
+    // reset the search results if changing source PACS...
+    // ...but warn the user first
+    $selectPacsMenu.on('change', function(e){
+        // only show the dialog if there are are items in the dqr['allSearchResults'] object
+        if (Object.keys(dqr.allSearchResults).length) {
+            XNAT.dialog.open({
+                title: 'Change Source PACS?',
+                content: '' +
+                    'Would you like to change the source PACS? Doing so will ' +
+                    'reset all search results and clear the download list.',
+                okLabel: 'Continue',
+                okAction: resetResults
+            })
+        }
+    });
+
     var $studyDateFrom = $('#study-date-from');
     var $studyDateTo = $('#study-date-to');
 
@@ -786,7 +802,7 @@ var XNAT = getObject(XNAT || {});
             failure: function(){
                 console.warn('Error:');
                 console.warn(arguments);
-                XNAT.dialog.message('Error', 'No results were found for the specified search criteria.')
+                XNAT.dialog.message(false, 'No results were found for the specified search criteria.')
             }
         });
 
@@ -800,7 +816,7 @@ var XNAT = getObject(XNAT || {});
     $searchSubmit.on('click', function(e){
         dqr.selectedPacs = $selectPacsMenu.val();
         if (!dqr.selectedPacs) {
-            XNAT.dialog.message('Error', 'Please select a PACS to query.', {
+            XNAT.dialog.message(false, 'Please select a PACS to query.', {
                 okAction: function(obj){
                     // $selectPacsMenu.click();
                     // menuUpdate($selectPacsMenu);
