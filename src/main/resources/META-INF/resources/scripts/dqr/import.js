@@ -54,6 +54,7 @@ var XNAT = getObject(XNAT || {});
                 }, item.label || item.aeTitle))
             }
             if (item.defaultQueryRetrievePacs) {
+                dqr.selectedPacs = item.id;
                 $selectPacsMenu.changeVal(item.id);
             }
         });
@@ -94,15 +95,28 @@ var XNAT = getObject(XNAT || {});
     // reset the search results if changing source PACS...
     // ...but warn the user first
     $selectPacsMenu.on('change', function(e){
+        var pacsId = this.value;
+        if (!pacsId || pacsId === dqr.selectedPacs) return false;
+        var PACS = this.options[this.selectedIndex].textContent;
         // only show the dialog if there are are items in the dqr['allSearchResults'] object
         if (Object.keys(dqr.allSearchResults).length) {
             XNAT.dialog.open({
+                width: 400,
                 title: 'Change Source PACS?',
                 content: '' +
-                    'Would you like to change the source PACS? Doing so will ' +
+                    'Would you like to change the source PACS to <b>' + PACS + '</b>? Doing so will ' +
                     'reset all search results and clear the download list.',
-                okLabel: 'Continue',
-                okAction: resetResults
+                okLabel: 'Change PACS',
+                okAction: function(){
+                    dqr.selectedPacs = pacsId;
+                    resetResults();
+                },
+                cancelAction: function(){
+                    console.log('not changing PACS');
+                    // revert menu if cancelling
+                    $selectPacsMenu.changeVal(dqr.selectedPacs);
+                    menuUpdate($selectPacsMenu);
+                }
             })
         }
     });
