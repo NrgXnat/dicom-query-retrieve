@@ -44,10 +44,7 @@ var XNAT = getObject(XNAT || {});
     function renderPacsMenu(items){
         var pacsMenu = $selectPacsMenu[0];
         forEach(items || [], function(item, i){
-            // this effectively allows all PACS to show
-            // in the menu - if only 'queryable' PACS
-            // should be displayed, remove `|| true`
-            if (item.queryable || true) {
+            if (item.queryable) {
                 pacsMenu.add(spawn('option', {
                     value: item.id,
                     title: item.aeTitle
