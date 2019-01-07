@@ -494,7 +494,7 @@ var XNAT = getObject(XNAT || {});
                             'Relabel Patient Name',
                         th: {
                             style: { width: WIDTHS.nameRelabel },
-                            title: 'Patient Name Remapping'
+                            title: 'Relabel Patient Name'
                         }
                     }),
                     patientId: {
@@ -511,7 +511,7 @@ var XNAT = getObject(XNAT || {});
                             'Relabel Patient ID',
                         th: {
                             style: { width: WIDTHS.patientIdRelabel },
-                            title: 'Patient ID Remapping'
+                            title: 'Relabel Patient ID'
                         }
                     }),
                     studyDate: {
@@ -604,13 +604,13 @@ var XNAT = getObject(XNAT || {});
                         label: false,
                         td: {
                             style: { width: WIDTHS.nameRelabel },
-                            title: 'Patient Name Remapping'
+                            title: 'Relabel Patient Name'
                         },
                         filter: false,
                         apply: function(){
                             return spawn('input.relabel.relabel-patient-name|type=text|tabindex=1', {
-                                title: 'Patient Name Remapping',
-                                value: this.relabelMap ? (this.relabelMap['Patient Name Remapping'] || '') : ''
+                                title: 'Relabel Patient Name',
+                                value: this.relabelMap ? (this.relabelMap['Relabel Patient Name'] || '') : ''
                             })
                         }
                     }),
@@ -632,8 +632,8 @@ var XNAT = getObject(XNAT || {});
                         filter: false,
                         apply: function(){
                             return spawn('input.relabel.relabel-study-id|type=text|tabindex=1', {
-                                title: 'Patient ID Remapping',
-                                value: this.relabelMap ? (this.relabelMap['Patient ID Remapping'] || '') : ''
+                                title: 'Relabel Patient ID',
+                                value: this.relabelMap ? (this.relabelMap['Relabel Patient ID'] || '') : ''
                             })
                         }
                     }),

@@ -47,6 +47,11 @@ import java.util.regex.Pattern;
 @Configuration
 @ComponentScan({"org.nrg.dcm.scp", "org.nrg.dcm.edit.mizer", "org.nrg.dicom.dicomedit.mizer", "org.nrg.dicom.mizer.service.impl"})
 public class DicomImportConfig {
+
+    private static final ImmutableList<Extractor> dqrSubjectExtractors   = new ImmutableList.Builder<Extractor>()
+            .add(new TextExtractor(Tag.PatientName))
+            .build();
+
     @Autowired
     @Bean
     public RoutedStudyDicomProjectIdentifier dqrProjectIdent(final StudyRoutingService service) throws Exception {
@@ -56,7 +61,7 @@ public class DicomImportConfig {
     @Autowired
     @Bean
     public List<Extractor> dqrBaseSubjectIdent(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
-        return ClassicDicomObjectIdentifier.getSubjectExtractors();
+        return dqrSubjectExtractors;
     }
 
     @Bean
@@ -70,30 +75,10 @@ public class DicomImportConfig {
         return ClassicDicomObjectIdentifier.getAAExtractors();
     }
 
-
     @Bean
     public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
         final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
-//        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
-//        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
-//        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
-        ArrayList<Extractor> classicSessionExtractorList = new ArrayList<>();
-        classicSessionExtractorList.add(new TextExtractor(Tag.PatientID));
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), classicSessionExtractorList, dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
-    }
-
-    @Bean
-    public DicomObjectIdentifier<XnatProjectdata> dqrClassicExtractors(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
-        final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
-//        final String name = messageSource.getMessage("dicomConfig.defaultObjectIdentifier", new Object[]{ClassicDicomObjectIdentifier.class.getSimpleName()}, "Default DICOM object identifier ({0})", Locale.getDefault());
-//        ClassicDicomObjectIdentifier classicDicomObjectIdentifier = new ClassicDicomObjectIdentifier(name, receivedFileUserProvider, userProjectCache);
-//        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, classicDicomObjectIdentifier.getSubjectExtractors(), StudyIdDicomSessionIdentifier.getSessionExtractors(), classicDicomObjectIdentifier.getAAExtractors());
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache),
-                new ImmutableList.Builder<Extractor>().add(new ContainedAssignmentExtractor(Tag.PatientComments, "Session", Pattern.CASE_INSENSITIVE))
-                        .add(new ContainedAssignmentExtractor(Tag.StudyComments, "Session", Pattern.CASE_INSENSITIVE))
-                        .add(new TextExtractor(Tag.PatientID))
-                        .build(),
-                dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
+        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), dqrSessionIdent(), dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
     }
 
     @Primary

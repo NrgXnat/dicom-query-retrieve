@@ -84,12 +84,14 @@ public class BasicPacsService implements PacsService {
 
     private static Map<String, String> createHeaderToTagMap() {
         return new HashMap<String, String>() {{
-            put("Accession Number Remapping", "(0008,0050)");
-            put("Study Date Remapping", "(0008,0020)");
-            put("Study ID Remapping", "(0020,0010)");
-            put("Patient ID Remapping", "(0010,0020)");
-            put("Patient Name Remapping", "(0010,0010)");
-            put("Patient Birth Date Remapping", "(0010,0030)");
+            put("Relabel Accession Number", "(0008,0050)");
+            put("Relabel Study Date", "(0008,0020)");
+            put("Relabel Study ID", "(0020,0010)");
+            put("Relabel Patient ID", "(0010,0020)");
+            put("Relabel Patient Name", "(0010,0010)");
+            put("Relabel Patient Birth Date", "(0010,0030)");
+            put("Subject", "(0010,0010):(0010,0020)");
+            put("Session", "(0020,0010):(0008,0050)");
         }};
     }
 
@@ -98,14 +100,15 @@ public class BasicPacsService implements PacsService {
         if (relabelMap != null && relabelMap.size() > 0) {
             currAnonScript = "version \"6.1\"" + System.lineSeparator();
             for (Map.Entry<String, String> entry : relabelMap.entrySet()) {
-                String tag = HEADER_TO_TAG_MAP.get(entry.getKey());
+                String[] tags = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
                 String newValue = entry.getValue();
-
-                if (StringUtils.isNotBlank(newValue)) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
-                        currAnonScript += tag + " := \"\"" + System.lineSeparator();
-                    } else {
-                        currAnonScript += tag + " := \"" + newValue + "\"" + System.lineSeparator();
+                if (StringUtils.isNotBlank(newValue) && tags!=null) {
+                    for(String tag:tags) {
+                        if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
+                            currAnonScript += tag + " := \"\"" + System.lineSeparator();
+                        } else {
+                            currAnonScript += tag + " := \"" + newValue + "\"" + System.lineSeparator();
+                        }
                     }
                 }
             }
@@ -997,14 +1000,16 @@ public class BasicPacsService implements PacsService {
                         if(relabelMap!=null && relabelMap.size()>0) {
                             String anonScriptForThisRow = "version \"6.1\"" + System.lineSeparator();
                             for (Map.Entry<String, String> entry : relabelMap.entrySet()) {
-                                String tag = HEADER_TO_TAG_MAP.get(entry.getKey());
+                                String[] tags = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
                                 String newValue = entry.getValue();
 
-                                if (StringUtils.isNotBlank(newValue)) {
-                                    if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
-                                        anonScriptForThisRow += tag + " := \"\"" + System.lineSeparator();
-                                    } else {
-                                        anonScriptForThisRow += tag + " := \"" + newValue + "\"" + System.lineSeparator();
+                                if (StringUtils.isNotBlank(newValue) && tags!=null) {
+                                    for(String tag:tags) {
+                                        if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
+                                            anonScriptForThisRow += tag + " := \"\"" + System.lineSeparator();
+                                        } else {
+                                            anonScriptForThisRow += tag + " := \"" + newValue + "\"" + System.lineSeparator();
+                                        }
                                     }
                                 }
                             }
