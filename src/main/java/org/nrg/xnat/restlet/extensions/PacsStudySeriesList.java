@@ -17,10 +17,12 @@ import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.JsonViews;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
@@ -37,6 +39,10 @@ public class PacsStudySeriesList extends PacsServiceResource {
         try {
             if(getUser().isGuest()){
                 respondWithNeedToBeLoggedIn();
+                return null;
+            }
+            else if(!Roles.checkRole(getUser(),"Administrator") && !Roles.checkRole(getUser(),"Dqr")){
+                getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to search the PACS.");
                 return null;
             }
             final Study study = buildStudyFromRequest();
