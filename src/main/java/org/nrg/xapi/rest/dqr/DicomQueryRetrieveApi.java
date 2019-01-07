@@ -664,14 +664,6 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             existingSettings.setProjectId(settings.getProjectId());
             isDirty = true;
         }
-        if (settings.isDqrAnonEnabled() != existingSettings.isDqrAnonEnabled()) {
-            existingSettings.setDqrAnonEnabled(settings.isDqrAnonEnabled());
-            isDirty = true;
-        }
-        if (StringUtils.isNotBlank(settings.getDqrAnonScript()) && !StringUtils.equals(settings.getDqrAnonScript(), existingSettings.getDqrAnonScript())) {
-            existingSettings.setDqrAnonScript(settings.getDqrAnonScript());
-            isDirty = true;
-        }
         _adminSettingsForProjectService.update(existingSettings);
         if (isDirty) {
             return new ResponseEntity<>(existingSettings, HttpStatus.OK);
