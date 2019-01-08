@@ -378,6 +378,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (sessionObject == null) {
             throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
         }
+        if(!Permissions.canRead(user, sessionObject)){
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         dataToSend.put("session", session);
         try {
             if (scansToExport == null) {

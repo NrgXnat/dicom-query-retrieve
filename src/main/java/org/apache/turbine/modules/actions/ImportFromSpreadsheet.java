@@ -23,6 +23,7 @@ import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
+import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
@@ -31,16 +32,12 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.InvalidStudyDateRangeException;
 import org.nrg.dqr.restlet.JsonViews;
 import org.nrg.dqr.restlet.RequestUtils;
-import org.nrg.dqr.services.ExecutedPacsRequestService;
-import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.dqr.services.PacsService;
-import org.nrg.dqr.services.QueuedPacsRequestService;
+import org.nrg.dqr.services.*;
 import org.nrg.xapi.exceptions.NotAuthenticatedException;
 import org.nrg.xdat.XDAT;
-import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.om.*;
+import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
@@ -73,16 +70,28 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         if(user.isGuest()){
             throw new NotAuthenticatedException("");
         }
-        ParameterParser params = data.getParameters();
-
-        //grab the FileItems available in ParameterParser
-        FileItem fi = params.getFileItem("csv_to_store");
-        File temp = File.createTempFile("xnat", "csv");
-        fi.write(temp);
+        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
+            throw new RuntimeException("You do not have access to DQR functionality.");
+        }
 
         final String ae = (String) TurbineUtils.GetPassedParameter("ae", data);
         final String project = (String) TurbineUtils.GetPassedParameter("project", data);
         final long pacsId = Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
+
+        DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(project);
+        if (existingSettings == null) {
+            //You cannot import into a project that does not have DQR enabled.
+            throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
+        }
+        final XnatProjectdata projectObject   = XnatProjectdata.getXnatProjectdatasById(project, null, false);
+        if (!projectObject.canEdit(user)) {
+            throw new RuntimeException("You do not have access to this session.");
+        }
+        ParameterParser params = data.getParameters();
+        //grab the FileItems available in ParameterParser
+        FileItem fi = params.getFileItem("csv_to_store");
+        File temp = File.createTempFile("xnat", "csv");
+        fi.write(temp);
 
         _service = XDAT.getContextService().getBean(PacsService.class);
         _service.processSpreadsheetImport(user,  temp, ae, project, pacsId);

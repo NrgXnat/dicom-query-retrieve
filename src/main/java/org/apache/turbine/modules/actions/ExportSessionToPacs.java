@@ -18,7 +18,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.turbine.util.parser.ParameterParser;
 import org.apache.velocity.context.Context;
+import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
@@ -26,12 +28,18 @@ import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.security.helpers.Groups;
+import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
+import org.restlet.data.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 public class ExportSessionToPacs extends DqrSecureAction {
 
@@ -71,7 +79,24 @@ public class ExportSessionToPacs extends DqrSecureAction {
         if (_session == null) {
             throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
         }
-
+        try {
+            if (!Permissions.canRead(_user, _session)) {
+                throw new RuntimeException("You do not have access to this session.");
+            }
+        }
+        catch(Exception e){
+            throw new RuntimeException("Error checking permissions for session.");
+        }
+        if(!Roles.checkRole(_user,"Dqr") && !Roles.checkRole(_user,"Administrator")){
+            throw new RuntimeException("You do not have access to DQR functionality.");
+        }
+        else {
+            DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(_session.getProject());
+            if (existingSettings == null) {
+                //You cannot import into a project that does not have DQR enabled.
+                throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
+            }
+        }
         try {
             _scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
             if (_scanIds == null) {

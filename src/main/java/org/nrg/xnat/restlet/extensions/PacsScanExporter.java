@@ -12,14 +12,20 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.security.helpers.Permissions;
+import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.nrg.xnat.restlet.resources.ScanResource;
 import org.restlet.Context;
@@ -39,13 +45,33 @@ public class PacsScanExporter extends ScanResource {
 
     @Override
     public void handlePut() {
-        if (getUser().isGuest()) {
+        UserI user = getUser();
+        if (user.isGuest()) {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
         }
         else {
             searchForScan();
+            XnatImagescandata scan = getScan();
+            if (scan != null) {
+                try {
+                    if (!Permissions.canRead(user, scan)) {
+                        throw new RuntimeException("You do not have access to this session.");
+                    }
+                }
+                catch(Exception e){
+                    throw new RuntimeException("Error checking permissions for session.");
+                }
+                if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
+                    throw new RuntimeException("You do not have access to DQR functionality.");
+                }
+                else {
+                    DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(scan.getProject());
+                    if (existingSettings == null) {
+                        //You cannot import into a project that does not have DQR enabled.
+                        throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
+                    }
+                }
 
-            if (getScan() != null) {
                 try {
                     Pacs pacsToExportTo = PacsServiceResource.getPacs(getRequest());
                     if (pacsToExportTo.isStorable()) {

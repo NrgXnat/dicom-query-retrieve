@@ -127,7 +127,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                             } else {
                                 millisBetweenPacsRequests = (3600000 / sessionsPerHour);
                             }
-                            sessionsPerDequeue = availability.getSessionsPerDequeue();
+                            sessionsPerDequeue = availability.ge();
                             break;
                         }
                     }

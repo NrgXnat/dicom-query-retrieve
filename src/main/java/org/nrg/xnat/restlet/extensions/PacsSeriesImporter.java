@@ -87,7 +87,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
             respondWithNeedToBeLoggedIn();
         }
         else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
-            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user must have the Dqr role to import using DQR.");
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You do not have access to DQR functionality.");
         }
         else if(!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user,"Administrator") && !Groups.hasAllDataAccess(user)){
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to import.");
