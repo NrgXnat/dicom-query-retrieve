@@ -1,57 +1,91 @@
+<!-- Sequence: 20 -->
+
 #if (($item.canEdit($user) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
+
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
-    <!-- Sequence: 20 -->
+
     #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id).addQueryData("project", $project))
     </ul>
     <ul>
-    <li class="yuimenuitem">
-        <a href="$destination" id="sendToPacs">Send to PACS</a>
-    </li>
-
-    <script>
-        $('#sendToPacs').on('click',function(e){
-            e.preventDefault();
-            var destination = $(this).prop('href');
-
-            function noPacsErrorMsg(){
-                XNAT.ui.dialog.open({
-                    title: 'Cannot Send To DICOM Destination',
-                    width: 400,
-                    content: spawn('p',[
-                        spawn('strong','Error:'),
-                        spawn('span',' Cannot send to PACS. Either no DICOM AE connections have been enabled on this XNAT instance or none of the configured connections can be sent to. Please contact your XNAT Administrator to resolve this.')
-                    ]),
-                    buttons: [
-                        {
-                            label: 'OK',
-                            isDefault: true,
-                            close: true
-                        }
-                    ]
-                });
-            }
-
-            XNAT.xhr.getJSON({
-                url: XNAT.url.rootUrl('/data/pacs?storable=true')
-            })
-                    .success(function(data){
-                        if (data.ResultSet.Result.length > 0) {
-                            window.location.assign(destination);
-                        } else {
+        <li class="yuimenuitem hidden" id="send-to-pacs-link">
+            <a href="$destination" id="sendToPacs">Send to PACS</a>
+            <!-- #[[ -->
+            <script>
+                $('#sendToPacs').on('click', function(e){
+                    e.preventDefault();
+                    var destination = $(this).prop('href');
+                    function noPacsErrorMsg(){
+                        XNAT.ui.dialog.open({
+                            title: 'Cannot Send To DICOM Destination',
+                            width: 400,
+                            content: spawn('p', [
+                                spawn('strong', 'Error:'),
+                                spawn('span', ' Cannot send to PACS. Either no DICOM AE connections have been enabled on this XNAT instance or none of the configured connections can be sent to. Please contact your XNAT Administrator to resolve this.')
+                            ]),
+                            buttons: [
+                                {
+                                    label: 'OK',
+                                    isDefault: true,
+                                    close: true
+                                }
+                            ]
+                        });
+                    }
+                    XNAT.xhr.getJSON({
+                        url: XNAT.url.rootUrl('/data/pacs?storable=true'),
+                        success: function(data){
+                            if (data.ResultSet && data.ResultSet.Result && data.ResultSet.Result.length) {
+                                window.location.assign(destination);
+                            }
+                            else {
+                                noPacsErrorMsg();
+                            }
+                        },
+                        failure: function(){
                             noPacsErrorMsg();
                         }
-                    })
-                    .fail(function(){
-                        noPacsErrorMsg();
-                    })
-        });
-    </script>
+                    });
+                });
+            </script>
+            <!-- ]]# -->
+        </li>
+
+        <!-- #[[ -->
+        <script>
+            (function(){
+
+                console.log('[Send to PACS]');
+
+                window.projectId = XNAT.data.context.project || (window.location.href.split('/project/')[1] || '').split('/')[0]
+
+                var sendToPacsLink$ = $('#send-to-pacs-link');
+
+                // only show 'Send to PACS' when all requirements are met
+                XNAT.xhr.get({
+                    url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings/' + window.projectId),
+                    success: function(data){
+                        console.log('PACS enabled');
+                        if (data && data.enabled) {
+                            sendToPacsLink$.removeClass('hidden').show();
+                            sendToPacsLink$.closest('ul').removeClass('hidden').show();
+                        }
+                        else {
+                            console.log('PACS *NOT* enabled');
+                            sendToPacsLink$.remove();
+                        }
+                    },
+                    failure: function(){
+                        console.warn(this);
+                        console.warn(arguments);
+                        sendToPacsLink$.remove();
+                    }
+                });
+
+            })();
+        </script>
+        <!-- ]]# -->
+
     <!-- END /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
-###else
-##</ul>
-##    <ul>
-##        <li class="yuimenuitem">
-##            <a href="#">Can't send to pacs</a>
-##        </li>
+
 #end
 
