@@ -1,4 +1,4 @@
-<%-- #* --%>
+<!-- #* -->
 <%@ page contentType="text/html" pageEncoding="UTF-8" trimDirectiveWhitespaces="true" %>
 <%@ page import="org.nrg.xdat.security.helpers.UserHelper" %>
 <%@ page import="org.nrg.xapi.rest.users.UsersApi" %>
@@ -44,17 +44,23 @@
         }, 2000)
     </script>
 </c:if>
+<!-- *# -->
 
+<!-- #* -->
 <c:if test="${isAllowed == true}">
-
     <c:if test="${projectId != null}">
-
-        <%-- *# --%>
+        <!-- *# -->
 
         <div id="page-body">
             <div class="pad">
 
+                <!-- #* -->
                 <%@ include file="view.html"%>
+                <!-- *# -->
+
+                <!-- #* <%-- *# -->
+                #parse("/page/dqr/import/view.html")
+                <!-- #* --%> *# -->
 
             </div>
         </div>
@@ -62,6 +68,7 @@
 
         <div id="xnat-scripts"></div>
 
+        <!-- #* -->
     </c:if>
-
 </c:if>
+<!-- *# -->

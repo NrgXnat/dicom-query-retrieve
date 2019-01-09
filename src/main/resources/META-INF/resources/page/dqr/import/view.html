@@ -14,7 +14,6 @@ included and parsed in both JSP and Velocity parent pages.
                 <option value="">Select PACS&hellip;</option>
             </select>
             <script>
-                // menuInit($('#select-pacs').changeVal(window.selectedPACS || ''));
                 menuInit($('#select-pacs'), {}, 200);
             </script>
         </div>
@@ -68,8 +67,8 @@ included and parsed in both JSP and Velocity parent pages.
                     <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" placeholder="from date">
                     -
                     <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" placeholder="to date">
-                    <label>&nbsp;&nbsp;&nbsp;<input class="ignore" type="checkbox" id="study-date-today" name="studyDateToday">&nbsp;Today</label>
-                    <b>Date</b>
+                    <label>&nbsp;&nbsp;&nbsp;<input class="ignore" type="checkbox" id="study-date-today" name="!studyDateToday">&nbsp;Today</label>
+                    <b>Date&nbsp;&nbsp;&nbsp;<span style="color:#888;font-weight:normal;font-size:12px;">YYYY-MM-DD</span></b>
                 </label>
             </form>
             <div id="pacs-search-submit" class="pull-right">

@@ -29,7 +29,6 @@ var XNAT = getObject(XNAT || {});
     // cache DOM elements when script loads for faster access later
     var $selectPacsMenu = $('#select-pacs');
     var $pacsSearchFields = $('#pacs-search-fields');
-    var $searchInputs = $pacsSearchFields.find('.pacs-search-item input');
     var $searchSubmit = $('#submit-pacs-search');
     var $pacsSearchResults = $('#pacs-search-results');
     var $searchResultsHeader = $pacsSearchResults.find('.results-header');
@@ -121,10 +120,11 @@ var XNAT = getObject(XNAT || {});
     var $studyDateFrom = $('#study-date-from');
     var $studyDateTo = $('#study-date-to');
 
+    var $studyDateToday = $('#study-date-today');
+
     // initialize date fields
     $pacsSearchFields.find('.study-date')
                      .attr('autocomplete', 'off')
-                     .mask('9999-99-99', { placeholder: 'YYYY-MM-DD' })
                      .datetimepicker({
                          timepicker: false,
                          // today is max date, disallow future date selection
@@ -132,10 +132,11 @@ var XNAT = getObject(XNAT || {});
                          // format:     'm/d/Y'
                          format: 'Y-m-d' // ISO standard date format
                      })
+                     .mask('9999-99-99', { placeholder: '    -  -  ' })
     ;
 
     // click the 'today' checkbox to fill in today's date
-    $('#study-date-today').on('click', function(e){
+    $studyDateToday.on('click', function(e){
         if (this.checked) {
             $studyDateFrom.val(XNAT.data.todaysDate.ISO)
                           // .attr('readonly', 'readonly')
@@ -156,6 +157,13 @@ var XNAT = getObject(XNAT || {});
                         // .removeClass('disabled')
             ;
         }
+    });
+
+    // uncheck the 'today' checkbox if one of the values is not today
+    $($studyDateFrom, $studyDateTo).on('keyup', function(e){
+        var todayISO = XNAT.data.todaysDate.ISO;
+        var isToday = $studyDateFrom.val() === todayISO && $studyDateTo.val() === todayISO;
+        $studyDateToday.prop('checked', isToday)
     });
 
     var relabelColumn = {
@@ -476,6 +484,8 @@ var XNAT = getObject(XNAT || {});
                     },
                     accessionNumber: {
                         label: 'Accession Number',
+                        filter: true,
+                        sort: true,
                         th: {
                             style: { width: WIDTHS.acc }
                         }
@@ -546,7 +556,7 @@ var XNAT = getObject(XNAT || {});
                 header: false,
                 table: {
                     id: 'all-search-results',
-                    classes: 'compact table-data',
+                    classes: 'compact table-data highlight',
                     style: { tableLayout: 'fixed' },
                     on: [
                         ['change', 'input.select-session', function(){
@@ -787,20 +797,23 @@ var XNAT = getObject(XNAT || {});
 
         var selectedPacs = id || dqr.selectedPacs || $selectPacsMenu.val();
 
-        var searchCriteria = $pacsSearchFields.getValues();
+        var searchCriteria = {};
+
+        $pacsSearchFields.find('input').not('.ignore').serializeArray().forEach(function(param, i){
+            // skip fields that start with '!'
+            if (param.name.charAt(0) !== '!'){
+                searchCriteria[param.name] = param.value || '';
+            }
+        });
         searchCriteria.pacsId = selectedPacs;
 
         // transform date to expected format
-        if (searchCriteria.studyDateFrom) {
-            searchCriteria.studyDateFrom = (new SplitDate(searchCriteria.studyDateFrom)).US;
-        }
-        if (searchCriteria.studyDateTo) {
-            searchCriteria.studyDateTo = (new SplitDate(searchCriteria.studyDateTo)).US;
-        }
+        searchCriteria.studyDateFrom = (searchCriteria.studyDateFrom ? (new SplitDate(searchCriteria.studyDateFrom)).US : '');
+        searchCriteria.studyDateTo = (searchCriteria.studyDateTo ? (new SplitDate(searchCriteria.studyDateTo)).US : '');
 
         // console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/data/services/pacs/' + selectedPacs + '/search/studies');
+        var searchUrl = XNAT.url.csrfUrl('/data/services/pacs/' + selectedPacs + '/search/studies', {}, false);
 
         // console.log(searchUrl);
 

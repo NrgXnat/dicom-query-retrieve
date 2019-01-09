@@ -4,19 +4,22 @@
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 
-###set ($pacs = $turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
-
 #set ($SITE_ROOT = $content.getURI(""))
 #set ($projectId = $project.getId())
 #set ($userHelper = $data.getSession().getAttribute("userHelper"))
 
+#set ($subjectDisplay = "$!displayManager.getSingularDisplayNameForSubject()")
+#set ($sessionDisplay = "$!displayManager.getSingularDisplayNameForImageSession()")
+<script>
+    window.subjectDisplay = '$!subjectDisplay' || 'Subject';
+    window.sessionDisplay = '$!sessionDisplay' || 'Session';
+    window.subjectDisplayLower = window.subjectDisplay.toLowerCase();
+    window.sessionDisplayLower = window.sessionDisplay.toLowerCase();
+</script>
+
 #if (!$projectId)
     #set ($projectId = $turbineUtils.escapeHTML($!data.getParameters().getString('project')))
 #end
-
-## builds a list of available PACS into a JS array
-## window.pacsList
-###parse("PacsList.vm")
 
 #set ($pacsId = $turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
 <script>
