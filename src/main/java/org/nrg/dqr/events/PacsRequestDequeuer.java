@@ -51,165 +51,195 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 _log.debug("Executing PACS request dequeuer function");
             }
             PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+            PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
             PacsAvailabilityEntityService pacsAvailabilityEntityService = XDAT.getContextService().getBean(PacsAvailabilityEntityService.class);
             QueuedPacsRequestService queueService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
             ExecutedPacsRequestService executedService = XDAT.getContextService().getBean(ExecutedPacsRequestService.class);
             List<QueuedPacsRequest> requestsToDequeue = new ArrayList<>();
 
             List<Pacs> pacsList = pacsEntityService.findAllQueryable();
-            for(Pacs currPacs: pacsList){
-                Long pacsId = currPacs.getId();
-                Integer defaultDequeuesPerHour = currPacs.getDefaultDequeuesPerHour();
-                Integer sessionsPerDequeue = currPacs.getDefaultSessionsPerDequeue();
-                if (defaultDequeuesPerHour!=null && sessionsPerDequeue!=null && defaultDequeuesPerHour > 0) {
-                    Long millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
-                    List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
-                    for (PacsAvailability availability : availabilityList) {
-                        String availabilityStartTimeString = availability.getAvailabilityStart();
-                        String availabilityEndTimeString = availability.getAvailabilityEnd();
-                        int availabilityDay = availability.getDayOfWeek();
+            if(pacsList!=null) {
+                for (Pacs currPacs : pacsList) {
+                    try {
+                        Long pacsId = currPacs.getId();
+                        Integer defaultDequeuesPerHour = currPacs.getDefaultDequeuesPerHour();
+                        Integer sessionsPerDequeue = currPacs.getDefaultSessionsPerDequeue();
+                        if (defaultDequeuesPerHour != null && sessionsPerDequeue != null && defaultDequeuesPerHour > 0) {
+                            Long millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
+                            List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
+                            for (PacsAvailability availability : availabilityList) {
+                                String availabilityStartTimeString = availability.getAvailabilityStart();
+                                String availabilityEndTimeString = availability.getAvailabilityEnd();
+                                int availabilityDay = availability.getDayOfWeek();
 
-                        //If hour is one digit, pad with a zero.
-                        if (availabilityStartTimeString.charAt(1) == ':') {
-                            availabilityStartTimeString = "0" + availabilityStartTimeString;
-                        }
-                        if (availabilityEndTimeString.charAt(1) == ':') {
-                            availabilityEndTimeString = "0" + availabilityEndTimeString;
-                        }
-                        Calendar currentCal = Calendar.getInstance();
-                        int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
+                                //If hour is one digit, pad with a zero.
+                                if (availabilityStartTimeString.charAt(1) == ':') {
+                                    availabilityStartTimeString = "0" + availabilityStartTimeString;
+                                }
+                                if (availabilityEndTimeString.charAt(1) == ':') {
+                                    availabilityEndTimeString = "0" + availabilityEndTimeString;
+                                }
+                                Calendar currentCal = Calendar.getInstance();
+                                int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
 
-                        long currMillis = currentCal.getTimeInMillis();
+                                long currMillis = currentCal.getTimeInMillis();
 
-                        long startMillis = 0L;
-                        long endMillis = 0L;
+                                long startMillis = 0L;
+                                long endMillis = 0L;
 
-                        if (StringUtils.isNotBlank(availabilityStartTimeString)) {
-                            try {
-                                Calendar startCal = (Calendar) currentCal.clone();
-                                String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
-                                startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
-                                startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
-                                startMillis = startCal.getTimeInMillis();
-                            } catch (Exception e) {
+                                if (StringUtils.isNotBlank(availabilityStartTimeString)) {
+                                    try {
+                                        Calendar startCal = (Calendar) currentCal.clone();
+                                        String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
+                                        startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
+                                        startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
+                                        startMillis = startCal.getTimeInMillis();
+                                    } catch (Exception e) {
 
+                                    }
+                                }
+                                if (StringUtils.isNotBlank(availabilityEndTimeString)) {
+                                    try {
+                                        Calendar endCal = (Calendar) currentCal.clone();
+                                        String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
+                                        endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
+                                        endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
+                                        endMillis = endCal.getTimeInMillis();
+                                    } catch (Exception e) {
+
+                                    }
+                                }
+
+                                boolean isAvailable = false;
+                                if (endMillis < startMillis) {
+                                    //That means that the availability interval contains midnight.
+                                    if ((currMillis > startMillis && currentDayOfWeek == availabilityDay) || (currMillis < endMillis && currentDayOfWeek == (availabilityDay + 1))) {
+                                        isAvailable = true;
+                                    }
+                                } else {
+                                    if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek == availabilityDay) {
+                                        isAvailable = true;
+                                    }
+                                }
+
+                                if (isAvailable) {
+                                    long sessionsPerHour = availability.getDequeuesPerHour();
+                                    if (sessionsPerHour == 0L) {
+                                        millisBetweenPacsRequests = 0L;
+
+                                    } else {
+                                        millisBetweenPacsRequests = (3600000 / sessionsPerHour);
+                                    }
+                                    sessionsPerDequeue = availability.getSessionsPerDequeue();
+                                    break;
+                                }
                             }
-                        }
-                        if (StringUtils.isNotBlank(availabilityEndTimeString)) {
-                            try {
-                                Calendar endCal = (Calendar) currentCal.clone();
-                                String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
-                                endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
-                                endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
-                                endMillis = endCal.getTimeInMillis();
-                            } catch (Exception e) {
+                            if (millisBetweenPacsRequests != 0L) {
+                                ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
+                                if (lastReq != null) {
+                                    Date executedTime = lastReq.getExecutedTime();
+                                    Date currTime = new Date();
 
-                            }
-                        }
+                                    if (executedTime != null) {
+                                        if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
+                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                            if (reqs != null && reqs.size() > 0) {
 
-                        boolean isAvailable = false;
-                        if (endMillis < startMillis) {
-                            //That means that the availability interval contains midnight.
-                            if ((currMillis > startMillis && currentDayOfWeek == availabilityDay) || (currMillis < endMillis && currentDayOfWeek == (availabilityDay + 1))) {
-                                isAvailable = true;
-                            }
-                        } else {
-                            if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek == availabilityDay) {
-                                isAvailable = true;
-                            }
-                        }
-
-                        if (isAvailable) {
-                            long sessionsPerHour = availability.getDequeuesPerHour();
-                            if (sessionsPerHour == 0L) {
-                                millisBetweenPacsRequests = 0L;
-
-                            } else {
-                                millisBetweenPacsRequests = (3600000 / sessionsPerHour);
-                            }
-                            sessionsPerDequeue = availability.getSessionsPerDequeue();
-                            break;
-                        }
-                    }
-                    if (millisBetweenPacsRequests != 0L) {
-                        ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
-                        if (lastReq != null) {
-                            Date executedTime = lastReq.getExecutedTime();
-                            Date currTime = new Date();
-
-                            if (executedTime != null) {
-                                if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
-                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
-                                    if (reqs != null && reqs.size() > 0) {
-                                        int added = 0;
-                                        for(QueuedPacsRequest req:reqs){
-                                            requestsToDequeue.add(req);
-                                            added++;
-                                            if(added>=sessionsPerDequeue){
-                                                break;
+                                                //Try to dequeue requests as long as PACS is responding to pings.
+                                                boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+                                                if (canConnect) {
+                                                    int added = 0;
+                                                    for (QueuedPacsRequest req : reqs) {
+                                                        requestsToDequeue.add(req);
+                                                        added++;
+                                                        if (added >= sessionsPerDequeue) {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
-
                                     }
-                                }
-                            }
-                        } else {
-                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
-                            if (reqs != null && reqs.size() > 0) {
-                                int added = 0;
-                                for(QueuedPacsRequest req:reqs){
-                                    requestsToDequeue.add(req);
-                                    added++;
-                                    if(added>=sessionsPerDequeue){
-                                        break;
+                                } else {
+                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                    if (reqs != null && reqs.size() > 0) {
+
+                                        //Try to dequeue requests as long as PACS is responding to pings.
+                                        boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+                                        if (canConnect) {
+                                            int added = 0;
+                                            for (QueuedPacsRequest req : reqs) {
+                                                requestsToDequeue.add(req);
+                                                added++;
+                                                if (added >= sessionsPerDequeue) {
+                                                    break;
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+                    }
+                    catch(Exception e){
+                        _log.error("Error getting requests to dequeue for PACS "+currPacs.getId()+".");
                     }
                 }
             }
-
             if (requestsToDequeue != null && requestsToDequeue.size()>0) {
                 for(QueuedPacsRequest requestToDequeue: requestsToDequeue) {
-                    String login = AdminUtils.getAdminUser().getLogin();
-                    String studyId = requestToDequeue.getStudyInstanceUid();
-                    String currAnonScript = requestToDequeue.getRemappingScript();
-                    final String path = "/studies/" + studyId;
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+                    String studyInstanceUid = "";
+                    String seriesIds = "";
+                    String projectId = "";
+                    String username = "";
+                    XDATUser user = new XDATUser();
+                    try {
+                        String login = AdminUtils.getAdminUser().getLogin();
+                        String studyId = requestToDequeue.getStudyInstanceUid();
+                        String currAnonScript = requestToDequeue.getRemappingScript();
+                        final String path = "/studies/" + studyId;
+                        if (_log.isDebugEnabled()) {
+                            _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+                        }
+                        if (currAnonScript != null) {
+                            if (studyId == null) {
+                                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                            } else {
+                                XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
+                                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                            }
+                        }
+                        ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
+                        pacsReq.setPacsId(requestToDequeue.getPacsId());
+                        username = requestToDequeue.getUsername();
+                        user = new XDATUser(username);
+                        pacsReq.setUsername(username);
+                        projectId = requestToDequeue.getXnatProject();
+                        pacsReq.setXnatProject(projectId);
+                        studyInstanceUid = requestToDequeue.getStudyInstanceUid();
+                        pacsReq.setStudyInstanceUid(studyInstanceUid);
+                        seriesIds = requestToDequeue.getSeriesIds();
+                        pacsReq.setSeriesIds(seriesIds);
+                        pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
+                        pacsReq.setExecutedTime(new Date());
+                        pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
+
+                        XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
+
+                        pacsService.importFromPacsRequest(pacsReq);
                     }
-                    if(currAnonScript!=null) {
-                        if (studyId == null) {
-                            XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-                        } else {
-                            XDAT.getContextService().getBean(StudyRoutingService.class).close(studyId);
-                            XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                            XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                    catch(Exception e){
+                        _log.error("Error executing PACS import request.",e);
+                    }
+                    finally {
+                        try {
+                            queueService.delete(requestToDequeue.getId());
+                        }
+                        catch(Exception e){
+                            _log.error("Error removing PACS import request from queue.",e);
                         }
                     }
-                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
-                    pacsReq.setPacsId(requestToDequeue.getPacsId());
-                    String username = requestToDequeue.getUsername();
-                    XDATUser user = new XDATUser(username);
-                    pacsReq.setUsername(username);
-                    String projectId = requestToDequeue.getXnatProject();
-                    pacsReq.setXnatProject(projectId);
-                    String studyInstanceUid = requestToDequeue.getStudyInstanceUid();
-                    pacsReq.setStudyInstanceUid(studyInstanceUid);
-                    String seriesIds = requestToDequeue.getSeriesIds();
-                    pacsReq.setSeriesIds(seriesIds);
-                    pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
-                    pacsReq.setExecutedTime(new Date());
-                    pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
-
-                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
-
-                    PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-                    pacsService.importFromPacsRequest(pacsReq);
-
-                    queueService.delete(requestToDequeue.getId());
-
 
                     final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
                     final StringBuilder prearchive = new StringBuilder(siteUrl);
@@ -236,7 +266,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
 
 
                     } catch (Exception exception) {
-                        _log.warn("User " + username + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
+                        _log.warn("User " + username + " requested one or more DICOM series, but an error occurred sending the notification email.", exception);
                     }
 
                     final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");

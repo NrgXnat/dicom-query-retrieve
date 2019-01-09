@@ -21,6 +21,7 @@ import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.domain.PatientName;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnat.utils.DqrDateRange;
 
 public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
 
@@ -70,7 +71,7 @@ public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
         return 1;
     }
 
-    private boolean studyDateRangeIsSufficientlySpecificAsTheSoleSearchCriterion(final DateRange dateRange) {
+    private boolean studyDateRangeIsSufficientlySpecificAsTheSoleSearchCriterion(final DqrDateRange dateRange) {
         return null != dateRange && dateRange.isBounded();
     }
 

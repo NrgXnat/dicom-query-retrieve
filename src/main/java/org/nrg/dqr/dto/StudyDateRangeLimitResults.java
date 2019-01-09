@@ -13,6 +13,7 @@
 package org.nrg.dqr.dto;
 
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnat.utils.DqrDateRange;
 
 
 public class StudyDateRangeLimitResults {
@@ -23,18 +24,18 @@ public class StudyDateRangeLimitResults {
 
     private final LimitType limitType;
 
-    private final DateRange dateRange;
+    private final DqrDateRange dateRange;
 
     private final String limitExplanation;
 
-    public StudyDateRangeLimitResults(final LimitType limitType, final DateRange dateRange,
+    public StudyDateRangeLimitResults(final LimitType limitType, final DqrDateRange dateRange,
                                       final String limitExplanation) {
         this.limitType = limitType;
         this.dateRange = dateRange;
         this.limitExplanation = limitExplanation;
     }
 
-    public StudyDateRangeLimitResults(final LimitType limitType, final DateRange dateRange) {
+    public StudyDateRangeLimitResults(final LimitType limitType, final DqrDateRange dateRange) {
         this(limitType, dateRange, null);
     }
 
@@ -46,7 +47,7 @@ public class StudyDateRangeLimitResults {
         return !isUnlimited();
     }
 
-    public DateRange getDateRange() {
+    public DqrDateRange getDateRange() {
         return dateRange;
     }
 
