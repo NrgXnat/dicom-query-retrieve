@@ -20,6 +20,7 @@ import java.util.Date;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnat.utils.DqrDateRange;
 import org.restlet.data.Form;
 import org.restlet.data.Request;
 
@@ -34,12 +35,12 @@ public class RequestUtils {
         searchCriteria.setPatientId(StringUtils.trimToNull(searchForm.getFirstValue("patientId")));
         searchCriteria.setPatientName(searchForm.getFirstValue("patientName"));
         searchCriteria.setAccessionNumber(searchForm.getFirstValue("accessionNumber"));
-        DateRange studyDateRange = buildStudyDateRange(searchForm);
+        DqrDateRange studyDateRange = buildStudyDateRange(searchForm);
         searchCriteria.setStudyDateRange(studyDateRange);
         return searchCriteria;
     }
 
-    private static DateRange buildStudyDateRange(Form searchForm) throws InvalidStudyDateRangeException {
+    private static DqrDateRange buildStudyDateRange(Form searchForm) throws InvalidStudyDateRangeException {
         try {
             Date startRange = null, endRange = null;
             if (!StringUtils.isBlank(searchForm.getFirstValue("studyDateIsToday"))) {
@@ -54,7 +55,7 @@ public class RequestUtils {
                     endRange = EXPECTED_DATE_FORMAT.parse(searchForm.getFirstValue("studyDateTo"));
                 }
             }
-            return new DateRange(startRange, endRange);
+            return new DqrDateRange(startRange, endRange);
         } catch (ParseException e) {
             throw new InvalidStudyDateRangeException(
                     "The dates in the study date range are expected to be in the following format: "

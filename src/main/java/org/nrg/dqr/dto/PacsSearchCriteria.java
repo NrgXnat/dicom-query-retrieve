@@ -15,6 +15,7 @@ package org.nrg.dqr.dto;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnat.utils.DqrDateRange;
 
 public class PacsSearchCriteria {
 
@@ -28,7 +29,7 @@ public class PacsSearchCriteria {
 
     private String accessionNumber;
 
-    private DateRange studyDateRange;
+    private DqrDateRange studyDateRange;
 
     private String modality;
 
@@ -79,11 +80,11 @@ public class PacsSearchCriteria {
         this.accessionNumber = accessionNumber;
     }
 
-    public DateRange getStudyDateRange() {
+    public DqrDateRange getStudyDateRange() {
         return studyDateRange;
     }
 
-    public void setStudyDateRange(DateRange studyDateRange) {
+    public void setStudyDateRange(DqrDateRange studyDateRange) {
         this.studyDateRange = studyDateRange;
     }
 

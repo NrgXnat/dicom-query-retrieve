@@ -38,6 +38,7 @@ import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnat.utils.DqrDateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,14 +150,14 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.ModalitiesInStudy), searchCriteria.getModality());
         }
 
-        DateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
+        DqrDateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
                 .getDateRange();
         if (null != studyDateRange && studyDateRange.isBounded()) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildStudyDateCriterion(studyDateRange));
         }
     }
 
-    private String buildStudyDateCriterion(DateRange studyDateRange) {
+    private String buildStudyDateCriterion(DqrDateRange studyDateRange) {
         String startDate = "", endDate = "";
         if (studyDateRange.isBoundedAtStart()) {
             startDate = DICOM_DATE_FORMAT.format(studyDateRange.getStart());
