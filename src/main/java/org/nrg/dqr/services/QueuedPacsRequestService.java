@@ -6,6 +6,7 @@ import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xft.security.UserI;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by mike on 1/19/18.
@@ -13,6 +14,8 @@ import java.util.List;
 public interface QueuedPacsRequestService extends BaseHibernateService<QueuedPacsRequest> {
     List<QueuedPacsRequest> getAllOrderedByDate();
     List<QueuedPacsRequest> getAllForUser(UserI user);
+    List<Map<String, Object>> getAllWithOrder();
+    List<Map<String, Object>> getAllWithOrderForUser(UserI user);
     QueuedPacsRequest getByIdForUser(Long id, UserI user);
     List<QueuedPacsRequest> getAllForPacsOrderedByDate(Long pacsId);
 }

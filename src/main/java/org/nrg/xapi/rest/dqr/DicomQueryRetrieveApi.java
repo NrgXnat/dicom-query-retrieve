@@ -73,15 +73,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGet() {
+        return new ResponseEntity<>(_executedRequestService.getAll(), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get list of all DICOM query requests for the current user.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "query/history/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGet() {
         final UserI user = getSessionUser();
-        if (Roles.isSiteAdmin(user)) {
-            return new ResponseEntity<>(_executedRequestService.getAll(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(_executedRequestService.getAllForUser(user), HttpStatus.OK);
-        }
+        return new ResponseEntity<>(_executedRequestService.getAllForUser(user), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = ExecutedPacsRequest.class)
@@ -109,15 +115,43 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<QueuedPacsRequest>> queryQueueGet() {
+        return new ResponseEntity<>(_queuedRequestService.getAll(), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get list of all queued DICOM query requests for the current user.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system for the current user with brief information about each.", response = QueuedPacsRequest.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "query/queue/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    public ResponseEntity<List<QueuedPacsRequest>> queryUserQueueGet() {
         final UserI user = getSessionUser();
-        if (Roles.isSiteAdmin(user)) {
-            return new ResponseEntity<>(_queuedRequestService.getAll(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(_queuedRequestService.getAllForUser(user), HttpStatus.OK);
-        }
+        return new ResponseEntity<>(_queuedRequestService.getAllForUser(user), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get list of all queued DICOM query requests with order information.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system with brief information about each (including order information).", response = QueuedPacsRequest.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "query/queueWithOrder", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet() {
+        return new ResponseEntity<>(_queuedRequestService.getAllWithOrder(), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get list of all queued DICOM query requests for the current user with order information.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system for the current user with brief information about each (including order information).", response = QueuedPacsRequest.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "query/queueWithOrder/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet() {
+        final UserI user = getSessionUser();
+        return new ResponseEntity<>(_queuedRequestService.getAllWithOrderForUser(user), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get queued DICOM query request by ID.", notes = "The DICOM query queue function returns information about the queued DICOM query with a given ID.", response = QueuedPacsRequest.class)
