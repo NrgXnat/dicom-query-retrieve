@@ -1076,12 +1076,12 @@ public class BasicPacsService implements PacsService {
 
 
             for (Series currSeries : seriesResults) {
-                if (_seriesIdsString.length() != 0) {
-                    _seriesIdsString += ",";
-                }
                 String result = currSeries.getSeriesInstanceUid();
 
                 if (seriesDescriptionsList.isEmpty() || seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription()==null&&seriesDescriptionsList.contains(""))) {
+                    if (_seriesIdsString.length() != 0) {
+                        _seriesIdsString += ",";
+                    }
                     _seriesIdsString += result;
                     seriesIdsList.add(result);
                 }
