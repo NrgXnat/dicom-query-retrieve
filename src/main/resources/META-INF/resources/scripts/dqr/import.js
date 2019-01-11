@@ -76,7 +76,7 @@ var XNAT = getObject(XNAT || {});
         dqr.searchResults = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
-        dqr.importList = {};
+        $pacsSearchFields.find('input').val('');
         $pacsNoResults.empty().html($noResultsTemplate.html());
         $searchResultsHeader.empty();
         $searchResultsBody.empty();
@@ -118,53 +118,38 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
+    var DATE_TODAY = new Date();
+
     var $studyDateFrom = $('#study-date-from');
     var $studyDateTo = $('#study-date-to');
 
     var $studyDateToday = $('#study-date-today');
 
-    // initialize date fields
-    $pacsSearchFields.find('.study-date')
-                     .attr('autocomplete', 'off')
-                     .datetimepicker({
-                         timepicker: false,
-                         // today is max date, disallow future date selection
-                         maxDate: XNAT.data.todaysDate.ISO,
-                         // format:     'm/d/Y'
-                         format: 'Y-m-d' // ISO standard date format
-                     })
-                     .mask('9999-99-99', { placeholder: '    -  -  ' })
-    ;
+    // initialize date fields *after* DOM loads
+    $(function(){
 
-    // click the 'today' checkbox to fill in today's date
-    $studyDateToday.on('click', function(e){
-        if (this.checked) {
-            $studyDateFrom.val(XNAT.data.todaysDate.ISO)
-                          // .attr('readonly', 'readonly')
-                          // .addClass('disabled')
-            ;
-            $studyDateTo.val(XNAT.data.todaysDate.ISO)
-                        // .attr('readonly', 'readonly')
-                        // .addClass('disabled')
-            ;
-        }
-        else {
-            $studyDateFrom.val('')
-                          // .removeAttr('readonly')
-                          // .removeClass('disabled')
-            ;
-            $studyDateTo.val('')
-                        // .removeAttr('readonly')
-                        // .removeClass('disabled')
-            ;
-        }
-    });
+        // $studyDateFrom.off().datepicker(datepickerOpts());
+        // $studyDateTo.off().datepicker(datepickerOpts());
 
-    // uncheck the 'today' checkbox if one of the values is not today
-    $($studyDateFrom, $studyDateTo).on('keyup', function(e){
-        var todayISO = XNAT.data.todaysDate.ISO;
-        var isToday = $studyDateFrom.val() === todayISO && $studyDateTo.val() === todayISO;
-        $studyDateToday.prop('checked', isToday)
+        $($studyDateFrom, $studyDateTo).off()
+                                       .mask('9999-99-99', { placeholder: '    -  -  ' })
+                                       .datepicker({
+                                           language: 'en',
+                                           maxDate: DATE_TODAY,
+                                           todayButton: DATE_TODAY,
+                                           // range: true,
+                                           // multipleDatesSeparator: '-',
+                                           dateFormat: 'yyyy-mm-dd'
+                                       })
+        ;
+
+        // click the 'today' button to fill in today's date
+        $studyDateToday.off().on('click', function(e){
+            e.preventDefault();
+            $studyDateFrom.val(XNAT.data.todaysDate.ISO);
+            $studyDateTo.val(XNAT.data.todaysDate.ISO);
+        });
+
     });
 
     var relabelColumn = {
