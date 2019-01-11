@@ -28,7 +28,7 @@ included and parsed in both JSP and Velocity parent pages.
         <div class="panel-heading" style="color:inherit;background:#e0e0e0;line-height:26px;">
             <h3 class="panel-title pull-left" style="font-size:16px;">Enter Search Criteria &nbsp;<small>&hellip;or&hellip;</small>&nbsp; <a id="import-csv" class="link" href="#!">Import CSV</a></h3>
             <div class="pull-right">
-                <button type="button" class="btn btn-sm" id="clear-search-results">Clear Search Results</button>
+                <button type="button" class="btn btn-sm" id="clear-search-results">Clear Search</button>
             </div>
             <div class="clearfix clear"></div>
         </div>
@@ -52,24 +52,24 @@ included and parsed in both JSP and Velocity parent pages.
 
             <form id="pacs-search-fields" class="pull-left">
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="accessionNumber" placeholder="All">
+                    <input type="text" name="accessionNumber" placeholder="All" tabindex="1">
                     <b>Accession Number</b>
                 </label>
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="patientName" placeholder="Last, First">
+                    <input type="text" name="patientName" placeholder="Last, First" tabindex="1">
                     <b>Patient Name</b>
                 </label>
                 <label class="pacs-search-item pull-left">
-                    <input type="text" name="patientId" placeholder="All">
+                    <input type="text" name="patientId" placeholder="All" tabindex="1">
                     <b>Patient ID</b>
                 </label>
-                <label class="pacs-search-item pull-left">
-                    <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" placeholder="from date">
+                <div class="pacs-search-item pull-left">
+                    <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
                     -
-                    <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" placeholder="to date">
-                    <label>&nbsp;&nbsp;&nbsp;<input class="ignore" type="checkbox" id="study-date-today" name="!studyDateToday">&nbsp;Today</label>
-                    <b>Date&nbsp;&nbsp;&nbsp;<span style="color:#888;font-weight:normal;font-size:12px;">YYYY-MM-DD</span></b>
-                </label>
+                    <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
+                    <button class="ignore btn btn-sm" type="button" id="study-date-today" name="!studyDateToday">Today</button>
+                    <b>Date Range</b>
+                </div>
             </form>
             <div id="pacs-search-submit" class="pull-right">
                 <button type="button" class="btn btn1" id="submit-pacs-search">Search PACS</button>
@@ -98,117 +98,21 @@ included and parsed in both JSP and Velocity parent pages.
         </div>
     </div>
 
+    <link  href="${SITE_ROOT}/scripts/lib/air-datepicker/dist/css/datepicker.min.css" rel="stylesheet">
+    <script src="${SITE_ROOT}/scripts/lib/air-datepicker/dist/js/datepicker.min.js"></script>
+    <script src="${SITE_ROOT}/scripts/lib/air-datepicker/dist/js/i18n/datepicker.en.js"></script>
+
 </div>
 
-<!--<script src="${SITE_ROOT}/scripts/xnat/app/scanTable/selectableTableBehavior.js"></script>-->
 <!-- #* <%-- the #[[ ... ]]# syntax prevents Velocity from parsing the enclosed code --%> *# -->
 <!-- #[[ -->
 <script>
-    // simpler selectable table behavior
-    // init on a <table> or *any* container element
-    XNAT.app.selectableItems = function(container){
-
-        var $container = $$(container || document);
-
-        var CKBX_ALL = '.selectable-select-all';
-        var CKBX_ONE = '.selectable-select-one';
-        var INDET    = 'indeterminate';
-
-        // namespaced event name
-        var CLICK    = 'click.multicheck';
-
-        var $ckbxAll = $container.find(CKBX_ALL);
-        var $ckbxs   = $container.find(CKBX_ONE);
-
-        function toggleAll(checked){
-            $ckbxAll.prop(INDET, false);
-            $ckbxs.prop('checked', checked);
-        }
-
-        function multichecker(){
-            // if all checkboxes are checked now, check the 'all' checkbox
-            var checkedCount = $ckbxs.filter(':checked').length;
-            if (checkedCount === 0 || checkedCount === $ckbxs.length) {
-                $ckbxAll.prop(INDET, false).prop('checked', !!checkedCount);
-            }
-            else {
-                $ckbxAll.prop('checked', false).prop(INDET, true);
-            }
-        }
-        // fire this on init to set the initial
-        // state of the 'all' checkbox
-        multichecker();
-
-        // unbind any existing 'multicheck' click handlers
-        $container.off(CLICK);
-
-        $container.on(CLICK, CKBX_ALL, function(e){
-            toggleAll(!!this.checked);
-        });
-
-        $container.on(CLICK, CKBX_ONE, function(e){
-            multichecker();
-        });
-
-    };
-
-    XNAT.app.searchableItems = function(container){
-
-        var $container = $$(container);
-        var $filterInputs = $container.find('input.filter-data');
-
-        // detach previously bound listeners
-        $filterInputs.off('focus, keyup');
-
-        var $dataRows;
-
-        function cacheRows(){
-            return $dataRows = $container.find('.table-body').find('tr');
-        }
-
-        $filterInputs.on('focus', function(){
-            $(this).select();
-            // clear all filters on focus
-            //$table.find('input.filter-data').val('');
-            // save reference to the data rows on focus
-            // (should make filtering slightly faster)
-            // $dataRows = $table.find('tr[data-filter]');
-            cacheRows();
-        });
-
-        function filterRows(val, name){
-            if (!val) { return false }
-            val = val.toLowerCase();
-            var filterClass = 'filter-' + name;
-            // cache the rows if not cached yet
-            // cacheRows();
-            $dataRows.addClass(filterClass).filter(function(){
-                return $(this).find('td.' + name).containsNC(val).length
-            }).removeClass(filterClass);
-        }
-
-        $filterInputs.on('keyup', function(e){
-            var name = this.title.split(':')[0];
-            var val = this.value;
-            var key = e.which;
-            // don't do anything on 'tab' keyup
-            if (key === 9) return false;
-            if (key === 27){ // key 27 = 'esc'
-                this.value = val = '';
-            }
-            if (!val || key === 8) {
-                $dataRows.removeClass('filter-' + name);
-            }
-            if (!val) {
-                // no value, no filter
-                return false
-            }
-            filterRows(val, name);
-        });
-
-
-    }
-
+    // use of $ in $varname is ok inside #[[ ... ]]#
+    window.$nothing = '';
 </script>
 <!-- ]]# -->
+
+<script src="${SITE_ROOT}/scripts/xnat/app/selectableItems.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/app/searchableItems.js"></script>
+
 <script src="${SITE_ROOT}/scripts/dqr/import.js"></script>
