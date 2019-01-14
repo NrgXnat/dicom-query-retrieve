@@ -356,12 +356,12 @@ var XNAT = getObject(XNAT || {});
                     width: 400,
                     content: (function(){
                         return '<div style="margin:20px;">' +
-                            '<p style="font-size:15px;line-height:20px;">' +
+                            '<p style="font-size:14px;line-height:20px;">' +
                             'PACS data has been queued for import. You may close ' +
                             'this dialog to start a new search.</p>' +
-                            '<p style="font-size:15px;line-height:20px;">' +
+                            '<p style="font-size:14px;line-height:20px;">' +
                             'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/action/XDATActionRouter/xdataction/prearchives/project/' + projectId) + '">' +
                             'check on the import progress in the prearchive</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
                             'go back to the project page.</a></p>' +
