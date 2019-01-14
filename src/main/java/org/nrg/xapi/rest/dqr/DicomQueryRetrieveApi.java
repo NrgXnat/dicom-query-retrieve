@@ -535,6 +535,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Returns whether project is a project that has been configured to use Dqr.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Whether the project is a Dqr project."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to check whether the project is a Dqr project."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "isDqrProject/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
+    public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @ProjectId final String projectId) {
+        return new ResponseEntity<>(_adminSettingsForProjectService.findSettingsByProject(projectId)!=null, HttpStatus.OK);
+    }
+
     @ApiOperation(value = "Get stored IRB number for project.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "An IRB number."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
