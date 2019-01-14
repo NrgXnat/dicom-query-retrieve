@@ -72,6 +72,10 @@ var XNAT = getObject(XNAT || {});
         renderPacsMenu(json.ResultSet.Result)
     });
 
+    var DATE_MIN = new Date('1900-01-01T00:00');
+    var DATE_TODAY = new Date();
+    var dateFrom, dateTo;
+
     function resetResults(){
         dqr.searchResults = [];
         dqr.allSearchResults = {};
@@ -81,6 +85,17 @@ var XNAT = getObject(XNAT || {});
         $searchResultsHeader.empty();
         $searchResultsBody.empty();
         $searchResultsSubmit.empty();
+        // if these are defined, they should be initialized
+        if (dateFrom && dateTo) {
+            dateFrom.update({
+                maxDate: DATE_TODAY,
+                minDate: DATE_MIN
+            });
+            dateTo.update({
+                maxDate: DATE_TODAY,
+                minDate: DATE_MIN
+            })
+        }
     }
 
     // immediately render the 'no results' message
@@ -118,17 +133,21 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
-    var DATE_TODAY = new Date();
+    function validDate(dateVal){
+        var dateSplit = new SplitDate(dateVal);
+        return XNAT.validate.value(dateSplit.iso).is('date', 'iso').check() ? new Date(dateVal) : DATE_TODAY
+    }
 
-    function datepickerOpts(){
-        return {
+    function datepickerOpts(obj){
+        return $.extend({
             language: 'en',
             maxDate: DATE_TODAY,
-            todayButton: DATE_TODAY,
+            // todayButton: DATE_TODAY,
+            autoClose: true,
             // range: true,
             // multipleDatesSeparator: '-',
             dateFormat: 'yyyy-mm-dd'
-        }
+        }, obj || {});
     }
 
     var $studyDateFrom = $('#study-date-from');
@@ -139,8 +158,48 @@ var XNAT = getObject(XNAT || {});
     // initialize date fields *after* DOM loads
     $(function(){
 
-        $studyDateFrom.off().datepicker(datepickerOpts());
-        $studyDateTo.off().datepicker(datepickerOpts());
+        dateFrom = $studyDateFrom.off().datepicker(datepickerOpts({
+            onShow: function(fromPicker){
+                fromPicker.update({
+                    minDate: DATE_MIN,
+                    maxDate: validDate($studyDateTo.val())
+                })
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+                dateTo.update({
+                    minDate: dateObj
+                });
+            }
+        })).data('datepicker');
+
+        dateTo = $studyDateTo.off().datepicker(datepickerOpts({
+            onShow: function(toPicker){
+                toPicker.update({
+                    minDate: validDate($studyDateFrom.val() || DATE_MIN),
+                    maxDate: DATE_TODAY
+                })
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+                dateFrom.update({
+                    maxDate: dateObj
+                })
+            }
+        })).data('datepicker');
+
+        // handle manual date field edits
+        $($studyDateFrom, $studyDateTo).on('blur', function(){
+            if (this.value && !XNAT.validate.value(this.value).is('date', 'iso').check()) {
+                XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
+                $(this).focus().select();
+                return false;
+            }
+            dateFrom.update({
+                maxDate: validDate($studyDateTo.val())
+            });
+            dateTo.update({
+                minDate: validDate($studyDateFrom.val())
+            })
+        });
 
         // $pacsSearchFields.find('.study-date')
         //                  .mask('9999-99-99', { placeholder: '    -  -  ' })
