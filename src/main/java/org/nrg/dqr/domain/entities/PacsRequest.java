@@ -20,10 +20,14 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     protected String _studyInstanceUid;
     protected String _seriesIds;
     protected String _remappingScript;
-
     protected String _destinationAeTitle;
-
+    protected String _status;
+    protected Long _priority;
     protected Date _queuedTime;
+
+    public static final String QUEUED_STATUS_TEXT = "QUEUED";
+    public static final Long HIGH_PRIORITY = 1L;
+    public static final Long STANDARD_PRIORITY = 10L;
 
     public String getDestinationAeTitle() {
         return _destinationAeTitle;
@@ -89,5 +93,21 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setRemappingScript(String remappingScript) {
         this._remappingScript = remappingScript;
+    }
+
+    public String getStatus() {
+        return _status;
+    }
+
+    public void setStatus(String _status) {
+        this._status = _status;
+    }
+
+    public Long getPriority() {
+        return _priority;
+    }
+
+    public void setPriority(Long _priority) {
+        this._priority = _priority;
     }
 }

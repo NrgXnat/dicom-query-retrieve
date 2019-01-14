@@ -142,7 +142,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
 
                                     if (executedTime != null) {
                                         if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
-                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
                                             if (reqs != null && reqs.size() > 0) {
 
                                                 //Try to dequeue requests as long as PACS is responding to pings.
@@ -161,7 +161,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                         }
                                     }
                                 } else {
-                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
                                     if (reqs != null && reqs.size() > 0) {
 
                                         //Try to dequeue requests as long as PACS is responding to pings.

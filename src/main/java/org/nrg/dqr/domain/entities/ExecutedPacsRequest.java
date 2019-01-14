@@ -43,8 +43,8 @@ public class ExecutedPacsRequest extends PacsRequest {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
-                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_remappingScript).append(_destinationAeTitle)
-                .append(_queuedTime).append(_executedTime).toHashCode();
+                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_remappingScript).append(_destinationAeTitle).append(_status)
+                .append(_queuedTime).append(_executedTime).append(_priority).append(_priority).toHashCode();
     }
 
     @Override
@@ -62,8 +62,9 @@ public class ExecutedPacsRequest extends PacsRequest {
         return new EqualsBuilder().append(_username, other._username).append(_pacsId, other._pacsId)
                 .append(_xnatProject, other._xnatProject).append(_studyInstanceUid, other._studyInstanceUid)
                 .append(_seriesIds, other._seriesIds).append(_remappingScript, other._remappingScript)
-                .append(_destinationAeTitle, other._destinationAeTitle)
-                .append(_queuedTime, other._queuedTime).append(_executedTime, other._executedTime).isEquals();
+                .append(_destinationAeTitle, other._destinationAeTitle).append(_status, other._status)
+                .append(_queuedTime, other._queuedTime).append(_executedTime, other._executedTime)
+                .append(_priority, other._priority).isEquals();
     }
 
     @Override
@@ -76,8 +77,10 @@ public class ExecutedPacsRequest extends PacsRequest {
         buffer.append("seriesIds: ").append(_seriesIds).append(", ");
         buffer.append("remappingScript: ").append(_remappingScript).append(", ");
         buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
+        buffer.append("status: ").append(_status).append(", ");
         buffer.append("queuedTime: ").append(_queuedTime).append(", ");
         buffer.append("executedTime: ").append(_executedTime).append(", ");
+        buffer.append("priority: ").append(_priority).append(", ");
         return buffer.toString();
     }
 }
