@@ -62,10 +62,10 @@
 
                 // only show 'Send to PACS' when all requirements are met
                 XNAT.xhr.get({
-                    url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings/' + window.projectId),
+                    url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/' + window.projectId),
                     success: function(data){
                         console.log('PACS enabled');
-                        if (data && data.enabled) {
+                        if (/^true$/i.test(data)) {
                             sendToPacsLink$.removeClass('hidden').show();
                             sendToPacsLink$.closest('ul').removeClass('hidden').show();
                         }
