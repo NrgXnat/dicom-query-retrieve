@@ -4,10 +4,7 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsAvailability;
-import org.nrg.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
@@ -193,6 +190,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                     String projectId = "";
                     String username = "";
                     XDATUser user = new XDATUser();
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                     try {
                         String login = AdminUtils.getAdminUser().getLogin();
                         String studyId = requestToDequeue.getStudyInstanceUid();
@@ -210,7 +208,6 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                 XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
                             }
                         }
-                        ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                         pacsReq.setPacsId(requestToDequeue.getPacsId());
                         username = requestToDequeue.getUsername();
                         user = new XDATUser(username);
@@ -222,14 +219,22 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         seriesIds = requestToDequeue.getSeriesIds();
                         pacsReq.setSeriesIds(seriesIds);
                         pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
+                        pacsReq.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
                         pacsReq.setExecutedTime(new Date());
                         pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
 
                         XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 
                         pacsService.importFromPacsRequest(pacsReq);
+                        requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
+                        queueService.update(requestToDequeue);
                     }
                     catch(Exception e){
+                        requestToDequeue.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                        queueService.update(requestToDequeue);
+
+                        pacsReq.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                        executedService.update(pacsReq);
                         _log.error("Error executing PACS import request.",e);
                     }
                     finally {

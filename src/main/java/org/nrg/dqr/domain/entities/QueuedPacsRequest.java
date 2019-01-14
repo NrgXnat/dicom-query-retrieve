@@ -29,7 +29,6 @@ public class QueuedPacsRequest extends PacsRequest {
     public QueuedPacsRequest() {
     }
 
-
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)

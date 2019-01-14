@@ -50,6 +50,18 @@ public class HibernateExecutedPacsRequestService extends AbstractHibernateEntity
         }
     }
 
+    @Override
+    @Transactional
+    public ExecutedPacsRequest getMostRecentForStudyInstanceUid(String studyInstanceUid){
+        List<ExecutedPacsRequest> list = _dao.findByStudyInstanceUidOrderedByMostRecent(studyInstanceUid);
+        if(list==null || list.size()==0){
+            return null;
+        }
+        else{
+            return list.get(0);
+        }
+    }
+
     @Inject
     private ExecutedPacsRequestDAO _dao;
 
