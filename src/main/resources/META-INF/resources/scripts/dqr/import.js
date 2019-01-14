@@ -748,20 +748,22 @@ var XNAT = getObject(XNAT || {});
             console.warn('id required');
             return;
         }
-        return XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
-            success: function(json){
-                if (json && json.successful) {
-                    if (isFunction(callback)) {
-                        callback.call(this, id);
-                    }
-                }
-            },
-            failure: function(){
-                console.warn('PACS ping failed');
-                console.warn(arguments);
-            }
-        })
+        // this overrides the ping check for now.
+        return callback(id);
+        // return XNAT.xhr.getJSON({
+        //     url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
+        //     success: function(json){
+        //         if (json && json.successful) {
+        //             if (isFunction(callback)) {
+        //                 callback.call(this, id);
+        //             }
+        //         }
+        //     },
+        //     failure: function(){
+        //         console.warn('PACS ping failed');
+        //         console.warn(arguments);
+        //     }
+        // })
     }
 
     function searchPACS(id){

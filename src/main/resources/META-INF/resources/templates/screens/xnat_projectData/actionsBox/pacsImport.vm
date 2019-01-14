@@ -10,9 +10,9 @@
     (function(){
         var importActionItem = $('#import-from-pacs-action');
         XNAT.xhr.get({
-            url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings/$!{projectId}'),
+            url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/$!{projectId}'),
             success: function(data){
-                if (data && data.enabled) {
+                if (/^true$/i.test(data)) {
                     importActionItem.removeClass('hidden').show();
                 }
                 else {
