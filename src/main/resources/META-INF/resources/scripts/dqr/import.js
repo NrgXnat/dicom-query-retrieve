@@ -72,6 +72,9 @@ var XNAT = getObject(XNAT || {});
         renderPacsMenu(json.ResultSet.Result)
     });
 
+    var DATE_MIN = new Date('1900-01-01T00:00');
+    var DATE_TODAY = new Date();
+
     function resetResults(){
         dqr.searchResults = [];
         dqr.allSearchResults = {};
@@ -118,7 +121,16 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
-    var DATE_TODAY = new Date();
+    function datepickerOpts(obj){
+        return $.extend({
+            language: 'en',
+            minDate: DATE_MIN,
+            maxDate: DATE_TODAY,
+            // todayButton: DATE_TODAY,
+            autoClose: true,
+            dateFormat: 'yyyy-mm-dd'
+        }, obj || {});
+    }
 
     var $studyDateFrom = $('#study-date-from');
     var $studyDateTo = $('#study-date-to');
@@ -128,20 +140,20 @@ var XNAT = getObject(XNAT || {});
     // initialize date fields *after* DOM loads
     $(function(){
 
-        // $studyDateFrom.off().datepicker(datepickerOpts());
-        // $studyDateTo.off().datepicker(datepickerOpts());
+        $studyDateFrom.off().datepicker(datepickerOpts());
+        $studyDateTo.off().datepicker(datepickerOpts());
 
-        $($studyDateFrom, $studyDateTo).off()
-                                       .mask('9999-99-99', { placeholder: '    -  -  ' })
-                                       .datepicker({
-                                           language: 'en',
-                                           maxDate: DATE_TODAY,
-                                           todayButton: DATE_TODAY,
-                                           // range: true,
-                                           // multipleDatesSeparator: '-',
-                                           dateFormat: 'yyyy-mm-dd'
-                                       })
-        ;
+        // $($studyDateFrom, $studyDateTo).off()
+        //                                .mask('9999-99-99', { placeholder: '    -  -  ' })
+        //                                .datepicker({
+        //                                    language: 'en',
+        //                                    maxDate: DATE_TODAY,
+        //                                    todayButton: DATE_TODAY,
+        //                                    // range: true,
+        //                                    // multipleDatesSeparator: '-',
+        //                                    dateFormat: 'yyyy-mm-dd'
+        //                                })
+        // ;
 
         // click the 'today' button to fill in today's date
         $studyDateToday.off().on('click', function(e){
@@ -352,12 +364,12 @@ var XNAT = getObject(XNAT || {});
                     width: 400,
                     content: (function(){
                         return '<div style="margin:20px;">' +
-                            '<p style="font-size:15px;line-height:20px;">' +
+                            '<p style="font-size:14px;line-height:20px;">' +
                             'PACS data has been queued for import. You may close ' +
                             'this dialog to start a new search.</p>' +
-                            '<p style="font-size:15px;line-height:20px;">' +
+                            '<p style="font-size:14px;line-height:20px;">' +
                             'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/XDATScreen_prearchives.vm') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/action/XDATActionRouter/xdataction/prearchives/project/' + projectId) + '">' +
                             'check on the import progress in the prearchive</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
                             'go back to the project page.</a></p>' +
@@ -560,7 +572,7 @@ var XNAT = getObject(XNAT || {});
                     ]
                 },
                 overflowY: 'scroll',
-                maxHeight: '402px',
+                maxHeight: '650px',
                 columns: {
                     _studyInstanceUid: '~data-uid',  // this will add a [data-uid="1.234.567890"] attribute to each row's <tr> element
                     SELECT_SESSIONS: {
@@ -635,8 +647,6 @@ var XNAT = getObject(XNAT || {});
                     }),
                     studyDate: {
                         label: false,
-                        // filter: true,
-                        // sort: true,
                         td: {
                             style: { width: WIDTHS.date }
                         },
@@ -650,34 +660,15 @@ var XNAT = getObject(XNAT || {});
                     },
                     modalitiesInStudy: {
                         label: false,
-                        // filter: true,
-                        // sort: true,
                         td: {
                             style: { width: WIDTHS.mod }
                         },
                         apply: function(){
                             return [].concat(this.modalitiesInStudy).join(', ');
                         }
-                    }//,
-                    // patientId: {
-                    //     label: 'Patient ID',
-                    //     filter: true,
-                    //     sort: true,
-                    //     apply: function(){
-                    //         return this.patient.id
-                    //     }
-                    // },
+                    }
                 }
             });
-                // .done(function(){
-                //     if ($pacsSearchResults.has('table.data-table')) {
-                //         return $pacsSearchResults;
-                //     }
-                //     this.render($pacsSearchResults.empty());
-                // })
-
-                // since the 'container' value is specified, the table will render there
-                // resultsTable.render($pacsSearchResults.empty());
         }
 
         renderBody();
