@@ -451,7 +451,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to ping PACS."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to ping PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "pacsStatus/ping/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @AuthorizedRoles({"Dqr", "Administrator"})
+    @XapiRequestMapping(value = "pacsStatus/ping/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
     public ResponseEntity<PacsPing> pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable("id") final String id) {
         final Long pacsId     = Long.valueOf(id);
         final Pacs pacs       = _pacsEntityService.retrieve(pacsId);
