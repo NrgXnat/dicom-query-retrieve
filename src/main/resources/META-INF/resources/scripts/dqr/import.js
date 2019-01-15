@@ -622,7 +622,7 @@ var XNAT = getObject(XNAT || {});
                                 dqr.allSearchResults[uid].relabelMap[this.title] = this.value
                             }
                         }],
-                        ['click', 'td.accessionNumber, td.patientName, td.studyId, td.studyDate', function(e){
+                        ['click', 'td.accessionNumber, td.patientName, td.studyId, td.studyDate, td.modalitiesInStudy', function(e){
                             $(this).closest('tr').find('input.select-session').trigger('click');
                         }]
                     ]
@@ -807,22 +807,20 @@ var XNAT = getObject(XNAT || {});
             console.warn('id required');
             return;
         }
-        // this overrides the ping check for now.
-        return callback(id);
-        // return XNAT.xhr.getJSON({
-        //     url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
-        //     success: function(json){
-        //         if (json && json.successful) {
-        //             if (isFunction(callback)) {
-        //                 callback.call(this, id);
-        //             }
-        //         }
-        //     },
-        //     failure: function(){
-        //         console.warn('PACS ping failed');
-        //         console.warn(arguments);
-        //     }
-        // })
+        return XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
+            success: function(json){
+                if (json && json.successful) {
+                    if (isFunction(callback)) {
+                        callback.call(this, id);
+                    }
+                }
+            },
+            failure: function(){
+                console.warn('PACS ping failed');
+                console.warn(arguments);
+            }
+        })
     }
 
     function searchPACS(id){
