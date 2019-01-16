@@ -49,6 +49,12 @@ public class PacsSessionExportRequestListener {
                 }
                 sendCompleteNotification(pacsSessionExportRequest);
                 log.info("Listener completed session export request");
+                final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
+                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
+                eventDetails.setComment("Pacs: " + pacsToExportTo.getId());
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, pacsSessionExportRequest.getSession().getId(), pacsSessionExportRequest.getSession().getProject(), eventDetails);
+                assert wrk != null;
+                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
             }
             else{
                 throw new PacsNotStorableException();
