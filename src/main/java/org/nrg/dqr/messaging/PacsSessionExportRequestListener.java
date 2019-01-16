@@ -47,7 +47,7 @@ public class PacsSessionExportRequestListener {
                     pacsService.exportSeries(pacsSessionExportRequest.getRequestingUser(),
                             pacsToExportTo, pacsScanExportRequest.getScan());
                 }
-                sendCompleteNotification(pacsSessionExportRequest);
+                //sendCompleteNotification(pacsSessionExportRequest);
                 log.info("Listener completed session export request");
                 final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
                 final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");

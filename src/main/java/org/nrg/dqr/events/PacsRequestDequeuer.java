@@ -5,6 +5,7 @@ import org.apache.commons.lang.StringUtils;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.*;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
@@ -30,6 +31,8 @@ import org.nrg.xnat.task.*;
 import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 
 /**
  * Created by mike on 1/23/18.
@@ -262,14 +265,16 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         if (_log.isDebugEnabled()) {
                             _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
                         }
-                        String subject = "Selected DICOM series requested";
-                        String template = "SeriesRequested";
-                        final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
-                        context.put("adminEmail", adminEmail);
-                        final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-                        XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
-
-
+                        DqrPreferences preferences = XDAT.getContextService().getBean(DqrPreferences.class);
+                        if(preferences!=null && preferences.getNotifyAdminOnImport()) {
+                            String subject = "Selected DICOM series requested";
+                            String template = "SeriesRequested";
+                            final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
+                            context.put("adminEmail", adminEmail);
+                            context.put("pacs", pacsEntityService.retrieve(pacsReq.getPacsId()));
+                            final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
+                            XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
+                        }
                     } catch (Exception exception) {
                         _log.warn("User " + username + " requested one or more DICOM series, but an error occurred sending the notification email.", exception);
                     }
