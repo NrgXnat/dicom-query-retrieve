@@ -8,7 +8,41 @@ projectSettings:
     groups:
         dqrSettings: DICOM QRS
     contents:
+        ${enableDqrTab}
         ${irbSettingsTab}
+
+enableDqrTab:
+    kind: tab
+    group: dqrSettings
+    label: Enable DQR
+    contents:
+        ${enableDqrPanel}
+        ${adminProjectSettingsJS}
+
+enableDqrPanel:
+    kind: panel.form
+    label: Enable DQR for Project
+    footer: false
+    load: false
+    action: "#?XNAT.dqr.adminProjectSettings.submit"
+    contents:
+        projectId:
+            kind: input.hidden
+            value: "??:XNAT:data:projectId"
+        enableDqr:
+            kind: panel.input.switchbox
+            name: enabled
+            id: enable-project-dqr
+            label: Enable DQR?
+            description: Enable DQR import/export for this project?
+            values: true|false
+            onText: Enabled
+            offText: Disabled
+
+adminProjectSettingsJS:
+    tag: script
+    attr:
+        src: ~/scripts/dqr/adminProjectSettings.js
 
 # IRB Settings
 irbSettingsTab:
