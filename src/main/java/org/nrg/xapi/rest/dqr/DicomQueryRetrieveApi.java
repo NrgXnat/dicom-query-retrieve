@@ -289,9 +289,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
         UserI                      user             = getSessionUser();
-        if (existingSettings == null) {
+        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
@@ -324,9 +323,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
         UserI                      user             = getSessionUser();
-        if (existingSettings == null) {
+        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
@@ -362,9 +360,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                         @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
                                                         @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
                                                         @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(project);
         UserI                      user             = getSessionUser();
-        if (existingSettings == null) {
+        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
@@ -554,7 +551,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "isDqrProject/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
     public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @ProjectId final String projectId) {
-        return new ResponseEntity<>(_adminSettingsForProjectService.findSettingsByProject(projectId)!=null, HttpStatus.OK);
+        return new ResponseEntity<>(_adminSettingsForProjectService.isDqrEnabledForProject(projectId), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get stored IRB number for project.", response = String.class)
@@ -699,36 +696,30 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             log.error("User {} tried to configure Dqr settings for a project without specifying a project.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        DqrAdminSettingsForProject created = _adminSettingsForProjectService.create(settings);
-        return new ResponseEntity<>(created, HttpStatus.OK);
-    }
-
-    @ApiOperation(value = "Updates the requested Dqr configuration for the project using the submitted attributes.", notes = "Returns the updated Dqr configuration for the project.", response = DqrAdminSettingsForProject.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns the updated Dqr configuration for the project."),
-                   @ApiResponse(code = 304, message = "The requested Dqr configuration for the project is the same as the submitted Dqr configuration for the project."),
-                   @ApiResponse(code = 403, message = "Insufficient privileges to edit the requested Dqr configuration for the project."),
-                   @ApiResponse(code = 404, message = "The requested Dqr configuration for the project wasn't found."),
-                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "adminProjectSettings/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
-    @ResponseBody
-    public ResponseEntity<DqrAdminSettingsForProject> updateDqrAdminSettingsForProject(@PathVariable("projectId") final String projectId, @RequestBody final DqrAdminSettingsForProject settings) {
-        DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(projectId);
-        if (existingSettings == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        else{
+            DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(settings.getProjectId());
+            if(existingSettings!=null) {
+                boolean isDirty = false;
+                // Only update fields that are actually included in the submitted data and differ from the original source.
+                if (StringUtils.isNotBlank(settings.getProjectId()) && !StringUtils.equals(settings.getProjectId(), existingSettings.getProjectId())) {
+                    existingSettings.setProjectId(settings.getProjectId());
+                    isDirty = true;
+                }
+                if (settings.isEnabled() != existingSettings.isEnabled()) {
+                    existingSettings.setEnabled(settings.isEnabled());
+                    isDirty = true;
+                }
+                if (isDirty) {
+                    _adminSettingsForProjectService.update(existingSettings);
+                    return new ResponseEntity<>(existingSettings, HttpStatus.OK);
+                }
+                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+            }
+            else{
+                DqrAdminSettingsForProject created = _adminSettingsForProjectService.create(settings);
+                return new ResponseEntity<>(created, HttpStatus.OK);
+            }
         }
-
-        boolean isDirty = false;
-        // Only update fields that are actually included in the submitted data and differ from the original source.
-        if (StringUtils.isNotBlank(settings.getProjectId()) && !StringUtils.equals(settings.getProjectId(), existingSettings.getProjectId())) {
-            existingSettings.setProjectId(settings.getProjectId());
-            isDirty = true;
-        }
-        _adminSettingsForProjectService.update(existingSettings);
-        if (isDirty) {
-            return new ResponseEntity<>(existingSettings, HttpStatus.OK);
-        }
-
-        return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
     }
 
     @ApiOperation(value = "Deletes the requested Dqr configuration for the project.", response = Boolean.class)
@@ -741,7 +732,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<Boolean> deleteDqrAdminSettingsForProject(@PathVariable("projectId") final String projectId) {
         DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(projectId);
-        if (existingSettings == null) {
+        if (existingSettings==null) {
             return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
         }
         try {
@@ -827,8 +818,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             existingSettings.setPacsId(settings.getPacsId());
             isDirty = true;
         }
-        _pacsAvailabilityEntityService.update(existingSettings);
+
         if (isDirty) {
+            _pacsAvailabilityEntityService.update(existingSettings);
             return new ResponseEntity<>(existingSettings, HttpStatus.OK);
         }
 

@@ -78,8 +78,7 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         final String project = (String) TurbineUtils.GetPassedParameter("project", data);
         final long pacsId = Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
 
-        DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(project);
-        if (existingSettings == null) {
+        if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
         }

@@ -69,6 +69,18 @@ public class HibernateDqrAdminSettingsForProjectService extends AbstractHibernat
         return _dao.getDqrAdminSettingsByProjectId(projectId);
     }
 
+    @Override
+    @Transactional
+    public boolean isDqrEnabledForProject(String projectId) {
+        DqrAdminSettingsForProject settings = findSettingsByProject(projectId);
+        if(settings!=null && settings.isEnabled()){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
     @Inject
     private DqrAdminSettingsForProjectDAO _dao;
 

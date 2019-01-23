@@ -90,8 +90,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to import.");
         }
         else {
-            DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(_projectId);
-            if (existingSettings == null) {
+            if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(_projectId)) {
                 //You cannot import into a project that does not have DQR enabled.
                 getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You cannot import into a project that does not have DQR enabled.");
             } else {

@@ -26,4 +26,5 @@ public interface DqrAdminSettingsForProjectService extends BaseHibernateService<
 //    List<ArchiveProcessorInstance> getAllEnabledSiteProcessorsInOrderForLocation(final int location);
 
     DqrAdminSettingsForProject findSettingsByProject(final String projectId);
+    boolean isDqrEnabledForProject(final String projectId);
 }

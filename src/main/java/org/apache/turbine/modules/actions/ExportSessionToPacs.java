@@ -95,8 +95,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
             throw new RuntimeException("You do not have access to DQR functionality.");
         }
         else {
-            DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(_session.getProject());
-            if (existingSettings == null) {
+            if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(project)) {
                 //You cannot import into a project that does not have DQR enabled.
                 throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
             }
