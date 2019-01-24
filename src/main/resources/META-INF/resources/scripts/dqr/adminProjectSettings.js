@@ -30,29 +30,10 @@ var XNAT = getObject(XNAT);
     var enableProjectDqr$ = $('#enable-project-dqr');
     var enableProjectDqr0 = enableProjectDqr$[0];
 
-    function adminProjectSettingsUrl(proj, bustCache){
-        return XNAT.url.restUrl('/xapi/dqr/adminProjectSettings' + (proj ? ('/' + proj) : ''), {}, bustCache)
-    }
-
-    // check for a configuration when the script loads
-    XNAT.xhr.get({
-        url: adminProjectSettingsUrl(projectId, true),
-        dataType: 'json',
-        success: function(data){
-            enableProjectDqr0.checked = (data && data.enabled);
-        },
-        failure: function(){
-            console.warn(arguments);
-        },
-        always: function(){
-
-        }
-    });
-
     function adminProjectSettingsSubmit(){
         var isChecked = enableProjectDqr0.checked;
         return XNAT.xhr.post({
-            url: adminProjectSettingsUrl('', false),
+            url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings'),
             contentType: 'application/json',
             data: JSON.stringify({
                 projectId: projectId,
@@ -68,8 +49,25 @@ var XNAT = getObject(XNAT);
         });
     }
 
-    enableProjectDqr$.on('change', function(e){
-        adminProjectSettingsSubmit()
+    // check for a configuration when the script loads
+    XNAT.xhr.get({
+        url: XNAT.url.restUrl('/xapi/dqr/isDqrProject/' + projectId),
+        success: function(data){
+            enableProjectDqr0.checked = !!data;
+        },
+        failure: function(){
+            console.warn(arguments);
+        },
+        always: function(){
+            // allow modification only for admins
+            if (window.isAdminUser) {
+                enableProjectDqr$.removeAttr('disabled');
+                enableProjectDqr$.removeAttr('readonly');
+                enableProjectDqr$.on('change', function(e){
+                    adminProjectSettingsSubmit()
+                });
+            }
+        }
     });
 
     return XNAT.plugin.dqr = dqr;

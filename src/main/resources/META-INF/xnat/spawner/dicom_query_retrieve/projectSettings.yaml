@@ -15,6 +15,9 @@ enableDqrTab:
     kind: tab
     group: dqrSettings
     label: Enable DQR
+    access:
+        allow:
+            role: Administrator
     contents:
         ${enableDqrPanel}
         ${adminProjectSettingsJS}
@@ -32,15 +35,27 @@ enableDqrPanel:
         projectId:
             kind: input.hidden
             value: "?? XNAT.data.projectId"
+        customCss:
+            tag: style
+            content: |
+                label.switchbox > input[disabled] + .switchbox-outer {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
         enableDqr:
             kind: panel.input.switchbox
             name: enabled
             id: enable-project-dqr
             label: Enable DQR?
-            description: Enable DQR import/export for this project?
+            description: >
+                Enable DQR import/export for this project? <i>(Administrators only)</i>
             values: true|false
             onText: Enabled
             offText: Disabled
+            element:
+                attr:
+                    disabled: disabled
+                    readonly: readonly
 
 adminProjectSettingsJS:
     tag: "script|src=~/scripts/dqr/adminProjectSettings.js"
