@@ -60,5 +60,18 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         }
     }
 
+    @NrgPreference(defaultValue = "false")
+    public boolean getNotifyAdminOnImport() {
+        return getBooleanValue("notifyAdminOnImport");
+    }
+
+    public void setNotifyAdminOnImport(final boolean notifyAdminOnImport) {
+        try {
+            setBooleanValue(notifyAdminOnImport, "notifyAdminOnImport");
+        } catch (InvalidPreferenceName e) {
+            _log.error("Invalid preference name 'notifyAdminOnImport': something is very wrong here.", e);
+        }
+    }
+
     private static final Logger _log = LoggerFactory.getLogger(DqrPreferences.class);
 }

@@ -4,10 +4,8 @@ import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsAvailability;
-import org.nrg.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.dqr.domain.entities.*;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
@@ -33,6 +31,8 @@ import org.nrg.xnat.task.*;
 import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
+
+import javax.inject.Inject;
 
 /**
  * Created by mike on 1/23/18.
@@ -142,7 +142,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
 
                                     if (executedTime != null) {
                                         if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
-                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
                                             if (reqs != null && reqs.size() > 0) {
 
                                                 //Try to dequeue requests as long as PACS is responding to pings.
@@ -161,7 +161,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                         }
                                     }
                                 } else {
-                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByDate(pacsId);
+                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
                                     if (reqs != null && reqs.size() > 0) {
 
                                         //Try to dequeue requests as long as PACS is responding to pings.
@@ -193,6 +193,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                     String projectId = "";
                     String username = "";
                     XDATUser user = new XDATUser();
+                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                     try {
                         String login = AdminUtils.getAdminUser().getLogin();
                         String studyId = requestToDequeue.getStudyInstanceUid();
@@ -210,7 +211,6 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                 XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
                             }
                         }
-                        ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
                         pacsReq.setPacsId(requestToDequeue.getPacsId());
                         username = requestToDequeue.getUsername();
                         user = new XDATUser(username);
@@ -222,14 +222,22 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         seriesIds = requestToDequeue.getSeriesIds();
                         pacsReq.setSeriesIds(seriesIds);
                         pacsReq.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
+                        pacsReq.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
                         pacsReq.setExecutedTime(new Date());
                         pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
 
                         XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 
                         pacsService.importFromPacsRequest(pacsReq);
+                        requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
+                        queueService.update(requestToDequeue);
                     }
                     catch(Exception e){
+                        requestToDequeue.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                        queueService.update(requestToDequeue);
+
+                        pacsReq.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                        executedService.update(pacsReq);
                         _log.error("Error executing PACS import request.",e);
                     }
                     finally {
@@ -257,14 +265,16 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         if (_log.isDebugEnabled()) {
                             _log.debug("Completed DICOM request for study " + studyInstanceUid + (StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId));
                         }
-                        String subject = "Selected DICOM series requested";
-                        String template = "SeriesRequested";
-                        final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
-                        context.put("adminEmail", adminEmail);
-                        final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-                        XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
-
-
+                        DqrPreferences preferences = XDAT.getContextService().getBean(DqrPreferences.class);
+                        if(preferences!=null && preferences.getNotifyAdminOnImport()) {
+                            String subject = "Selected DICOM series requested";
+                            String template = "SeriesRequested";
+                            final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
+                            context.put("adminEmail", adminEmail);
+                            context.put("pacs", pacsEntityService.retrieve(pacsReq.getPacsId()));
+                            final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
+                            XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
+                        }
                     } catch (Exception exception) {
                         _log.warn("User " + username + " requested one or more DICOM series, but an error occurred sending the notification email.", exception);
                     }

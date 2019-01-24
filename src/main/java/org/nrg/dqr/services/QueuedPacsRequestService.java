@@ -17,5 +17,5 @@ public interface QueuedPacsRequestService extends BaseHibernateService<QueuedPac
     List<Map<String, Object>> getAllWithOrder();
     List<Map<String, Object>> getAllWithOrderForUser(UserI user);
     QueuedPacsRequest getByIdForUser(Long id, UserI user);
-    List<QueuedPacsRequest> getAllForPacsOrderedByDate(Long pacsId);
+    List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(Long pacsId);
 }

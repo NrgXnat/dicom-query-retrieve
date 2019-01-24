@@ -19,10 +19,7 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpHead;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
-import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.dqr.services.PacsEntityService;
@@ -93,8 +90,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to import.");
         }
         else {
-            DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(_projectId);
-            if (existingSettings == null) {
+            if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(_projectId)) {
                 //You cannot import into a project that does not have DQR enabled.
                 getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You cannot import into a project that does not have DQR enabled.");
             } else {
@@ -111,6 +107,8 @@ public class PacsSeriesImporter extends PacsServiceResource {
                         pacsReq.setStudyInstanceUid(_studyInstanceUid);
                         pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
                         pacsReq.setDestinationAeTitle(destinationAeTitle);
+                        pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
+                        pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
                         pacsReq.setQueuedTime(new Date());
 
                         XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);

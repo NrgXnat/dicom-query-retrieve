@@ -31,4 +31,11 @@ public class ExecutedPacsRequestDAO extends AbstractHibernateDAO<ExecutedPacsReq
         criteria.addOrder(Order.desc("executedTime"));
         return criteria.list();
     }
+
+    public List<ExecutedPacsRequest> findByStudyInstanceUidOrderedByMostRecent(String studyInstanceUid){
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
+        criteria.addOrder(Order.desc("executedTime"));
+        return criteria.list();
+    }
 }

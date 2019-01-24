@@ -32,6 +32,10 @@ import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xft.event.EventDetails;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
@@ -91,8 +95,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
             throw new RuntimeException("You do not have access to DQR functionality.");
         }
         else {
-            DqrAdminSettingsForProject existingSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).findSettingsByProject(_session.getProject());
-            if (existingSettings == null) {
+            if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(project)) {
                 //You cannot import into a project that does not have DQR enabled.
                 throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
             }
@@ -105,6 +108,11 @@ public class ExportSessionToPacs extends DqrSecureAction {
                 context.put("sessionId", _session.getId());
             } else {
                 exportOnDemand();
+                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
+                eventDetails.setComment("Pacs: " + _pacs.getId());
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _session.getId(), project, eventDetails);
+                assert wrk != null;
+                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
                 context.put("numberOfProcessedScans", _scanIds.length);
                 context.put("sessionId", _session.getId());
                 context.put("_user", _user);

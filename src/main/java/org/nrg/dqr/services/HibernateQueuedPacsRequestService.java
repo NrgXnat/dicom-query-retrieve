@@ -79,10 +79,10 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernateEntitySe
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getAllForPacsOrderedByDate(Long pacsId){
-        return _dao.findAllForPacsOrderedByDate(pacsId);
+    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(Long pacsId){
+        return _dao.findAllForPacsOrderedByPriorityAndDate(pacsId);
     }
 
-    private static final String QUERY_QUEUE_WITH_LOCATION = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY queued_time) AS queue;";
-    private static final String QUERY_QUEUE_WITH_LOCATION_FOR_USER = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY queued_time) AS queue WHERE username=:user;";
+    private static final String QUERY_QUEUE_WITH_LOCATION = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue;";
+    private static final String QUERY_QUEUE_WITH_LOCATION_FOR_USER = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue WHERE username=:user;";
 }

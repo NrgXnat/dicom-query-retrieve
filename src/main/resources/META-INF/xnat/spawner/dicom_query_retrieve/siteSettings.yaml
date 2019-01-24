@@ -80,7 +80,14 @@ dqrOtherPreferencePanel:
                 If the PACS for one or more of the requests is now in its availability interval, the first request to
                 enter the queue whose PACS is now available will be executed. Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
-
+        notifyAdminOnImport:
+            kind: panel.input.switchbox
+            name: notifyAdminOnImport
+            label: Notify Admin on Import
+            onText: Enabled
+            offText: Disabled
+            description: >
+                Should an email be sent to the site admin when data is being imported from a PACS?
 #### DQR History Tab ####
 
 dqrHistoryPanel:

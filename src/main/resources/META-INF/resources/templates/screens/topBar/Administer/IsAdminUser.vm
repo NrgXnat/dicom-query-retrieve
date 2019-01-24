@@ -1,0 +1,9 @@
+<!-- Sequence: 1 -->
+
+<script>
+    window.isAdmin = true;
+    window.isAdminUser = true;
+    XNAT.user = getObject(XNAT.user);
+    XNAT.user.isAdmin = true;
+    console.log('isAdminUser');
+</script>
