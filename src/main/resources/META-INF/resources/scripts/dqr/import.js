@@ -72,18 +72,41 @@ var XNAT = getObject(XNAT || {});
         renderPacsMenu(json.ResultSet.Result)
     });
 
+    var $studyDateFrom = $('#study-date-from');
+    var $studyDateTo = $('#study-date-to');
+    var $studyDateToday = $('#study-date-today');
+
     var DATE_MIN = new Date('1900-01-01T00:00');
     var DATE_TODAY = new Date();
+    var dateFrom, dateTo;
 
     function resetResults(){
         dqr.searchResults = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
+        dqr.selectedStudies = {};
+
+        dqr.scanTypesList = [];
+
+        // collect study UIDs by series description
+        dqr.studiesBySeriesDesc = {};
+
         $pacsSearchFields.find('input').val('');
         $pacsNoResults.empty().html($noResultsTemplate.html());
         $searchResultsHeader.empty();
         $searchResultsBody.empty();
         $searchResultsSubmit.empty();
+        // if these are defined, they should be initialized
+        // if (dateFrom && dateTo) {
+        //     dateFrom.update({
+        //         maxDate: DATE_TODAY,
+        //         minDate: DATE_MIN
+        //     });
+        //     dateTo.update({
+        //         maxDate: DATE_TODAY,
+        //         minDate: DATE_MIN
+        //     })
+        // }
     }
 
     // immediately render the 'no results' message
@@ -121,38 +144,75 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
+    function validDate(dateVal){
+        var dateSplit;
+        return dateVal && (dateSplit = new SplitDate(dateVal)) && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check() ? new Date(dateVal + 'T00:00') : ''
+    }
+
     function datepickerOpts(obj){
         return $.extend({
             language: 'en',
-            minDate: DATE_MIN,
             maxDate: DATE_TODAY,
             // todayButton: DATE_TODAY,
             autoClose: true,
+            // range: true,
+            // multipleDatesSeparator: '-',
             dateFormat: 'yyyy-mm-dd'
         }, obj || {});
     }
 
-    var $studyDateFrom = $('#study-date-from');
-    var $studyDateTo = $('#study-date-to');
-
-    var $studyDateToday = $('#study-date-today');
-
     // initialize date fields *after* DOM loads
     $(function(){
 
-        $studyDateFrom.off().datepicker(datepickerOpts());
-        $studyDateTo.off().datepicker(datepickerOpts());
+        dateFrom = $studyDateFrom.off().datepicker(datepickerOpts({
+            onShow: function(fromPicker){
+                fromPicker.update({
+                    minDate: DATE_MIN,
+                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
+                })
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+                dateTo.update({
+                    minDate: dateObj
+                });
+            }
+        })).data('datepicker');
 
-        // $($studyDateFrom, $studyDateTo).off()
-        //                                .mask('9999-99-99', { placeholder: '    -  -  ' })
-        //                                .datepicker({
-        //                                    language: 'en',
-        //                                    maxDate: DATE_TODAY,
-        //                                    todayButton: DATE_TODAY,
-        //                                    // range: true,
-        //                                    // multipleDatesSeparator: '-',
-        //                                    dateFormat: 'yyyy-mm-dd'
-        //                                })
+        dateTo = $studyDateTo.off().datepicker(datepickerOpts({
+            onShow: function(toPicker){
+                toPicker.update({
+                    minDate: validDate($studyDateFrom.val()) || DATE_MIN,
+                    maxDate: DATE_TODAY
+                })
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+                dateFrom.update({
+                    maxDate: dateObj
+                })
+            }
+        })).data('datepicker');
+
+        // handle manual date field edits
+        function verifyDates(){
+            if (this.value && !XNAT.validate.value(this.value).is('date', 'iso').check()) {
+                XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
+                $(this).focus().select();
+                return false;
+            }
+            dateFrom.update({
+                maxDate: validDate($studyDateTo.val()) || DATE_TODAY
+            });
+            dateTo.update({
+                minDate: validDate($studyDateFrom.val()) || DATE_MIN
+            })
+        }
+
+        $studyDateFrom.on('change', verifyDates);
+        $studyDateTo.on('change', verifyDates);
+
+        // $pacsSearchFields.find('.study-date')
+        //                  .mask('9999-99-99', { placeholder: '    -  -  ' })
+        //                  .attr('autocomplete', 'off')
         // ;
 
         // click the 'today' button to fill in today's date
@@ -190,29 +250,49 @@ var XNAT = getObject(XNAT || {});
         return newId;
     }
 
-    function randomFromArray(arr){
-        return arr[Math.floor(Math.random() * (arr.length))]
-    }
+    // //keep this arround for future reference
+    // function getBySeriesDesc(studies){
+    //     console.log(studies);
+    //     dqr.selectedStudies = {};
+    //     forOwn(studies, function(siuid, study){
+    //         dqr.selectedStudies[siuid] = study.results.map(function(series, i){
+    //             var seriesDesc = series.seriesDescription;
+    //             dqr.studiesBySeriesDesc[seriesDesc] = dqr.studiesBySeriesDesc[seriesDesc] || [];
+    //             if (dqr.studiesBySeriesDesc[seriesDesc].indexOf(siuid) === -1) {
+    //                 dqr.studiesBySeriesDesc[seriesDesc].push(siuid);
+    //             }
+    //             return {
+    //                 studyInstanceUid: siuid,
+    //                 seriesInstanceUid: series.seriesInstanceUid,
+    //                 seriesDescription: series.seriesDescription,
+    //                 seriesNumber: series.seriesNumber,
+    //                 modality: series.modality
+    //             }
+    //         });
+    //     })
+    // }
 
-    function importSelected(){
-
-    }
-
-    function selectScanTypes(){
-
-    }
-
-    function getScanTypes(pacsId, uids){
+    function getStudies(pacsId, uids){
         var UIDS = [].concat(uids).join(',');
         var URL = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
-        return XNAT.xhr.get(URL);
+        return XNAT.xhr.getJSON({
+            url: URL,
+            success: function(studies){
+                console.log(studies);
+            }
+        });
     }
 
     function collectScanTypes(json){
 
         console.log('collectScanTypes');
+        console.log(json);
 
         dqr.seriesDescriptions = {};
+
+        var studyCount = 0;
+
+        // getBySeriesDesc(json);
 
         forOwn(json, function(uid, obj){
             forEach(obj.results, function(item){
@@ -220,12 +300,14 @@ var XNAT = getObject(XNAT || {});
                 seriesDescriptionItem.name = (item.seriesDescription || NONE);
                 seriesDescriptionItem.count = (seriesDescriptionItem.count || 0);
                 seriesDescriptionItem.count++;
-                seriesDescriptionItem.uids = seriesDescriptionItem.uids || [];
-                if (seriesDescriptionItem.uids.indexOf(item.studyInstanceUid) === -1) {
-                    seriesDescriptionItem.uids.push(item.studyInstanceUid);
+                seriesDescriptionItem.studyUIDs = seriesDescriptionItem.studyUIDs || [];
+                if (seriesDescriptionItem.studyUIDs.indexOf(item.study.studyInstanceUid) === -1) {
+                    seriesDescriptionItem.studyUIDs.push(item.study.studyInstanceUid);
                 }
+                seriesDescriptionItem.seriesUIDs = (seriesDescriptionItem.seriesUIDs || []).concat(item.seriesInstanceUid);
                 dqr.seriesDescriptions[item.seriesDescription] = seriesDescriptionItem;
             });
+            studyCount += 1;
         });
 
         // RESET SCAN TYPES LIST
@@ -239,7 +321,7 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    function scanTypesList(){
+    function scanTypesListDisplay(){
         var scanTypesList = sortObjects(dqr.scanTypesList, 'name');
         function itemId(item){
             return 'study_desc_' + (item.name || '').replace(/[\W\s]/g, '_');
@@ -284,7 +366,13 @@ var XNAT = getObject(XNAT || {});
                         }, item.name)
                     }
                 },
-                count: 'Count'
+                COUNT: {
+                    label: 'Study Count',
+                    apply: function(){
+                        var item = this;
+                        return item.studyUIDs.length + ''
+                    }
+                }
             }
         }).get();
         XNAT.app.selectableItems(scanTypesTable);
@@ -314,11 +402,11 @@ var XNAT = getObject(XNAT || {});
         });
 
         if (!scanTypes.length) {
-            XNAT.dialog.message(false, 'Please select at least one series to import.');
+            XNAT.dialog.message(false, 'Please select at least one series type to import.');
             return false;
         }
 
-        var jsonDataExample = {
+        var jsonDataOldExample = {
             "importRows": [
                 {
                     "relabelMap": {},
@@ -332,7 +420,7 @@ var XNAT = getObject(XNAT || {});
             ]
         };
 
-        var jsonData = {
+        var jsonDataOld = {
             importRows: uids.map(function(uid, i){
                 var relabelMap = {};
                 var $importRow = $searchResultsTable.find('tr[data-uid="' + uid +'"]');
@@ -347,11 +435,55 @@ var XNAT = getObject(XNAT || {});
             seriesDescriptions: scanTypes
         };
 
-        console.log('to submit:');
+        var jsonDataExample = {
+            "1.234.567890987654321": {
+                "seriesInstanceUIDs": [
+                    "1.23.456.7890",
+                    "1.23.789.0234"
+                ],
+                "seriesDescriptions": [
+                    "string"
+                ],
+                "relabelMap": {
+                    "Subject": "SUBJ1",
+                    "Session": "SUBJ1_001"
+                }
+            }
+        };
+
+
+
+        var jsonData = {};
+
+        // SETUP THE FINAL SUBMISSION JSON
+        forEach(uids, function(uid){
+            jsonData[uid] = {
+                seriesDescriptions: Object.keys(dqr.seriesDescriptions),
+                seriesInstanceUids: (function(){
+                    var seriesUidsTemp = [];
+                    forOwn(dqr.seriesDescriptions, function(uid, desc){
+                        seriesUidsTemp = seriesUidsTemp.concat(desc.seriesUIDs);
+                    });
+                    return seriesUidsTemp;
+                })(),
+                relabelMap: (function(){
+                    var relabelMapTemp = {};
+                    var $importRow = $searchResultsTable.find('tr[data-uid="' + uid +'"]');
+                    $importRow.find('input.relabel').each(function(){
+                        // only add to the relabelMap object if there's a value
+                        this.value && (relabelMapTemp[this.title] = this.value || '');
+                    });
+                    return relabelMapTemp;
+                })()
+            }
+        });
+
+
+        console.log('SUBMIT...');
         console.log(jsonData);
 
         XNAT.xhr.postJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/csvimport/newImportFromJson', [
+            url: XNAT.url.restUrl('/xapi/dqr/csvimport/generalImportFromJson', [
                 'pacsId=' + $selectPacsMenu.val(),
                 'ae=' + ae,
                 'project=' + projectId
@@ -393,10 +525,11 @@ var XNAT = getObject(XNAT || {});
 
     function scanTypesDialog(pacsId, uids){
         console.log('scanTypesDialog');
-        getScanTypes(pacsId, uids).done(function(json){
-            console.log('getScanTypes');
-            collectScanTypes(json);
-            var scanTypesTable = scanTypesList();
+        getStudies(pacsId, uids).done(function(studies){
+            console.log('studies');
+            console.log(studies);
+            collectScanTypes(studies);
+            var scanTypesTable = scanTypesListDisplay();
             XNAT.dialog.open({
                 title: 'Import from PACS',
                 content: scanTypesTable,
@@ -449,9 +582,9 @@ var XNAT = getObject(XNAT || {});
         var WIDTHS = {
             select: '4%',
             name: '14%',
-            nameRelabel: '16%',
-            patientId: '14%',
-            patientIdRelabel: '16%',
+            studyId: '14%',
+            xnatSubject: '16%',
+            xnatSession: '16%',
             date: '12%',
             mod: '10%',
             acc: '14%'
@@ -496,32 +629,14 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.name }
                         }
                     },
-                    nameRelabel: extend(true, {}, relabelColumn, {
-                        label: '' +
-                            '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                            'Relabel Patient Name',
-                        th: {
-                            style: { width: WIDTHS.nameRelabel },
-                            title: 'Relabel Patient Name'
-                        }
-                    }),
-                    patientId: {
-                        label: 'Patient ID',
+                    studyId: {
+                        label: 'Study ID',
                         filter: true,
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.patientId }
+                            style: { width: WIDTHS.studyId }
                         }
                     },
-                    patientIdRelabel: extend(true, {}, relabelColumn, {
-                        label: '' +
-                            '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                            'Relabel Patient ID',
-                        th: {
-                            style: { width: WIDTHS.patientIdRelabel },
-                            title: 'Relabel Patient ID'
-                        }
-                    }),
                     studyDate: {
                         label: 'Study Date',
                         filter: true,
@@ -537,7 +652,27 @@ var XNAT = getObject(XNAT || {});
                         th: {
                             style: { width: WIDTHS.mod }
                         }
-                    }
+                    },
+                    xnatSubject: extend(true, {}, relabelColumn, {
+                        label: '' +
+                            // '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
+                            window.subjectDisplay +
+                            '',
+                        th: {
+                            title: 'Subject',
+                            style: { width: WIDTHS.xnatSubject }
+                        }
+                    }),
+                    xnatSession: extend(true, {}, relabelColumn, {
+                        label: '' +
+                            // '<i class="fa fa-angle-double-right"></i>&nbsp;&nbsp;&nbsp;&nbsp;' +
+                            window.sessionDisplay +
+                            '',
+                        th: {
+                            title: 'Session',
+                            style: { width: WIDTHS.xnatSession }
+                        }
+                    })
                 }
 
             });
@@ -568,6 +703,9 @@ var XNAT = getObject(XNAT || {});
                             if (this.value) {
                                 dqr.allSearchResults[uid].relabelMap[this.title] = this.value
                             }
+                        }],
+                        ['click', 'td:has(.select-row)', function(e){
+                            $(this).closest('tr').find('input.select-session').trigger('click');
                         }]
                     ]
                 },
@@ -594,7 +732,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var accNum = this.accessionNumber || '';
-                            return spawn('div.truncate', { title: accNum }, accNum);
+                            return spawn('div.truncate.select-row', { title: accNum }, accNum);
                         }
                     },
                     patientName: {
@@ -603,48 +741,21 @@ var XNAT = getObject(XNAT || {});
                         apply: function(){
                             // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
                             var patientName = this.patient.name.lastNameCommaFirstName || '';
-                            return spawn('div.truncate', {
+                            return spawn('div.truncate.select-row', {
                                 title: patientName
                             }, patientName)
                         }
                     },
-                    nameRelabel: extend(true, {}, relabelColumn, {
+                    studyId: {
                         label: false,
                         td: {
-                            style: { width: WIDTHS.nameRelabel },
-                            title: 'Relabel Patient Name'
-                        },
-                        filter: false,
-                        apply: function(){
-                            return spawn('input.relabel.relabel-patient-name|type=text|tabindex=1', {
-                                title: 'Relabel Patient Name',
-                                value: this.relabelMap ? (this.relabelMap['Relabel Patient Name'] || '') : ''
-                            })
-                        }
-                    }),
-                    patientId: {
-                        label: false,
-                        td: {
-                            style: { width: WIDTHS.patientId }
+                            style: { width: WIDTHS.studyId }
                         },
                         apply: function(){
-                            var patientId = this.patient.id || '';
-                            return spawn('div.truncate', { title: patientId }, patientId);
+                            var studyId = this.studyId;
+                            return spawn('div.truncate.select-row', { title: studyId }, studyId);
                         }
                     },
-                    patientIdRelabel: extend(true, {}, relabelColumn, {
-                        label: false,
-                        td: {
-                            style: { width: WIDTHS.patientIdRelabel }
-                        },
-                        filter: false,
-                        apply: function(){
-                            return spawn('input.relabel.relabel-study-id|type=text|tabindex=1', {
-                                title: 'Relabel Patient ID',
-                                value: this.relabelMap ? (this.relabelMap['Relabel Patient ID'] || '') : ''
-                            })
-                        }
-                    }),
                     studyDate: {
                         label: false,
                         td: {
@@ -652,7 +763,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var studyDateStr = this.studyDate + '';
-                            return spawn('div.center.mono', this.studyDate ? [
+                            return spawn('div.center.mono.select-row', this.studyDate ? [
                                 // ['i.hidden.sort', studyDateStr],
                                 studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
                             ] : '<i class="hidden">0</i>&ndash;')
@@ -664,9 +775,35 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.mod }
                         },
                         apply: function(){
-                            return [].concat(this.modalitiesInStudy).join(', ');
+                            return spawn('div.select-row', [].concat(this.modalitiesInStudy).join(', '));
                         }
-                    }
+                    },
+                    xnatSubject: extend(true, {}, relabelColumn, {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.xnatSubject }
+                        },
+                        filter: false,
+                        apply: function(){
+                            return spawn('input.relabel.relabel-patient-name|type=text|tabindex=1', {
+                                title: 'Subject',
+                                value: this.relabelMap ? (this.relabelMap['Subject'] || '') : ''
+                            })
+                        }
+                    }),
+                    xnatSession: extend(true, {}, relabelColumn, {
+                        label: false,
+                        td: {
+                            style: { width: WIDTHS.xnatSession }
+                        },
+                        filter: false,
+                        apply: function(){
+                            return spawn('input.relabel.relabel-study-id|type=text|tabindex=1', {
+                                title: 'Session',
+                                value: this.relabelMap ? (this.relabelMap['Session'] || '') : ''
+                            })
+                        }
+                    })
                 }
             });
         }
