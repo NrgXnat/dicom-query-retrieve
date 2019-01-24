@@ -8,7 +8,42 @@ projectSettings:
     groups:
         dqrSettings: DICOM QRS
     contents:
+        ${enableDqrTab}
         ${irbSettingsTab}
+
+enableDqrTab:
+    kind: tab
+    group: dqrSettings
+    label: Enable DQR
+    contents:
+        ${enableDqrPanel}
+        ${adminProjectSettingsJS}
+
+enableDqrPanel:
+    kind: panel.form
+    id: enable-dqr-panel
+    label: Enable DQR for Project
+    footer: false
+    #load: "~/xapi/dqr/adminProjectSettings/{{XNAT.data.projectId}}"
+    #action: "~/xapi/dqr/adminProjectSettings"
+    #method: POST
+    #contentType: json
+    contents:
+        projectId:
+            kind: input.hidden
+            value: "?? XNAT.data.projectId"
+        enableDqr:
+            kind: panel.input.switchbox
+            name: enabled
+            id: enable-project-dqr
+            label: Enable DQR?
+            description: Enable DQR import/export for this project?
+            values: true|false
+            onText: Enabled
+            offText: Disabled
+
+adminProjectSettingsJS:
+    tag: "script|src=~/scripts/dqr/adminProjectSettings.js"
 
 # IRB Settings
 irbSettingsTab:
@@ -28,22 +63,22 @@ irbSettings:
             label: IRB Number
             contents:
                 irbNumber:
-                    tag: input#irb-number|name=irbNumber|type=text|size=30|style=width:236px;margin-right:10px;
+                    tag: "input#irb-number|name=irbNumber|type=text|size=30|style=width:236px;margin-right:10px;"
                 irbNumberSave:
-                    tag: button#save-irb-number.btn.btn1.btn-sm|type=button
+                    tag: "button#save-irb-number.btn.btn1.btn-sm|type=button"
                     content: Save
         irbFileDownload:
-            tag: div#irb-file-download.hidden
+            tag: "div#irb-file-download.hidden"
             contents:
                 irbFileLinkElement:
                     kind: panel.element
                     label: IRB File
                     contents:
                         irbFileLink:
-                            tag: a#irb-file-link|href=#!
+                            tag: "a#irb-file-link|href=#!"
                             content: (none)
                         irbFileLinkDesc:
-                            tag: div.description
+                            tag: "div.description"
                             content: (click to download)
         irbFile:
             kind: panel.input.upload
@@ -55,6 +90,6 @@ irbSettings:
             action: ~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile
             description: Upload new or replace existing IRB file.
         irbSettingsJS:
-            tag: script|src=~/scripts/dqr/irbSettings.js
+            tag: "script|src=~/scripts/dqr/irbSettings.js"
 
 #end
