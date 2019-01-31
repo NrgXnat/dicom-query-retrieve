@@ -1,5 +1,25 @@
 // More versatile filtering that works on non-table elements
-XNAT.app.filterableItems = function(container){
+XNAT.app.filterableItems = function filterableItems(container){
+
+    var args = arguments;
+    var argLen = args.length;
+    var argi = -1;
+    var multi = [];
+
+    // initialize multiple containers as separate arguments
+    if (argLen > 1) {
+        while (++argi < argLen) {
+            multi.push(filterableItems(args[argi]));
+        }
+        return multi;
+    }
+
+    // initialize multiple containers as an array
+    if (Array.isArray(container)) {
+        return container.map(function(cont, i){
+            return filterableItems(cont);
+        });
+    }
 
     var $container = (container && container.jquery) ? container : $(container);
 
@@ -106,7 +126,7 @@ XNAT.app.filterableItems = function(container){
         $(this).select();
         // save reference to the data rows on focus
         // (should make filtering slightly faster)
-        cacheItems();
+        // cacheItems();
     });
 
     // $filterMenus.on('focus.filter', cacheItems);
@@ -123,10 +143,10 @@ XNAT.app.filterableItems = function(container){
         var start = performanceNow();
         getFilterValues();
         // show all rows if there are no filter values, or if they're all '*'
-        if (!filterComposite) {
-            resetFilters();
-            // return;
-        }
+        // if (!filterComposite) {
+        //     resetFilters();
+        //     // return;
+        // }
         dataItems.forEach(function(row, i){
             // shown until hidden
             row['*'].hidden = false;
@@ -170,7 +190,7 @@ XNAT.app.filterableItems = function(container){
     });
 
     return {
-        rows: $($dataRows || []).toArray(),
+        rows: $dataRows.length ? $dataRows.toArray() : [],
         getRows: function(){
             $dataRows = cacheItems();
             return (this.rows = $dataRows.toArray());

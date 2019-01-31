@@ -44,10 +44,10 @@
         <th style="width:34%">Baz</th>
     </tr>
     <tr>
-        <td><label><input type="text" class="filter-data" title="filter:foo" placeholder="filter..."></label></td>
-        <td><label><input type="text" class="filter-data" title="filter:bar" placeholder="filter..."></label></td>
+        <td><label><input type="text" class="filter-input" title="filter:foo" placeholder="filter..."></label></td>
+        <td><label><input type="text" class="filter-input" title="filter:bar" placeholder="filter..."></label></td>
         <td><label>
-            <select class="filter-data" title="filter:baz">
+            <select class="filter-menu" title="filter:baz">
                 <option value="" selected disabled>filter...</option>
                 <option value="">Show All</option>
                 <option value="chambray">chambray</option>
@@ -79,7 +79,11 @@
     </tbody>
     <tfoot>
     <tr>
-        <td colspan="3"><label>Filter all: <input type="text" class="filter-data-all" title="filter:*"></label></td>
+        <td colspan="3">
+            <label>Filter all:
+                <input type="text" class="filter-input" title="filter:*">
+            </label>
+        </td>
     </tr>
     </tfoot>
 </table>
@@ -91,19 +95,29 @@
 <div id="filterable-list">
     <ul class="filter-data-rows">
         <li style="list-style:none;"><b>Filterable List:</b></li>
-        <li><label><input type="text" class="filter-data" title="filter:list" placeholder="filter..."></label></li>
-        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Waistcoat</span></li>
-        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Venmo</span></li>
-        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Asymmetrical</span></li>
-        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Heirloom</span></li>
-        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Neutra</span></li>
+        <li>
+            <label>
+                <input type="text" class="filter-input" title="filter:*" placeholder="filter...">
+            </label>
+        </li>
+        <li class="filter-data-row">Waistcoat</li>
+        <li class="filter-data-row">Venmo</li>
+        <li class="filter-data-row">Asymmetrical</li>
+        <li class="filter-data-row">Heirloom</li>
+        <li class="filter-data-row">Neutra</li>
     </ul>
 </div>
 
 <script src="filterableItems.js"></script>
 <script>
-    XNAT.app.filterableItems($('#filterable-example'));
-    XNAT.app.filterableItems($('#filterable-list'));
+    (function($){
+        var filterInit = XNAT.app.filterableItems([
+            $('#filterable-example'),
+            $('#filterable-list')
+        ]);
+        console.log(filterInit);
+        // XNAT.app.filterableItems($('#filterable-list'));
+    })(window.jQuery);
 </script>
 </body>
 </html>
