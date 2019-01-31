@@ -340,7 +340,7 @@ var XNAT = getObject(XNAT || {});
                     },
                     filter: function(){
                         return spawn('div.center', [
-                            ['input.selectable-select-all|type=checkbox', {
+                            ['input.selectable-all|type=checkbox', {
                                 checked: true
                             }]
                         ])
@@ -348,7 +348,7 @@ var XNAT = getObject(XNAT || {});
                     apply: function(){
                         var item = this;
                         return spawn('div.center', [
-                            ['input.selectable-select-one.select-scan-type|type=checkbox', {
+                            ['input.selectable-one.select-scan-type|type=checkbox', {
                                 value: item.name !== NONE ? item.name : '',
                                 id: itemId(item),
                                 checked: true
@@ -495,8 +495,8 @@ var XNAT = getObject(XNAT || {});
                     title: ' ',
                     width: 400,
                     content: (function(){
-                        return '<div style="margin:20px;">' +
-                            '<p style="font-size:14px;line-height:20px;">' +
+                        return '<div style="margin:30px;">' +
+                            '<p style="font-size:13px;line-height:18px;">' +
                             'PACS data has been queued for import. You may close ' +
                             'this dialog to start a new search.</p>' +
                             '<p style="font-size:14px;line-height:20px;">' +
@@ -606,7 +606,7 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.select }
                         },
                         filter: function(){
-                            var ckbx = spawn('input#toggle-all-sessions.selectable-select-all|type=checkbox', {
+                            var ckbx = spawn('input#toggle-all-sessions.selectable-all|type=checkbox', {
                                 checked: false,
                                 value: '*'
                             });
@@ -813,7 +813,7 @@ var XNAT = getObject(XNAT || {});
         // init the selectable stuff
         XNAT.app.selectableItems($pacsSearchResults);
 
-        XNAT.app.searchableItems($pacsSearchResults);
+        XNAT.app.filterableItems($pacsSearchResults);
 
         $searchResultsSubmit.empty();
 

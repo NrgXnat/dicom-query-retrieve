@@ -2,11 +2,11 @@
 // non-standard table container element
 XNAT.app.searchableItems = function(container){
 
-    var $container = $$(container);
+    var $container = (container && container.jquery) ? container : $(container);
     var $filterInputs = $container.find('input.filter-data');
 
     // detach previously bound listeners
-    $filterInputs.off('focus, keyup');
+    $filterInputs.off('focus.filter keyup.filter');
 
     var $dataRows;
 

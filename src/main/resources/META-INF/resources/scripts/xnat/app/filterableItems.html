@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Filterable Items Example</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif }
+
+        table { border-collapse: collapse; }
+
+        /*table, tr, th, td { border-collapse: collapse }*/
+        /*tr { border-bottom: 2px solid #ccc; }*/
+        th { text-align: left; }
+
+        th, td {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+        }
+
+        ul {
+            list-style: none;
+        }
+        li {
+            padding: 4px 8px;
+        }
+
+        .filter-data-row.hidden { display: none; }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+            crossorigin="anonymous"></script>
+    <script>
+        window.XNAT = (window.XNAT != null) ? window.XNAT : {};
+        window.XNAT.app = (window.XNAT.app != null) ? window.XNAT.app : {};
+    </script>
+</head>
+<body>
+
+<table id="filterable-example" style="width:960px">
+    <thead>
+    <tr>
+        <th style="width:33%">Foo</th>
+        <th style="width:33%">Bar</th>
+        <th style="width:34%">Baz</th>
+    </tr>
+    <tr>
+        <td><label><input type="text" class="filter-data" title="filter:foo" placeholder="filter..."></label></td>
+        <td><label><input type="text" class="filter-data" title="filter:bar" placeholder="filter..."></label></td>
+        <td><label>
+            <select class="filter-data" title="filter:baz">
+                <option value="" selected disabled>filter...</option>
+                <option value="">Show All</option>
+                <option value="chambray">chambray</option>
+                <option value="celiac">celiac</option>
+                <option value="narwhal">narwhal</option>
+                <option value="knausgaard">knausgaard</option>
+                <option value="raclette">raclette</option>
+                <option value="heirloom">heirloom</option>
+            </select>
+        </label></td>
+    </tr>
+    </thead>
+    <tbody class="filter-data-rows">
+    <tr class="filter-data-row">
+        <td class="filter-data-item" title="filter:foo">Waistcoat chambray</td>
+        <td class="filter-data-item" title="filter:bar">Venmo celiac knausgaard</td>
+        <td class="filter-data-item" title="filter:baz">Asymmetrical narwhal raclette</td>
+    </tr>
+    <tr class="filter-data-row">
+        <td class="filter-data-item" title="filter:foo">Heirloom fanny pack keffiyeh</td>
+        <td class="filter-data-item" title="filter:bar">Neutra shabby chic cold-pressed chambray</td>
+        <td class="filter-data-item" title="filter:baz">Drinking vinegar adaptogen raclette</td>
+    </tr>
+    <tr class="filter-data-row">
+        <td class="filter-data-item" title="filter:foo">Heirloom sriracha readymade</td>
+        <td class="filter-data-item" title="filter:bar">Occupy poke glossier pickled</td>
+        <td class="filter-data-item" title="filter:baz">Synth taiyaki kogi neutra heirloom</td>
+    </tr>
+    </tbody>
+    <tfoot>
+    <tr>
+        <td colspan="3"><label>Filter all: <input type="text" class="filter-data-all" title="filter:*"></label></td>
+    </tr>
+    </tfoot>
+</table>
+
+<br>
+<hr>
+<br>
+
+<div id="filterable-list">
+    <ul class="filter-data-rows">
+        <li style="list-style:none;"><b>Filterable List:</b></li>
+        <li><label><input type="text" class="filter-data" title="filter:list" placeholder="filter..."></label></li>
+        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Waistcoat</span></li>
+        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Venmo</span></li>
+        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Asymmetrical</span></li>
+        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Heirloom</span></li>
+        <li class="filter-data-row"><span class="filter-data-item" title="filter:list">Neutra</span></li>
+    </ul>
+</div>
+
+<script src="filterableItems.js"></script>
+<script>
+    XNAT.app.filterableItems($('#filterable-example'));
+    XNAT.app.filterableItems($('#filterable-list'));
+</script>
+</body>
+</html>
