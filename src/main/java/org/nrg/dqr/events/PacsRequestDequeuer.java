@@ -64,8 +64,11 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                         Long pacsId = currPacs.getId();
                         Integer defaultDequeuesPerHour = currPacs.getDefaultDequeuesPerHour();
                         Integer sessionsPerDequeue = currPacs.getDefaultSessionsPerDequeue();
-                        if (defaultDequeuesPerHour != null && sessionsPerDequeue != null && defaultDequeuesPerHour > 0) {
-                            Long millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
+                        if (defaultDequeuesPerHour != null && sessionsPerDequeue != null) {
+                            Long millisBetweenPacsRequests = 0L;
+                            if (defaultDequeuesPerHour != 0L) {
+                                millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
+                            }
                             List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
                             for (PacsAvailability availability : availabilityList) {
                                 String availabilityStartTimeString = availability.getAvailabilityStart();
@@ -134,7 +137,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                                     break;
                                 }
                             }
-                            if (millisBetweenPacsRequests != 0L) {
+                            if (millisBetweenPacsRequests != 0L && sessionsPerDequeue>0) {
                                 ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
                                 if (lastReq != null) {
                                     Date executedTime = lastReq.getExecutedTime();
