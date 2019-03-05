@@ -806,12 +806,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             existingSettings.setAvailabilityEnd(settings.getAvailabilityEnd());
             isDirty = true;
         }
-        if (settings.getSessionsPerDequeue()!=existingSettings.getSessionsPerDequeue()) {
-            existingSettings.setSessionsPerDequeue(settings.getSessionsPerDequeue());
+        if (settings.getUtilizationPercent()!=existingSettings.getUtilizationPercent()) {
+            existingSettings.setUtilizationPercent(settings.getUtilizationPercent());
             isDirty = true;
         }
-        if (settings.getDequeuesPerHour()!=existingSettings.getDequeuesPerHour()) {
-            existingSettings.setDequeuesPerHour(settings.getDequeuesPerHour());
+        if (settings.getThreads()!=existingSettings.getThreads()) {
+            existingSettings.setThreads(settings.getThreads());
             isDirty = true;
         }
         if (settings.getPacsId()!=existingSettings.getPacsId()) {

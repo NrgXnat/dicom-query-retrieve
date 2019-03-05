@@ -210,14 +210,6 @@ XNAT.app = getObject(XNAT.app || {});
                             onText: 'Yes',
                             offText: 'No',
                             value: false
-                        }),
-                        XNAT.ui.panel.input.text({
-                            name: 'defaultDequeuesPerHour',
-                            label: 'Default Dequeues Per Hour'
-                        }),
-                        XNAT.ui.panel.input.text({
-                            name: 'defaultSessionsPerDequeue',
-                            label: 'Default Sessions Per Dequeue'
                         })
                     ])
                 );
@@ -402,8 +394,6 @@ XNAT.app = getObject(XNAT.app || {});
                         defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
                         storable: ae.storable,
                         defaultStoragePacs: ae.defaultStoragePacs,
-                        defaultDequeuesPerHour: ae.defaultDequeuesPerHour,
-                        defaultSessionsPerDequeue: ae.defaultSessionsPerDequeue,
                         ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                         supportsExtendedNegotiations: ae.supportsExtendedNegotiations
                     }

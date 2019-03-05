@@ -1,16 +1,12 @@
 package org.nrg.dqr.events;
 
-import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
-import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
@@ -22,23 +18,17 @@ import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.restlet.extensions.*;
 import org.restlet.data.Status;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.nrg.xnat.task.*;
 
 import java.util.*;
 
-import lombok.extern.slf4j.Slf4j;
-
-import javax.inject.Inject;
-
 /**
  * Created by mike on 1/23/18.
  */
-public class PacsRequestDequeuer extends AbstractXnatRunnable {
-    public PacsRequestDequeuer(){
+public class PacsThreadsChecker extends AbstractXnatRunnable {
+    public PacsThreadsChecker(){
         if (_log.isDebugEnabled()) {
             _log.debug("Initializing the PACS request dequeuer job");
         }
@@ -48,7 +38,7 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
     public void runTask() {
         try {
             if (_log.isDebugEnabled()) {
-                _log.debug("Executing PACS request dequeuer function");
+                _log.debug("Executing PACS threads checker function");
             }
             PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
             PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
@@ -62,126 +52,127 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
                 for (Pacs currPacs : pacsList) {
                     try {
                         Long pacsId = currPacs.getId();
-                        Integer defaultDequeuesPerHour = currPacs.getDefaultDequeuesPerHour();
-                        Integer sessionsPerDequeue = currPacs.getDefaultSessionsPerDequeue();
-                        if (defaultDequeuesPerHour != null && sessionsPerDequeue != null) {
-                            Long millisBetweenPacsRequests = 0L;
-                            if (defaultDequeuesPerHour != 0L) {
-                                millisBetweenPacsRequests = (3600000L / defaultDequeuesPerHour);
+                        List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
+                        int utilizationPercent = 0;
+                        int threads = 0;
+                        for (PacsAvailability availability : availabilityList) {
+                            String availabilityStartTimeString = availability.getAvailabilityStart();
+                            String availabilityEndTimeString = availability.getAvailabilityEnd();
+                            int availabilityDay = availability.getDayOfWeek();
+
+                            //If hour is one digit, pad with a zero.
+                            if (availabilityStartTimeString.charAt(1) == ':') {
+                                availabilityStartTimeString = "0" + availabilityStartTimeString;
                             }
-                            List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
-                            for (PacsAvailability availability : availabilityList) {
-                                String availabilityStartTimeString = availability.getAvailabilityStart();
-                                String availabilityEndTimeString = availability.getAvailabilityEnd();
-                                int availabilityDay = availability.getDayOfWeek();
+                            if (availabilityEndTimeString.charAt(1) == ':') {
+                                availabilityEndTimeString = "0" + availabilityEndTimeString;
+                            }
+                            Calendar currentCal = Calendar.getInstance();
+                            int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
 
-                                //If hour is one digit, pad with a zero.
-                                if (availabilityStartTimeString.charAt(1) == ':') {
-                                    availabilityStartTimeString = "0" + availabilityStartTimeString;
-                                }
-                                if (availabilityEndTimeString.charAt(1) == ':') {
-                                    availabilityEndTimeString = "0" + availabilityEndTimeString;
-                                }
-                                Calendar currentCal = Calendar.getInstance();
-                                int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
+                            long currMillis = currentCal.getTimeInMillis();
 
-                                long currMillis = currentCal.getTimeInMillis();
+                            long startMillis = 0L;
+                            long endMillis = 0L;
 
-                                long startMillis = 0L;
-                                long endMillis = 0L;
+                            if (StringUtils.isNotBlank(availabilityStartTimeString)) {
+                                try {
+                                    Calendar startCal = (Calendar) currentCal.clone();
+                                    String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
+                                    startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
+                                    startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
+                                    startMillis = startCal.getTimeInMillis();
+                                } catch (Exception e) {
 
-                                if (StringUtils.isNotBlank(availabilityStartTimeString)) {
-                                    try {
-                                        Calendar startCal = (Calendar) currentCal.clone();
-                                        String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
-                                        startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
-                                        startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
-                                        startMillis = startCal.getTimeInMillis();
-                                    } catch (Exception e) {
-
-                                    }
-                                }
-                                if (StringUtils.isNotBlank(availabilityEndTimeString)) {
-                                    try {
-                                        Calendar endCal = (Calendar) currentCal.clone();
-                                        String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
-                                        endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
-                                        endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
-                                        endMillis = endCal.getTimeInMillis();
-                                    } catch (Exception e) {
-
-                                    }
-                                }
-
-                                boolean isAvailable = false;
-                                if (endMillis < startMillis) {
-                                    //That means that the availability interval contains midnight.
-                                    if ((currMillis > startMillis && currentDayOfWeek == availabilityDay) || (currMillis < endMillis && currentDayOfWeek == (availabilityDay + 1))) {
-                                        isAvailable = true;
-                                    }
-                                } else {
-                                    if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek == availabilityDay) {
-                                        isAvailable = true;
-                                    }
-                                }
-
-                                if (isAvailable) {
-                                    long sessionsPerHour = availability.getDequeuesPerHour();
-                                    if (sessionsPerHour == 0L) {
-                                        millisBetweenPacsRequests = 0L;
-
-                                    } else {
-                                        millisBetweenPacsRequests = (3600000 / sessionsPerHour);
-                                    }
-                                    sessionsPerDequeue = availability.getSessionsPerDequeue();
-                                    break;
                                 }
                             }
-                            if (millisBetweenPacsRequests != 0L && sessionsPerDequeue>0) {
-                                ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
-                                if (lastReq != null) {
-                                    Date executedTime = lastReq.getExecutedTime();
-                                    Date currTime = new Date();
+                            if (StringUtils.isNotBlank(availabilityEndTimeString)) {
+                                try {
+                                    Calendar endCal = (Calendar) currentCal.clone();
+                                    String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
+                                    endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
+                                    endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
+                                    endMillis = endCal.getTimeInMillis();
+                                } catch (Exception e) {
 
-                                    if (executedTime != null) {
-                                        if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
-                                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
-                                            if (reqs != null && reqs.size() > 0) {
+                                }
+                            }
 
-                                                //Try to dequeue requests as long as PACS is responding to pings.
-                                                boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
-                                                if (canConnect) {
-                                                    int added = 0;
-                                                    for (QueuedPacsRequest req : reqs) {
-                                                        requestsToDequeue.add(req);
-                                                        added++;
-                                                        if (added >= sessionsPerDequeue) {
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
-                                    if (reqs != null && reqs.size() > 0) {
+                            boolean isAvailable = false;
+                            if (endMillis < startMillis) {
+                                //That means that the availability interval contains midnight.
+                                if ((currMillis > startMillis && currentDayOfWeek == availabilityDay) || (currMillis < endMillis && currentDayOfWeek == (availabilityDay + 1))) {
+                                    isAvailable = true;
+                                }
+                            } else {
+                                if (currMillis > startMillis && currMillis < endMillis && currentDayOfWeek == availabilityDay) {
+                                    isAvailable = true;
+                                }
+                            }
 
-                                        //Try to dequeue requests as long as PACS is responding to pings.
-                                        boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
-                                        if (canConnect) {
-                                            int added = 0;
-                                            for (QueuedPacsRequest req : reqs) {
-                                                requestsToDequeue.add(req);
-                                                added++;
-                                                if (added >= sessionsPerDequeue) {
-                                                    break;
-                                                }
-                                            }
-                                        }
+                            if (isAvailable) {
+                                utilizationPercent = availability.getUtilizationPercent();
+                                threads = availability.getThreads();
+                                break;
+                            }
+                        }
+                        if (utilizationPercent >0 && threads>0) {
+                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
+                            boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+                            if (canConnect) {
+                                int added = 0;
+                                for (QueuedPacsRequest req : reqs) {
+                                    requestsToDequeue.add(req);
+                                    added++;
+                                    if (added >= threads) {//For now just treat number of threads like the old sessionsPerDequeue and ignore utilization percent
+                                        break;
                                     }
                                 }
                             }
+
+//                            ExecutedPacsRequest lastReq = executedService.getMostRecentForPacs(pacsId);
+//                            if (lastReq != null) {
+//                                Date executedTime = lastReq.getExecutedTime();
+//                                Date currTime = new Date();
+//
+//                                if (executedTime != null) {
+//                                    if ((currTime.getTime() - executedTime.getTime()) > (millisBetweenPacsRequests)) {
+//                                        List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
+//                                        if (reqs != null && reqs.size() > 0) {
+//
+//                                            //Try to dequeue requests as long as PACS is responding to pings.
+//                                            boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+//                                            if (canConnect) {
+//                                                int added = 0;
+//                                                for (QueuedPacsRequest req : reqs) {
+//                                                    requestsToDequeue.add(req);
+//                                                    added++;
+//                                                    if (added >= sessionsPerDequeue) {
+//                                                        break;
+//                                                    }
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            } else {
+//                                List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
+//                                if (reqs != null && reqs.size() > 0) {
+//
+//                                    //Try to dequeue requests as long as PACS is responding to pings.
+//                                    boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+//                                    if (canConnect) {
+//                                        int added = 0;
+//                                        for (QueuedPacsRequest req : reqs) {
+//                                            requestsToDequeue.add(req);
+//                                            added++;
+//                                            if (added >= sessionsPerDequeue) {
+//                                                break;
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                            }
                         }
                     }
                     catch(Exception e){
@@ -231,7 +222,12 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
 
                         XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 
+                        long startTime = Calendar.getInstance().getTimeInMillis();
                         pacsService.importFromPacsRequest(pacsReq);
+                        long endTime = Calendar.getInstance().getTimeInMillis();
+                        long importTime = endTime - startTime;
+
+
                         requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
                         queueService.update(requestToDequeue);
                     }
@@ -294,5 +290,5 @@ public class PacsRequestDequeuer extends AbstractXnatRunnable {
         }
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(PacsRequestDequeuer.class);
+    private static final Logger _log = LoggerFactory.getLogger(PacsThreadsChecker.class);
 }

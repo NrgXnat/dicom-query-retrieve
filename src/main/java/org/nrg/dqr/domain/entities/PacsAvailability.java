@@ -39,8 +39,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
     private int _dayOfWeek;
     private String _availabilityStart;
     private String _availabilityEnd;
-    private int _dequeuesPerHour;
-    private int _sessionsPerDequeue;
+    private int _threads;
+    private int _utilizationPercent;
 
     // for Hibernate
     public PacsAvailability() {
@@ -82,20 +82,20 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         this._availabilityEnd = availabilityEnd;
     }
 
-    public int getDequeuesPerHour() {
-        return _dequeuesPerHour;
+    public int getThreads() {
+        return _threads;
     }
 
-    public void setDequeuesPerHour(int dequeuesPerHour) {
-        this._dequeuesPerHour = dequeuesPerHour;
+    public void setThreads(int threads) {
+        this._threads = threads;
     }
 
-    public int getSessionsPerDequeue() {
-        return _sessionsPerDequeue;
+    public int getUtilizationPercent() {
+        return _utilizationPercent;
     }
 
-    public void setSessionsPerDequeue(int sessionsPerDequeue) {
-        this._sessionsPerDequeue = sessionsPerDequeue;
+    public void setUtilizationPercent(int utilizationPercent) {
+        this._utilizationPercent = utilizationPercent;
     }
 
     @Override
@@ -112,8 +112,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
             return false;
         if (_availabilityEnd != null ? !_availabilityEnd.equals(that._availabilityEnd) : that._availabilityEnd != null)
             return false;
-        if (_dequeuesPerHour != that._dequeuesPerHour) return false;
-        return _sessionsPerDequeue==that._sessionsPerDequeue;
+        if (_threads != that._threads) return false;
+        return _utilizationPercent==that._utilizationPercent;
     }
 
     @Override
@@ -123,8 +123,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         result = 31 * result + _dayOfWeek;
         result = 31 * result + (_availabilityStart != null ? _availabilityStart.hashCode() : 0);
         result = 31 * result + (_availabilityEnd != null ? _availabilityEnd.hashCode() : 0);
-        result = 31 * result + _dequeuesPerHour;
-        result = 31 * result + _sessionsPerDequeue;
+        result = 31 * result + _threads;
+        result = 31 * result + _utilizationPercent;
         return result;
     }
 
@@ -135,8 +135,8 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
                 ", dayOfWeek='" + _dayOfWeek + '\'' +
                 ", availabilityStart='" + _availabilityStart + '\'' +
                 ", availabilityEnd='" + _availabilityEnd + '\'' +
-                ", dequeuesPerHour='" + _dequeuesPerHour + '\'' +
-                ", sessionsPerDequeue=" + _sessionsPerDequeue +
+                ", threads='" + _threads + '\'' +
+                ", utilizationPercent=" + _utilizationPercent +
                 '}';
     }
 }
