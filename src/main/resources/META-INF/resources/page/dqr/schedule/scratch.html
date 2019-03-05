@@ -62,10 +62,10 @@
     </div>
 </div>
 <!--<script src="../../../scripts/lib/array-fill.js"></script>-->
-<script src="../../../scripts/lib/xx.js"></script>
+<!--<script src="../../../scripts/lib/xx.js"></script>-->
 <!--<script src="../../../scripts/lib/xx.spawnElement.js"></script>-->
 <script>
-    (function(xx){
+    (function(){
 
         var NBSP = '&nbsp;';
 
@@ -73,6 +73,7 @@
         var scheduleDays$  = $('#pacs-schedule-days');
 
         var daysConfig = [
+            ['', ''],  // placeholder for index 0
             ['Sun', 'sunday-schedule'],
             ['Mon', 'monday-schedule'],
             ['Tue', 'tuesday-schedule'],
@@ -92,7 +93,7 @@
 
                 id: id || 1,          // increments globally for all entries across all days
 
-                dayOfWeek: day || 0,       // increments for each day
+                dayOfWeek: day || 1,       // increments for each day - 1 indexed
                 hour: (hour = hour || 0),  // increments for each hour for the current day
 
                 time: get12HourTime(hour),  // convert to 12-hour format
@@ -139,7 +140,7 @@
         // iterate days and build the display rows
         daysConfig.forEach(function(day, iday){
 
-            var dayIndex = iday;
+            var dayIndex = iday + 1;
 
             var dayLabel = day[0];
             var dayClass = day[1];
@@ -191,5 +192,5 @@
             '_': 0
         };
 
-    })(window.xx);
+    })();
 </script>

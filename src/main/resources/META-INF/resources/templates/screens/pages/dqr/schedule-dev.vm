@@ -37,8 +37,10 @@
 
     <div id="page-body" class="hidden">
         <div class="pad">
-
-            #parse("/page/dqr/schedule/view.html")
+            ## create a folder at '/page/dqr/schedule-dev' in the running webapp
+            ## and copy the files from '/page/dqr/schedule' to do front-end
+            ## development without needing to rebuild the plugin jar every time
+            #parse("/page/dqr/schedule-dev/view.html")
 
         </div>
     </div>

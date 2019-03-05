@@ -1,0 +1,169 @@
+{
+    "1": [
+        {
+            "id": 1,
+            "pacsId": 1,
+            "dayOfWeek": 1,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "23:59",
+            "threads": 5,
+            "utilizationPercent": 100
+        }
+    ],
+    "2": [
+        {
+            "id": 2,
+            "pacsId": 1,
+            "dayOfWeek": 2,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "7:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        },
+        {
+            "id": 3,
+            "pacsId": 1,
+            "dayOfWeek": 2,
+            "availabilityStart": "8:00",
+            "availabilityEnd": "17:59",
+            "threads": 1,
+            "utilizationPercent": 20
+        },
+        {
+            "id": 4,
+            "pacsId": 1,
+            "dayOfWeek": 2,
+            "availabilityStart": "18:00",
+            "availabilityEnd": "23:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        }
+    ],
+    "3": [
+        {
+            "id": 5,
+            "pacsId": 1,
+            "dayOfWeek": 3,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "7:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        },
+        {
+            "id": 6,
+            "pacsId": 1,
+            "dayOfWeek": 3,
+            "availabilityStart": "8:00",
+            "availabilityEnd": "17:59",
+            "threads": 1,
+            "utilizationPercent": 20
+        },
+        {
+            "id": 7,
+            "pacsId": 1,
+            "dayOfWeek": 3,
+            "availabilityStart": "18:00",
+            "availabilityEnd": "23:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        }
+    ],
+    "4": [
+        {
+            "id": 8,
+            "pacsId": 1,
+            "dayOfWeek": 4,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "7:59",
+            "threads": 2,
+            "utilizationPercent": 50
+        },
+        {
+            "id": 9,
+            "pacsId": 1,
+            "dayOfWeek": 4,
+            "availabilityStart": "8:00",
+            "availabilityEnd": "17:59",
+            "threads": 1,
+            "utilizationPercent": 0
+        },
+        {
+            "id": 10,
+            "pacsId": 1,
+            "dayOfWeek": 4,
+            "availabilityStart": "18:00",
+            "availabilityEnd": "23:59",
+            "threads": 2,
+            "utilizationPercent": 50
+        }
+    ],
+    "5": [
+        {
+            "id": 11,
+            "pacsId": 1,
+            "dayOfWeek": 5,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "7:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        },
+        {
+            "id": 12,
+            "pacsId": 1,
+            "dayOfWeek": 5,
+            "availabilityStart": "8:00",
+            "availabilityEnd": "17:59",
+            "threads": 1,
+            "utilizationPercent": 20
+        },
+        {
+            "id": 13,
+            "pacsId": 1,
+            "dayOfWeek": 5,
+            "availabilityStart": "18:00",
+            "availabilityEnd": "23:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        }
+    ],
+    "6": [
+        {
+            "id": 14,
+            "pacsId": 1,
+            "dayOfWeek": 6,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "7:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        },
+        {
+            "id": 15,
+            "pacsId": 1,
+            "dayOfWeek": 6,
+            "availabilityStart": "8:00",
+            "availabilityEnd": "17:59",
+            "threads": 1,
+            "utilizationPercent": 20
+        },
+        {
+            "id": 16,
+            "pacsId": 1,
+            "dayOfWeek": 6,
+            "availabilityStart": "18:00",
+            "availabilityEnd": "23:59",
+            "threads": 2,
+            "utilizationPercent": 100
+        }
+    ],
+    "7": [
+        {
+            "id": 17,
+            "pacsId": 1,
+            "dayOfWeek": 7,
+            "availabilityStart": "0:00",
+            "availabilityEnd": "23:59",
+            "threads": 5,
+            "utilizationPercent": 100
+        }
+    ]
+}
