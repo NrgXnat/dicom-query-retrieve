@@ -95,20 +95,31 @@
 <div id="filterable-list">
     <ul class="filter-data-rows">
         <li style="list-style:none;"><b>Filterable List:</b></li>
-        <li>
+        <li><label><input type="checkbox" class="selectable-all"></label>
             <label>
                 <input type="text" class="filter-input" title="filter:*" placeholder="filter...">
             </label>
         </li>
-        <li class="filter-data-row">Waistcoat</li>
-        <li class="filter-data-row">Venmo</li>
-        <li class="filter-data-row">Asymmetrical</li>
-        <li class="filter-data-row">Heirloom</li>
-        <li class="filter-data-row">Neutra</li>
+        <li class="filter-data-row">
+            <label><input type="checkbox" value="Waistcoat" class="selectable-one"> Waistcoat</label>
+        </li>
+        <li class="filter-data-row">
+            <label><input type="checkbox" value="Venmo" class="selectable-one"> Venmo</label>
+        </li>
+        <li class="filter-data-row">
+            <label><input type="checkbox" value="Asymmetrical" class="selectable-one"> Asymmetrical</label>
+        </li>
+        <li class="filter-data-row">
+            <label><input type="checkbox" value="Heirloom" class="selectable-one"> Heirloom</label>
+        </li>
+        <li class="filter-data-row">
+            <label><input type="checkbox" value="Neutra" class="selectable-one"> Neutra</label>
+        </li>
     </ul>
 </div>
 
 <script src="filterableItems.js"></script>
+<script src="selectableItems.js"></script>
 <script>
     (function($){
         var filterInit = XNAT.app.filterableItems([
@@ -117,6 +128,7 @@
         ]);
         console.log(filterInit);
         // XNAT.app.filterableItems($('#filterable-list'));
+        XNAT.app.selectableItems('#filterable-list')
     })(window.jQuery);
 </script>
 </body>

@@ -134,7 +134,7 @@ XNAT.app.filterableItems = function filterableItems(container){
     function containsNC(str, val){
         // returns true if `str` has a value but `val` does not...
         // ...or consists of only whitespace and/or '*' characters
-        if (str && !val || /^[*\s]+$/.test(val)) return true;
+        if ((str && !val) || /^[*\s]+$/.test(val)) return true;
         if (!str && !val) return false;
         return (str + '').toLowerCase().indexOf((val + '').toLowerCase()) > -1;
     }
@@ -161,6 +161,7 @@ XNAT.app.filterableItems = function filterableItems(container){
             row['*'].row.classList[row['*'].hidden ? 'add' : 'remove']('hidden');
         });
         console.log('filter speed: ' + (performanceNow() - start));
+        $container.triggerHandler('multicheck');
     }
 
     $filterInputs.on('keyup.filter', function(e){

@@ -2,7 +2,7 @@
 // init on a <table> or *any* container element
 XNAT.app.selectableItems = function(container){
 
-    var $container = $$(container || document);
+    var $container = (container && container.jquery) ? container : $(container);
 
     var CKBX_ALL = '.selectable-all';
     var CKBX_ONE = '.selectable-one';
@@ -16,8 +16,14 @@ XNAT.app.selectableItems = function(container){
 
     function toggleAll(checked){
         $ckbxAll.prop(INDET, false);
+        // uncheck *all* checkboxes first?
+        // $ckbxs.prop('checked', false);
         // toggle only *visible* checkboxes
         $ckbxs.filter(':visible').prop('checked', checked);
+    }
+
+    function uncheckHidden(){
+        $ckbxs.filter(':hidden').prop('checked', false);
     }
 
     function multichecker(){
@@ -48,6 +54,12 @@ XNAT.app.selectableItems = function(container){
     });
 
     $container.on(CLICK, CKBX_ONE, function(e){
+        multichecker();
+    });
+
+    // listen for custom 'multicheck' event on container
+    $container.on('multicheck', function(){
+        console.log('multicheck');
         multichecker();
     });
 
