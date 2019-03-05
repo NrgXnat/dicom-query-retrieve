@@ -774,8 +774,24 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             log.error("User {} tried to create a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+        _pacsAvailabilityEntityService.checkOverlap(settings, true);
         PacsAvailability created = _pacsAvailabilityEntityService.create(settings);
         return new ResponseEntity<>(created, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Checks whether a new PACS availability interval would overlap with any existing intervals.", notes = "Returns whether the posted PACS availability interval would overlap with any existing intervals.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns whether there is overlap with an existing interval."),
+            @ApiResponse(code = 400, message = "Interval not fully specified."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to check interval overlap."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "pacsAvailability/conflictsExisting", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<Boolean> checkPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
+        if (settings.getDayOfWeek()==0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+            log.error("User {} check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.checkOverlap(settings, false), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Updates the requested PACS availability interval using the submitted attributes.", notes = "Returns the updated PACS availability interval.", response = PacsAvailability.class)
@@ -820,6 +836,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
 
         if (isDirty) {
+            _pacsAvailabilityEntityService.checkOverlap(settings, true, existingSettings.getId());
             _pacsAvailabilityEntityService.update(existingSettings);
             return new ResponseEntity<>(existingSettings, HttpStatus.OK);
         }
@@ -866,6 +883,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<List<PacsAvailability>> getPacsAvailabilityIntervals(@PathVariable("pacsId") final String pacsId) {
         return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacs(Long.parseLong(pacsId)), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get PACS availability intervals by day for the specified PACS.", notes = "The get PACS availability intervals by day function returns the PACS availability intervals for the specified PACS.", response = PacsAvailability.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability intervals by day for the PACS."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "pacsAvailability/windowsByDay/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<Map<Integer, List<PacsAvailability>>> getPacsAvailabilityIntervalsByDay(@PathVariable("pacsId") final String pacsId) {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacsByDay(Long.parseLong(pacsId)), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")

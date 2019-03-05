@@ -12,6 +12,8 @@
 
 package org.nrg.dqr.daos;
 
+import org.hibernate.Criteria;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsAvailability;
@@ -27,6 +29,13 @@ import java.util.List;
 public class PacsAvailabilityDAO extends AbstractHibernateDAO<PacsAvailability> {
     public List<PacsAvailability> findSettingsByPacs(Long pacsId) {
         return findByCriteria(Restrictions.eq("pacsId", pacsId));
+    }
+
+    public List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day) {
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.add(Restrictions.eq("dayOfWeek", day));
+        return criteria.list();
     }
 
 }

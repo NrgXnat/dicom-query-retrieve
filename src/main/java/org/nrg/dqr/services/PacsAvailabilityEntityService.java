@@ -16,7 +16,11 @@ import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
     List<PacsAvailability> findSettingsByPacs(Long pacsId);
+    Map<Integer, List<PacsAvailability>> findSettingsByPacsByDay(Long pacsId);
+    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap);
+    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap, long existingIntervalId);
 }
