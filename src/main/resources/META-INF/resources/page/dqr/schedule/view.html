@@ -49,9 +49,15 @@ included and parsed in both JSP and Velocity parent pages.
 
     .day-row .thread-count {
         position: absolute;
-        top: 5px; left: 5px;
+        top: 5px;
+        left: 5px;
         white-space: nowrap;
         z-index: 2;
+        padding: 4px 10px;
+        background: #339933;
+        color: #fff;
+        border-radius: 16px;
+        font-size: 12px;
     }
 
     .hours-label-row { position: relative; left: -21px; margin: 20px 0 10px; border-collapse: collapse; }
@@ -186,6 +192,7 @@ included and parsed in both JSP and Velocity parent pages.
                 var dayData     = data[dayKey];
                 var entryId     = '';
                 var threadCount = '';
+                var threadText = '';
 
                 // create a cell for every hour then compare start/end times to shade for utilization
                 hours.forEach(function(hour, i){
@@ -193,6 +200,7 @@ included and parsed in both JSP and Velocity parent pages.
                     var threads   = 1;
                     var pct       = 100;
                     threadCount = '';
+                    threadText = '';
                     // iterate the dayData to set variables
                     dayData.forEach(function(cfg, i){
                         var startTime = +(cfg.availabilityStart.split(':').join(''));
@@ -202,7 +210,16 @@ included and parsed in both JSP and Velocity parent pages.
                             pct     = +cfg.utilizationPercent;
                             // if we have a new config, add a 'threads' display
                             if (+entryId !== +cfg.id) {
-                                threadCount = spawn('div.thread-count', {}, (threads && pct) ? threads + ' threads @ ' + pct + '%' : '0%');
+                                if (threads && pct) {
+                                    threadText = threads + ' ';
+                                    threadText += ((threads === 1) ? 'thread' : 'threads');
+                                    threadText += ' @ ';
+                                    threadText += (pct + '%');
+                                }
+                                else {
+                                    threadText = '0%';
+                                }
+                                threadCount = spawn('div.thread-count', {}, threadText);
                                 entryId     = cfg.id;
                             }
                         }
