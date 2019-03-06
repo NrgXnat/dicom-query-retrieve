@@ -775,6 +775,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         _pacsAvailabilityEntityService.checkOverlap(settings, true);
+        if(settings.getUtilizationPercent()==0 || settings.getThreads()==0){
+            settings.setUtilizationPercent(0);
+            settings.setThreads(0);
+        }
         PacsAvailability created = _pacsAvailabilityEntityService.create(settings);
         return new ResponseEntity<>(created, HttpStatus.OK);
     }
@@ -821,6 +825,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (StringUtils.isNotBlank(settings.getAvailabilityEnd()) && !StringUtils.equals(settings.getAvailabilityEnd(), existingSettings.getAvailabilityEnd())) {
             existingSettings.setAvailabilityEnd(settings.getAvailabilityEnd());
             isDirty = true;
+        }
+        if(settings.getUtilizationPercent()==0 || settings.getThreads()==0){
+            settings.setUtilizationPercent(0);
+            settings.setThreads(0);
         }
         if (settings.getUtilizationPercent()!=existingSettings.getUtilizationPercent()) {
             existingSettings.setUtilizationPercent(settings.getUtilizationPercent());
