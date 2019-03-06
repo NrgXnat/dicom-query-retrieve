@@ -308,43 +308,6 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
     }
 
-    @ApiOperation(value = "Issues the PACS import requests specified in the simple JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
-            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-            @ApiResponse(code = 500, message = "Unexpected error")})
-    @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "csvimport/newImportFromJson",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE,
-            restrictTo = Role)
-    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final ImportRequest request,
-                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
-                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
-                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
-                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        UserI                      user             = getSessionUser();
-        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
-            //You cannot import into a project that does not have DQR enabled.
-            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
-        } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
-            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
-        } else {
-            HttpHeaders headers = new HttpHeaders();
-            if(request==null || request.getImportRows()==null || request.getSeriesDescriptions()==null){
-                return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), request.getImportRows(), ae, project, pacsId, request.getSeriesDescriptions(), importEvenIfCustomProcessingIsOff)) {
-                headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
-            } else {
-                headers.add(HttpHeaders.WARNING, "Query Submitted.");
-            }
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(true);
-        }
-    }
-
     @ApiOperation(value = "Issues the PACS import requests specified in the JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
     @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
