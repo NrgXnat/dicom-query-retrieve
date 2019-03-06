@@ -103,7 +103,7 @@
             "pacsId": 1,
             "dayOfWeek": 5,
             "availabilityStart": "0:00",
-            "availabilityEnd": "7:59",
+            "availabilityEnd": "8:00",
             "threads": 2,
             "utilizationPercent": 100
         },

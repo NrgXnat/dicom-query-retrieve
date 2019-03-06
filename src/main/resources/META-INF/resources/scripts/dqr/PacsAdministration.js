@@ -332,16 +332,20 @@ XNAT.app = getObject(XNAT.app || {});
 
         // add table header row
         pacsTable.tr()
-            .th({ addClass: 'left', html: '<b>DICOM AE</b>' })
-            .th('<b>Queryable</b>')
-            .th('<b>Storable</b>')
-            .th('<b>Status</b>')
-            .th('<b>Actions</b>');
+                 .th({ addClass: 'left', html: '<b>DICOM AE</b>' })
+                 .th('<b>Schedule</b>')
+                 .th('<b>Queryable</b>')
+                 .th('<b>Storable</b>')
+                 .th('<b>Status</b>')
+                 .th('<b>Actions</b>');
 
         function showDefault(setting,defaultSet){
             defaultSet = defaultSet || false;
             var display = spawn('i',{ className: 'fa fa-check' });
-            if (defaultSet) display = spawn('small',{ style: { 'text-transform':'uppercase', 'font-weight': 'bold'} }, 'Default');
+            if (defaultSet) display = spawn('small',{ style: {
+                // 'text-transform':'uppercase',
+                'font-weight': 'bold'
+            }}, 'Default');
             return setting ? display : '';
         }
         function editButton(){
@@ -374,7 +378,7 @@ XNAT.app = getObject(XNAT.app || {});
 
         // add data rows
         if (pacsTableData.length) {
-            pacsTableData.sort(function(a,b){
+            pacsTableData.sort(function(a, b){
                 return (a.id > b.id) ? 1 : -1;
             });
             pacsTableData.forEach(function(ae){
@@ -382,35 +386,50 @@ XNAT.app = getObject(XNAT.app || {});
                 XNAT.app.dqr.pacsList.push(ae.aeTitle.toLowerCase());
                 XNAT.app.dqr.pacsObj[ae.id] = ae;
 
+                // these parameters will be stored in
+                // [data-*] attributes on the row's <tr> element
+                var dataAttrs = {
+                    id: ae.id,
+                    aeTitle: ae.aeTitle,
+                    host: ae.host,
+                    label: ae.label,
+                    queryable: ae.queryable,
+                    queryRetrievePort: ae.queryRetrievePort,
+                    defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
+                    storable: ae.storable,
+                    defaultStoragePacs: ae.defaultStoragePacs,
+                    ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
+                    supportsExtendedNegotiations: ae.supportsExtendedNegotiations
+                };
+
                 // populate table row
-                pacsTable.tr({
-                    data: {
-                        id: ae.id,
-                        aeTitle: ae.aeTitle,
-                        host: ae.host,
-                        label: ae.label,
-                        queryable: ae.queryable,
-                        queryRetrievePort: ae.queryRetrievePort,
-                        defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
-                        storable: ae.storable,
-                        defaultStoragePacs: ae.defaultStoragePacs,
-                        ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
-                        supportsExtendedNegotiations: ae.supportsExtendedNegotiations
-                    }
-                })
-                    .td([ displayAeSummary(ae) ])
-                    .td({ addClass: 'center' },[ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
-                    .td({ addClass: 'center' },[ showDefault(ae.storable, ae.defaultStoragePacs) ])
-                    .td({ addClass: 'center'}, [ pingPacs(ae.id) ])
-                    .td({ addClass: 'center'}, [ editButton(), spawn('!',' '), deleteButton() ]);
-            })
+                pacsTable.tr({ data: dataAttrs })
+                         .td([ displayAeSummary(ae) ])
+                         .td({ addClass: 'center ' }, [ spawn('a.link.edit-pacs-schedule|href=#!schedule', {
+                             on: [['click', function(e){
+                                 e.preventDefault();
+                                 window.pacsId = ae.id;
+                                 window.pacsLabel = ae.label;
+                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html', { pacs: ae.id, label: ae.label });
+                                 console.log(URL);
+                                 XNAT.dialog.load(URL, {
+                                     width: 1150
+                                 });
+                             }]]
+                         }, 'Schedule') ])
+                         .td({ addClass: 'center' }, [ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
+                         .td({ addClass: 'center' }, [ showDefault(ae.storable, ae.defaultStoragePacs) ])
+                         .td({ addClass: 'center' }, [ pingPacs(ae.id)] )
+                         .td({ addClass: 'center' }, [ editButton(), spawn('!', ' '), deleteButton()] );
+            });
 
         }
+
         $(constants.PACS_DIV).append(pacsTable.table);
 
         $(constants.PACS_DIV).append(
-            spawn('p',{ 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top':'1em' } }, [
-                spawn('a', { className: 'btn primary', href: 'javascript:void(0)', id: constants.ADD_PACS_LINK.substring(1) },'Add New DICOM AE')
+            spawn('p', { 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top': '1em' } }, [
+                spawn('a.btn.primary|href=#!', { id: constants.ADD_PACS_LINK.substring(1) }, 'Add New DICOM AE')
             ])
         );
 
