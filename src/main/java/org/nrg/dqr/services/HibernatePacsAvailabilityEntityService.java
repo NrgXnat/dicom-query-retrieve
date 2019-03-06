@@ -49,7 +49,13 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
 
     @Override
     @Transactional
-    public Map<Integer, List<PacsAvailability>> findSettingsByPacsByDay(Long pacsId){
+    public List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day){
+        return getDao().findSettingsByPacsByDay(pacsId,day);
+    }
+
+    @Override
+    @Transactional
+    public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId){
         Map<Integer, List<PacsAvailability>> availabilityByDay = new HashMap<>();
         for(int day=1;day<=7;day++) {
             availabilityByDay.put(day,getDao().findSettingsByPacsByDay(pacsId, day));
@@ -188,6 +194,15 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
             }
         }
         return hasOverlap;
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllForPacs(Long pacsId){
+        final List<PacsAvailability> pacsAvailabilities = getDao().findSettingsByPacs(pacsId);
+        for (final PacsAvailability p : pacsAvailabilities) {
+            delete(p);
+        }
     }
 
 }

@@ -91,6 +91,7 @@ public class PacsResource extends PacsAdminResource {
             try {
                 final Pacs pacs = retrievePacs();
                 getPacsEntityService().delete(pacs);
+                getPacsAvailabilityEntityService().deleteAllForPacs(pacs.getId());
                 respondWithSuccessNoContent();
             } catch (final PacsNotFoundException e) {
                 respondWithPacsNotFound();

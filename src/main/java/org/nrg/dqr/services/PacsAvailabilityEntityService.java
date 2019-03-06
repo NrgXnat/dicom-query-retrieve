@@ -20,7 +20,9 @@ import java.util.Map;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
     List<PacsAvailability> findSettingsByPacs(Long pacsId);
-    Map<Integer, List<PacsAvailability>> findSettingsByPacsByDay(Long pacsId);
+    List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day);
+    Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId);
     Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap);
     Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap, long existingIntervalId);
+    void deleteAllForPacs(Long pacsId);
 }

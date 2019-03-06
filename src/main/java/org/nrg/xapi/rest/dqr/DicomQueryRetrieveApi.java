@@ -862,7 +862,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/windowsByDay/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public ResponseEntity<Map<Integer, List<PacsAvailability>>> getPacsAvailabilityIntervalsByDay(@PathVariable("pacsId") final String pacsId) {
-        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacsByDay(Long.parseLong(pacsId)), HttpStatus.OK);
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacsGroupedByDay(Long.parseLong(pacsId)), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")

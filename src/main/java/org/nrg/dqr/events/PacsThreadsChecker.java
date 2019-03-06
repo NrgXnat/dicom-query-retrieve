@@ -52,7 +52,9 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                 for (Pacs currPacs : pacsList) {
                     try {
                         Long pacsId = currPacs.getId();
-                        List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
+                        Calendar currentCal = Calendar.getInstance();
+                        int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
+                        List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacsByDay(pacsId,currentDayOfWeek);
                         int utilizationPercent = 0;
                         int threads = 0;
                         for (PacsAvailability availability : availabilityList) {
@@ -67,8 +69,6 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                             if (availabilityEndTimeString.charAt(1) == ':') {
                                 availabilityEndTimeString = "0" + availabilityEndTimeString;
                             }
-                            Calendar currentCal = Calendar.getInstance();
-                            int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
 
                             long currMillis = currentCal.getTimeInMillis();
 
