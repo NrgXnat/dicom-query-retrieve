@@ -1,0 +1,602 @@
+<!-- #* <%-- -->
+<!--
+The 'view.html' file should be formatted so it can be
+included and parsed in both JSP and Velocity parent pages.
+-->
+<!-- --%> *# -->
+
+<header id="content-header">
+    <div class="pad" style="padding:0;">
+        <h2 style="margin:0 0 10px 0;">Utilization Schedule for <span class="pacs-label"></span> PACS</h2>
+        <div class="info">
+            Use these settings to customize transfer load for specified time intervals when importing data
+            from PACS. Darker shades indicate a heavier transfer load, lighter shades indicate a lighter load.
+        </div>
+        <div class="info alt hidden">
+            Customize the data transfer utilization rate between {XNAT_name} and {PACS_name} by creating a
+            weekly schedule for uptime, downtime, and throttling of data transfer speeds
+        </div>
+    </div>
+</header>
+
+<style>
+
+    #pacs-schedule-view { width: auto; }
+
+    #pacs-schedule-view > .pad { padding: 20px; overflow: auto; }
+
+    #pacs-schedule-view .time-block {
+        display: inline-block;
+        /*margin-right: 1px;*/
+        overflow: visible;
+        position: relative;
+    }
+
+    #pacs-schedule-times,
+    #pacs-schedule-days {
+        position: relative;
+    }
+
+    .day-row {
+        margin-bottom: 20px;
+        /*border-collapse: collapse; */
+    }
+
+    .day-row .day-label b {
+        display: block;
+        width: 50px;
+        font-size: 16px;
+        font-weight: normal;
+        line-height: 70px;
+        vertical-align: middle;
+        background: #fff;
+    }
+
+    .day-row .day-hours {
+        position: relative;
+        /*padding: 2px 1px 2px 2px;*/
+        /*overflow: auto;*/
+        /*background: rgba(171, 226, 255, 0.5);*/
+        background: #f0f0f0;
+    }
+
+    .day-row .time-block {
+        position: absolute;
+        /*float: left;*/
+        /*margin-right: 1px;*/
+    }
+
+    .day-row .time-block-color {
+        min-width: 38px;
+        height: 70px;
+        background: #5cc4ef;
+        border: 1px solid #acd2e6;
+        margin-left: -1px;
+    }
+
+    .day-row .thread-count {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        white-space: nowrap;
+        z-index: 2;
+        padding: 2px 8px 1px;
+        background: #339933;
+        color: #fff;
+        border-radius: 16px;
+        border: 1px solid #228822;
+        font-size: 12px;
+    }
+
+    .day-row .thread-count:hover {
+        z-index: 3;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .day-row .thread-count > span {
+        display: none;
+    }
+
+    .day-row .thread-count:hover > span {
+        display: inline;
+    }
+
+    .day-row .add-interval {
+        padding: 20px 0 0 5px;
+    }
+
+    .day-row .add-interval i.fa {
+        font-size: 24px;
+        color: #228822;
+    }
+
+    .hours-label-row {
+        position: relative;
+        left: -21px;
+        margin: 20px 0 10px;
+        /*border-collapse: collapse; */
+    }
+
+    .hours-label-row .day-label b {
+        display: block;
+        width: 50px;
+        height: 20px;
+        font-weight: normal;
+    }
+
+    .hours-label-row .time-block {
+        margin-right: 1px;
+    }
+
+    .hours-label-row .time-block-label {
+        width: 38px;
+        height: 20px;
+        background: #fff;
+        text-align: center;
+    }
+
+</style>
+
+<div id="pacs-schedule-view">
+    <div class="pad">
+
+        <header id="pacs-schedule-times">
+            <!-- hour indicators -->
+        </header>
+
+        <div id="pacs-schedule-days">
+            <!-- day rows -->
+        </div>
+
+    </div>
+</div>
+<!-- #* <%-- the #[[ ... ]]# syntax prevents Velocity from parsing the enclosed code --%> *# -->
+<!-- #[[ -->
+
+<!--<script src="../../../scripts/lib/array-fill.js"></script>-->
+<!--<script src="../../../scripts/lib/xx.js"></script>-->
+<!--<script src="../../../scripts/lib/xx.spawnElement.js"></script>-->
+<script>$('.pacs-label').text('"' + window.pacsLabel + '"');</script>
+<script>
+    (function(){
+
+        var undef;
+
+        var NBSP = '&nbsp;';
+
+        var scheduleTimes$ = $('#pacs-schedule-times');
+        var scheduleDays$  = $('#pacs-schedule-days');
+
+        var daysConfig = [
+            ['', ''],  // placeholder for index 0
+            ['Sun', 'sunday-schedule'],
+            ['Mon', 'monday-schedule'],
+            ['Tue', 'tuesday-schedule'],
+            ['Wed', 'wednesday-schedule'],
+            ['Thu', 'thursday-schedule'],
+            ['Fri', 'friday-schedule'],
+            ['Sat', 'saturday-schedule']
+        ];
+
+        // all the hours
+        var hours = (function(hrs){
+
+            var i   = -1;
+            var arr = [];
+
+            while (++i < hrs) {
+                arr[i] = i;
+            }
+
+            return arr;
+
+        })(24);
+
+        // convert to 12-hour format
+        function get12HourTime(hour){
+            hour = +((hour + '').split(':')[0]);
+            hour = (hour === 24) ? 0 : hour;
+            console.log(hour);
+            return (hour > 11) ? (((hour - 12) || 12) + ':00 PM') : ((hour || 12) + ':00 AM');
+        }
+
+        // return a conformed object with calculated values
+        function timeBlockData(data){
+
+            var obj = extend({
+                id: '',
+                dayOfWeek: 1,
+                availabilityStart: '0:00',
+                availabilityEnd: '24:00',
+                utilizationPercent: 100,
+                threads: 1
+            }, data);
+
+            // aliases and calculated values
+
+            obj.dayIndex = +obj.dayOfWeek;
+
+            obj.dayLabel = daysConfig[obj.dayIndex][0];
+            obj.dayClass = daysConfig[obj.dayIndex][1];
+
+            obj.startTime = obj.availabilityStart;
+            obj.endTime   = obj.availabilityEnd;
+
+            // start and end labels in 12-hour time format
+            obj.startLabel = get12HourTime(obj.startTime);
+            obj.endLabel   = get12HourTime(obj.endTime);
+
+            obj.startValue = +(obj.startTime.split(':').join(''));
+            obj.endValue   = +(obj.endTime.split(':').join(''));
+
+            obj.intervalLength = obj.endValue - obj.startValue;
+
+            obj.pct = obj.utilizationPercent;
+
+            console.log(obj);
+
+            return obj;
+
+        }
+
+        function intervalDialog(id, day, start, end){
+
+            XNAT.dialog.open({
+                padding: 0,
+                title: 'Edit Utilization Interval',
+                content: (function(){
+
+                    var startMenu = spawn('select.start-time', { name: 'availabilityStart' });
+                    var endMenu   = spawn('select.end-time', { name: 'availabilityEnd' });
+
+                    function setupOption(val, hr){
+                        var cfg   = { attr: {} };
+                        cfg.value = hr;
+                        if (val === hr) {
+                            cfg.attr.selected = 'selected';
+                            cfg.selected      = true;
+                        }
+                        return cfg;
+                    }
+
+                    [].concat(hours, [24]).forEach(function(hr, i){
+                        var time = hr + ':00';
+                        hr < 24 && startMenu.appendChild(spawn('option', setupOption(start, time), get12HourTime(time)));
+                        hr > 0 && endMenu.appendChild(spawn('option', setupOption(end, time), hr === 24 ? 'Midnight' : get12HourTime(time)));
+                    });
+
+                    return XNAT.spawner.spawn({
+                        intervalEditor: {
+                            kind: 'panel.form',
+                            header: false,
+                            footer: false,
+                            borderless: true,
+                            border: false,
+                            load: id ? '$? */xapi/dqr/pacsAvailability/window/' + id : false,
+                            contents: {
+                                id: {
+                                    kind: 'input.hidden'
+                                },
+                                pacsId: {
+                                    kind: 'input.hidden'
+                                },
+                                dayOfWeek: {
+                                    kind: 'input.hidden'
+                                },
+                                availabilityStart: {
+                                    kind: 'panel.display',
+                                    label: 'Start Time',
+                                    contents: {
+                                        startMenu: {
+                                            tag: 'div.start-time-menu',
+                                            content: startMenu.outerHTML
+                                        }
+                                    }
+                                },
+                                availabilityEnd: {
+                                    kind: 'panel.display',
+                                    label: 'End Time',
+                                    contents: {
+                                        endMenu: {
+                                            tag: 'div.end-time-menu',
+                                            content: endMenu.outerHTML
+                                        }
+                                    }
+                                },
+                                threads: {
+                                    kind: 'panel.input.number',
+                                    name: 'threads',
+                                    label: 'Threads',
+                                    size: 4,
+                                    // value: id ? '$? */xapi/dqr/pacsAvailability/window/' + id + ' | :threads' : ''
+                                    validate: 'onblur gte:0 lt:1000',
+                                    message: 'Please enter a value between 0 and 999',
+                                    description: ''
+                                },
+                                utilizationPercent: {
+                                    kind: 'panel.input.number',
+                                    name: 'utilizationPercent',
+                                    label: 'Utilization',
+                                    size: 3,
+                                    // value: id ? '$? */xapi/dqr/pacsAvailability/window/' + id + ' | :utilizationPercent' : ''
+                                    afterElement: ' %',
+                                    validate: 'onblur gte:0 lte:100',
+                                    message: 'Please enter a value between 0 and 100',
+                                    description: ''
+                                }
+                            }
+                        }
+                    }).get();
+
+                })()
+            });
+        }
+
+        // render time indicators
+        scheduleTimes$[0].appendChild(spawn('div.hours-label-row.pull-left', {}, [
+            ['div.hours-labels.pull-left', {}, [['div.day-label.pull-left', {}, [['b', {}, NBSP]]]].concat([].concat(hours, 0).map(function(hour, ihour){
+                var time = get12HourTime(hour);
+                var cell = ['div.time-block', { title: time }, [
+                    ['div.time-block-label', {}, time.split(':')[0]]
+                ]];
+                // console.log(cell);
+                return cell;
+            }))]
+        ]));
+
+        // assemble the DOM elements for later insertion all at once
+        var tmpFrag = document.createDocumentFragment();
+
+        // var scheduleUrl = '~/page/dqr/schedule-dev/scratch.json';
+        var scheduleUrl = '~/xapi/dqr/pacsAvailability/windowsByDay/' + window.pacsId;
+
+        // get data then apply it to each day
+        var getSchedule = XNAT.xhr.get(scheduleUrl);
+
+        getSchedule.done(function(data){
+
+            // iterate returned data (by day)
+            Object.keys(data).sort().forEach(function(dayKey, i){
+
+                var dayIndex = +dayKey;
+
+                var dayLabel = daysConfig[dayIndex][0];
+                var dayClass = daysConfig[dayIndex][1];
+
+                // how wide should each hour block be - in pixels?
+                // used for initial position and width
+                var hourWidth = 38;
+
+                // return a 'px' string
+                function setWidth(mult, suffix){
+                    return ((mult / 100) * (hourWidth + 1)) + (suffix || '');
+                }
+
+                // each day has its own 'row'
+                var dayRow   = spawn('div.day-row.pull-left.' + dayClass);
+                var dayHours = spawn('div.day-hours.pull-left', {
+                    style: {
+                        // width: (39 * 24) + 'px'
+                    }
+                });
+
+                // the first item is the day label
+                dayRow.appendChild(spawn('div.day-label.pull-left', {}, [['b', {}, dayLabel]]));
+
+                // put the hours in the row :P
+                dayRow.appendChild(dayHours);
+
+                // for each interval entry, calculate the start point and end point
+                // based on the numeric values of `availabilityStart` and `availabilityEnd`
+
+                // dayData is an array of interval config objects
+                var dayData = data[dayKey];
+
+                // collect interval 'blocks' keyed from the start time
+                // this will allow overwriting
+                var blocks = {};
+
+                // dayData.unshift(blocks['0:00']);
+
+                // set default for the whole day if there is nothing configured
+                if (dayData.length) {
+
+                    blocks['0:00'] = timeBlockData({ availabilityEnd: '0:00' });
+
+                    dayData.forEach(function(entry, i){
+
+                        var block  = timeBlockData(entry);
+                        var prevBlock = (i > 0) ? timeBlockData(dayData[i - 1]) : blocks['0:00'];
+                        var filler = {};
+
+                        // if the start time of this block is greater than the
+                        // end time of the previous block, create a 'filler' block
+                        if (block.startValue >= prevBlock.endValue) {
+
+                            filler = timeBlockData({
+                                availabilityStart: prevBlock.availabilityEnd,
+                                availabilityEnd: block.availabilityStart,
+                                utilizationPercent: 0,
+                                threads: 0
+                            });
+
+                            blocks[filler.startTime] = filler;
+
+                        }
+
+                        // add this entry to the 'blocks' object
+                        // complete with computed and aliased values
+                        blocks[block.startTime] = block;
+
+                        // add a filler for the end after the last entry
+                        if (dayData.length === i + 1 && block.endValue < 2400) {
+                            blocks[block.endTime] = timeBlockData({
+                                availabilityStart: block.endTime,
+                                availabilityEnd: '24:00',
+                                utilizationPercent: 0,
+                                threads: 0
+                            })
+                        }
+
+                        console.log(blocks);
+
+                    });
+                }
+                else {
+
+                    blocks['0:00'] = timeBlockData();
+
+                }
+
+                Object.keys(blocks).forEach(function(startKey, i){
+
+                    console.log(startKey);
+
+                    // process values needed for display
+                    var block = blocks[startKey];
+
+                    var threads = block.threads;
+                    var pct = block.utilizationPercent;
+
+                    var threadCounter = spawn('div.thread-count', {}, [
+                        threads + '',
+                        ['span', {}, ((threads === 1) ? ' thread' : ' threads') + (+threads !== 0 ? (' @ ' + pct + '%') : '')]
+                    ]);
+
+                    console.log(block);
+
+                    // create the div to represent this interval
+                    var timeBlock = spawn('div.time-block', {
+                        title: block.startLabel + ' - ' + block.endLabel,
+                        // style: { left: setWidth(block.startValue, 'px') },
+                        on: [['dblclick', function(e){
+                            intervalDialog(block.id, block.dayOfWeek, block.startTime, block.endTime);
+                        }]]
+                    }, [
+                        ['input|type=hidden|name=id', { value: block.id }],
+                        ['input|type=hidden|name=pacsId', { value: 1 }],
+                        ['input|type=hidden|name=dayOfWeek', { value: block.dayOfWeek }],
+                        ['input|type=hidden|name=hour', { value: block.hour }],
+                        ['input|type=hidden|name=availabilityStart', { value: block.startTime }],
+                        ['input|type=hidden|name=availabilityEnd', { value: block.endTime }],
+                        ['input|type=hidden|name=threads', { value: block.threads }],
+                        ['input|type=hidden|name=utilizationPercent', { value: block.utilizationPercent }],
+                        ['div.time-block-color', {
+                            style: {
+                                width: setWidth(block.intervalLength, 'px'),
+                                background: 'rgba(92, 196, 239, ' + (block.utilizationPercent / 100) + ')'
+                            }
+                        }, NBSP],
+                        threadCounter,
+                        ''
+                    ]);
+                    dayHours.appendChild(timeBlock);
+                });
+
+
+
+                // create a cell for every hour then compare start/end times to shade for utilization
+                // hours.forEach(function(hour, i){
+                //     return false;
+                //     var hourValue = +(hour + '00');
+                //     var threads   = 1;
+                //     var pct       = 100;
+                //     threadCount   = '';
+                //     threadText    = '';
+                //     // if there are no entries, assume the default
+                //     // for the entire day - 1 thread at 100%
+                //     if (hour === 0) {
+                //         threadText = '1<span> thread @ 100%</span>';
+                //     }
+                //     // iterate the dayData to set variables
+                //     dayData.length && dayData.forEach(function(cfg, i){
+                //         availabilityStart = cfg.availabilityStart;
+                //         availabilityEnd   = cfg.availabilityEnd;
+                //         startTime         = +(availabilityStart.split(':').join(''));
+                //         endTime           = +(availabilityEnd.split(':').join(''));
+                //         if (startTime <= hourValue && endTime > hourValue) {
+                //             threads = +cfg.threads;
+                //             pct     = +cfg.utilizationPercent;
+                //             // if we have a new config, add a 'threads' display
+                //             if (+entryId !== +cfg.id) {
+                //                 if (threads && pct) {
+                //                     threadText = threads + '<span> ';
+                //                     threadText += ((threads === 1) ? 'thread' : 'threads');
+                //                     threadText += ' @ ';
+                //                     threadText += (pct + '%</span>');
+                //                 }
+                //                 else {
+                //                     threadText = '0';
+                //                 }
+                //                 entryId = cfg.id;
+                //             }
+                //         }
+                //     });
+                //     if (threadText) {
+                //         threadCount = spawn('div.thread-count', {}, threadText);
+                //     }
+                //     // set up the data for the current hour
+                //     var timeBlock = timeBlockData(entryId, dayIndex, +hour, pct, threads);
+                //     var cell      = spawn('div.time-block', {
+                //         title: timeBlock.time + ' (double-click to edit)',
+                //         on: [['dblclick', function(e){
+                //             intervalDialog(timeBlock.id, timeBlock.dayOfWeek, availabilityStart, availabilityEnd);
+                //         }]]
+                //     }, [
+                //         ['input|type=hidden|name=id', { value: timeBlock.id }],
+                //         ['input|type=hidden|name=pacsId', { value: 1 }],
+                //         ['input|type=hidden|name=dayOfWeek', { value: timeBlock.dayOfWeek }],
+                //         ['input|type=hidden|name=hour', { value: timeBlock.hour }],
+                //         ['input|type=hidden|name=availabilityStart', { value: availabilityStart }],
+                //         ['input|type=hidden|name=availabilityEnd', { value: availabilityEnd }],
+                //         ['input|type=hidden|name=threads', { value: timeBlock.threads }],
+                //         ['input|type=hidden|name=utilizationPercent', { value: timeBlock.utilizationPercent }],
+                //         ['div.time-block-color', { style: { opacity: (timeBlock.utilizationPercent + 20) / 120 } }, NBSP],
+                //         threadCount
+                //     ]);
+                //     dayHours.appendChild(cell);
+                //     prevHour = hour;
+                // });
+
+                
+                dayRow.appendChild(spawn('div.add-interval.pull-left', {}, [
+                    ['i.fa.fa-plus-circle', {
+                        on: [['click', function(e){
+                            e.preventDefault();
+                            console.log('adding a utilization interval...');
+                            intervalDialog('', dayIndex, '0:00', '24:00');
+                        }]]
+                    }]
+                ]));
+
+                // append the day's table to the frag
+                tmpFrag.appendChild(dayRow);
+
+            });
+
+            scheduleDays$.append(tmpFrag);
+
+            $('#page-body').hidden(false);
+
+        });
+
+        // sample data object
+        var sampleData = {
+            'availabilityEnd': 'string',
+            'availabilityStart': 'string',
+            // "created": "2019-02-28T19:25:24.888Z",
+            'dayOfWeek': 0,
+            'utilizationPercent': 0,
+            // "disabled": "2019-02-28T19:25:24.888Z",
+            // "enabled": true,
+            'id': 0,
+            'pacsId': 0,
+            'threads': 0,
+            // "timestamp": "2019-02-28T19:25:24.888Z"
+            '_': 0
+        };
+
+    })();
+</script>
+
+<!-- ]]# -->

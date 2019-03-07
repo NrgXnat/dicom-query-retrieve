@@ -40,7 +40,7 @@
             ## create a folder at '/page/dqr/schedule-dev' in the running webapp
             ## and copy the files from '/page/dqr/schedule' to do front-end
             ## development without needing to rebuild the plugin jar every time
-            #parse("/page/dqr/schedule-dev/view.html")
+            #parse("/page/dqr/schedule-dev/view2.html")
 
         </div>
     </div>
