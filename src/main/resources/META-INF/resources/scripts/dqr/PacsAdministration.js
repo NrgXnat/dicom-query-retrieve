@@ -410,7 +410,7 @@ XNAT.app = getObject(XNAT.app || {});
                                  e.preventDefault();
                                  window.pacsId = ae.id;
                                  window.pacsLabel = ae.label;
-                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html', { pacs: ae.id, label: ae.label });
+                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', { pacs: ae.id, label: ae.label });
                                  console.log(URL);
                                  XNAT.dialog.load(URL, {
                                      width: 1150
@@ -420,7 +420,7 @@ XNAT.app = getObject(XNAT.app || {});
                          .td({ addClass: 'center' }, [ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
                          .td({ addClass: 'center' }, [ showDefault(ae.storable, ae.defaultStoragePacs) ])
                          .td({ addClass: 'center' }, [ pingPacs(ae.id)] )
-                         .td({ addClass: 'center' }, [ editButton(), spawn('!', ' '), deleteButton()] );
+                         .td({ addClass: 'center' }, [ editButton(), '&nbsp;', deleteButton()] );
             });
 
         }
