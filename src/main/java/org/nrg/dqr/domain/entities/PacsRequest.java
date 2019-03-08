@@ -26,6 +26,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     protected Date _queuedTime;
 
     public static final String QUEUED_STATUS_TEXT = "QUEUED";
+    public static final String PROCESSING_STATUS_TEXT = "PROCESSING";
     public static final String ISSUED_STATUS_TEXT = "ISSUED";
     public static final String FAILED_STATUS_TEXT = "FAILED";
     public static final String RECEIVED_STATUS_TEXT = "RECEIVED";
