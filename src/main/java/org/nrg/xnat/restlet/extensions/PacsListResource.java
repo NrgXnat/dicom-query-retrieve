@@ -17,6 +17,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;
@@ -83,6 +84,17 @@ public class PacsListResource extends PacsAdminResource {
             try {
                 final Pacs pacs = buildPacsFromRequest(null);
                 getPacsEntityService().create(pacs);
+                for(int day=1; day<=7; day++) {
+                    PacsAvailability fullAvailabilityForDay = new PacsAvailability();
+                    fullAvailabilityForDay.setDayOfWeek(day);
+                    fullAvailabilityForDay.setPacsId(pacs.getId());
+                    fullAvailabilityForDay.setThreads(1);
+                    fullAvailabilityForDay.setUtilizationPercent(100);
+                    fullAvailabilityForDay.setAvailabilityStart("0:00");
+                    fullAvailabilityForDay.setAvailabilityEnd("24:00");
+
+                    getPacsAvailabilityEntityService().create(fullAvailabilityForDay);
+                }
                 getResponse().setLocationRef("pacs/" + String.valueOf(pacs.getId()));
                 respondWithSuccessCreated();
             } catch (final InvalidRequestBodyException e) {

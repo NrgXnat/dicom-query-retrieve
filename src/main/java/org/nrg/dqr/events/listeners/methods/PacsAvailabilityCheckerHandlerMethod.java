@@ -5,13 +5,10 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.nrg.dqr.events.PacsRequestDequeuer;
+import org.nrg.dqr.events.PacsThreadsChecker;
 import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
-import org.nrg.xnat.security.ResetFailedLogins;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.PeriodicTrigger;
@@ -48,7 +45,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
 
     @Override
     protected AbstractXnatRunnable getTask() {
-        return new PacsRequestDequeuer();
+        return new PacsThreadsChecker();
     }
 
     @Override

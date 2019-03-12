@@ -72,13 +72,13 @@ dqrOtherPreferencePanel:
         pacsAvailabilityCheckFrequency:
             kind: panel.input.text
             name: pacsAvailabilityCheckFrequency
-            label: PACS Availability Check Frequency
+            label: PACS Threads Check Frequency
             value: '1 minute'
             validation: interval onblur
             description: >
-                How often to check whether there are any PACS requests in the queue whose PACS are now available.
-                If the PACS for one or more of the requests is now in its availability interval, the first request to
-                enter the queue whose PACS is now available will be executed. Uses
+                How often to check how many threads are currently configured for each PACS. If there are more threads
+                configured than are currently open, additional threads will be opened (if there are more threads open
+                than are currently configured, they will be ended once they complete their current PACS request). Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
         notifyAdminOnImport:
             kind: panel.input.switchbox

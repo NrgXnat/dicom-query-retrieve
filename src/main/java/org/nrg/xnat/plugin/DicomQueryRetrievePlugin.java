@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
 public class DicomQueryRetrievePlugin {
 
 //    @Bean
-//    public TriggerTask pacsRequestDequeuerTask(final PacsRequestDequeuer pacsRequestDequeuer) {
+//    public TriggerTask pacsRequestDequeuerTask(final PacsThreadsChecker pacsRequestDequeuer) {
 //        long availabilityIntervalSeconds = 60;
 //        if(XDAT.getSiteConfigPreferences()!=null && XDAT.getSiteConfigPreferences().get("pacsAvailabilityCheckFrequency")!=null){
 //            Object availabilityInterval = XDAT.getSiteConfigPreferences().get("pacsAvailabilityCheckFrequency");

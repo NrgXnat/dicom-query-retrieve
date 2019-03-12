@@ -308,43 +308,6 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
     }
 
-    @ApiOperation(value = "Issues the PACS import requests specified in the simple JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
-            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-            @ApiResponse(code = 500, message = "Unexpected error")})
-    @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "csvimport/newImportFromJson",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE,
-            restrictTo = Role)
-    public ResponseEntity<Boolean> importFromPacsSimple(@RequestBody final ImportRequest request,
-                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
-                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
-                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
-                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        UserI                      user             = getSessionUser();
-        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
-            //You cannot import into a project that does not have DQR enabled.
-            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
-        } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
-            return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
-        } else {
-            HttpHeaders headers = new HttpHeaders();
-            if(request==null || request.getImportRows()==null || request.getSeriesDescriptions()==null){
-                return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            if (!_pacsService.processSpreadsheetImportFromSimpleRows(getSessionUser(), request.getImportRows(), ae, project, pacsId, request.getSeriesDescriptions(), importEvenIfCustomProcessingIsOff)) {
-                headers.add(HttpHeaders.WARNING, "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.");
-            } else {
-                headers.add(HttpHeaders.WARNING, "Query Submitted.");
-            }
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .body(true);
-        }
-    }
-
     @ApiOperation(value = "Issues the PACS import requests specified in the JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
     @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -774,8 +737,28 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             log.error("User {} tried to create a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+        _pacsAvailabilityEntityService.checkOverlap(settings, true);
+        if(settings.getUtilizationPercent()==0 || settings.getThreads()==0){
+            settings.setUtilizationPercent(0);
+            settings.setThreads(0);
+        }
         PacsAvailability created = _pacsAvailabilityEntityService.create(settings);
         return new ResponseEntity<>(created, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Checks whether a new PACS availability interval would overlap with any existing intervals.", notes = "Returns whether the posted PACS availability interval would overlap with any existing intervals.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns whether there is overlap with an existing interval."),
+            @ApiResponse(code = 400, message = "Interval not fully specified."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to check interval overlap."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "pacsAvailability/conflictsExisting", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<Boolean> checkPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
+        if (settings.getDayOfWeek()==0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+            log.error("User {} check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.checkOverlap(settings, false), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Updates the requested PACS availability interval using the submitted attributes.", notes = "Returns the updated PACS availability interval.", response = PacsAvailability.class)
@@ -806,12 +789,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             existingSettings.setAvailabilityEnd(settings.getAvailabilityEnd());
             isDirty = true;
         }
-        if (settings.getSessionsPerDequeue()!=existingSettings.getSessionsPerDequeue()) {
-            existingSettings.setSessionsPerDequeue(settings.getSessionsPerDequeue());
+        if(settings.getUtilizationPercent()==0 || settings.getThreads()==0){
+            settings.setUtilizationPercent(0);
+            settings.setThreads(0);
+        }
+        if (settings.getUtilizationPercent()!=existingSettings.getUtilizationPercent()) {
+            existingSettings.setUtilizationPercent(settings.getUtilizationPercent());
             isDirty = true;
         }
-        if (settings.getDequeuesPerHour()!=existingSettings.getDequeuesPerHour()) {
-            existingSettings.setDequeuesPerHour(settings.getDequeuesPerHour());
+        if (settings.getThreads()!=existingSettings.getThreads()) {
+            existingSettings.setThreads(settings.getThreads());
             isDirty = true;
         }
         if (settings.getPacsId()!=existingSettings.getPacsId()) {
@@ -820,6 +807,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
 
         if (isDirty) {
+            _pacsAvailabilityEntityService.checkOverlap(settings, true, existingSettings.getId());
             _pacsAvailabilityEntityService.update(existingSettings);
             return new ResponseEntity<>(existingSettings, HttpStatus.OK);
         }
@@ -866,6 +854,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<List<PacsAvailability>> getPacsAvailabilityIntervals(@PathVariable("pacsId") final String pacsId) {
         return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacs(Long.parseLong(pacsId)), HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Get PACS availability intervals by day for the specified PACS.", notes = "The get PACS availability intervals by day function returns the PACS availability intervals for the specified PACS.", response = PacsAvailability.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability intervals by day for the PACS."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "pacsAvailability/windowsByDay/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @ResponseBody
+    public ResponseEntity<Map<Integer, List<PacsAvailability>>> getPacsAvailabilityIntervalsByDay(@PathVariable("pacsId") final String pacsId) {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacsGroupedByDay(Long.parseLong(pacsId)), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")

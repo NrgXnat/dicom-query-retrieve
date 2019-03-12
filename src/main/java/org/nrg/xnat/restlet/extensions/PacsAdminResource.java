@@ -18,6 +18,7 @@ import org.apache.commons.lang.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.restlet.NullValueSerializer;
+import org.nrg.dqr.services.PacsAvailabilityEntityService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xnat.restlet.resources.SecureResource;
@@ -36,14 +37,23 @@ public abstract class PacsAdminResource extends SecureResource {
         super(context, request, response);
         this.getVariants().add(new Variant(MediaType.ALL));
         pacsEntityService = initEntityService();
+        pacsAvailabilityEntityService = initAvailabilityEntityService();
     }
 
     private PacsEntityService initEntityService() {
         return XDAT.getContextService().getBean(PacsEntityService.class);
     }
 
+    private PacsAvailabilityEntityService initAvailabilityEntityService() {
+        return XDAT.getContextService().getBean(PacsAvailabilityEntityService.class);
+    }
+
     protected PacsEntityService getPacsEntityService() {
         return pacsEntityService;
+    }
+
+    protected PacsAvailabilityEntityService getPacsAvailabilityEntityService() {
+        return pacsAvailabilityEntityService;
     }
 
     protected ObjectMapper getObjectMapper() {
@@ -70,14 +80,6 @@ public abstract class PacsAdminResource extends SecureResource {
             }
             pacs.setDefaultQueryRetrievePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("defaultQueryRetrievePacs"))));
             pacs.setSupportsExtendedNegotiations(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("extendedNegotiations"))));
-            pacs.setDefaultDequeuesPerHour(null);
-            if (!StringUtils.isBlank(requestForm.getFirstValue("defaultDequeuesPerHour"))) {
-                pacs.setDefaultDequeuesPerHour(Integer.valueOf(requestForm.getFirstValue("defaultDequeuesPerHour")));
-            }
-            pacs.setDefaultSessionsPerDequeue(null);
-            if (!StringUtils.isBlank(requestForm.getFirstValue("defaultSessionsPerDequeue"))) {
-                pacs.setDefaultSessionsPerDequeue(Integer.valueOf(requestForm.getFirstValue("defaultSessionsPerDequeue")));
-            }
             pacs.setOrmStrategySpringBeanId(requestForm.getFirstValue("ormStrategySpringBeanId"));
             return pacs;
         } catch (final NumberFormatException e) {
@@ -129,4 +131,5 @@ public abstract class PacsAdminResource extends SecureResource {
     }
 
     private final PacsEntityService pacsEntityService;
+    private final PacsAvailabilityEntityService pacsAvailabilityEntityService;
 }

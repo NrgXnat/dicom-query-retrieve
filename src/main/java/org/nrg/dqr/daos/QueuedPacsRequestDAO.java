@@ -4,11 +4,13 @@ import org.hibernate.Criteria;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.PacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xft.security.UserI;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,6 +39,15 @@ public class QueuedPacsRequestDAO extends AbstractHibernateDAO<QueuedPacsRequest
     public List<QueuedPacsRequest> findAllForPacsOrderedByPriorityAndDate(Long pacsId){
         final Criteria criteria = getSession().createCriteria(getParameterizedType());
         criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.addOrder(Order.asc("priority"));
+        criteria.addOrder(Order.asc("queuedTime"));
+        return criteria.list();
+    }
+
+    public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(Long pacsId){
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.add(Restrictions.in("status", new String[]{PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT}));
         criteria.addOrder(Order.asc("priority"));
         criteria.addOrder(Order.asc("queuedTime"));
         return criteria.list();
