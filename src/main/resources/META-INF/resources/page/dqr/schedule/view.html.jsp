@@ -104,7 +104,7 @@ Hide JSP tags from the Velocity parser.
             }
 
             .day-row .time-block-color {
-                min-width: 38px;
+                /*min-width: 38px;*/
                 height: 60px;
                 background: #5cc4ef;
                 border: 1px solid #acd2e6;
@@ -173,9 +173,10 @@ Hide JSP tags from the Velocity parser.
                 text-align: center;
             }
 
-            /* remove border from panel in dialog */
+            /* remove border and margin from panel in dialog */
             body.xnat .xnat-dialog .panel {
                 border: none;
+                margin: 0;
             }
 
         </style>

@@ -31,13 +31,13 @@
 
     var daysConfig = [
         ['', ''],  // placeholder for index 0
-        ['Sun', 'sunday-schedule'],
-        ['Mon', 'monday-schedule'],
-        ['Tue', 'tuesday-schedule'],
-        ['Wed', 'wednesday-schedule'],
-        ['Thu', 'thursday-schedule'],
-        ['Fri', 'friday-schedule'],
-        ['Sat', 'saturday-schedule']
+        ['Sun', 'sunday-schedule', 'Sunday'],
+        ['Mon', 'monday-schedule', 'Monday'],
+        ['Tue', 'tuesday-schedule', 'Tuesday'],
+        ['Wed', 'wednesday-schedule', 'Wednesday'],
+        ['Thu', 'thursday-schedule', 'Thursday'],
+        ['Fri', 'friday-schedule', 'Friday'],
+        ['Sat', 'saturday-schedule', 'Saturday']
     ];
 
     // all the hours
@@ -82,6 +82,7 @@
 
         obj.dayLabel = daysConfig[obj.dayIndex][0];
         obj.dayClass = daysConfig[obj.dayIndex][1];
+        obj.dayName  = daysConfig[obj.dayIndex][2];
 
         obj.startTime = obj.availabilityStart;
         obj.endTime   = obj.availabilityEnd;
@@ -110,8 +111,8 @@
 
         obj.pct = obj.utilizationPercent;
 
-        console.log('timeBlockData');
-        console.log(obj);
+        // console.log('timeBlockData');
+        // console.log(obj);
 
         return obj;
 
@@ -122,7 +123,7 @@
         XNAT.dialog.open({
             width: 500,
             padding: 0,
-            title: 'Edit Utilization Interval',
+            title: 'Edit Utilization Interval for <b>' + daysConfig[+day][2] + '</b>',
             okLabel: 'Save',
             okClose: false,
             okAction: function(dlg){
@@ -319,8 +320,8 @@
 
         getSchedule.done(function(data){
 
-            console.log('done');
-            console.log(data);
+            // console.log('done');
+            // console.log(data);
 
             // iterate returned data (by day)
             Object.keys(data).sort().forEach(function(dayKey, i){
@@ -370,8 +371,8 @@
                         return timeBlockData(entry);
                     });
 
-                    console.log('dayData');
-                    console.log(dayData);
+                    // console.log('dayData');
+                    // console.log(dayData);
 
                     sortObjects(dayData, 'startKey').forEach(function(entry, i){
 
@@ -427,20 +428,21 @@
                     });
                 }
                 else {
-                    // set whole day to 1 @ 100% if there is nothing configured
+                    // set whole day to 0 utilization if there is nothing configured
                     blocks['0000'] = timeBlockData({
                         dayOfWeek: dayIndex,
-                        utilizationPercent: 100,
-                        threads: 1
+                        id: '',
+                        utilizationPercent: 0,
+                        threads: 0
                     });
                 }
 
-                console.log('blocks');
-                console.log(blocks);
+                // console.log('blocks');
+                // console.log(blocks);
 
                 Object.keys(blocks).sort().forEach(function(startKey, i){
 
-                    console.log(startKey);
+                    // console.log(startKey);
 
                     // process values needed for display
                     var block = blocks[startKey];
@@ -448,10 +450,19 @@
                     var threads = block.threads;
                     var pct     = block.utilizationPercent;
 
-                    var threadCounter = block.id ? spawn('div.thread-count', {}, [
+                    var threadCounter = spawn('div.thread-count', (function(){
+                        // if there's no id, this thread counter is not for
+                        // a defined interval, so show the background as gray
+                        return block.id ? {} : {
+                            style: {
+                                background: '#909090',
+                                borderColor: '#808080'
+                            }
+                        }
+                    })(), [
                         threads + '',
                         ['span', {}, ((threads === 1) ? ' thread' : ' threads') + (+threads !== 0 ? (' @ ' + pct + '%') : '')]
-                    ]) : '';
+                    ]);
 
                     console.log('time block:');
                     console.log(block);
