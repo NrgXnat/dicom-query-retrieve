@@ -213,11 +213,11 @@ Hide JSP tags from the Velocity parser.
 
         <!-- #* <%-- the #[[ ... ]]# syntax prevents Velocity from parsing the enclosed code --%> *# -->
 
-        <!-- <%-- #[[ --%> -->
+        <!-- #[[ -->
         <script>
             $('.pacs-label').text('"' + window.pacsLabel + '"');
         </script>
-        <!-- <%-- ]]# --%> -->
+        <!-- ]]# -->
 
         <script src="${SITE_ROOT}/scripts/dqr/schedule.js"></script>
 

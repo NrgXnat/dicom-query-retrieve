@@ -14,10 +14,15 @@
     }
 }(function(){
 
+    var undef;
     var NBSP = '&nbsp;';
 
     var scheduleTimes$ = $('#pacs-schedule-times');
     var scheduleDays$  = $('#pacs-schedule-days');
+
+    function x0(selector, context){
+        return [].slice.call((context || document).querySelectorAll(selector));
+    }
 
     window.pacsId =
         window.pacsId ||
@@ -56,6 +61,9 @@
 
     // convert to 12-hour format
     function get12HourTime(time){
+        if ((time + '') === '' || time === '!') {
+            return ':'
+        }
         var parts  = (time + '').split(':');
         var hour   = +parts[0];
         var minute = parts[1] || '00';
@@ -64,11 +72,36 @@
         return (hour > 11) ? (((hour - 12) || 12) + ':' + minute + ' PM') : ((hour || 12) + ':' + minute + ' AM');
     }
 
+    // convert to 24-hour format
+    function get24HourTime(time){
+        if ((time + '') === '' || time === '!') {
+            return ''
+        }
+        var hour = +(time + '').split(':')[0];
+        var minute = (time + '').split(':')[1].split(/\s+/)[0];
+        var ampm = (time + '').split(/\s+/)[1] || '';
+        if (/AM/i.test(ampm)) {
+            return (hour === 12 ? '0' : hour) + ':' + minute;
+        }
+        else {
+            return (hour < 12 ? (hour + 12) : hour) + ':' + minute;
+        }
+    }
+
+    // return the time as a percentage (60 minutes = 100%)
+    function timeValue(time){
+        var parts = time.split(':');
+        var hour  = +parts[0];
+        var mins  = +parts[1];
+        return (hour + (mins / 60)).toFixed(2) * 100;
+    }
+
     // return a conformed object with calculated values
     function timeBlockData(data){
 
         var obj = extend({
             id: '',
+            pacsId: window.pacsId,
             dayOfWeek: 1,
             availabilityStart: '0:00',
             availabilityEnd: '24:00',
@@ -91,8 +124,8 @@
         obj.startLabel = get12HourTime(obj.startTime);
         obj.endLabel   = get12HourTime(obj.endTime);
 
-        obj.startValue = +(obj.startTime.split(':').join(''));
-        obj.endValue   = +(obj.endTime.split(':').join(''));
+        obj.startValue = timeValue(obj.startTime);
+        obj.endValue   = timeValue(obj.endTime);
 
         obj.startKey = zeroPad(obj.startValue, 4);
 
@@ -118,30 +151,96 @@
 
     }
 
-    function intervalDialog(id, day, start, end){
+    function intervalDialog(data){
+
+        // console.log('edit interval');
+
+        var id      = data.id;
+        var day     = data.dayOfWeek;
+        var start   = data.availabilityStart;
+        var end     = data.availabilityEnd;
+        var threads = data.threads;
+        var pct     = data.pct;
+
+        // console.log(data);
 
         XNAT.dialog.open({
             width: 500,
             padding: 0,
             title: 'Edit Utilization Interval for <b>' + daysConfig[+day][2] + '</b>',
-            okLabel: 'Save',
-            okClose: false,
-            okAction: function(dlg){
-                var saveInterval = dlg.body$.find('form').submitJSON();
-                saveInterval.done(function(){
-                    // re-render the interval display
-                    renderDayRows();
-                    XNAT.ui.banner.top(2000, 'Saved', 'success');
-                    dlg.close();
-                });
-                saveInterval.fail(function(txt){
-                    console.error(arguments);
-                    XNAT.dialog.message('Error', '' +
-                        '<p>An error occurred when saving.</p>' +
-                        '<div class="error">' + txt + '</div>' +
-                        '');
-                });
-            },
+            buttons: [
+                {
+                    label: 'Save',
+                    close: false,
+                    isDefault: true,
+                    action: function(dlg){
+                        console.log('okAction');
+                        var $form  = dlg.body$.find('form');
+                        var errors = [];
+                        if (!$form.find('.start-hour')[0].value || !$form.find('.start-minute')[0].value || !$form.find('.start-ampm')[0].value) {
+                            errors.push('Please select a start time.');
+                        }
+                        if (!$form.find('.end-hour')[0].value || !$form.find('.end-minute')[0].value || !$form.find('.end-ampm')[0].value) {
+                            errors.push('Please select an end time.');
+                        }
+                        if (!$form.find('[name="threads"]')[0].value) {
+                            errors.push('Please specify the number of threads.');
+                        }
+                        if (!$form.find('[name="utilizationPercent"]')[0].value) {
+                            errors.push('Please enter a number for utilization rate percentage.');
+                        }
+                        if (errors.length) {
+                            XNAT.dialog.alert('' +
+                                'Please correct the following errors and try again:' +
+                                '<br>' +
+                                '<ul>' +
+                                '<li>' + errors.join('</li><li>') + '</li>' +
+                                '</ul>');
+                            return false;
+                        }
+                        // if fields have values...
+
+                        // combine start time value
+                        var startHour = $form.find('.start-hour').val();
+                        var startMin = $form.find('.start-minute').val();
+                        var startAmPm = $form.find('.start-ampm').val();
+                        var startTimeValue = get24HourTime(startHour + ':' + startMin + ' ' + startAmPm);
+                        console.log(startTimeValue);
+                        $form.find('.start-time-value').val(startTimeValue);
+
+                        // combine end time value
+                        var endHour = $form.find('.end-hour').val();
+                        var endMin = $form.find('.end-minute').val();
+                        var endAmPm = $form.find('.end-ampm').val();
+                        var endTimeValue = get24HourTime(endHour + ':' + endMin + ' ' + endAmPm);
+                        if (endTimeValue === '0:00') {
+                            // for end time, midnight should be 24:00
+                            endTimeValue = '24:00'
+                        }
+                        console.log(endTimeValue);
+                        $form.find('.end-time-value').val(endTimeValue);
+
+                        var saveInterval = dlg.body$.find('form').submitJSON();
+                        saveInterval.done(function(){
+                            // re-render the interval display
+                            renderDayRows();
+                            XNAT.ui.banner.top(2000, 'Saved', 'success');
+                            dlg.close();
+                        });
+                        saveInterval.fail(function(txt){
+                            console.error(arguments);
+                            XNAT.dialog.message('Error', '' +
+                                '<p>An error occurred when saving.</p>' +
+                                '<div class="error">' + txt + '</div>' +
+                                '');
+                        });
+                    }
+                },
+                {
+                    label: 'Cancel',
+                    close: true
+                }
+            ],
             beforeShow: function(dlg){
                 // bind the delete function to the link
                 dlg.body$.on('click', 'a.delete-schedule-entry', function(e){
@@ -172,24 +271,110 @@
             },
             content: (function(){
 
-                var startMenu = spawn('select.start-time', { name: 'availabilityStart' });
-                var endMenu   = spawn('select.end-time', { name: 'availabilityEnd' });
-
-                function setupOption(val, hr){
-                    var cfg   = { attr: {} };
-                    cfg.value = hr;
-                    if (val === hr) {
+                function setupOption(val, cfg){
+                    cfg      = getObject(cfg);
+                    cfg.attr = cfg.attr || {};
+                    if (val === cfg.value) {
                         cfg.attr.selected = 'selected';
                         cfg.selected      = true;
                     }
-                    return cfg;
+                    return ['option', cfg, cfg.value + ''];
                 }
 
-                [].concat(hours, [24]).forEach(function(hr, i){
-                    var time = hr + ':00';
-                    hr < 24 && startMenu.appendChild(spawn('option', setupOption(start, time), get12HourTime(time)));
-                    hr > 0 && endMenu.appendChild(spawn('option', setupOption(end, time), hr === 24 ? 'Midnight' : get12HourTime(time)));
-                });
+                // create and return an hour selector menu
+                function hourMenu(val, cfg){
+                    var options = [];
+                    if (val === undef || (val + '') === '' || val === '--') {
+                        // options.push([].concat(setupOption('!', { value: '!' }).slice(1)), ['Select...']);
+                        options.push(['option|selected', { value: '', selected: true }, ' ']);
+                        cfg.selectedIndex = 0;
+                    }
+                    var hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                    hours.forEach(function(hour, i){
+                        options.push(setupOption(val + '', { value: hour + '' }))
+                    });
+                    return spawn('select.hours.ignore', cfg, options)
+                }
+
+                // create and return a minute selector menu
+                function minuteMenu(val, cfg){
+                    var options = [];
+                    if (val === undef || (val + '') === '' || val === '--') {
+                        options.push(['option|selected', { value: '', selected: true }, ' '])
+                    }
+                    var mins = ['00', '15', '30', '45'];
+                    mins.forEach(function(min, i){
+                        options.push(setupOption(val + '', { value: min }))
+                    });
+                    return spawn('select.minutes.ignore', cfg, options)
+                }
+
+                // create and return an AM/PM selector menu
+                function amPmMenu(val, cfg){
+                    var options = [];
+                    if (val === undef || (val + '') === '' || val === '--') {
+                        options.push(['option|selected', { value: '', selected: true }, ' '])
+                    }
+                    ['AM', 'PM'].forEach(function(ampm, i){
+                        options.push(setupOption(val || 'AM', { value: ampm }))
+                    });
+                    return spawn('select.am-pm.ignore', cfg, options);
+                }
+
+                // START TIME MENUS
+                var start12HourTime = get12HourTime(start);
+                var startHourValue  = data.startHour = start12HourTime.split(':')[0];
+                var startMinValue   = data.startMinute = start12HourTime.split(':')[1].split(/\s+/)[0];
+                var startAmPmValue  = data.startAmPm = start12HourTime.split(/\s+/)[1] || '';
+
+                var startTimeMenus = spawn('div.start-time|title=Start Time');
+
+                var startHourMenu = hourMenu(startHourValue, { addClass: 'start-hour', name: 'startHour', title: 'Start Hour' });
+                var startMinMenu  = minuteMenu(startMinValue, { addClass: 'start-minute', name: 'startMinute', title: 'Start Minute' });
+                var startAmPmMenu = amPmMenu(startAmPmValue, { addClass: 'start-ampm', name: 'startAmPm', title: 'AM/PM' });
+
+                // put the menus in the container
+                startTimeMenus.appendChild(startHourMenu);
+                startTimeMenus.appendChild(spawn('span', NBSP));
+                startTimeMenus.appendChild(startMinMenu);
+                startTimeMenus.appendChild(spawn('span', NBSP));
+                startTimeMenus.appendChild(startAmPmMenu);
+
+
+                // END TIME MENUS
+                var end12HourTime = get12HourTime(end);
+                var endHourValue  = data.endHour = end12HourTime.split(':')[0];
+                var endMinValue   = data.endMinute = end12HourTime.split(':')[1].split(/\s+/)[0];
+                var endAmPmValue  = data.endAmPm = end12HourTime.split(/\s+/)[1] || '';
+
+                var endTimeMenus = spawn('div.end-time|title=End Time');
+
+                var endHourMenu = hourMenu(endHourValue, { addClass: 'end-hour', name: 'endHour', title: 'End Hour' });
+                var endMinMenu  = minuteMenu(endMinValue, { addClass: 'end-minute', name: 'endMinute', title: 'End Minute' });
+                var endAmPmMenu = amPmMenu(endAmPmValue, { addClass: 'end-ampm', name: 'endAmPm', title: 'AM/PM' });
+
+                // put the menus in the container
+                endTimeMenus.appendChild(endHourMenu);
+                endTimeMenus.appendChild(spawn('span', NBSP));
+                endTimeMenus.appendChild(endMinMenu);
+                endTimeMenus.appendChild(spawn('span', NBSP));
+                endTimeMenus.appendChild(endAmPmMenu);
+
+                // var startMenu = spawn('select.start-time', { name: 'availabilityStart' });
+                // var endMenu   = spawn('select.end-time', { name: 'availabilityEnd' });
+                //
+                // if (start === '!') {
+                //     startMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
+                // }
+                // if (end === '!') {
+                //     endMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
+                // }
+                //
+                // [].concat(hours, [24]).forEach(function(hr, i){
+                //     var time = hr + ':00';
+                //     hr < 24 && startMenu.appendChild(spawn('option', setupOption(start, time), get12HourTime(time)));
+                //     hr > 0 && endMenu.appendChild(spawn('option', setupOption(end, time), hr === 24 ? 'Midnight' : get12HourTime(time)));
+                // });
 
                 // TODO: more time increments, or manual entry.
                 // [].concat(hours, [24]).forEach(function(hr, hri){
@@ -206,70 +391,84 @@
                 return XNAT.spawner.spawn({
                     intervalEditor: {
                         kind: 'panel.form',
+                        id: randomID('i', false),
                         header: false,
                         footer: false,
                         borderless: true,
                         border: false,
                         method: id ? 'PUT' : 'POST',
                         contentType: 'json',
-                        load: id ? '$? */xapi/dqr/pacsAvailability/window/' + id : false,
+                        load: data,
                         action: '~/xapi/dqr/pacsAvailability/window' + (id ? '/' + id : ''),
                         contents: {
                             id: {
                                 kind: 'input.hidden',
                                 name: 'id',
-                                value: id ? id : ''
+                                // value: id ? id : '',
+                                id: randomID('i', false)
                             },
                             pacsId: {
                                 kind: 'input.hidden',
                                 name: 'pacsId',
-                                value: window.pacsId
+                                // value: window.pacsId,
+                                id: randomID('i', false)
                             },
                             dayOfWeek: {
                                 kind: 'input.hidden',
                                 name: 'dayOfWeek',
-                                value: day
+                                // value: day,
+                                id: randomID('i', false)
                             },
-                            availabilityStart: {
+                            startTimeDisplay: {
                                 kind: 'panel.display',
-                                name: 'availabilityStart',
+                                // name: 'availabilityStart',
+                                id: randomID('i', false),
                                 label: 'Start Time',
                                 contents: {
-                                    startMenu: {
-                                        tag: 'div.start-time-menu',
-                                        content: startMenu.outerHTML
+                                    startTimeMenus: {
+                                        tag: 'div.start-time-menus',
+                                        content: startTimeMenus.outerHTML
+                                    },
+                                    availabilityStart: {
+                                        tag: 'input.hidden.start-time-value|type=hidden|name=availabilityStart'
                                     }
                                 }
                             },
-                            availabilityEnd: {
+                            endTimeDisplay: {
                                 kind: 'panel.display',
-                                name: 'availabilityEnd',
+                                // name: 'availabilityEnd',
+                                id: randomID('i', false),
                                 label: 'End Time',
                                 contents: {
-                                    endMenu: {
-                                        tag: 'div.end-time-menu',
-                                        content: endMenu.outerHTML
+                                    endTimeMenus: {
+                                        tag: 'div',
+                                        content: endTimeMenus.outerHTML
+                                    },
+                                    availabilityEnd: {
+                                        tag: 'input.hidden.end-time-value|type=hidden|name=availabilityEnd'
                                     }
                                 }
                             },
                             threads: {
-                                kind: 'panel.input.number',
+                                kind: 'panel.input.text',
                                 name: 'threads',
+                                id: randomID('i', false),
                                 label: 'Threads',
                                 size: 4,
-                                // value: id ? '$? */xapi/dqr/pacsAvailability/window/' + id + ' | :threads' : ''
-                                validate: 'onblur gte:0 lt:1000',
+                                // value: (threads || 0) + '',
+                                validate: 'gte:0 lt:1000',
                                 message: 'Please enter a value between 0 and 999',
                                 description: ''
                             },
                             utilizationPercent: {
-                                kind: 'panel.input.number',
+                                kind: 'panel.input.text',
                                 name: 'utilizationPercent',
+                                id: randomID('i', false),
                                 label: 'Utilization',
                                 size: 3,
-                                // value: id ? '$? */xapi/dqr/pacsAvailability/window/' + id + ' | :utilizationPercent' : ''
+                                // value: (pct || 0) + '',
                                 afterElement: ' %',
-                                validate: 'onblur gte:0 lte:100',
+                                validate: 'gte:0 lte:100',
                                 message: 'Please enter a value between 0 and 100',
                                 description: ''
                             },
@@ -400,7 +599,7 @@
                                 availabilityStart: prevBlock.availabilityEnd,
                                 availabilityEnd: block.availabilityStart,
                                 // id: '',
-                                dayOfWeek: block.dayOfWeek
+                                dayOfWeek: dayIndex
                             });
 
                             blocks[filler.startKey] = filler;
@@ -415,6 +614,7 @@
                         if (dayData.length === i + 1 && block.endValue < 2400) {
 
                             filler = timeBlockData({
+                                dayOfWeek: dayIndex,
                                 availabilityStart: block.endTime,
                                 availabilityEnd: '24:00'
                             });
@@ -442,10 +642,12 @@
 
                 Object.keys(blocks).sort().forEach(function(startKey, i){
 
-                    // console.log(startKey);
+                    console.log(startKey);
 
                     // process values needed for display
                     var block = blocks[startKey];
+
+                    console.log(block);
 
                     var threads = block.threads;
                     var pct     = block.utilizationPercent;
@@ -470,19 +672,22 @@
                     // create the div to represent this interval
                     var timeBlock = spawn('div.time-block', {
                         title: block.startLabel + ' - ' + block.endLabel + ' (double-click to edit)',
-                        // style: { left: setWidth(block.startValue, 'px') },
                         on: [['dblclick', function(e){
-                            intervalDialog(block.id, dayIndex, block.startTime, block.endTime);
+                            var blockValues = {};
+                            x0('input', this).forEach(function(input, i){
+                                console.log(input);
+                                blockValues[input.name] = (input.value + '')
+                            });
+                            intervalDialog(blockValues);
                         }]]
                     }, [
-                        ['input|type=hidden|name=id', { value: block.id }],
+                        block.id ? ['input|type=hidden|name=id', { value: block.id }] : '',
                         ['input|type=hidden|name=pacsId', { value: block.pacsId }],
                         ['input|type=hidden|name=dayOfWeek', { value: dayIndex }],
-                        ['input|type=hidden|name=hour', { value: block.hour }],
                         ['input|type=hidden|name=availabilityStart', { value: block.startTime }],
                         ['input|type=hidden|name=availabilityEnd', { value: block.endTime }],
                         ['input|type=hidden|name=threads', { value: block.threads }],
-                        ['input|type=hidden|name=utilizationPercent', { value: block.utilizationPercent }],
+                        ['input|type=hidden|name=utilizationPercent', { value: block.pct }],
                         ['div.time-block-color', {
                             style: {
                                 width: setWidth(block.intervalLength, 'px'),
@@ -494,6 +699,23 @@
                     ]);
                     dayHours.appendChild(timeBlock);
                 });
+
+                dayRow.appendChild(spawn('div.add-interval.pull-left', {}, [
+                    ['i.fa.fa-plus-circle', {
+                        on: [['click', function(e){
+                            e.preventDefault();
+                            console.log('adding a utilization interval...');
+                            intervalDialog({
+                                id: '',
+                                dayOfWeek: dayIndex,
+                                availabilityStart: '!',
+                                availabilityEnd: '!',
+                                threads: 1,
+                                utilizationPercent: 100
+                            });
+                        }]]
+                    }]
+                ]));
 
                 // append the day's table to the frag
                 tmpFrag.appendChild(dayRow);
