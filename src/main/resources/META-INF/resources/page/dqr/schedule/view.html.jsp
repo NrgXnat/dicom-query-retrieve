@@ -126,6 +126,7 @@ Hide JSP tags from the Velocity parser.
                 font-size: 12px;
             }
 
+            /*.day-row .time-block:hover .thread-count,*/
             .day-row .thread-count:hover {
                 z-index: 3;
                 box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
@@ -135,12 +136,17 @@ Hide JSP tags from the Velocity parser.
                 display: none;
             }
 
+            /*.day-row .time-block:hover .thread-count > span,*/
             .day-row .thread-count:hover > span {
                 display: inline;
             }
 
             .day-row .add-interval {
                 padding: 20px 0 0 5px;
+            }
+
+            .day-row .add-interval:hover {
+                cursor: pointer;
             }
 
             .day-row .add-interval i.fa {
@@ -220,6 +226,7 @@ Hide JSP tags from the Velocity parser.
         <!-- ]]# -->
 
         <script src="${SITE_ROOT}/scripts/dqr/schedule.js"></script>
+        <!-- #* <%-- <script src="${SITE_ROOT}/page/dqr/schedule-dev/schedule.js"></script> --%> *# -->
 
         <!-- #* -->
     <!-- </pg:restricted> -->

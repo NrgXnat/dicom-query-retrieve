@@ -59,6 +59,20 @@
 
     })(24);
 
+
+    // create array of possible time values
+    function intervalTimes(){
+        var times = [];
+        [].concat(hours, [24]).forEach(function(hour, i){
+            var mins = (hour !== 24) ? ['00', '15', '30', '45'] : ['00'];
+            mins.forEach(function(min, i){
+                times.push(hour + ':' + min)
+            })
+        });
+        return times;
+    }
+
+
     // convert to 12-hour format
     function get12HourTime(time){
         if ((time + '') === '' || time === '!') {
@@ -166,8 +180,9 @@
 
         XNAT.dialog.open({
             width: 500,
+            // height: 380,
             padding: 0,
-            title: 'Edit Utilization Interval for <b>' + daysConfig[+day][2] + '</b>',
+            title: (id ? 'Edit' : 'Add') + ' Utilization Interval for <b>' + daysConfig[+day][2] + '</b>',
             buttons: [
                 {
                     label: 'Save',
@@ -177,11 +192,21 @@
                         console.log('okAction');
                         var $form  = dlg.body$.find('form');
                         var errors = [];
-                        if (!$form.find('.start-hour')[0].value || !$form.find('.start-minute')[0].value || !$form.find('.start-ampm')[0].value) {
+                        var startTime = $form.find('.start-time')[0].value;
+                        var endTime = $form.find('.end-time')[0].value;
+                        if (!startTime) {
                             errors.push('Please select a start time.');
                         }
-                        if (!$form.find('.end-hour')[0].value || !$form.find('.end-minute')[0].value || !$form.find('.end-ampm')[0].value) {
+                        if (!endTime) {
                             errors.push('Please select an end time.');
+                        }
+                        if (startTime && endTime) {
+                            if (timeValue(startTime) > timeValue(endTime)){
+                                errors.push('Start time must be before end time.');
+                            }
+                            if (timeValue(startTime) === timeValue(endTime)) {
+                                errors.push('Start time cannot be the same as end time.');
+                            }
                         }
                         if (!$form.find('[name="threads"]')[0].value) {
                             errors.push('Please specify the number of threads.');
@@ -199,27 +224,6 @@
                             return false;
                         }
                         // if fields have values...
-
-                        // combine start time value
-                        var startHour = $form.find('.start-hour').val();
-                        var startMin = $form.find('.start-minute').val();
-                        var startAmPm = $form.find('.start-ampm').val();
-                        var startTimeValue = get24HourTime(startHour + ':' + startMin + ' ' + startAmPm);
-                        console.log(startTimeValue);
-                        $form.find('.start-time-value').val(startTimeValue);
-
-                        // combine end time value
-                        var endHour = $form.find('.end-hour').val();
-                        var endMin = $form.find('.end-minute').val();
-                        var endAmPm = $form.find('.end-ampm').val();
-                        var endTimeValue = get24HourTime(endHour + ':' + endMin + ' ' + endAmPm);
-                        if (endTimeValue === '0:00') {
-                            // for end time, midnight should be 24:00
-                            endTimeValue = '24:00'
-                        }
-                        console.log(endTimeValue);
-                        $form.find('.end-time-value').val(endTimeValue);
-
                         var saveInterval = dlg.body$.find('form').submitJSON();
                         saveInterval.done(function(){
                             // re-render the interval display
@@ -242,6 +246,22 @@
                 }
             ],
             beforeShow: function(dlg){
+
+                // initialize the 'Chosen' plugin and set overflow to 'visible' for dialog elements
+                (function(){
+
+                    // this effectively prevents the following code from executing
+                    if (!undef) { return }
+
+                    // initialize the Chosen menus
+                    menuInit(dlg.body$.find('select.start-time'), {}, 150);
+                    menuInit(dlg.body$.find('select.end-time'), {}, 150);
+
+                    dlg.dialog$[0].style.overflow = 'visible';
+                    dlg.dialog$.find('.body')[0].style.overflow = 'visible';
+
+                })();
+
                 // bind the delete function to the link
                 dlg.body$.on('click', 'a.delete-schedule-entry', function(e){
                     e.preventDefault();
@@ -268,6 +288,7 @@
                         }
                     });
                 });
+
             },
             content: (function(){
 
@@ -281,112 +302,20 @@
                     return ['option', cfg, cfg.value + ''];
                 }
 
-                // create and return an hour selector menu
-                function hourMenu(val, cfg){
-                    var options = [];
-                    if (val === undef || (val + '') === '' || val === '--') {
-                        // options.push([].concat(setupOption('!', { value: '!' }).slice(1)), ['Select...']);
-                        options.push(['option|selected', { value: '', selected: true }, ' ']);
-                        cfg.selectedIndex = 0;
-                    }
-                    var hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-                    hours.forEach(function(hour, i){
-                        options.push(setupOption(val + '', { value: hour + '' }))
-                    });
-                    return spawn('select.hours.ignore', cfg, options)
+                var startTimeMenu = spawn('select.start-time', { name: 'availabilityStart' });
+                var endTimeMenu   = spawn('select.end-time', { name: 'availabilityEnd' });
+
+                if (start === '!') {
+                    startTimeMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
+                }
+                if (end === '!') {
+                    endTimeMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
                 }
 
-                // create and return a minute selector menu
-                function minuteMenu(val, cfg){
-                    var options = [];
-                    if (val === undef || (val + '') === '' || val === '--') {
-                        options.push(['option|selected', { value: '', selected: true }, ' '])
-                    }
-                    var mins = ['00', '15', '30', '45'];
-                    mins.forEach(function(min, i){
-                        options.push(setupOption(val + '', { value: min }))
-                    });
-                    return spawn('select.minutes.ignore', cfg, options)
-                }
-
-                // create and return an AM/PM selector menu
-                function amPmMenu(val, cfg){
-                    var options = [];
-                    if (val === undef || (val + '') === '' || val === '--') {
-                        options.push(['option|selected', { value: '', selected: true }, ' '])
-                    }
-                    ['AM', 'PM'].forEach(function(ampm, i){
-                        options.push(setupOption(val || 'AM', { value: ampm }))
-                    });
-                    return spawn('select.am-pm.ignore', cfg, options);
-                }
-
-                // START TIME MENUS
-                var start12HourTime = get12HourTime(start);
-                var startHourValue  = data.startHour = start12HourTime.split(':')[0];
-                var startMinValue   = data.startMinute = start12HourTime.split(':')[1].split(/\s+/)[0];
-                var startAmPmValue  = data.startAmPm = start12HourTime.split(/\s+/)[1] || '';
-
-                var startTimeMenus = spawn('div.start-time|title=Start Time');
-
-                var startHourMenu = hourMenu(startHourValue, { addClass: 'start-hour', name: 'startHour', title: 'Start Hour' });
-                var startMinMenu  = minuteMenu(startMinValue, { addClass: 'start-minute', name: 'startMinute', title: 'Start Minute' });
-                var startAmPmMenu = amPmMenu(startAmPmValue, { addClass: 'start-ampm', name: 'startAmPm', title: 'AM/PM' });
-
-                // put the menus in the container
-                startTimeMenus.appendChild(startHourMenu);
-                startTimeMenus.appendChild(spawn('span', NBSP));
-                startTimeMenus.appendChild(startMinMenu);
-                startTimeMenus.appendChild(spawn('span', NBSP));
-                startTimeMenus.appendChild(startAmPmMenu);
-
-
-                // END TIME MENUS
-                var end12HourTime = get12HourTime(end);
-                var endHourValue  = data.endHour = end12HourTime.split(':')[0];
-                var endMinValue   = data.endMinute = end12HourTime.split(':')[1].split(/\s+/)[0];
-                var endAmPmValue  = data.endAmPm = end12HourTime.split(/\s+/)[1] || '';
-
-                var endTimeMenus = spawn('div.end-time|title=End Time');
-
-                var endHourMenu = hourMenu(endHourValue, { addClass: 'end-hour', name: 'endHour', title: 'End Hour' });
-                var endMinMenu  = minuteMenu(endMinValue, { addClass: 'end-minute', name: 'endMinute', title: 'End Minute' });
-                var endAmPmMenu = amPmMenu(endAmPmValue, { addClass: 'end-ampm', name: 'endAmPm', title: 'AM/PM' });
-
-                // put the menus in the container
-                endTimeMenus.appendChild(endHourMenu);
-                endTimeMenus.appendChild(spawn('span', NBSP));
-                endTimeMenus.appendChild(endMinMenu);
-                endTimeMenus.appendChild(spawn('span', NBSP));
-                endTimeMenus.appendChild(endAmPmMenu);
-
-                // var startMenu = spawn('select.start-time', { name: 'availabilityStart' });
-                // var endMenu   = spawn('select.end-time', { name: 'availabilityEnd' });
-                //
-                // if (start === '!') {
-                //     startMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
-                // }
-                // if (end === '!') {
-                //     endMenu.appendChild(spawn('option|selected', { value: '' }, 'Select...'));
-                // }
-                //
-                // [].concat(hours, [24]).forEach(function(hr, i){
-                //     var time = hr + ':00';
-                //     hr < 24 && startMenu.appendChild(spawn('option', setupOption(start, time), get12HourTime(time)));
-                //     hr > 0 && endMenu.appendChild(spawn('option', setupOption(end, time), hr === 24 ? 'Midnight' : get12HourTime(time)));
-                // });
-
-                // TODO: more time increments, or manual entry.
-                // [].concat(hours, [24]).forEach(function(hr, hri){
-                //     ['00', '15', '30', '45'].forEach(function(min, mini){
-                //         var time = (hr + ':' + min);
-                //         if (hr === 24 && min !== '00') {
-                //             return false;
-                //         }
-                //         (hr < 24) && startMenu.appendChild(spawn('option', setupOption(start, time), get12HourTime(time)));
-                //         (time !== '0:00') && endMenu.appendChild(spawn('option', setupOption(end, time), (time === '24:00') ? 'Midnight' : get12HourTime(time)));
-                //     });
-                // });
+                intervalTimes().forEach(function(time, i){
+                    time !== '24:00' && startTimeMenu.appendChild(spawn('option', setupOption(start, { value: time })[1], get12HourTime(time)));
+                    time !== '0:00' && endTimeMenu.appendChild(spawn('option', setupOption(end, { value: time })[1], time === '24:00' ? 'Midnight' : get12HourTime(time)));
+                });
 
                 return XNAT.spawner.spawn({
                     intervalEditor: {
@@ -425,12 +354,9 @@
                                 id: randomID('i', false),
                                 label: 'Start Time',
                                 contents: {
-                                    startTimeMenus: {
-                                        tag: 'div.start-time-menus',
-                                        content: startTimeMenus.outerHTML
-                                    },
-                                    availabilityStart: {
-                                        tag: 'input.hidden.start-time-value|type=hidden|name=availabilityStart'
+                                    startTimeMenu: {
+                                        tag: 'div.start-time-menu',
+                                        content: startTimeMenu.outerHTML
                                     }
                                 }
                             },
@@ -440,12 +366,9 @@
                                 id: randomID('i', false),
                                 label: 'End Time',
                                 contents: {
-                                    endTimeMenus: {
+                                    endTimeMenu: {
                                         tag: 'div',
-                                        content: endTimeMenus.outerHTML
-                                    },
-                                    availabilityEnd: {
-                                        tag: 'input.hidden.end-time-value|type=hidden|name=availabilityEnd'
+                                        content: endTimeMenu.outerHTML
                                     }
                                 }
                             },
@@ -488,7 +411,11 @@
                             })()
                         }
                     }
-                }).get();
+                }).get(function(spawned){
+                    console.log('spawned');
+                    // menuInit($(spawned).find('select.start-time'), {}, 150);
+                    // menuInit($(spawned).find('select.end-time'), {}, 150);
+                });
 
             })()
         });
