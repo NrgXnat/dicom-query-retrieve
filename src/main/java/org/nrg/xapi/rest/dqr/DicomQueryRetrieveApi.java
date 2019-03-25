@@ -880,12 +880,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if(studiesArray!=null && pacsId!=null){
             final Long pacsIdLong = Long.valueOf(pacsId);
             final Pacs pacs       = _pacsEntityService.retrieve(pacsIdLong);
-            for(String studyUid:studiesArray){
-                PacsSearchResults<String, Series> results = _pacsService.getSeriesByStudyUid(user, pacs, studyUid);
-                if(results!=null){
-                    seriesMap.put(studyUid,results);
-                }
+            String studiesString = "";
+            for(String studyUid:studiesArray) {
+                studiesString+="\\"+studyUid;
             }
+            studiesString = studiesString.substring(1);
+            PacsSearchResults<String, Series> results = _pacsService.getSeriesByStudyUid(user, pacs, studiesString);
+            if(results!=null){
+                seriesMap.put(studiesString,results);
+            }
+
         }
         return new ResponseEntity<>(seriesMap, HttpStatus.OK);
     }
