@@ -176,6 +176,9 @@
         var threads = data.threads;
         var pct     = data.pct;
 
+        // make sure we've got a pacsId value
+        data.pacsId = data.pacsId || window.pacsId;
+
         // console.log(data);
 
         XNAT.dialog.open({
@@ -634,6 +637,7 @@
                             console.log('adding a utilization interval...');
                             intervalDialog({
                                 id: '',
+                                pacsId: window.pacsId,
                                 dayOfWeek: dayIndex,
                                 availabilityStart: '!',
                                 availabilityEnd: '!',
