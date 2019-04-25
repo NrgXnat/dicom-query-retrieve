@@ -98,11 +98,12 @@ irbSettings:
         irbFile:
             kind: panel.input.upload
             name: irbFile
-            element:
+            input:
                 name: irbFile
+                multiple: false
             label: Upload IRB File
             method: PUT
-            action: ~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile
+            action: "~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile"
             description: Upload new or replace existing IRB file.
         irbSettingsJS:
             tag: "script|src=~/scripts/dqr/irbSettings.js"
