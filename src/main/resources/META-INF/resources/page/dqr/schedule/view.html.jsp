@@ -74,7 +74,7 @@ Hide JSP tags from the Velocity parser.
             }
 
             .day-row {
-                margin-bottom: 15px;
+                margin-bottom: 10px;
                 /*border-collapse: collapse; */
             }
 
@@ -83,7 +83,7 @@ Hide JSP tags from the Velocity parser.
                 width: 50px;
                 font-size: 16px;
                 font-weight: normal;
-                line-height: 60px;
+                line-height: 50px;
                 vertical-align: middle;
                 background: #fff;
             }
@@ -105,7 +105,7 @@ Hide JSP tags from the Velocity parser.
 
             .day-row .time-block-color {
                 /*min-width: 38px;*/
-                height: 60px;
+                height: 50px;
                 background: #5cc4ef;
                 border: 1px solid #acd2e6;
                 border-right: none;
@@ -142,7 +142,7 @@ Hide JSP tags from the Velocity parser.
             }
 
             .day-row .add-interval {
-                padding: 20px 0 0 5px;
+                padding: 15px 0 0 5px;
             }
 
             .day-row .add-interval:hover {
@@ -155,6 +155,7 @@ Hide JSP tags from the Velocity parser.
             }
 
             .hours-label-row {
+                width: 1050px;
                 position: relative;
                 left: -20px;
                 margin: 10px 0;

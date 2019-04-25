@@ -320,101 +320,109 @@
                     time !== '0:00' && endTimeMenu.appendChild(spawn('option', setupOption(end, { value: time })[1], time === '24:00' ? 'Midnight' : get12HourTime(time)));
                 });
 
-                return XNAT.spawner.spawn({
-                    intervalEditor: {
-                        kind: 'panel.form',
-                        id: randomID('i', false),
-                        header: false,
-                        footer: false,
-                        borderless: true,
-                        border: false,
-                        method: id ? 'PUT' : 'POST',
-                        contentType: 'json',
-                        load: data,
-                        action: '~/xapi/dqr/pacsAvailability/window' + (id ? '/' + id : ''),
-                        contents: {
-                            id: {
-                                kind: 'input.hidden',
-                                name: 'id',
-                                // value: id ? id : '',
-                                id: randomID('i', false)
-                            },
-                            pacsId: {
-                                kind: 'input.hidden',
-                                name: 'pacsId',
-                                // value: window.pacsId,
-                                id: randomID('i', false)
-                            },
-                            dayOfWeek: {
-                                kind: 'input.hidden',
-                                name: 'dayOfWeek',
-                                // value: day,
-                                id: randomID('i', false)
-                            },
-                            startTimeDisplay: {
-                                kind: 'panel.display',
-                                // name: 'availabilityStart',
-                                id: randomID('i', false),
-                                label: 'Start Time',
-                                contents: {
-                                    startTimeMenu: {
-                                        tag: 'div.start-time-menu',
-                                        content: startTimeMenu.outerHTML
-                                    }
-                                }
-                            },
-                            endTimeDisplay: {
-                                kind: 'panel.display',
-                                // name: 'availabilityEnd',
-                                id: randomID('i', false),
-                                label: 'End Time',
-                                contents: {
-                                    endTimeMenu: {
-                                        tag: 'div',
-                                        content: endTimeMenu.outerHTML
-                                    }
-                                }
-                            },
-                            threads: {
-                                kind: 'panel.input.text',
-                                name: 'threads',
-                                id: randomID('i', false),
-                                label: 'Threads',
-                                size: 4,
-                                // value: (threads || 0) + '',
-                                validate: 'gte:0 lt:1000',
-                                message: 'Please enter a value between 0 and 999',
-                                description: ''
-                            },
-                            utilizationPercent: {
-                                kind: 'panel.input.text',
-                                name: 'utilizationPercent',
-                                id: randomID('i', false),
-                                label: 'Utilization',
-                                size: 3,
-                                // value: (pct || 0) + '',
-                                afterElement: ' %',
-                                validate: 'gte:0 lte:100',
-                                message: 'Please enter a value between 0 and 100',
-                                description: ''
-                            },
-                            deleteEntry: (function(){
-                                return id ? {
-                                    kind: 'panel.display',
-                                    contents: {
-                                        deleteLink: {
-                                            tag: 'a.link.delete-schedule-entry|title=Delete Schedule Entry|href=#!',
-                                            content: 'Delete Schedule Entry'
-                                        }
-                                    }
-                                } : {
-                                    tag: 'div.hidden'
-                                };
-
-                            })()
-                        }
+                // only render the 'id' input if there's an id present (editing an existing entry)
+                function idField(){
+                    return id ? {
+                        kind: 'input.hidden',
+                        name: 'id',
+                        id: randomID('i', false)
+                    } : {
+                        tag: 'div.hidden'
                     }
-                }).get(function(spawned){
+                }
+
+                // only render the 'delete' button if editing an existing entry
+                function deleteButton(){
+                    return id ? {
+                        kind: 'panel.display',
+                        contents: {
+                            deleteLink: {
+                                tag: 'a.link.delete-schedule-entry|title=Delete Schedule Entry|href=#!',
+                                content: 'Delete Schedule Entry'
+                            }
+                        }
+                    } : {
+                        tag: 'div.hidden'
+                    }
+                }
+
+                var intervalEditorConfig = {
+                    kind: 'panel.form',
+                    id: randomID('i', false),
+                    header: false,
+                    footer: false,
+                    borderless: true,
+                    border: false,
+                    method: id ? 'PUT' : 'POST',
+                    contentType: 'json',
+                    load: data,
+                    action: '~/xapi/dqr/pacsAvailability/window' + (id ? '/' + id : ''),
+                    contents: {
+                        id: idField(),
+                        pacsId: {
+                            kind: 'input.hidden',
+                            name: 'pacsId',
+                            // value: window.pacsId,
+                            id: randomID('i', false)
+                        },
+                        dayOfWeek: {
+                            kind: 'input.hidden',
+                            name: 'dayOfWeek',
+                            // value: day,
+                            id: randomID('i', false)
+                        },
+                        startTimeDisplay: {
+                            kind: 'panel.display',
+                            // name: 'availabilityStart',
+                            id: randomID('i', false),
+                            label: 'Start Time',
+                            contents: {
+                                startTimeMenu: {
+                                    tag: 'div.start-time-menu',
+                                    content: startTimeMenu.outerHTML
+                                }
+                            }
+                        },
+                        endTimeDisplay: {
+                            kind: 'panel.display',
+                            // name: 'availabilityEnd',
+                            id: randomID('i', false),
+                            label: 'End Time',
+                            contents: {
+                                endTimeMenu: {
+                                    tag: 'div',
+                                    content: endTimeMenu.outerHTML
+                                }
+                            }
+                        },
+                        threads: {
+                            kind: 'panel.input.text',
+                            name: 'threads',
+                            id: randomID('i', false),
+                            label: 'Threads',
+                            size: 4,
+                            // value: (threads || 0) + '',
+                            validate: 'gte:0 lt:1000',
+                            message: 'Please enter a value between 0 and 999',
+                            description: ''
+                        },
+                        utilizationPercent: {
+                            kind: 'panel.input.text',
+                            name: 'utilizationPercent',
+                            id: randomID('i', false),
+                            label: 'Utilization',
+                            size: 3,
+                            // value: (pct || 0) + '',
+                            afterElement: ' %',
+                            validate: 'gte:0 lte:100',
+                            message: 'Please enter a value between 0 and 100',
+                            description: ''
+                        },
+                        deleteEntry: deleteButton()
+                    }
+                };
+
+                return XNAT.spawner.spawn({ intervalEditor: intervalEditorConfig }).get(function(spawned){
                     console.log('spawned');
                     // menuInit($(spawned).find('select.start-time'), {}, 150);
                     // menuInit($(spawned).find('select.end-time'), {}, 150);
