@@ -639,7 +639,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         try {
             String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
             XDAT.getMailService().sendMessage(adminEmail, new String[]{XDAT.getSiteConfigPreferences().getAdminEmail()}, new String[]{},
-                                              String.format("[ %s ] Project IRB Info Stored", TurbineUtils.GetSystemName()),
+                                              String.format("[ %s ] Project IRB Info Stored for %s", TurbineUtils.GetSystemName(), projectId),
                                               String.format("IRB info (containing IRB number %s) has been stored for project %s by user %s. You can review this info by going to the project's Project Settings page. If this IRB info is acceptable, you can add the project to the list of projects that are permitted to use DQR in Plugin Settings.", info.getIrbNumber(), projectId, user.getUsername()));
         } catch (final Exception e) {
             log.error(String.format("User %s saved IRB info for project %s but there was an error notifying the admin.", user.getUsername(),
