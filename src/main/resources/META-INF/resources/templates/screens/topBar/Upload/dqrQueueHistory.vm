@@ -1,0 +1,32 @@
+<!-- Sequence: 99 -->
+
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+
+#set ($SITE_ROOT = $content.getURI(""))
+###set ($projectId = $project.getId())
+###set ($userHelper = $data.getSession().getAttribute("userHelper"))
+
+#set ($isAdmin = false)
+#set ($isAllowed = false)
+
+#if ($user.checkRole("Administrator"))
+    #set ($isAdmin = true)
+    #set ($isAllowed = true)
+<script>
+    window.isAdmin   = true;
+    window.isAllowed = true;
+</script>
+<li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=admin">Import Queue/History</a></li>
+#else
+    #if ($user.checkRole("Dqr"))
+        #set ($isAllowed = true)
+    <script>
+        window.isAllowed = true;
+    </script>
+    <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
+    #end
+#end

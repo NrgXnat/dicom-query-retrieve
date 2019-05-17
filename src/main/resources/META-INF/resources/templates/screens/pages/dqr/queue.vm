@@ -1,0 +1,108 @@
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+
+#set ($SITE_ROOT = $content.getURI(""))
+#set ($projectId = $project.getId())
+#set ($userHelper = $data.getSession().getAttribute("userHelper"))
+
+#set ($subjectDisplay = "$!displayManager.getSingularDisplayNameForSubject()")
+#set ($sessionDisplay = "$!displayManager.getSingularDisplayNameForImageSession()")
+<script>
+    window.subjectDisplay      = '$!subjectDisplay' || 'Subject';
+    window.sessionDisplay      = '$!sessionDisplay' || 'Session';
+    window.subjectDisplayLower = window.subjectDisplay.toLowerCase();
+    window.sessionDisplayLower = window.sessionDisplay.toLowerCase();
+</script>
+
+#if (!$projectId)
+    #set ($projectId = $turbineUtils.escapeHTML($!data.getParameters().getString('project')))
+#end
+
+#set ($pacsId = $!turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
+#set ($pacsLabel = $!turbineUtils.escapeHTML($!data.getParameters().getString('label')))
+<script>
+    window.projectId    = '$!{projectId}';
+    window.selectedPacs = '$!{pacsId}';
+    window.pacsId       = window.selectedPacs;
+    window.pacsLabel    = '$!{pacsLabel}';
+</script>
+
+#set ($role = $!turbineUtils.escapeHTML($!data.getParameters().getString('role')))
+
+<!-- role: $!role -->
+
+#set ($isAllowed = false)
+
+#if ($user.checkRole("Administrator") || $user.checkRole("Dqr"))
+
+    #set ($isAllowed = true)
+
+<script>window.isAllowed = true</script>
+
+<div id="page-body">
+    <div class="pad">
+
+##            #parse("/page/dqr/queue/view.html.jsp")
+
+        <header id="content-header">
+            <div class="pad" style="padding:20px 0;">
+                <h2 class="pull-left" style="margin:0;">
+                    PACS Import Queue and History
+                </h2>
+##                <div id="select-pacs-menu-container" class="pull-right">
+##                    <label for="select-pacs"><b>Source PACS:</b></label>
+##                    <select id="select-pacs" style="min-width: 200px; display: none;" class="menu-ready">
+##                        <option value="">Select PACS…</option>
+##                        <option value="1" title="ORTHANC">ORTHANC</option>
+##                    </select>
+##                    <script>
+##                        menuInit($('#select-pacs'), {}, 200);
+##                    </script>
+##                </div>
+                <div class="clearfix clear"></div>
+            </div>
+        </header>
+
+##            #parse("/page/dqr-dev/queue/view.html.jsp")
+
+        <div id="pacs-queue-history-tabs">
+        <div class="content-tabs xnat-tab-container" style="display: block;">
+
+            <div class="xnat-nav-tabs top xnat-tab-nav">
+                <ul class="tab-group">
+                    <li class="tab active" data-tab="queue"><a title="Queue" href="#!">Queue</a></li>
+                    <li class="tab" data-tab="history"><a title="History" href="#!">History</a></li>
+                </ul>
+                </div>
+
+                <div class="xnat-tab-content">
+                <div class="tab-pane active" data-name="queue" data-tab="queue">
+                    <div id="pacs-import-queue-display">
+                        <!-- PACS import queue table will render here -->
+                    </div>
+                </div>
+                <div class="tab-pane" data-name="history" data-tab="history">
+                    <div id="pacs-import-history-display">
+                        <!-- PACS import history table will render here -->
+                    </div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+
+    <script src="${SITE_ROOT}/scripts/dqr/queue.js"></script>
+
+    #else
+
+        <div class="error">Not authorized. Redirecting...</div>
+        <script>
+            window.setTimeout(function(){
+                window.location.href = '${SITE_ROOT}/'
+            }, 2000)
+        </script>
+
+#end
