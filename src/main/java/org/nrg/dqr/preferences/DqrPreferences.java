@@ -47,7 +47,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         }
     }
 
-    @NrgPreference(defaultValue = "10 minutes")
+    @NrgPreference(defaultValue = "1 minute")
     public String getPacsAvailabilityCheckFrequency() {
         return getValue("pacsAvailabilityCheckFrequency");
     }
