@@ -1,10 +1,10 @@
 // More versatile filtering that works on non-table elements
 XNAT.app.filterableItems = function filterableItems(container){
 
-    var args = arguments;
+    var args   = arguments;
     var argLen = args.length;
-    var argi = -1;
-    var multi = [];
+    var argi   = -1;
+    var multi  = [];
 
     // initialize multiple containers as separate arguments
     if (argLen > 1) {
@@ -24,7 +24,7 @@ XNAT.app.filterableItems = function filterableItems(container){
     var $container = (container && container.jquery) ? container : $(container);
 
     // text inputs to use as filters
-    var $filterInputs = $container.find('input.filter-input');
+    var $filterInputs = $container.find('input.filter-input, input.filter-data');
 
     // <select> menus to use as filters
     var $filterMenus = $container.find('select.filter-menu');
@@ -38,7 +38,7 @@ XNAT.app.filterableItems = function filterableItems(container){
         return (window.performance && window.performance.now) ? window.performance.now() : 0;
     }
 
-    var filterValues = {};
+    var filterValues    = {};
     var filterComposite = '';
 
     // detach previously bound listeners
@@ -55,7 +55,7 @@ XNAT.app.filterableItems = function filterableItems(container){
     // ...but can also be:
     // 'urFilterName:filter'
     // if you want (for whatever reason)
-    function getFilterName(str){
+    function parseFilterName(str){
         return str ? (str.split(/filter:/i)[1] || str.split(/:filter/i)[0] || str || '').trim() : '';
     }
 
@@ -65,9 +65,9 @@ XNAT.app.filterableItems = function filterableItems(container){
         dataItems = [];
         // cache each item's data
         $dataRows.toArray().forEach(function(row, i){
-            var $row = $(row);
+            var $row     = $(row);
             var rowIndex = i;
-            var rowData = {
+            var rowData  = {
                 // use 'filter:*' to filter the entire row's content
                 '*': {
                     row: row,
@@ -80,19 +80,26 @@ XNAT.app.filterableItems = function filterableItems(container){
                 }
             };
             $row.find('.filter-data-item').toArray().forEach(function(item, i){
-                var name = getFilterName(item.title);
+
+                var name = item.dataset && item.dataset.filter ?
+                    item.dataset.filter :
+                    parseFilterName(item.title);
+
                 var itemIndex = i;
+
                 var itemData = {};
+
                 itemData.rowIndex = rowIndex;
-                itemData.index = itemIndex;
-                itemData.name = name;
-                itemData.content = (item.textContent || item.innerText || item.innerHTML).trim();
+                itemData.index    = itemIndex;
+                itemData.name     = name;
+                itemData.content  = (item.textContent || item.innerText || item.innerHTML).trim();
                 // itemData.item$ = $(item); // cache the jQuery object for the item
                 // itemData.row = row;
                 // itemData.row$ = $row;
                 // save it for later,
                 // keyed by the item name
                 rowData[name] = itemData;
+
             });
             dataItems.push(rowData);
         });
@@ -104,7 +111,7 @@ XNAT.app.filterableItems = function filterableItems(container){
     cacheItems();
 
     function resetFilters(){
-        filterValues = {};
+        filterValues    = {};
         filterComposite = '';
         $filterInputs.val('');
         // $filterMenus.find('option').removeAttr('selected').prop('selected', false);
@@ -114,11 +121,16 @@ XNAT.app.filterableItems = function filterableItems(container){
     }
 
     function getFilterValues(){
-        filterComposite = '';
+        filterComposite = '::';
         $allFilters.forEach(function(input, i){
-            var name = getFilterName(input.title);
+
+            var name = input.dataset && input.dataset.filter ?
+                input.dataset.filter :
+                parseFilterName(input.title);
+
             filterValues[name] = input.value;
-            filterComposite += input.value.trim();
+            filterComposite += (input.value.trim() + '::');
+
         });
     }
 
@@ -152,8 +164,9 @@ XNAT.app.filterableItems = function filterableItems(container){
             row['*'].hidden = false;
             // iterate to hit all the filter inputs
             Object.keys(filterValues).forEach(function(name, i){
-                var val = filterValues[name];
-                row['*'].hidden = row['*'].hidden || !containsNC(row[name].content, val);
+                var val         = filterValues[name];
+                row['*'].hidden = !containsNC(row[name].content, val);
+                // row['*'].hidden = row['*'].hidden || !containsNC(row[name].content, val);
             });
             // hide if `hidden`
             // row['*'].row$[row['*'].hidden ? 'hide' : 'show']();
@@ -166,7 +179,7 @@ XNAT.app.filterableItems = function filterableItems(container){
 
     $filterInputs.on('keyup.filter', function(e){
         // the <input> [title] attribute should be 'filter:item-name'
-        // var name = getFilterName(this.title);
+        // var name = parseFilterName(this.title);
         var val = this.value;
         var key = e.which;
         // don't do anything on 'tab' keyup
@@ -204,6 +217,6 @@ XNAT.app.filterableItems = function filterableItems(container){
         update: function(){
             return this.getItems();
         }
-    }
+    };
 
 };

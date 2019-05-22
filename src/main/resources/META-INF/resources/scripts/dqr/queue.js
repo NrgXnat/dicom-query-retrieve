@@ -72,8 +72,8 @@ var XNAT = getObject(XNAT || {});
         function importQueuePanel(){
             return {
                 importQueuePanel: {
-                    kind: 'panel',
-                    title: 'PACS Import Queue',
+                    tag: 'div',
+                    element: { title: 'PACS Import Queue' },
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
@@ -128,8 +128,8 @@ var XNAT = getObject(XNAT || {});
         function importHistoryPanel(){
             return {
                 importHistoryPanel: {
-                    kind: 'panel',
-                    title: 'PACS Import History',
+                    tag: 'div',
+                    element: { title: 'PACS Import History' },
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',

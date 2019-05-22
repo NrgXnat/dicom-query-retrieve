@@ -1,0 +1,12 @@
+#* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+
+#set ($SITE_ROOT = $content.getURI(""))
+
+##<script src="${SITE_ROOT}/scripts/lib/lodash/lodash.js"></script>
+##<script src="${SITE_ROOT}/scripts/lib/xx.js"></script>
+
+<script src="${SITE_ROOT}/scripts/xnat/app/selectableItems.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/app/filterableItems.js"></script>

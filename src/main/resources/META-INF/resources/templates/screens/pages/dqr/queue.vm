@@ -66,8 +66,6 @@
             </div>
         </header>
 
-##            #parse("/page/dqr-dev/queue/view.html.jsp")
-
         <div id="pacs-queue-history-tabs">
         <div class="content-tabs xnat-tab-container" style="display: block;">
 

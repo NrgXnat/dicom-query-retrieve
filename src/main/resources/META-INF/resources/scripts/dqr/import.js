@@ -27,15 +27,15 @@ var XNAT = getObject(XNAT || {});
         getObject(XNAT.plugin.dqr || {});
 
     // cache DOM elements when script loads for faster access later
-    var $selectPacsMenu = $('#select-pacs');
-    var $pacsSearchFields = $('#pacs-search-fields');
-    var $searchSubmit = $('#submit-pacs-search');
-    var $pacsSearchResults = $('#pacs-search-results');
+    var $selectPacsMenu      = $('#select-pacs');
+    var $pacsSearchFields    = $('#pacs-search-fields');
+    var $searchSubmit        = $('#submit-pacs-search');
+    var $pacsSearchResults   = $('#pacs-search-results');
     var $searchResultsHeader = $pacsSearchResults.find('.results-header');
-    var $searchResultsBody = $pacsSearchResults.find('.results-body');
+    var $searchResultsBody   = $pacsSearchResults.find('.results-body');
     var $searchResultsSubmit = $pacsSearchResults.find('.results-submit');
-    var $pacsNoResults = $('#pacs-no-results');
-    var $noResultsTemplate = $('#no-search-results');
+    var $pacsNoResults       = $('#pacs-no-results');
+    var $noResultsTemplate   = $('#no-search-results');
 
     // string 'constants'
     var NONE = '(none)';
@@ -47,7 +47,7 @@ var XNAT = getObject(XNAT || {});
                 pacsMenu.add(spawn('option', {
                     value: item.id,
                     title: item.aeTitle
-                }, item.label || item.aeTitle))
+                }, item.label || item.aeTitle));
             }
             if (item.defaultQueryRetrievePacs) {
                 dqr.selectedPacs = item.id;
@@ -69,22 +69,22 @@ var XNAT = getObject(XNAT || {});
     }
 
     getPacsList(function fn(json){
-        renderPacsMenu(json.ResultSet.Result)
+        renderPacsMenu(json.ResultSet.Result);
     });
 
-    var $studyDateFrom = $('#study-date-from');
-    var $studyDateTo = $('#study-date-to');
+    var $studyDateFrom  = $('#study-date-from');
+    var $studyDateTo    = $('#study-date-to');
     var $studyDateToday = $('#study-date-today');
 
-    var DATE_MIN = new Date('1900-01-01T00:00');
+    var DATE_MIN   = new Date('1900-01-01T00:00');
     var DATE_TODAY = new Date();
     var dateFrom, dateTo;
 
-    function resetResults(){
-        dqr.searchResults = [];
+    function resetResults(data){
+        dqr.searchResults    = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
-        dqr.selectedStudies = {};
+        dqr.selectedStudies  = {};
 
         dqr.scanTypesList = [];
 
@@ -92,10 +92,14 @@ var XNAT = getObject(XNAT || {});
         dqr.studiesBySeriesDesc = {};
 
         $pacsSearchFields.find('input').val('');
-        $pacsNoResults.empty().html($noResultsTemplate.html());
+
+        if (!data || !data.length) {
+            $pacsNoResults.empty().html($noResultsTemplate.html());
+        }
+
         $searchResultsHeader.empty();
         $searchResultsBody.empty();
-        $searchResultsSubmit.empty();
+        $searchResultsSubmit.empty().spawn('br');
         // if these are defined, they should be initialized
         // if (dateFrom && dateTo) {
         //     dateFrom.update({
@@ -140,13 +144,13 @@ var XNAT = getObject(XNAT || {});
                     $selectPacsMenu.changeVal(dqr.selectedPacs);
                     menuUpdate($selectPacsMenu);
                 }
-            })
+            });
         }
     });
 
     function validDate(dateVal){
         var dateSplit;
-        return dateVal && (dateSplit = new SplitDate(dateVal)) && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check() ? new Date(dateVal + 'T00:00') : ''
+        return dateVal && (dateSplit = new SplitDate(dateVal)) && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check() ? new Date(dateVal + 'T00:00') : '';
     }
 
     function datepickerOpts(obj){
@@ -169,7 +173,7 @@ var XNAT = getObject(XNAT || {});
                 fromPicker.update({
                     minDate: DATE_MIN,
                     maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                })
+                });
             },
             onSelect: function(formattedDate, dateObj, picker){
                 dateTo.update({
@@ -183,12 +187,12 @@ var XNAT = getObject(XNAT || {});
                 toPicker.update({
                     minDate: validDate($studyDateFrom.val()) || DATE_MIN,
                     maxDate: DATE_TODAY
-                })
+                });
             },
             onSelect: function(formattedDate, dateObj, picker){
                 dateFrom.update({
                     maxDate: dateObj
-                })
+                });
             }
         })).data('datepicker');
 
@@ -204,7 +208,7 @@ var XNAT = getObject(XNAT || {});
             });
             dateTo.update({
                 minDate: validDate($studyDateFrom.val()) || DATE_MIN
-            })
+            });
         }
 
         $studyDateFrom.on('change', verifyDates);
@@ -237,14 +241,14 @@ var XNAT = getObject(XNAT || {});
     };
 
     function randomizer(length, prefix){
-        var pre = (isDefined(prefix)) ? prefix : 'rndx';
+        var pre   = (isDefined(prefix)) ? prefix : 'rndx';
         var newId = pre + (Math.random() + 1).toString(36).substr(2, 8);
         if (isDefined(length)) {
             if (newId.length > length) {
                 return newId.slice(0, length);
             }
             else {
-                return randomizer(length, newId)
+                return randomizer(length, newId);
             }
         }
         return newId;
@@ -274,7 +278,7 @@ var XNAT = getObject(XNAT || {});
 
     function getStudies(pacsId, uids){
         var UIDS = [].concat(uids).join(',');
-        var URL = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
+        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
         return XNAT.xhr.getJSON({
             url: URL,
             success: function(studies){
@@ -296,15 +300,15 @@ var XNAT = getObject(XNAT || {});
 
         forOwn(json, function(uid, obj){
             forEach(obj.results, function(item){
-                var seriesDescriptionItem = dqr.seriesDescriptions[item.seriesDescription] || {};
-                seriesDescriptionItem.name = (item.seriesDescription || NONE);
+                var seriesDescriptionItem   = dqr.seriesDescriptions[item.seriesDescription] || {};
+                seriesDescriptionItem.name  = (item.seriesDescription || NONE);
                 seriesDescriptionItem.count = (seriesDescriptionItem.count || 0);
                 seriesDescriptionItem.count++;
                 seriesDescriptionItem.studyUIDs = seriesDescriptionItem.studyUIDs || [];
                 if (seriesDescriptionItem.studyUIDs.indexOf(item.study.studyInstanceUid) === -1) {
                     seriesDescriptionItem.studyUIDs.push(item.study.studyInstanceUid);
                 }
-                seriesDescriptionItem.seriesUIDs = (seriesDescriptionItem.seriesUIDs || []).concat(item.seriesInstanceUid);
+                seriesDescriptionItem.seriesUIDs               = (seriesDescriptionItem.seriesUIDs || []).concat(item.seriesInstanceUid);
                 dqr.seriesDescriptions[item.seriesDescription] = seriesDescriptionItem;
             });
             studyCount += 1;
@@ -317,7 +321,7 @@ var XNAT = getObject(XNAT || {});
             dqr.scanTypesList.push(obj);
         });
 
-        return dqr.scanTypesList
+        return dqr.scanTypesList;
 
     }
 
@@ -343,7 +347,7 @@ var XNAT = getObject(XNAT || {});
                             ['input.selectable-all|type=checkbox', {
                                 checked: true
                             }]
-                        ])
+                        ]);
                     },
                     apply: function(){
                         var item = this;
@@ -363,14 +367,14 @@ var XNAT = getObject(XNAT || {});
                         var item = this;
                         return spawn('label.scan-type-label', {
                             attr: { 'for': itemId(item) }
-                        }, item.name)
+                        }, item.name);
                     }
                 },
                 COUNT: {
                     label: 'Study Count',
                     apply: function(){
                         var item = this;
-                        return item.studyUIDs.length + ''
+                        return item.studyUIDs.length + '';
                     }
                 }
             }
@@ -383,7 +387,7 @@ var XNAT = getObject(XNAT || {});
     function importSessionsOfSelectedTypeToProject(){
 
         var $searchResultsTable = $('#all-search-results');
-        var selectedSessions = $searchResultsTable.find('input.select-session:checked');
+        var selectedSessions    = $searchResultsTable.find('input.select-session:checked');
 
         var uids = selectedSessions.toArray().map(function(ckbx, i){
             return ckbx.value;
@@ -407,46 +411,46 @@ var XNAT = getObject(XNAT || {});
         }
 
         var jsonDataOldExample = {
-            "importRows": [
+            'importRows': [
                 {
-                    "relabelMap": {},
-                    "studyInstanceUIDs": [
-                        "string"
+                    'relabelMap': {},
+                    'studyInstanceUIDs': [
+                        'string'
                     ]
                 }
             ],
-            "seriesDescriptions": [
-                "string"
+            'seriesDescriptions': [
+                'string'
             ]
         };
 
         var jsonDataOld = {
             importRows: uids.map(function(uid, i){
                 var relabelMap = {};
-                var $importRow = $searchResultsTable.find('tr[data-uid="' + uid +'"]');
+                var $importRow = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
                 $importRow.find('input.relabel').each(function(){
                     relabelMap[this.title] = this.value || '';
                 });
                 return {
                     relabelMap: relabelMap,
                     studyInstanceUIDs: [].concat(uid)
-                }
+                };
             }),
             seriesDescriptions: scanTypes
         };
 
         var jsonDataExample = {
-            "1.234.567890987654321": {
-                "seriesInstanceUIDs": [
-                    "1.23.456.7890",
-                    "1.23.789.0234"
+            '1.234.567890987654321': {
+                'seriesInstanceUIDs': [
+                    '1.23.456.7890',
+                    '1.23.789.0234'
                 ],
-                "seriesDescriptions": [
-                    "string"
+                'seriesDescriptions': [
+                    'string'
                 ],
-                "relabelMap": {
-                    "Subject": "SUBJ1",
-                    "Session": "SUBJ1_001"
+                'relabelMap': {
+                    'Subject': 'SUBJ1',
+                    'Session': 'SUBJ1_001'
                 }
             }
         };
@@ -468,14 +472,14 @@ var XNAT = getObject(XNAT || {});
                 })(),
                 relabelMap: (function(){
                     var relabelMapTemp = {};
-                    var $importRow = $searchResultsTable.find('tr[data-uid="' + uid +'"]');
+                    var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
                     $importRow.find('input.relabel').each(function(){
                         // only add to the relabelMap object if there's a value
                         this.value && (relabelMapTemp[this.title] = this.value || '');
                     });
                     return relabelMapTemp;
                 })()
-            }
+            };
         });
 
 
@@ -503,7 +507,7 @@ var XNAT = getObject(XNAT || {});
                             'You can also ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/app/action/XDATActionRouter/xdataction/prearchives/project/' + projectId) + '">' +
                             'check on the import progress in the prearchive</a> or ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) +'">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
                             'go back to the project page.</a></p>' +
                             '</div>';
                     })(),
@@ -518,7 +522,7 @@ var XNAT = getObject(XNAT || {});
                 XNAT.dialog.message('Error', 'An error has occurred during data import.');
                 console.warn(arguments);
             }
-        })
+        });
 
     }
 
@@ -547,7 +551,7 @@ var XNAT = getObject(XNAT || {});
                         close: true
                     }
                 ]
-            })
+            });
         });
 
     }
@@ -577,6 +581,13 @@ var XNAT = getObject(XNAT || {});
             return spawn('label.center', {
                 style: { display: 'block', textAlign: 'center' }
             }, ckbx);
+        }
+
+        function filterInput(name){
+            return spawn('input.filter-input', {
+                title: 'filter:' + name,
+                data: { filter: name }
+            })
         }
 
         var WIDTHS = {
@@ -615,7 +626,9 @@ var XNAT = getObject(XNAT || {});
                     },
                     accessionNumber: {
                         label: 'Accession Number',
-                        filter: true,
+                        filter: function(){
+                            return filterInput('accessionNumber')
+                        },
                         sort: true,
                         th: {
                             style: { width: WIDTHS.acc }
@@ -623,7 +636,13 @@ var XNAT = getObject(XNAT || {});
                     },
                     patientName: {
                         label: 'Patient Name',
-                        filter: true,
+                        filter: function(){
+                            return filterInput('patientName')
+                        },
+                        // <input class="filter-data" type="text" title="patientName:filter" placeholder="Filter by Patient Name">
+                        // filter: function(){
+                        //     return spawn('input')
+                        // },
                         sort: true,
                         th: {
                             style: { width: WIDTHS.name }
@@ -631,7 +650,9 @@ var XNAT = getObject(XNAT || {});
                     },
                     studyId: {
                         label: 'Study ID',
-                        filter: true,
+                        filter: function(){
+                            return filterInput('studyId')
+                        },
                         sort: true,
                         th: {
                             style: { width: WIDTHS.studyId }
@@ -639,7 +660,9 @@ var XNAT = getObject(XNAT || {});
                     },
                     studyDate: {
                         label: 'Study Date',
-                        filter: true,
+                        filter: function(){
+                            return filterInput('studyDate')
+                        },
                         sort: true,
                         th: {
                             style: { width: WIDTHS.date }
@@ -647,7 +670,9 @@ var XNAT = getObject(XNAT || {});
                     },
                     modalitiesInStudy: {
                         label: 'Modality',
-                        filter: true,
+                        filter: function(){
+                            return filterInput('modalitiesInStudy')
+                        },
                         sort: true,
                         th: {
                             style: { width: WIDTHS.mod }
@@ -695,13 +720,13 @@ var XNAT = getObject(XNAT || {});
                         ['change', 'input.select-session', function(){
                             var uid = this.value;
                             console.log(uid);
-                            dqr.allSearchResults[uid].checked = this.checked
+                            dqr.allSearchResults[uid].checked = this.checked;
                         }],
                         ['blur', 'input.relabel', function(e){
                             var uid = $(this).closest('tr').data('uid');
                             console.log(uid);
                             if (this.value) {
-                                dqr.allSearchResults[uid].relabelMap[this.title] = this.value
+                                dqr.allSearchResults[uid].relabelMap[this.title] = this.value;
                             }
                         }],
                         ['click', 'td:has(.select-row)', function(e){
@@ -711,14 +736,17 @@ var XNAT = getObject(XNAT || {});
                 },
                 overflowY: 'scroll',
                 maxHeight: '650px',
+                trs: function(tr, data){
+                    $(tr).addClass('filter-data-row');
+                },
                 columns: {
                     _studyInstanceUid: '~data-uid',  // this will add a [data-uid="1.234.567890"] attribute to each row's <tr> element
                     SELECT_SESSIONS: {
                         label: false,
                         td: { style: { width: WIDTHS.select } },
                         apply: function(){
-                            var uid = this.studyInstanceUid;
-                            var ckbx = spawn('input.select-session.selectable-select-one|type=checkbox', {
+                            var uid      = this.studyInstanceUid;
+                            var ckbx     = spawn('input.select-session.selectable-select-one|type=checkbox', {
                                 value: uid
                             });
                             ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
@@ -732,7 +760,10 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var accNum = this.accessionNumber || '';
-                            return spawn('div.truncate.select-row', { title: accNum }, accNum);
+                            return spawn('div.truncate.select-row.filter-data-item', {
+                                title: accNum,
+                                data: { filter: 'accessionNumber' }
+                            }, accNum);
                         }
                     },
                     patientName: {
@@ -741,9 +772,10 @@ var XNAT = getObject(XNAT || {});
                         apply: function(){
                             // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
                             var patientName = this.patient.name.lastNameCommaFirstName || '';
-                            return spawn('div.truncate.select-row', {
-                                title: patientName
-                            }, patientName)
+                            return spawn('div.truncate.select-row.filter-data-item', {
+                                title: patientName,
+                                data: { filter: 'patientName' }
+                            }, patientName);
                         }
                     },
                     studyId: {
@@ -753,7 +785,10 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var studyId = this.studyId;
-                            return spawn('div.truncate.select-row', { title: studyId }, studyId);
+                            return spawn('div.truncate.select-row.filter-data-item', {
+                                title: studyId,
+                                data: { filter: 'studyId' }
+                            }, studyId);
                         }
                     },
                     studyDate: {
@@ -763,10 +798,12 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var studyDateStr = this.studyDate + '';
-                            return spawn('div.center.mono.select-row', this.studyDate ? [
+                            return spawn('div.center.mono.select-row.filter-data-item', {
+                                data: { filter: 'studyDate' }
+                            }, this.studyDate ? [
                                 // ['i.hidden.sort', studyDateStr],
                                 studyDateStr.slice(0, 4) + '-' + studyDateStr.slice(4, 6) + '-' + studyDateStr.slice(6, 8)
-                            ] : '<i class="hidden">0</i>&ndash;')
+                            ] : '<i class="hidden">0</i>&ndash;');
                         }
                     },
                     modalitiesInStudy: {
@@ -775,7 +812,9 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.mod }
                         },
                         apply: function(){
-                            return spawn('div.select-row', [].concat(this.modalitiesInStudy).join(', '));
+                            return spawn('div.select-row.filter-data-item', {
+                                data: { filter: 'modalitiesInStudy' }
+                            }, [].concat(this.modalitiesInStudy).join(', '));
                         }
                     },
                     xnatSubject: extend(true, {}, relabelColumn, {
@@ -788,7 +827,7 @@ var XNAT = getObject(XNAT || {});
                             return spawn('input.relabel.relabel-patient-name|type=text|tabindex=1', {
                                 title: 'Subject',
                                 value: this.relabelMap ? (this.relabelMap['Subject'] || '') : ''
-                            })
+                            });
                         }
                     }),
                     xnatSession: extend(true, {}, relabelColumn, {
@@ -801,7 +840,7 @@ var XNAT = getObject(XNAT || {});
                             return spawn('input.relabel.relabel-study-id|type=text|tabindex=1', {
                                 title: 'Session',
                                 value: this.relabelMap ? (this.relabelMap['Session'] || '') : ''
-                            })
+                            });
                         }
                     })
                 }
@@ -813,11 +852,10 @@ var XNAT = getObject(XNAT || {});
         // init the selectable stuff
         XNAT.app.selectableItems($pacsSearchResults);
 
+        // init new filter method
         XNAT.app.filterableItems($pacsSearchResults);
 
-        $searchResultsSubmit.empty();
-
-        $searchResultsSubmit.spawn('br');
+        $searchResultsSubmit.empty().spawn('br');
 
         function renderBottom(receivers){
 
@@ -856,7 +894,7 @@ var XNAT = getObject(XNAT || {});
                                 return false;
                             }
                             dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                            scanTypesDialog(dqr.selectedPacs, uids)
+                            scanTypesDialog(dqr.selectedPacs, uids);
                         }]
                     ]
                 }]
@@ -868,17 +906,17 @@ var XNAT = getObject(XNAT || {});
             url: XNAT.url.restUrl('/xapi/dicomscp'),
             success: function(json){
                 var aeExample = {
-                    "enabled": true,
-                    "identifier": "dqrObjectIdentifier",
-                    "port": 8104,
-                    "id": 1,
-                    "aeTitle": "XNAT",
-                    "customProcessing": true
+                    'enabled': true,
+                    'identifier': 'dqrObjectIdentifier',
+                    'port': 8104,
+                    'id': 1,
+                    'aeTitle': 'XNAT',
+                    'customProcessing': true
                 };
                 renderBottom(json);
             },
             failure: function(e){
-                console.warn('Could not retrieve SCP Receivers')
+                console.warn('Could not retrieve SCP Receivers');
             }
         });
 
@@ -902,7 +940,7 @@ var XNAT = getObject(XNAT || {});
                 console.warn('PACS ping failed');
                 console.warn(arguments);
             }
-        })
+        });
     }
 
     function searchPACS(id){
@@ -915,7 +953,7 @@ var XNAT = getObject(XNAT || {});
 
         $pacsSearchFields.find('input').not('.ignore').serializeArray().forEach(function(param, i){
             // skip fields that start with '!'
-            if (param.name.charAt(0) !== '!'){
+            if (param.name.charAt(0) !== '!') {
                 searchCriteria[param.name] = param.value || '';
             }
         });
@@ -923,7 +961,7 @@ var XNAT = getObject(XNAT || {});
 
         // transform date to expected format
         searchCriteria.studyDateFrom = (searchCriteria.studyDateFrom ? (new SplitDate(searchCriteria.studyDateFrom)).US : '');
-        searchCriteria.studyDateTo = (searchCriteria.studyDateTo ? (new SplitDate(searchCriteria.studyDateTo)).US : '');
+        searchCriteria.studyDateTo   = (searchCriteria.studyDateTo ? (new SplitDate(searchCriteria.studyDateTo)).US : '');
 
         // console.log(searchCriteria);
 
@@ -940,7 +978,7 @@ var XNAT = getObject(XNAT || {});
             failure: function(){
                 console.warn('Error:');
                 console.warn(arguments);
-                XNAT.dialog.message(false, 'No results were found for the specified search criteria.')
+                XNAT.dialog.message(false, 'No results were found for the specified search criteria.');
             }
         });
 
@@ -952,6 +990,7 @@ var XNAT = getObject(XNAT || {});
     }
 
     $searchSubmit.on('click', function(e){
+        var self = this;
         dqr.selectedPacs = $selectPacsMenu.val();
         if (!dqr.selectedPacs) {
             XNAT.dialog.message(false, 'Please select a PACS to query.', {
@@ -962,7 +1001,10 @@ var XNAT = getObject(XNAT || {});
             });
             return;
         }
-        pingPACS(dqr.selectedPacs, searchPACS)
+        pingPACS(dqr.selectedPacs, function(){
+            resetResults();
+            searchPACS.apply(self, arguments);
+        });
     });
 
     // handle CSV import
@@ -998,20 +1040,20 @@ var XNAT = getObject(XNAT || {});
                         if (data.length) {
                             // pluck the data out of the response
                             forEach(data, function(item){
-                                var searchId = randomizer(16, 'dqrx' + (Date.now() + '').slice(-8, -2) + 'x');
-                                dqr.searchIds = dqr.searchIds || {};
-                                dqr.searchIds[searchId] = item;
-                                dqr.csvSearchResults = dqr.csvSearchResults || {};
+                                var searchId                   = randomizer(16, 'dqrx' + (Date.now() + '').slice(-8, -2) + 'x');
+                                dqr.searchIds                  = dqr.searchIds || {};
+                                dqr.searchIds[searchId]        = item;
+                                dqr.csvSearchResults           = dqr.csvSearchResults || {};
                                 dqr.csvSearchResults[searchId] = item;
                                 // dqr.allSearchResults[searchId] = {
                                 //     anonScript: item.anonScript || ''
                                 // };
                                 console.log(dqr.csvSearchResults);
                                 forEach(item.studies, function(study){
-                                    study.searchId = searchId;
+                                    study.searchId   = searchId;
                                     study.relabelMap = item.relabelMap;
-                                    results.push(study)
-                                })
+                                    results.push(study);
+                                });
                             });
                             console.log(results);
                             renderResultsTable(results);
@@ -1023,9 +1065,9 @@ var XNAT = getObject(XNAT || {});
                         console.warn('error importing CSV');
                         console.warn(arguments);
                     }
-                })
+                });
             }
-        })
+        });
     });
 
     XNAT.plugin.dqr = dqr;
