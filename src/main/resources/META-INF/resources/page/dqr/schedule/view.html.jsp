@@ -227,7 +227,6 @@ Hide JSP tags from the Velocity parser.
         <!-- ]]# -->
 
         <script src="${SITE_ROOT}/scripts/dqr/schedule.js"></script>
-        <!-- #* <%-- <script src="${SITE_ROOT}/page/dqr/schedule-dev/schedule.js"></script> --%> *# -->
 
         <!-- #* -->
     <!-- </pg:restricted> -->

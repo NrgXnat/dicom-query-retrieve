@@ -198,6 +198,10 @@ dependencies {
 task fatJar(type: Jar) {
     zip64 true
     classifier = "fat"
+    // files and folders with '-dev' or '--xx' in their name
+    // will not be in the compiled jar
+    exclude "**/resources/**/*-dev**"
+    exclude "**/resources/**/*--xx**"
     from {
         configurations.compileAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
     } {

@@ -21,18 +21,15 @@
     #set ($projectId = $turbineUtils.escapeHTML($!data.getParameters().getString('project')))
 #end
 
-#set ($pacsId = $!turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
-#set ($pacsLabel = $!turbineUtils.escapeHTML($!data.getParameters().getString('label')))
+#set ($pacsId = $turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
 <script>
     window.projectId = '$!{projectId}';
     window.selectedPacs = '$!{pacsId}';
-    window.pacsId = window.selectedPacs;
-    window.pacsLabel = '$!{pacsLabel}';
 </script>
 
 #set ($isAllowed = false)
 
-#if ($user.checkRole("Administrator"))
+#if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
 
     #set ($isAllowed = true)
 
@@ -40,14 +37,13 @@
 
     <div id="page-body" class="hidden">
         <div class="pad">
-            ## create a copy the file '/page/dqr/schedule/view-dev.html.jsp' to the running webapp
-            ## and copy the files from '/page/dqr/schedule' to do front-end
-            ## development without the need to rebuild the plugin jar every time
-            #parse("/page/dqr/schedule/view-dev.html.jsp")
+
+            #parse("/page/dqr/import/view-dev.html")
 
         </div>
     </div>
 
+    <script src="${SITE_ROOT}/page/dqr/import/view-dev.js"></script>
 
 #else
 

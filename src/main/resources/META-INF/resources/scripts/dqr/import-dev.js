@@ -16,7 +16,7 @@ var XNAT = getObject(XNAT || {});
     }
 }(function(){
 
-    console.log('dqr/import.js');
+    console.log('dqr/import-dev.js');
 
     var dqr, undef;
 
@@ -746,7 +746,7 @@ var XNAT = getObject(XNAT || {});
                         td: { style: { width: WIDTHS.select } },
                         apply: function(){
                             var uid      = this.studyInstanceUid;
-                            var ckbx     = spawn('input.select-session.selectable-select-one|type=checkbox', {
+                            var ckbx     = spawn('input.select-session.selectable-one|type=checkbox', {
                                 value: uid
                             });
                             ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
@@ -850,10 +850,10 @@ var XNAT = getObject(XNAT || {});
         renderBody();
 
         // init the selectable stuff
-        XNAT.plugins.dqr.selectableItems($pacsSearchResults);
+        XNAT.plugins.dqr.selectableItemsDev($pacsSearchResults);
 
         // init new filter method
-        XNAT.plugins.dqr.filterableItems($pacsSearchResults);
+        XNAT.plugins.dqr.filterableItemsDev($pacsSearchResults);
 
         $searchResultsSubmit.empty().spawn('br');
 

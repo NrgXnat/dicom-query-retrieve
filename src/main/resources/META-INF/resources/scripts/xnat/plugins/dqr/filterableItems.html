@@ -122,13 +122,12 @@
 <script src="selectableItems.js"></script>
 <script>
     (function($){
-        var filterInit = XNAT.app.filterableItems([
+        var filterInit = XNAT.plugins.dqr.filterableItems([
             $('#filterable-example'),
             $('#filterable-list')
         ]);
         console.log(filterInit);
-        // XNAT.app.filterableItems($('#filterable-list'));
-        XNAT.app.selectableItems('#filterable-list')
+        XNAT.plugins.dqr.selectableItems('#filterable-list')
     })(window.jQuery);
 </script>
 </body>
