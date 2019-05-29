@@ -42,11 +42,45 @@ var XNAT = getObject(XNAT || {});
     }
 
 
+    dqr.getPACSData = XNAT.xhr.get('~/data/pacs');
+
+    dqr.PACSData = {};
+
+    function setupPACSList(data){
+        data.forEach(function(PACS, i){
+            dqr.PACSData[PACS.id + ''] = PACS;
+        });
+    }
+
+    var PACSDataSample = {
+        "ResultSet": {
+            "Result": [
+                {
+                    "host": "10.1.1.1",
+                    "label": "ORTHANC",
+                    "aeTitle": "ORTHANC",
+                    "defaultStoragePacs": true,
+                    "defaultQueryRetrievePacs": true,
+                    "queryable": true,
+                    "ormStrategySpringBeanId": "dicomOrmStrategy",
+                    "storable": true,
+                    "queryRetrievePort": 4242,
+                    "supportsExtendedNegotiations": false,
+                    "timestamp": 1559097735082,
+                    "enabled": true,
+                    "created": 1559097735082,
+                    "id": 1,
+                    "disabled": 0
+                }
+            ],
+            "resultSetSize": 1
+        }
+    };
+
     $(function(){
 
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
-
 
         // `/xapi/dqr/query/queueWithOrder/user`
         var queueSample = [
@@ -69,9 +103,9 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function importQueuePanel(){
+        function userImportQueuePanel(){
             return {
-                importQueuePanel: {
+                userImportQueuePanel: {
                     tag: 'div',
                     element: { title: 'PACS Import Queue' },
                     contents: {
@@ -80,19 +114,102 @@ var XNAT = getObject(XNAT || {});
                             load: '*/xapi/dqr/query/queueWithOrder/user',
                             apply: function(data){
                                 if (!data.length) {
-                                 console.log('nothing')
+                                    console.log('nothing')
                                 }
+                            },
+                            table: {
+                                on: [
+                                    ['click', 'a.show-queue-item-data', function(e){
+                                        e.preventDefault();
+                                        XNAT.dialog.message(false, 'Show the queued item data.')
+                                    }],
+                                    ['click', 'a.remove-queue-item', function(e){
+                                        e.preventDefault();
+                                        XNAT.dialog.message(false, 'Remove the queued item now.')
+                                    }]
+                                ]
                             },
                             items: {
                                 _id: '~data-id',
                                 _pacs_id: '~data-pacs-id',
-                                id: 'ID',
-                                status: 'Status',
-                                queue_location: 'Queue Location',
-                                priority: 'Priority',
-                                username: 'User',
-                                xnat_project: 'Project',
-                                destination_ae_title: 'Dest. AE'
+                                CKBX: {
+                                    label: '<input type="checkbox" id="select-all-queue-items" class="selectable-all">',
+                                    th: { style: { width: '50px' } },
+                                    td: { className: 'center' },
+                                    apply: function(){
+                                        return spawn('input.selectable-one|type=checkbox', {
+                                            value: (this.id + '')
+                                        })
+                                    }
+                                },
+                                queue_location: {
+                                    label: 'Position',
+                                    sort: true,
+                                    th: { style: { width: '80px' } },
+                                    td: { className: 'center mono' }
+                                    // apply: function(loc){
+                                    //     return spawn('div.center', loc)
+                                    // }
+                                },
+                                priority: {
+                                    label: 'Priority',
+                                    sort: true,
+                                    th: { style: { width: '80px' } },
+                                    td: { className: 'center mono' }
+                                },
+                                status: {
+                                    label: 'Status',
+                                    sort: true,
+                                    td: { className: 'center' }
+                                },
+                                id: {
+                                    label: 'ID',
+                                    sort: true,
+                                    th: { style: { width: '80px' } },
+                                    td: { className: 'center mono' },
+                                    apply: function(id){
+                                        return spawn('a.link.show-queue-item-data|href=#!', id + '')
+                                    }
+                                },
+                                xnat_project: {
+                                    label: 'Project',
+                                    sort: true,
+                                    td: { className: 'center' }
+                                },
+                                pacs_id: {
+                                    label: 'PACS',
+                                    sort: true,
+                                    td: { className: 'center' },
+                                    apply: function(pacs_id){
+                                        var pacsLabel =
+                                                dqr.PACSData[pacs_id+''] ?
+                                                    dqr.PACSData[pacs_id+''].label || '?' :
+                                                    '?';
+                                        return spawn('span.pacs-id', pacsLabel)
+                                    }
+                                },
+                                // username: {
+                                //     label: 'User',
+                                //     td: { className: 'center' }
+                                // },
+                                destination_ae_title: {
+                                    label: 'Dest. AE',
+                                    sort: true,
+                                    td: { className: 'center' }
+                                },
+                                REMOVE: {
+                                    label: 'Remove',
+                                    th: { style: { width: '70px' } },
+                                    td: { className: 'center' },
+                                    apply: function(){
+                                        return spawn('a.remove-queue-item.nolink.btn-hover', {
+                                            href: '#!',
+                                            title: 'Remove queued item'
+                                        }, [
+                                            ['b.x', '&times;']
+                                        ])
+                                    }
+                                }
                             }
                         }
                     }
@@ -100,10 +217,7 @@ var XNAT = getObject(XNAT || {});
             };
         }
 
-        XNAT.spawner
-            .spawn(importQueuePanel())
-            .render(getById$('pacs-import-queue-display').empty());
-
+        // queue panel rendered below
 
         // `/xapi/dqr/history/user`
         var historySample = [
@@ -125,9 +239,9 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function importHistoryPanel(){
+        function userImportHistoryPanel(){
             return {
-                importHistoryPanel: {
+                userImportHistoryPanel: {
                     tag: 'div',
                     element: { title: 'PACS Import History' },
                     contents: {
@@ -143,27 +257,45 @@ var XNAT = getObject(XNAT || {});
                                 _pacsId: '~data-pacs-id',
                                 id: {
                                     label: 'ID',
-                                    sort: true
+                                    sort: true,
+                                    td: { className: 'center mono' }
                                 },
                                 status: {
                                     label: 'Status',
                                     filter: true,
-                                    sort: true
+                                    sort: true//,
+                                    // td: { className: 'center' }
                                 },
-                                username: {
-                                    label: 'User',
-                                    filter: true,
-                                    sort: true
-                                },
+                                // username: {
+                                //     label: 'User',
+                                //     filter: true,
+                                //     sort: true,
+                                //     td: { className: 'center' }
+                                // },
                                 xnatProject: {
                                     label: 'Project',
                                     filter: true,
-                                    sort: true
+                                    sort: true//,
+                                    // td: { className: 'center' }
+                                },
+                                pacsId: {
+                                    label: 'PACS',
+                                    filter: true,
+                                    sort: true,
+                                    // td: { className: 'center' },
+                                    apply: function(pacsId){
+                                        var pacsLabel =
+                                                dqr.PACSData[pacsId+''] ?
+                                                    dqr.PACSData[pacsId+''].label || '?' :
+                                                    '?';
+                                        return spawn('span.pacs-id', pacsLabel)
+                                    }
                                 },
                                 destinationAeTitle: {
-                                    label: 'AE',
+                                    label: 'Dest. AE',
                                     filter: true,
-                                    sort: true
+                                    sort: true//,
+                                    // td: { className: 'center' }
                                 }
                             }
                         }
@@ -172,9 +304,31 @@ var XNAT = getObject(XNAT || {});
             };
         }
 
-        XNAT.spawner
-            .spawn(importHistoryPanel())
-            .render(getById$('pacs-import-history-display').empty());
+        dqr.getPACSData.done(function(json){
+
+            setupPACSList(json.ResultSet.Result);
+
+            var queueDisplayContainer$ = getById$('pacs-import-queue-display').empty();
+
+            // render queue
+            XNAT.spawner
+                .spawn(userImportQueuePanel())
+                .render(queueDisplayContainer$)
+                .done(function(){
+                    XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
+                    // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
+                });
+
+
+            var historyDisplayContainer$ = getById$('pacs-import-history-display').empty();
+
+            // render history
+            XNAT.spawner
+                .spawn(userImportHistoryPanel())
+                .render(historyDisplayContainer$);
+
+        });
+
 
 
         // replace ANY part of the url hash with another value
@@ -192,13 +346,13 @@ var XNAT = getObject(XNAT || {});
                 hash = (hash + key + value);
             }
             else {
-                delim = delim !== undef ? delim : /#|\/#/;
+                delim   = delim !== undef ? delim : /#|\/#/;
                 oldPart = key + hash.split(key)[1].split(delim)[0];
                 newPart = key + value;
-                hash = hash.replace(oldPart, newPart);
+                hash    = hash.replace(oldPart, newPart);
             }
 
-            hash = hash.replace(/^#*/,'#'); // only one '#' at the beginning, please
+            hash = hash.replace(/^#*/, '#'); // only one '#' at the beginning, please
 
             return (window.location.hash = hash)
 
@@ -243,6 +397,6 @@ var XNAT = getObject(XNAT || {});
 
     });
 
-    XNAT.plugin.dqr = dqr;
+    return (XNAT.plugin.dqr = dqr)
 
 }));

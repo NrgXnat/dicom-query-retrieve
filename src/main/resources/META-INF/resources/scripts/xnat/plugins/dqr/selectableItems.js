@@ -37,10 +37,19 @@ var XNAT = getObject(XNAT || {});
         // namespaced event name
         var CLICK    = 'click.multicheck';
 
-        var $ckbxAll = $container.find(CKBX_ALL);
-        var $ckbxs   = $container.find(CKBX_ONE);
+        var $ckbxAll = null;
+        var $ckbxs   = null;
+
+        function findCheckboxes(){
+            $ckbxAll = $container.find(CKBX_ALL);
+            $ckbxs   = $container.find(CKBX_ONE);
+        }
+
+        // collect checkboxes that are present when initialized
+        findCheckboxes();
 
         function toggleAll(checked){
+            findCheckboxes();
             $ckbxAll.prop(INDET, false);
             // uncheck *all* checkboxes first?
             // $ckbxs.prop('checked', false);
@@ -53,6 +62,7 @@ var XNAT = getObject(XNAT || {});
         }
 
         function multichecker(){
+            findCheckboxes();
             // if all *visible* checkboxes are checked, check the 'all' checkbox
             var $checked = $ckbxs.filter(':checked:visible');
             var noneChecked = $checked.length === 0;
@@ -91,6 +101,6 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    return XNAT.plugins.dqr.selectableItems = selectableItems;
+    return (XNAT.plugins.dqr.selectableItems = selectableItems)
 
 }));

@@ -79,11 +79,27 @@
                 <div class="xnat-tab-content">
                 <div class="tab-pane active" data-name="queue" data-tab="queue">
                     <div id="pacs-import-queue-display">
+                        <p class="loading"></p>
+                        <script>
+                            // if it takes more than two seconds to get the data,
+                            // the 'loading' text should show
+                            window.setTimeout(function(){
+                                $('#pacs-import-queue-display').find('p.loading').text('Loading data...');
+                            }, 2000)
+                        </script>
                         <!-- PACS import queue table will render here -->
                     </div>
                 </div>
                 <div class="tab-pane" data-name="history" data-tab="history">
                     <div id="pacs-import-history-display">
+                        <p class="loading"></p>
+                        <script>
+                            // if it takes more than two seconds to get the data,
+                            // the 'loading' text should show
+                            window.setTimeout(function(){
+                                $('#pacs-import-history-display').find('p.loading').text('Loading data...');
+                            }, 2000)
+                        </script>
                         <!-- PACS import history table will render here -->
                     </div>
                 </div>

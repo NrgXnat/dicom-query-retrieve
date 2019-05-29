@@ -262,6 +262,6 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    return XNAT.plugins.dqr.filterableItemsDev = filterableItemsDev;
+    return (XNAT.plugins.dqr.filterableItemsDev = filterableItemsDev)
 
 }));
