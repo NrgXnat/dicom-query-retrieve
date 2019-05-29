@@ -20,6 +20,13 @@
     var scheduleTimes$ = $('#pacs-schedule-times');
     var scheduleDays$  = $('#pacs-schedule-days');
 
+    // polyfill for .isInteger() method
+    Number.isInteger = Number.isInteger || function(value) {
+        return typeof value === 'number' &&
+            isFinite(value) &&
+            Math.floor(value) === value;
+    };
+
     function x0(selector, context){
         return [].slice.call((context || document).querySelectorAll(selector));
     }
@@ -91,9 +98,9 @@
         if ((time + '') === '' || time === '!') {
             return ''
         }
-        var hour = +(time + '').split(':')[0];
+        var hour   = +(time + '').split(':')[0];
         var minute = (time + '').split(':')[1].split(/\s+/)[0];
-        var ampm = (time + '').split(/\s+/)[1] || '';
+        var ampm   = (time + '').split(/\s+/)[1] || '';
         if (/AM/i.test(ampm)) {
             return (hour === 12 ? '0' : hour) + ':' + minute;
         }
@@ -193,10 +200,13 @@
                     isDefault: true,
                     action: function(dlg){
                         console.log('okAction');
-                        var $form  = dlg.body$.find('form');
-                        var errors = [];
+                        var $form     = dlg.body$.find('form');
+                        var errors    = [];
                         var startTime = $form.find('.start-time')[0].value;
-                        var endTime = $form.find('.end-time')[0].value;
+                        var endTime   = $form.find('.end-time')[0].value;
+                        var threads   = $form.find('[name="threads"]')[0].value;
+                        var pct       = $form.find('[name="utilizationPercent"]')[0].value;
+
                         if (!startTime) {
                             errors.push('Please select a start time.');
                         }
@@ -204,18 +214,18 @@
                             errors.push('Please select an end time.');
                         }
                         if (startTime && endTime) {
-                            if (timeValue(startTime) > timeValue(endTime)){
+                            if (timeValue(startTime) > timeValue(endTime)) {
                                 errors.push('Start time must be before end time.');
                             }
                             if (timeValue(startTime) === timeValue(endTime)) {
                                 errors.push('Start time cannot be the same as end time.');
                             }
                         }
-                        if (!$form.find('[name="threads"]')[0].value) {
-                            errors.push('Please specify the number of threads.');
+                        if (threads === '' || +threads < 0 || +threads > 999 || !Number.isInteger(+threads)) {
+                            errors.push('Please specify an integer between 0 and 999 for the \'Threads\' value.');
                         }
-                        if (!$form.find('[name="utilizationPercent"]')[0].value) {
-                            errors.push('Please enter a number for utilization rate percentage.');
+                        if (pct === '' || +pct < 0 || +pct > 100 || !Number.isInteger(+pct)) {
+                            errors.push('Please enter an integer between 0 and 100 for utilization rate percentage.');
                         }
                         if (errors.length) {
                             XNAT.dialog.alert('' +
@@ -260,7 +270,7 @@
                     menuInit(dlg.body$.find('select.start-time'), {}, 150);
                     menuInit(dlg.body$.find('select.end-time'), {}, 150);
 
-                    dlg.dialog$[0].style.overflow = 'visible';
+                    dlg.dialog$[0].style.overflow               = 'visible';
                     dlg.dialog$.find('.body')[0].style.overflow = 'visible';
 
                 })();
@@ -402,7 +412,7 @@
                             label: 'Threads',
                             size: 4,
                             // value: (threads || 0) + '',
-                            validate: 'gte:0 lt:1000',
+                            validate: 'onblur integer gte:0 lt:1000',
                             message: 'Please enter a value between 0 and 999',
                             description: ''
                         },
@@ -414,7 +424,7 @@
                             size: 3,
                             // value: (pct || 0) + '',
                             afterElement: ' %',
-                            validate: 'gte:0 lte:100',
+                            validate: 'onblur integer gte:0 lte:100',
                             message: 'Please enter a value between 0 and 100',
                             description: ''
                         },
