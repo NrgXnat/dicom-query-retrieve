@@ -79,6 +79,13 @@ var XNAT = getObject(XNAT || {});
 
     $(function(){
 
+        function resolvePACSLabel(id){
+            var PACSdata = dqr.PACSData[id + ''];
+            return PACSdata ?
+                PACSdata.label || PACSdata.aeTitle || '-' :
+                '-'
+        }
+
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
 
@@ -180,12 +187,8 @@ var XNAT = getObject(XNAT || {});
                                     label: 'PACS',
                                     sort: true,
                                     td: { className: 'center' },
-                                    apply: function(pacs_id){
-                                        var pacsLabel =
-                                                dqr.PACSData[pacs_id+''] ?
-                                                    dqr.PACSData[pacs_id+''].label || '?' :
-                                                    '?';
-                                        return spawn('span.pacs-id', pacsLabel)
+                                    apply: function(id){
+                                        return spawn('span.pacs-label', resolvePACSLabel(id))
                                     }
                                 },
                                 // username: {
@@ -283,12 +286,8 @@ var XNAT = getObject(XNAT || {});
                                     filter: true,
                                     sort: true,
                                     // td: { className: 'center' },
-                                    apply: function(pacsId){
-                                        var pacsLabel =
-                                                dqr.PACSData[pacsId+''] ?
-                                                    dqr.PACSData[pacsId+''].label || '?' :
-                                                    '?';
-                                        return spawn('span.pacs-id', pacsLabel)
+                                    apply: function(id){
+                                        return spawn('span.pacs-label', resolvePACSLabel(id))
                                     }
                                 },
                                 destinationAeTitle: {

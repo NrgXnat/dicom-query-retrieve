@@ -409,8 +409,11 @@ XNAT.app = getObject(XNAT.app || {});
                              on: [['click', function(e){
                                  e.preventDefault();
                                  window.pacsId = ae.id;
-                                 window.pacsLabel = ae.label;
-                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', { pacs: ae.id, label: ae.label });
+                                 window.pacsLabel = ae.label || ae.aeTitle;
+                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', {
+                                     pacs: window.pacsId,
+                                     label: window.pacsLabel
+                                 });
                                  console.log(URL);
                                  XNAT.dialog.load(URL, {
                                      width: 1150
