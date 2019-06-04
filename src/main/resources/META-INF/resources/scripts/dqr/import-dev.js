@@ -35,6 +35,7 @@ var XNAT = getObject(XNAT || {});
     var $searchResultsBody   = $pacsSearchResults.find('.results-body');
     var $searchResultsSubmit = $pacsSearchResults.find('.results-submit');
     var $pacsNoResults       = $('#pacs-no-results');
+    var $pacsQueryMsg        = $('#pacs-query-msg');
     var $noResultsTemplate   = $('#no-search-results');
 
     // string 'constants'
@@ -80,7 +81,9 @@ var XNAT = getObject(XNAT || {});
     var DATE_TODAY = new Date();
     var dateFrom, dateTo;
 
-    function resetResults(data){
+
+    function resetResults(clear){
+
         dqr.searchResults    = [];
         dqr.allSearchResults = {};
         dqr.resultsTableData = [];
@@ -91,15 +94,19 @@ var XNAT = getObject(XNAT || {});
         // collect study UIDs by series description
         dqr.studiesBySeriesDesc = {};
 
-        $pacsSearchFields.find('input').val('');
-
-        if (!data || !data.length) {
-            $pacsNoResults.empty().html($noResultsTemplate.html());
+        if (clear) {
+            $pacsSearchFields.find('input').val('');
         }
+
+        // Since we're RESETTING the results...
+        // ...show the query 'info' message...
+        // ...and hide the 'no results' message.
+        $pacsQueryMsg.hidden(!clear);
+        $pacsNoResults.hidden(true);
 
         $searchResultsHeader.empty();
         $searchResultsBody.empty();
-        $searchResultsSubmit.empty().spawn('br');
+        $searchResultsSubmit.empty();
         // if these are defined, they should be initialized
         // if (dateFrom && dateTo) {
         //     dateFrom.update({
@@ -113,11 +120,13 @@ var XNAT = getObject(XNAT || {});
         // }
     }
 
-    // immediately render the 'no results' message
-    resetResults();
+    // immediately render the 'query info' message
+    resetResults(true);
 
     // and bind to the 'Clear Search Results' button
-    $('#clear-search-results').on('click', resetResults);
+    $('#clear-search-results').on('click', function(){
+        resetResults(true);
+    });
 
     // reset the search results if changing source PACS...
     // ...but warn the user first
@@ -136,7 +145,7 @@ var XNAT = getObject(XNAT || {});
                 okLabel: 'Change PACS',
                 okAction: function(){
                     dqr.selectedPacs = pacsId;
-                    resetResults();
+                    resetResults(true);
                 },
                 cancelAction: function(){
                     console.log('not changing PACS');
@@ -150,7 +159,14 @@ var XNAT = getObject(XNAT || {});
 
     function validDate(dateVal){
         var dateSplit;
-        return dateVal && (dateSplit = new SplitDate(dateVal)) && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check() ? new Date(dateVal + 'T00:00') : '';
+        if (dateVal) {
+            dateSplit = new SplitDate(dateVal);
+            if (dateSplit && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check()) {
+                return new Date(dateVal + 'T00:00');
+            }
+            return '';
+        }
+        return '';
     }
 
     function datepickerOpts(obj){
@@ -170,12 +186,14 @@ var XNAT = getObject(XNAT || {});
 
         dateFrom = $studyDateFrom.off().datepicker(datepickerOpts({
             onShow: function(fromPicker){
+                console.log('show "from" datepicker');
                 fromPicker.update({
                     minDate: DATE_MIN,
                     maxDate: validDate($studyDateTo.val()) || DATE_TODAY
                 });
             },
             onSelect: function(formattedDate, dateObj, picker){
+                console.log('select "from" datepicker');
                 dateTo.update({
                     minDate: dateObj
                 });
@@ -184,35 +202,50 @@ var XNAT = getObject(XNAT || {});
 
         dateTo = $studyDateTo.off().datepicker(datepickerOpts({
             onShow: function(toPicker){
+                console.log('show "to" datepicker');
                 toPicker.update({
                     minDate: validDate($studyDateFrom.val()) || DATE_MIN,
                     maxDate: DATE_TODAY
                 });
             },
             onSelect: function(formattedDate, dateObj, picker){
+                console.log('select "to" datepicker');
                 dateFrom.update({
                     maxDate: dateObj
                 });
             }
         })).data('datepicker');
 
+        // $studyDateFrom.mask('9999-99-99');
+        // $studyDateTo.mask('9999-99-99');
+
         // handle manual date field edits
         function verifyDates(){
+            console.log('verifyDates');
             if (this.value && !XNAT.validate.value(this.value).is('date', 'iso').check()) {
                 XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
                 $(this).focus().select();
                 return false;
             }
-            dateFrom.update({
-                maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-            });
-            dateTo.update({
-                minDate: validDate($studyDateFrom.val()) || DATE_MIN
-            });
+            else {
+                $studyDateFrom.data('datepicker').update({
+                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
+                });
+                $studyDateTo.data('datepicker').update({
+                    minDate: validDate($studyDateFrom.val()) || DATE_MIN
+                });
+                return true;
+            }
         }
 
-        $studyDateFrom.on('change', verifyDates);
-        $studyDateTo.on('change', verifyDates);
+        $studyDateFrom.on('change', function(){
+            console.log('date "from" change');
+            return verifyDates.call(this);
+        });
+        $studyDateTo.on('change', function(){
+            console.log('date "to" change');
+            return verifyDates.call(this);
+        });
 
         // $pacsSearchFields.find('.study-date')
         //                  .mask('9999-99-99', { placeholder: '    -  -  ' })
@@ -560,19 +593,36 @@ var XNAT = getObject(XNAT || {});
 
         // console.log(json);
 
-        // `json` must be an array containing SOMETHING
-        // in order to render the results table
-        if (!isArray(json) || !json.length) {
+        dqr.searchResults    = json;
+        dqr.allSearchResults = {};
+
+        // hide the 'query info' message since we've just done a query
+        $pacsQueryMsg.hidden(true);
+        $pacsNoResults.hidden(true);
+        $searchResultsBody.empty();
+
+        if (json === false) {
+            resetResults();
+            $pacsQueryMsg.hidden(false);
             return undef;
         }
 
-        $pacsNoResults.empty();
+        // `json` must be an array containing SOMETHING
+        // in order to render the results table
+        if ((json !== false && !isArray(json)) || !json.length) {
+            resetResults();
+            $pacsNoResults.hidden(false);
+            return undef;
+        }
+
+        // $pacsNoResults.hidden(true);
 
         forEach(json, function(item){
+
             item.relabelMap = item.relabelMap || {};
-            if (!dqr.allSearchResults.hasOwnProperty(item.studyInstanceUid)) {
-                dqr.allSearchResults[item.studyInstanceUid] = item;
-            }
+
+            dqr.allSearchResults[item.studyInstanceUid] = item;
+
         });
 
         // console.log(dqr.allSearchResults);
@@ -584,10 +634,11 @@ var XNAT = getObject(XNAT || {});
         }
 
         function filterInput(name){
-            return spawn('input.filter-input', {
+            return spawn('input.filter-input|type=text', {
                 title: 'filter:' + name,
+                style: { padding: '4px 6px', border: '1px solid #ccc' },
                 data: { filter: name }
-            })
+            });
         }
 
         var WIDTHS = {
@@ -600,6 +651,8 @@ var XNAT = getObject(XNAT || {});
             mod: '10%',
             acc: '14%'
         };
+
+        var FILTER_TH_PADDING = '5px 7px';
 
         function renderHeader(){
             return XNAT.table.dataTable([], {
@@ -627,17 +680,17 @@ var XNAT = getObject(XNAT || {});
                     accessionNumber: {
                         label: 'Accession Number',
                         filter: function(){
-                            return filterInput('accessionNumber')
+                            return filterInput('accessionNumber');
                         },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.acc }
+                            style: { width: WIDTHS.acc, padding: FILTER_TH_PADDING }
                         }
                     },
                     patientName: {
                         label: 'Patient Name',
                         filter: function(){
-                            return filterInput('patientName')
+                            return filterInput('patientName');
                         },
                         // <input class="filter-data" type="text" title="patientName:filter" placeholder="Filter by Patient Name">
                         // filter: function(){
@@ -645,37 +698,37 @@ var XNAT = getObject(XNAT || {});
                         // },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.name }
+                            style: { width: WIDTHS.name, padding: FILTER_TH_PADDING }
                         }
                     },
                     studyId: {
                         label: 'Study ID',
                         filter: function(){
-                            return filterInput('studyId')
+                            return filterInput('studyId');
                         },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.studyId }
+                            style: { width: WIDTHS.studyId, padding: FILTER_TH_PADDING }
                         }
                     },
                     studyDate: {
                         label: 'Study Date',
                         filter: function(){
-                            return filterInput('studyDate')
+                            return filterInput('studyDate');
                         },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.date }
+                            style: { width: WIDTHS.date, padding: FILTER_TH_PADDING }
                         }
                     },
                     modalitiesInStudy: {
                         label: 'Modality',
                         filter: function(){
-                            return filterInput('modalitiesInStudy')
+                            return filterInput('modalitiesInStudy');
                         },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.mod }
+                            style: { width: WIDTHS.mod, padding: FILTER_TH_PADDING }
                         }
                     },
                     xnatSubject: extend(true, {}, relabelColumn, {
@@ -708,7 +761,6 @@ var XNAT = getObject(XNAT || {});
         }
 
         function renderBody(){
-            $searchResultsBody.empty();
             return XNAT.table.dataTable(dqr.allSearchResults, {
                 container: $searchResultsBody,
                 header: false,
@@ -717,11 +769,11 @@ var XNAT = getObject(XNAT || {});
                     classes: 'compact table-data highlight',
                     style: { tableLayout: 'fixed' },
                     on: [
-                        ['change', 'input.select-session', function(){
-                            var uid = this.value;
-                            console.log(uid);
-                            dqr.allSearchResults[uid].checked = this.checked;
-                        }],
+                        // ['change', 'input.select-session', function(){
+                        //     var uid = this.value;
+                        //     console.log(uid);
+                        //     dqr.allSearchResults[uid].checked = this.checked;
+                        // }],
                         ['blur', 'input.relabel', function(e){
                             var uid = $(this).closest('tr').data('uid');
                             console.log(uid);
@@ -855,7 +907,7 @@ var XNAT = getObject(XNAT || {});
         // init new filter method
         XNAT.plugins.dqr.filterableItemsDev($pacsSearchResults);
 
-        $searchResultsSubmit.empty().spawn('br');
+        $searchResultsSubmit.empty();
 
         function renderBottom(receivers){
 
@@ -876,6 +928,7 @@ var XNAT = getObject(XNAT || {});
             });
 
             $searchResultsSubmit.spawn('div.pull-right', [
+                ['br'],
                 'Select SCP Receiver: ',
                 aeMenu,
                 '&nbsp;&nbsp;',
@@ -978,6 +1031,7 @@ var XNAT = getObject(XNAT || {});
             failure: function(){
                 console.warn('Error:');
                 console.warn(arguments);
+                renderResultsTable(null);
                 XNAT.dialog.message(false, 'No results were found for the specified search criteria.');
             }
         });
@@ -990,7 +1044,8 @@ var XNAT = getObject(XNAT || {});
     }
 
     $searchSubmit.on('click', function(e){
-        var self = this;
+        e.preventDefault();
+        var self         = this;
         dqr.selectedPacs = $selectPacsMenu.val();
         if (!dqr.selectedPacs) {
             XNAT.dialog.message(false, 'Please select a PACS to query.', {
@@ -1002,7 +1057,7 @@ var XNAT = getObject(XNAT || {});
             return;
         }
         pingPACS(dqr.selectedPacs, function(){
-            resetResults();
+            renderResultsTable(false);
             searchPACS.apply(self, arguments);
         });
     });

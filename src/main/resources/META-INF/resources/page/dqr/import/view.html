@@ -36,29 +36,39 @@ included and parsed in both JSP and Velocity parent pages.
         <div class="panel-body" style="background:#f0f0f0;">
 
             <style>
+
+                #pacs-search-fields {
+                    width: 100%;
+                }
+
                 .pacs-search-item {
                     display: block;
                     min-width: 180px;
                     float: left;
                 }
+
                 .pacs-search-item b {
                     display: block;
                     font-weight: normal;
                     margin: 8px 2px;
                 }
+
                 #pacs-search-results input.relabel {
                     width: 90%;
                 }
+
                 /*#pacs-search-results td.accessionNumber:hover,*/
                 /*#pacs-search-results td.patientName:hover,*/
                 /*#pacs-search-results td.studyId:hover,*/
                 /*#pacs-search-results td.studyDate:hover,*/
                 /*#pacs-search-results td.modalitiesInStudy:hover {*/
-                    /*cursor: pointer*/
+                /*cursor: pointer*/
                 /*}*/
+
                 #pacs-search-results div.results-body tr:hover {
                     cursor: pointer
                 }
+
             </style>
 
             <form id="pacs-search-fields" class="pull-left">
@@ -81,23 +91,41 @@ included and parsed in both JSP and Velocity parent pages.
                     <button class="ignore btn btn-sm" type="button" id="study-date-today" name="!studyDateToday">Today</button>
                     <b>Date Range</b>
                 </div>
+                <div id="pacs-search-submit" class="pull-right">
+                        <button type="submit" class="btn btn1 ignore" id="submit-pacs-search">Search PACS</button>
+                </div>
             </form>
-            <div id="pacs-search-submit" class="pull-right">
-                <button type="button" class="btn btn1" id="submit-pacs-search">Search PACS</button>
-            </div>
+            <script>
+                $('#pacs-search-fields').on('submit', function(e){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $('#submit-pacs-search').triggerHandler('click');
+                });
+            </script>
 
             <div class="clearfix clear"></div>
 
             <hr>
 
-            <template id="no-search-results" style="display:none;">
-                <div class="message">
-                    Query the PACS using the form above or by importing a CSV file containing your search criteria. The search results will be displayed here.
-                </div>
-            </template>
+<!--            <template id="no-search-results" style="display:none;">-->
+<!--                <div class="message">-->
+<!--                    Query the PACS using the form above or by importing a CSV file containing your search criteria. The search results will be displayed here.-->
+<!--                </div>-->
+<!--            </template>-->
 
             <div id="pacs-search-results" class="table-group-container">
-                <div id="pacs-no-results"></div>
+                <div id="pacs-query-msg">
+                    <div class="message">
+                        Query the PACS using the form above or by importing a CSV file containing your search criteria.
+                        The search results will be displayed here.
+                    </div>
+                </div>
+                <div id="pacs-no-results" class="hidden">
+                    <div class="error">
+                        There were no matches to your PACS search query. Please modify your search values or upload a CSV
+                        with search criteria and try again.
+                    </div>
+                </div>
                 <div class="results-header"></div>
                 <div class="results-body"></div>
                 <div class="results-submit"></div>
@@ -109,7 +137,7 @@ included and parsed in both JSP and Velocity parent pages.
         </div>
     </div>
 
-    <link  href="${SITE_ROOT}/scripts/lib/air-datepicker/dist/css/datepicker.min.css" rel="stylesheet">
+    <link href="${SITE_ROOT}/scripts/lib/air-datepicker/dist/css/datepicker.min.css" rel="stylesheet">
     <script src="${SITE_ROOT}/scripts/lib/air-datepicker/dist/js/datepicker.min.js"></script>
     <script src="${SITE_ROOT}/scripts/lib/air-datepicker/dist/js/i18n/datepicker.en.js"></script>
 

@@ -6,12 +6,10 @@
 <%@ taglib prefix="pg" tagdir="/WEB-INF/tags/page" %>
 *# -->
 
-<!-- #* <%-- -->
-<!--
+<!-- #* <%--
 The 'view.html' file should be formatted so it can be
 included and parsed in both JSP and Velocity parent pages.
--->
-<!-- --%> *# -->
+--%> *# -->
 
 <!-- #*
 <jsp:include page="/page/dqr/_incl/init.jsp"/>
@@ -20,16 +18,16 @@ included and parsed in both JSP and Velocity parent pages.
 <c:set var="pacsLabel" value="${not empty param.label ? param.label : ''}"/>
 *# -->
 
-<!-- <%-- -->
+<!-- <%--
 #set ($SITE_ROOT = $content.getURI(""))
 #set ($pacsId = $!turbineUtils.escapeHTML($!data.getParameters().getString('pacs')))
 #set ($pacsLabel = $!turbineUtils.escapeHTML($!data.getParameters().getString('label')))
-<!-- --%> -->
+--%> -->
 
 
-<!-- #* <%-- -->
+<!-- #* <%--
 Hide JSP tags from the Velocity parser.
-<!-- --%> *# -->
+--%> *# -->
 
 <!-- #* -->
 <!-- <c:catch var="jspError"> -->

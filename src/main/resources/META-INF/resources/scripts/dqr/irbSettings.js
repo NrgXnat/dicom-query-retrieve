@@ -53,7 +53,15 @@
 
             e.preventDefault();
 
-            var saveNumber = XNAT.xhr.put(XNAT.url.restUrl(irbUrl, { irbNumber: el.value }, false));
+            // var saveNumber = XNAT.xhr.put(XNAT.url.restUrl(irbUrl, { irbNumber: el.value }, false));
+
+            var saveNumber = XNAT.xhr.put({
+                method: 'PUT',
+                url: XNAT.url.restUrl(irbUrl),
+                data: {
+                    irbNumber: el.value
+                }
+            });
 
             saveNumber.done(function(){
                 XNAT.ui.banner.top(2000, 'IRB Number Saved', 'success');

@@ -2,8 +2,6 @@
  * Faster and more versatile filtering that also works on non-table elements
  */
 
-var XNAT = getObject(XNAT || {});
-
 (function(factory){
     if (typeof define === 'function' && define.amd) {
         define(factory);
@@ -18,11 +16,15 @@ var XNAT = getObject(XNAT || {});
 
     var undef;
 
+    var XNAT =
+            window.XNAT =
+                (window.XNAT != null) ? window.XNAT : {};
+
     XNAT.plugins =
-        getObject(XNAT.plugins || {});
+        (XNAT.plugins != null) ? XNAT.plugins : {};
 
     XNAT.plugins.dqr =
-        getObject(XNAT.plugins.dqr || {});
+        (XNAT.plugins.dqr != null) ? XNAT.plugins.dqr : {};
 
 
     function filterableItems(container){
@@ -261,6 +263,8 @@ var XNAT = getObject(XNAT || {});
         };
 
     }
+
+    window.XNAT = XNAT;
 
     return (XNAT.plugins.dqr.filterableItems = filterableItems)
 
