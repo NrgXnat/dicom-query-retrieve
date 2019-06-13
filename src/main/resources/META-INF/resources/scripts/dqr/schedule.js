@@ -193,6 +193,7 @@
             // height: 380,
             padding: 0,
             title: (id ? 'Edit' : 'Add') + ' Utilization Interval for <b>' + daysConfig[+day][2] + '</b>',
+            maxBtn: false,
             buttons: [
                 {
                     label: 'Save',
