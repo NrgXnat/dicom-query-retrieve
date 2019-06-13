@@ -95,6 +95,15 @@ var XNAT = getObject(XNAT || {});
         dqr.studiesBySeriesDesc = {};
 
         if (clear) {
+            DATE_MIN = new Date('1900-01-01T00:00');
+            dateFrom && dateFrom.update({
+                startDate: DATE_TODAY,
+                maxDate: DATE_TODAY
+            });
+            dateTo && dateTo.update({
+                startDate: DATE_TODAY,
+                minDate: DATE_MIN
+            });
             $pacsSearchFields.find('input').val('');
         }
 
@@ -108,16 +117,8 @@ var XNAT = getObject(XNAT || {});
         $searchResultsBody.empty();
         $searchResultsSubmit.empty();
         // if these are defined, they should be initialized
-        // if (dateFrom && dateTo) {
-        //     dateFrom.update({
-        //         maxDate: DATE_TODAY,
-        //         minDate: DATE_MIN
-        //     });
-        //     dateTo.update({
-        //         maxDate: DATE_TODAY,
-        //         minDate: DATE_MIN
-        //     })
-        // }
+        // dateFrom && dateFrom.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
+        // dateTo && dateTo.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
     }
 
     // immediately render the 'query info' message
@@ -157,40 +158,52 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
-    function validDate(dateVal){
-        var dateSplit;
-        if (dateVal) {
-            dateSplit = new SplitDate(dateVal);
-            if (dateSplit && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check()) {
-                return new Date(dateVal + 'T00:00');
-            }
-            return '';
-        }
-        return '';
-    }
-
-    function datepickerOpts(obj){
-        return $.extend({
-            language: 'en',
-            maxDate: DATE_TODAY,
-            // todayButton: DATE_TODAY,
-            autoClose: true,
-            // range: true,
-            // multipleDatesSeparator: '-',
-            dateFormat: 'yyyy-mm-dd'
-        }, obj || {});
-    }
-
     // initialize date fields *after* DOM loads
     $(function(){
 
+        function dateMask(input){
+            $(input)
+                .mask('9999-99-99', { placeholder: '    -  -  ' })
+                .attr('autocomplete', 'off');
+
+        }
+
+        function validDate(dateVal){
+            var dateSplit;
+            if (dateVal) {
+                dateSplit = new SplitDate(dateVal);
+                return new Date(dateSplit.iso + 'T00:00');
+            }
+            return null;
+        }
+
+        // try to set the
+        $.fn.datepicker.language.en.dateFormat = 'yyyy-mm-dd';
+
+        function datepickerOpts(obj){
+            return $.extend({
+                language: 'en',
+                minDate: DATE_MIN,
+                maxDate: DATE_TODAY,
+                // todayButton: DATE_TODAY,
+                autoClose: true,
+                // range: true,
+                // multipleDatesSeparator: '-',
+                dateFormat: 'yyyy-mm-dd'
+            }, obj || {});
+        }
+
         dateFrom = $studyDateFrom.off().datepicker(datepickerOpts({
+            // startDate: new Date($studyDateFrom.val() || XNAT.data.todaysDate.ISO),
+            // minDate: DATE_MIN,
+            // maxDate: validDate($studyDateTo.val()) || DATE_TODAY,
             onShow: function(fromPicker){
                 console.log('show "from" datepicker');
-                fromPicker.update({
-                    minDate: DATE_MIN,
-                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                });
+                // fromPicker.update({
+                //     minDate: DATE_MIN,
+                //     maxDate: validDate($studyDateTo.val()) || DATE_TODAY
+                // });
+                // dateMask(fromPicker.$el);
             },
             onSelect: function(formattedDate, dateObj, picker){
                 console.log('select "from" datepicker');
@@ -201,12 +214,16 @@ var XNAT = getObject(XNAT || {});
         })).data('datepicker');
 
         dateTo = $studyDateTo.off().datepicker(datepickerOpts({
+            // startDate: new Date($studyDateTo.val() || XNAT.data.todaysDate.ISO),
+            // minDate: validDate($studyDateFrom.val()) || DATE_MIN,
+            // maxDate: DATE_TODAY,
             onShow: function(toPicker){
                 console.log('show "to" datepicker');
-                toPicker.update({
-                    minDate: validDate($studyDateFrom.val()) || DATE_MIN,
-                    maxDate: DATE_TODAY
-                });
+                // toPicker.update({
+                //     minDate: validDate($studyDateFrom.val()) || DATE_MIN,
+                //     maxDate: DATE_TODAY
+                // });
+                // dateMask(toPicker.$el);
             },
             onSelect: function(formattedDate, dateObj, picker){
                 console.log('select "to" datepicker');
@@ -228,29 +245,21 @@ var XNAT = getObject(XNAT || {});
                 return false;
             }
             else {
-                $studyDateFrom.data('datepicker').update({
-                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                });
-                $studyDateTo.data('datepicker').update({
-                    minDate: validDate($studyDateFrom.val()) || DATE_MIN
-                });
+                // dateFrom.update({
+                //     maxDate: validDate($studyDateTo.val()) || DATE_TODAY
+                // });
+                // dateTo.update({
+                //     minDate: validDate($studyDateFrom.val()) || DATE_MIN
+                // });
                 return true;
             }
         }
 
-        $studyDateFrom.on('change', function(){
-            console.log('date "from" change');
+        $([$studyDateFrom, $studyDateTo]).each(function(){
+            dateMask(this);
+        }).on('change', function(){
             return verifyDates.call(this);
         });
-        $studyDateTo.on('change', function(){
-            console.log('date "to" change');
-            return verifyDates.call(this);
-        });
-
-        // $pacsSearchFields.find('.study-date')
-        //                  .mask('9999-99-99', { placeholder: '    -  -  ' })
-        //                  .attr('autocomplete', 'off')
-        // ;
 
         // click the 'today' button to fill in today's date
         $studyDateToday.off().on('click', function(e){
