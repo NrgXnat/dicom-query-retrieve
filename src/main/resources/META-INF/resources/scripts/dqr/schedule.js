@@ -461,7 +461,7 @@
         var tmpFrag = document.createDocumentFragment();
 
         // var scheduleUrl = '~/page/dqr/schedule-dev/scratch.json';
-        var scheduleUrl = '~/xapi/dqr/pacsAvailability/windowsByDay/' + window.pacsId;
+        var scheduleUrl = XNAT.url.restUrl('/xapi/dqr/pacsAvailability/windowsByDay/' + window.pacsId);
 
         // get data then apply it to each day
         var getSchedule = XNAT.xhr.get(scheduleUrl);
