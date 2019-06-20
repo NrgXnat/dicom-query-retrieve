@@ -39,7 +39,9 @@ var XNAT = getObject(XNAT || {});
     var $noResultsTemplate   = $('#no-search-results');
 
     // string 'constants'
-    var NONE = '(none)';
+    var NONE        = 'none';
+    var EMPTY_DATE  = '    -  -  ';
+    var DATE_FORMAT = 'yyyy-mm-dd';
 
     function renderPacsMenu(items){
         var pacsMenu = $selectPacsMenu[0];
@@ -73,13 +75,398 @@ var XNAT = getObject(XNAT || {});
         renderPacsMenu(json.ResultSet.Result);
     });
 
-    var $studyDateFrom  = $('#study-date-from');
-    var $studyDateTo    = $('#study-date-to');
-    var $studyDateToday = $('#study-date-today');
+    var $studyDateFromContainer = $('#study-date-from-container');
+    var $studyDateToContainer   = $('#study-date-to-container');
+    var $studyDateToday         = $('#study-date-today');
+
+    function dateInputSetup$(id, name){
+        return $.spawn('input|type=text', {
+            id: id,
+            name: name,
+            className: 'study-date mono',
+            size: '10',
+            autocomplete: 'off',
+            attr: { tabindex: '1' },
+            placeholder: DATE_FORMAT
+        });
+    }
 
     var DATE_MIN   = new Date('1900-01-01T00:00');
-    var DATE_TODAY = new Date();
-    var dateFrom, dateTo;
+    var DATE_TODAY = new Date(XNAT.data.todaysDate.ISO + 'T00:00');
+
+    var dateFromI, dateToI;
+
+    function dateMask($input){
+        $input.mask('9999-99-99', {
+            placeholder: EMPTY_DATE,
+            autoclear: false
+        }).attr('autocomplete', 'off').select();
+    }
+
+    function validDate(dateVal){
+        var dateSplit;
+        if (dateVal) {
+            dateSplit = new SplitDate(dateVal);
+            return new Date(dateSplit.iso + 'T00:00');
+        }
+        return null;
+    }
+
+    function resolveInputValue(input){
+        return (!input.value || input.value === EMPTY_DATE) ? '' : input.value;
+    }
+
+    // initialize or reset date range UI...
+    // ...a very ham-fisted approach to handle this
+    function initDatePickers(){
+
+        var $studyDateFrom = dateInputSetup$('study-date-from', 'studyDateFrom');
+        var $studyDateTo   = dateInputSetup$('study-date-to', 'studyDateTo');
+
+        $studyDateFromContainer.empty().append($studyDateFrom);
+        $studyDateToContainer.empty().append($studyDateTo);
+
+        $.fn.datepicker.language.en.dateFormat = DATE_FORMAT;
+
+        function datepickerOpts(obj){
+            return $.extend({
+                language: 'en',
+                minDate: DATE_MIN,
+                maxDate: DATE_TODAY,
+                // todayButton: DATE_TODAY,
+                autoClose: false,
+                // range: true,
+                // multipleDatesSeparator: '-',
+                dateFormat: DATE_FORMAT
+            }, obj || {});
+        }
+
+        // hold variable values in this object
+        var dateRange = {
+            $fromInput: $studyDateFrom,
+            $toInput: $studyDateTo,
+            fromInput: $studyDateFrom[0],
+            toInput: $studyDateTo[0],
+            fromValue: '',
+            toValue: '',
+            fromDate: DATE_MIN,
+            toDate: DATE_TODAY,
+            MIN: DATE_MIN,
+            MAX: DATE_TODAY
+        };
+
+
+        function updateDateRangeValues(opts){
+
+            opts = opts !== undef ? opts : {};
+
+            // if a value is explicitly passed, use that to update the input
+            if (opts.fromValue !== undef) {
+                dateRange.fromValue       = opts.fromValue;
+                dateRange.fromInput.value = opts.fromValue;
+            }
+            else {
+                dateRange.fromValue = resolveInputValue(dateRange.fromInput);
+            }
+            //
+            if (opts.toValue !== undef) {
+                dateRange.toValue       = opts.toValue;
+                dateRange.toInput.value = opts.toValue;
+            }
+            else {
+                dateRange.toValue = resolveInputValue(dateRange.toInput);
+            }
+
+            // if a date object is explicitly passed, use that for dates
+            if (opts.fromDate && opts.fromDate instanceof Date) {
+                dateRange.fromDate = opts.fromDate;
+            }
+            else {
+                dateRange.fromDate = validDate(dateRange.fromValue) || dateRange.fromDate;
+            }
+            //
+            if (opts.toDate && opts.toDate instanceof Date) {
+                dateRange.toDate = opts.toDate;
+            }
+            else {
+                dateRange.toDate = validDate(dateRange.toValue) || dateRange.toDate;
+            }
+
+            // the dateRange object has been updated
+
+            console.log(dateRange);
+
+        }
+
+
+        // setup datpicker 'From' instance
+        dateFromI                  = $studyDateFrom.off().datepicker(datepickerOpts({
+            // startDate: DATE_TODAY,
+            // minDate: DATE_MIN,
+            // maxDate: validDate($studyDateTo.val()) || DATE_TODAY,
+            // todayButton: true,
+            // clearButton: true,
+            onShow: function(fromPicker, done){
+
+                updateDateRangeValues();
+
+                if (!done) {
+                    fromPicker.update({
+                        minDate: dateRange.MIN,
+                        maxDate: dateRange.toDate
+                    });
+                }
+                else {
+                    $studyDateFrom.val(dateRange.fromValue);
+                    console.log('show "from" datepicker');
+                }
+                // dateMask($studyDateFrom);
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+
+                updateDateRangeValues({
+                    fromValue: formattedDate
+                });
+
+                console.log('select "from" datepicker');
+                // dateToI.update({
+                //     minDate: dateObj
+                // });
+            }
+        })).data('datepicker');
+        //
+        window.studyImportDateFrom = dateFromI;
+
+
+
+        // setup datepicker 'To' instance
+        dateToI = $studyDateTo.off().datepicker(datepickerOpts({
+            // startDate: DATE_TODAY,
+            // minDate: validDate($studyDateFrom.val()) || DATE_MIN,
+            // maxDate: DATE_TODAY,
+            // todayButton: true,
+            // clearButton: true,
+            onShow: function(toPicker, done){
+
+                updateDateRangeValues();
+
+                if (!done) {
+                    toPicker.update({
+                        minDate: dateRange.fromDate,
+                        maxDate: dateRange.MAX
+                    });
+                }
+                else {
+                    // toPicker.date = validDate(dateToValue) || DATE_TODAY;
+                    // toPicker.selectDate(validDate(dateToValue) || DATE_TODAY);
+                    $studyDateTo.val(dateRange.toValue);
+
+                    // dateMask($studyDateTo);
+
+                    console.log('show "to" datepicker');
+                }
+            },
+            onSelect: function(formattedDate, dateObj, picker){
+
+                updateDateRangeValues({
+                    toValue: formattedDate
+                });
+
+                console.log('select "to" datepicker');
+                // dateFromI.update({
+                //     maxDate: dateObj
+                // });
+            }
+        })).data('datepicker');
+
+        window.studyImportDateTo = dateToI;
+
+        // $studyDateFrom.mask('9999-99-99');
+        // $studyDateTo.mask('9999-99-99');
+
+
+        // handle manual date field edits on a single date input
+        function verifyDateInput(input){
+
+            console.log('verifyDateInput');
+
+            var inputValue = resolveInputValue(input);
+            var inputDate  = validDate(inputValue);
+
+            if (inputValue && !XNAT.validate.value(inputValue).is('date', 'iso').check()) {
+                XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
+                $(input).focus().select();
+                return false;
+            }
+            if (inputDate.getTime() > DATE_TODAY.getTime()) {
+                XNAT.dialog.message('Invalid Date Range', 'Please enter a date between 1900-01-01 and today.');
+                $(input).focus().select();
+                return false;
+            }
+
+            return true;
+
+        }
+
+        // sanity check for both date inputs
+        function verifyDateRange(){
+
+            // make sure the 'from' date is not after the 'to' date and vice-versa
+            var newFromValue = resolveInputValue(dateRange.fromInput);
+            var newFromDate  = validDate(newFromValue) || dateRange.fromDate;
+
+            var newToValue = resolveInputValue(dateRange.toInput);
+            var newToDate  = validDate(newToValue) || dateRange.toDate;
+
+            if (newFromDate.getTime() > newToDate.getTime()) {
+                XNAT.dialog.message('Invalid Date Range', 'The "From" date cannot come after the "To" date.');
+                return false;
+            }
+
+            if (newToDate.getTime() < newFromDate.getTime()) {
+                XNAT.dialog.message('Invalid Date Range', 'The "To" date cannot come before the "From" date.');
+                return false;
+            }
+
+            // if we've made it this far, we should be good to go.
+            return true;
+
+        }
+
+
+        // The 'Date From' input
+        $studyDateFrom.on('focusin', function(e){
+            console.log('dateFrom focusin');
+
+            dateToI.hide();
+
+            updateDateRangeValues();
+
+            dateRange.$fromInput.select();
+
+        });
+        //
+        $studyDateFrom.on('change', function(e){
+            console.log('dateFrom change');
+
+            e.stopImmediatePropagation();
+
+            if (verifyDateInput(this) && verifyDateRange()) {
+                // all valid...
+                updateDateRangeValues({
+                    fromValue: this.value
+                });
+                dateFromI.selectDate(dateRange.fromDate);
+                return true;
+            }
+
+            // this will always be 'false' for an 'onchange' event
+            // if (dateRange.fromValue === resolveInputValue(this)) {
+            //     return false;
+            // }
+
+            return false;
+
+        });
+        //
+        $studyDateFrom.on('focusout', function(e){
+            console.log('dateFrom focusout');
+
+            if (dateRange.fromValue === resolveInputValue(this)) {
+                return false;
+            }
+
+            updateDateRangeValues();
+
+            // if (dateRange.fromValue) {
+            //     if (verifyDateInput(this)) {
+            //         return true;
+            //     }
+            //     else {
+            //         return false;
+            //     }
+            // }
+            // else {
+            //     return false;
+            // }
+        });
+
+
+
+        // The 'Date To' input
+        $studyDateTo.on('focusin', function(e){
+            console.log('dateTo focusin');
+            // make sure the 'from' selector is closed
+            dateFromI.hide();
+
+            updateDateRangeValues();
+
+            dateRange.$toInput.select();
+        });
+        //
+        $studyDateTo.on('change', function(e){
+            console.log('dateTo change');
+            e.stopImmediatePropagation();
+
+            if (verifyDateInput(this) && verifyDateRange()) {
+                updateDateRangeValues({
+                    toValue: this.value
+                });
+                dateToI.selectDate(dateRange.toDate);
+                return true;
+            }
+
+            // this will always be 'false' for an 'onchange' event
+            // if (dateRange.toValue === resolveInputValue(this)) {
+            //     return false;
+            // }
+
+            return false;
+
+        });
+        //
+        $studyDateTo.on('focusout', function(e){
+            console.log('dateTo focusout');
+            if (dateRange.toValue === resolveInputValue(this)) {
+                return false;
+            }
+
+            updateDateRangeValues();
+
+            // if (dateRange.toValue) {
+            //     if (verifyDateInput(this)) {
+            //         // this.value = dateToValue;
+            //         return true;
+            //     }
+            //     else {
+            //         return false;
+            //     }
+            // }
+            // else {
+            //     return false;
+            // }
+        });
+
+        // // click the 'today' button to fill in today's date
+        // $studyDateToday.off().on('click', function(e){
+        //
+        //     e.preventDefault();
+        //
+        //     $studyDateFrom.val(XNAT.data.todaysDate.ISO);
+        //     // dateFromI.date = DATE_TODAY;
+        //     // dateFromI.update({
+        //     //     startDate: DATE_TODAY
+        //     // });
+        //
+        //     $studyDateTo.val(XNAT.data.todaysDate.ISO);
+        //     // dateToI.date = DATE_TODAY;
+        //     // dateToI.update({
+        //     //     startDate: DATE_TODAY
+        //     // });
+        //
+        // });
+
+    }
 
 
     function resetResults(clear){
@@ -96,6 +483,8 @@ var XNAT = getObject(XNAT || {});
 
         if (clear) {
             $pacsSearchFields.find('input').val('');
+            DATE_MIN = new Date('1900-01-01T00:00');
+            initDatePickers();
         }
 
         // Since we're RESETTING the results...
@@ -108,16 +497,8 @@ var XNAT = getObject(XNAT || {});
         $searchResultsBody.empty();
         $searchResultsSubmit.empty();
         // if these are defined, they should be initialized
-        // if (dateFrom && dateTo) {
-        //     dateFrom.update({
-        //         maxDate: DATE_TODAY,
-        //         minDate: DATE_MIN
-        //     });
-        //     dateTo.update({
-        //         maxDate: DATE_TODAY,
-        //         minDate: DATE_MIN
-        //     })
-        // }
+        // dateFromI && dateFromI.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
+        // dateToI && dateToI.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
     }
 
     // immediately render the 'query info' message
@@ -157,108 +538,9 @@ var XNAT = getObject(XNAT || {});
         }
     });
 
-    function validDate(dateVal){
-        var dateSplit;
-        if (dateVal) {
-            dateSplit = new SplitDate(dateVal);
-            if (dateSplit && XNAT.validate.value(dateSplit.iso).is('date', 'iso').check()) {
-                return new Date(dateVal + 'T00:00');
-            }
-            return '';
-        }
-        return '';
-    }
-
-    function datepickerOpts(obj){
-        return $.extend({
-            language: 'en',
-            maxDate: DATE_TODAY,
-            // todayButton: DATE_TODAY,
-            autoClose: true,
-            // range: true,
-            // multipleDatesSeparator: '-',
-            dateFormat: 'yyyy-mm-dd'
-        }, obj || {});
-    }
-
     // initialize date fields *after* DOM loads
     $(function(){
-
-        dateFrom = $studyDateFrom.off().datepicker(datepickerOpts({
-            onShow: function(fromPicker){
-                console.log('show "from" datepicker');
-                fromPicker.update({
-                    minDate: DATE_MIN,
-                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                });
-            },
-            onSelect: function(formattedDate, dateObj, picker){
-                console.log('select "from" datepicker');
-                dateTo.update({
-                    minDate: dateObj
-                });
-            }
-        })).data('datepicker');
-
-        dateTo = $studyDateTo.off().datepicker(datepickerOpts({
-            onShow: function(toPicker){
-                console.log('show "to" datepicker');
-                toPicker.update({
-                    minDate: validDate($studyDateFrom.val()) || DATE_MIN,
-                    maxDate: DATE_TODAY
-                });
-            },
-            onSelect: function(formattedDate, dateObj, picker){
-                console.log('select "to" datepicker');
-                dateFrom.update({
-                    maxDate: dateObj
-                });
-            }
-        })).data('datepicker');
-
-        // $studyDateFrom.mask('9999-99-99');
-        // $studyDateTo.mask('9999-99-99');
-
-        // handle manual date field edits
-        function verifyDates(){
-            console.log('verifyDates');
-            if (this.value && !XNAT.validate.value(this.value).is('date', 'iso').check()) {
-                XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
-                $(this).focus().select();
-                return false;
-            }
-            else {
-                $studyDateFrom.data('datepicker').update({
-                    maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                });
-                $studyDateTo.data('datepicker').update({
-                    minDate: validDate($studyDateFrom.val()) || DATE_MIN
-                });
-                return true;
-            }
-        }
-
-        $studyDateFrom.on('change', function(){
-            console.log('date "from" change');
-            return verifyDates.call(this);
-        });
-        $studyDateTo.on('change', function(){
-            console.log('date "to" change');
-            return verifyDates.call(this);
-        });
-
-        // $pacsSearchFields.find('.study-date')
-        //                  .mask('9999-99-99', { placeholder: '    -  -  ' })
-        //                  .attr('autocomplete', 'off')
-        // ;
-
-        // click the 'today' button to fill in today's date
-        $studyDateToday.off().on('click', function(e){
-            e.preventDefault();
-            $studyDateFrom.val(XNAT.data.todaysDate.ISO);
-            $studyDateTo.val(XNAT.data.todaysDate.ISO);
-        });
-
+        initDatePickers();
     });
 
     var relabelColumn = {
@@ -309,8 +591,8 @@ var XNAT = getObject(XNAT || {});
     //     })
     // }
 
-    function getStudies(pacsId, uids){
-        var UIDS = [].concat(uids).join(',');
+    function getStudies(pacsId, studyUIDs){
+        var UIDS = [].concat(studyUIDs).join(',');
         var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
         return XNAT.xhr.getJSON({
             url: URL,
@@ -333,16 +615,17 @@ var XNAT = getObject(XNAT || {});
 
         forOwn(json, function(uid, obj){
             forEach(obj.results, function(item){
-                var seriesDescriptionItem   = dqr.seriesDescriptions[item.seriesDescription] || {};
-                seriesDescriptionItem.name  = (item.seriesDescription || NONE);
+                var seriesDescriptionKey    = item.seriesDescription || NONE;
+                var seriesDescriptionItem   = dqr.seriesDescriptions[seriesDescriptionKey] || {};
+                seriesDescriptionItem.name  = (seriesDescriptionKey);
                 seriesDescriptionItem.count = (seriesDescriptionItem.count || 0);
                 seriesDescriptionItem.count++;
                 seriesDescriptionItem.studyUIDs = seriesDescriptionItem.studyUIDs || [];
                 if (seriesDescriptionItem.studyUIDs.indexOf(item.study.studyInstanceUid) === -1) {
                     seriesDescriptionItem.studyUIDs.push(item.study.studyInstanceUid);
                 }
-                seriesDescriptionItem.seriesUIDs               = (seriesDescriptionItem.seriesUIDs || []).concat(item.seriesInstanceUid);
-                dqr.seriesDescriptions[item.seriesDescription] = seriesDescriptionItem;
+                seriesDescriptionItem.seriesUIDs             = (seriesDescriptionItem.seriesUIDs || []).concat(item.seriesInstanceUid);
+                dqr.seriesDescriptions[seriesDescriptionKey] = seriesDescriptionItem;
             });
             studyCount += 1;
         });
@@ -386,7 +669,7 @@ var XNAT = getObject(XNAT || {});
                         var item = this;
                         return spawn('div.center', [
                             ['input.selectable-one.select-scan-type|type=checkbox', {
-                                value: item.name !== NONE ? item.name : '',
+                                value: item.name,
                                 id: itemId(item),
                                 checked: true
                             }]
@@ -422,11 +705,11 @@ var XNAT = getObject(XNAT || {});
         var $searchResultsTable = $('#all-search-results');
         var selectedSessions    = $searchResultsTable.find('input.select-session:checked');
 
-        var uids = selectedSessions.toArray().map(function(ckbx, i){
+        var studyUIDs = selectedSessions.toArray().map(function(ckbx, i){
             return ckbx.value;
         });
 
-        console.log(uids);
+        console.log(studyUIDs);
 
         var ae = $('#ae-menu').val();
 
@@ -458,7 +741,7 @@ var XNAT = getObject(XNAT || {});
         };
 
         var jsonDataOld = {
-            importRows: uids.map(function(uid, i){
+            importRows: studyUIDs.map(function(uid, i){
                 var relabelMap = {};
                 var $importRow = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
                 $importRow.find('input.relabel').each(function(){
@@ -493,26 +776,33 @@ var XNAT = getObject(XNAT || {});
         var jsonData = {};
 
         // SETUP THE FINAL SUBMISSION JSON
-        forEach(uids, function(uid){
-            jsonData[uid] = {
-                seriesDescriptions: Object.keys(dqr.seriesDescriptions),
-                seriesInstanceUids: (function(){
-                    var seriesUidsTemp = [];
-                    forOwn(dqr.seriesDescriptions, function(uid, desc){
-                        seriesUidsTemp = seriesUidsTemp.concat(desc.seriesUIDs);
-                    });
-                    return seriesUidsTemp;
-                })(),
-                relabelMap: (function(){
-                    var relabelMapTemp = {};
-                    var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
-                    $importRow.find('input.relabel').each(function(){
-                        // only add to the relabelMap object if there's a value
-                        this.value && (relabelMapTemp[this.title] = this.value || '');
-                    });
-                    return relabelMapTemp;
-                })()
-            };
+        forEach(studyUIDs, function(uid){
+
+            jsonData[uid] = jsonData[uid] || {};
+
+            jsonData[uid].seriesDescriptions = scanTypes.filter(function(type){
+                return dqr.seriesDescriptions[type].studyUIDs.indexOf(uid) !== -1;
+            }).map(function(type){
+                return type === NONE ? '' : type;
+            });
+
+            jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
+
+            forEach(jsonData[uid].seriesDescriptions, function(type){
+                jsonData[uid].seriesInstanceUids =
+                    jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
+            });
+
+            jsonData[uid].relabelMap = (function(){
+                var relabelMapTemp = {};
+                var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
+                $importRow.find('input.relabel').each(function(){
+                    // only add to the relabelMap object if there's a value
+                    this.value && (relabelMapTemp[this.title] = this.value || '');
+                });
+                return relabelMapTemp;
+            })();
+
         });
 
 
@@ -533,13 +823,13 @@ var XNAT = getObject(XNAT || {});
                     width: 400,
                     content: (function(){
                         return '<div style="margin:30px;">' +
-                            '<p style="font-size:13px;line-height:18px;">' +
+                            '<p>' +
                             'PACS data has been queued for import. You may close ' +
                             'this dialog to start a new search.</p>' +
-                            '<p style="font-size:14px;line-height:20px;">' +
+                            '<p>' +
                             'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/action/XDATActionRouter/xdataction/prearchives/project/' + projectId) + '">' +
-                            'check on the import progress in the prearchive</a> or ' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=admin#tab=queue') + '">' +
+                            'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
                             'go back to the project page.</a></p>' +
                             '</div>';
@@ -560,9 +850,9 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    function scanTypesDialog(pacsId, uids){
+    function scanTypesDialog(pacsId, studyUIDs){
         console.log('scanTypesDialog');
-        getStudies(pacsId, uids).done(function(studies){
+        getStudies(pacsId, studyUIDs).done(function(studies){
             console.log('studies');
             console.log(studies);
             collectScanTypes(studies);
@@ -938,16 +1228,16 @@ var XNAT = getObject(XNAT || {});
                         ['click', function(e){
                             e.preventDefault();
                             console.log('importing...');
-                            var uids = [];
+                            var studyUIDs = [];
                             $pacsSearchResults.find('input.select-session:checked').each(function(){
-                                uids.push(this.value);
+                                studyUIDs.push(this.value);
                             });
-                            if (!uids.length) {
+                            if (!studyUIDs.length) {
                                 XNAT.dialog.message(false, 'Please select at least one study to import.');
                                 return false;
                             }
                             dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                            scanTypesDialog(dqr.selectedPacs, uids);
+                            scanTypesDialog(dqr.selectedPacs, studyUIDs);
                         }]
                     ]
                 }]

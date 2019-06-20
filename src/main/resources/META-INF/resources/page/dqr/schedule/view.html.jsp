@@ -14,8 +14,8 @@ included and parsed in both JSP and Velocity parent pages.
 <!-- #*
 <jsp:include page="/page/dqr/_incl/init.jsp"/>
 <c:set var="SITE_ROOT" value="${sessionScope.siteRoot}"/>
-<c:set var="pacsId" value="${not empty param.pacs ? param.pacs : ''}"/>
-<c:set var="pacsLabel" value="${not empty param.label ? param.label : ''}"/>
+<c:set var="pacsId" value="${not empty param.pacs ? fn:escapeXml(param.pacs) : ''}"/>
+<c:set var="pacsLabel" value="${not empty param.label ? fn:escapeXml(param.label) : ''}"/>
 *# -->
 
 <!-- <%--
