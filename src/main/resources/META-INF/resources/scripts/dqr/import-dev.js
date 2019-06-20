@@ -91,8 +91,8 @@ var XNAT = getObject(XNAT || {});
         });
     }
 
-    var DATE_MIN      = new Date('1900-01-01T00:00');
-    var DATE_TODAY    = new Date(XNAT.data.todaysDate.ISO + 'T00:00');
+    var DATE_MIN   = new Date('1900-01-01T00:00');
+    var DATE_TODAY = new Date(XNAT.data.todaysDate.ISO + 'T00:00');
 
     var dateFromI, dateToI;
 
@@ -200,7 +200,7 @@ var XNAT = getObject(XNAT || {});
 
 
         // setup datpicker 'From' instance
-        dateFromI = $studyDateFrom.off().datepicker(datepickerOpts({
+        dateFromI                  = $studyDateFrom.off().datepicker(datepickerOpts({
             // startDate: DATE_TODAY,
             // minDate: DATE_MIN,
             // maxDate: validDate($studyDateTo.val()) || DATE_TODAY,
@@ -285,65 +285,101 @@ var XNAT = getObject(XNAT || {});
         // $studyDateTo.mask('9999-99-99');
 
 
-        // handle manual date field edits
-        function verifyDates(input){
-            console.log('verifyDates');
-            var inputValue = input.value;
+        // handle manual date field edits on a single date input
+        function verifyDateInput(input){
+
+            console.log('verifyDateInput');
+
+            var inputValue = resolveInputValue(input);
+            var inputDate  = validDate(inputValue);
+
             if (inputValue && !XNAT.validate.value(inputValue).is('date', 'iso').check()) {
                 XNAT.dialog.message('Invalid Date', 'Please enter a valid date in the format <b>YYYY-MM-DD</b>.');
                 $(input).focus().select();
                 return false;
             }
-            else if ((new Date(inputValue + 'T00:00')).getTime() > DATE_TODAY.getTime()) {
+            if (inputDate.getTime() > DATE_TODAY.getTime()) {
                 XNAT.dialog.message('Invalid Date Range', 'Please enter a date between 1900-01-01 and today.');
                 $(input).focus().select();
                 return false;
             }
-            else {
-                // dateFromI.update({
-                //     // startDate: new Date(($studyDateTo.val() || XNAT.data.todaysDate.ISO) + 'T00:00'),
-                //     maxDate: validDate($studyDateTo.val()) || DATE_TODAY
-                // });
-                // dateToI.update({
-                //     // startDate: new Date(($studyDateTo.val() || XNAT.data.todaysDate.ISO) + 'T00:00'),
-                //     minDate: validDate($studyDateFrom.val()) || DATE_MIN
-                // });
-                return true;
+
+            return true;
+
+        }
+
+        // sanity check for both date inputs
+        function verifyDateRange(){
+
+            // make sure the 'from' date is not after the 'to' date and vice-versa
+            var newFromValue = resolveInputValue(dateRange.fromInput);
+            var newFromDate  = validDate(newFromValue) || dateRange.fromDate;
+
+            var newToValue = resolveInputValue(dateRange.toInput);
+            var newToDate  = validDate(newToValue) || dateRange.toDate;
+
+            if (newFromDate.getTime() > newToDate.getTime()) {
+                XNAT.dialog.message('Invalid Date Range', 'The "From" date cannot come after the "To" date.');
+                return false;
             }
+
+            if (newToDate.getTime() < newFromDate.getTime()) {
+                XNAT.dialog.message('Invalid Date Range', 'The "To" date cannot come before the "From" date.');
+                return false;
+            }
+
+            // if we've made it this far, we should be good to go.
+            return true;
+
         }
 
 
         // The 'Date From' input
         $studyDateFrom.on('focusin', function(e){
             console.log('dateFrom focusin');
+
+            dateToI.hide();
+
             updateDateRangeValues();
+
             dateRange.$fromInput.select();
+
         });
         //
         $studyDateFrom.on('change', function(e){
             console.log('dateFrom change');
+
             e.stopImmediatePropagation();
-            if (dateRange.fromValue === resolveInputValue(this)) {
-                return false;
-            }
-            else {
+
+            if (verifyDateInput(this) && verifyDateRange()) {
+                // all valid...
                 updateDateRangeValues({
                     fromValue: this.value
                 });
                 dateFromI.selectDate(dateRange.fromDate);
+                return true;
             }
+
+            // this will always be 'false' for an 'onchange' event
+            // if (dateRange.fromValue === resolveInputValue(this)) {
+            //     return false;
+            // }
+
+            return false;
+
         });
         //
         $studyDateFrom.on('focusout', function(e){
             console.log('dateFrom focusout');
+
             if (dateRange.fromValue === resolveInputValue(this)) {
                 return false;
             }
-            
+
             updateDateRangeValues();
-            
+
             // if (dateRange.fromValue) {
-            //     if (verifyDates(this)) {
+            //     if (verifyDateInput(this)) {
             //         return true;
             //     }
             //     else {
@@ -360,22 +396,33 @@ var XNAT = getObject(XNAT || {});
         // The 'Date To' input
         $studyDateTo.on('focusin', function(e){
             console.log('dateTo focusin');
+            // make sure the 'from' selector is closed
+            dateFromI.hide();
+
             updateDateRangeValues();
+
             dateRange.$toInput.select();
         });
         //
         $studyDateTo.on('change', function(e){
             console.log('dateTo change');
             e.stopImmediatePropagation();
-            if (dateRange.toValue === resolveInputValue(this)) {
-                return false;
-            }
-            else {
+
+            if (verifyDateInput(this) && verifyDateRange()) {
                 updateDateRangeValues({
                     toValue: this.value
                 });
                 dateToI.selectDate(dateRange.toDate);
+                return true;
             }
+
+            // this will always be 'false' for an 'onchange' event
+            // if (dateRange.toValue === resolveInputValue(this)) {
+            //     return false;
+            // }
+
+            return false;
+
         });
         //
         $studyDateTo.on('focusout', function(e){
@@ -383,11 +430,11 @@ var XNAT = getObject(XNAT || {});
             if (dateRange.toValue === resolveInputValue(this)) {
                 return false;
             }
-            
+
             updateDateRangeValues();
-            
+
             // if (dateRange.toValue) {
-            //     if (verifyDates(this)) {
+            //     if (verifyDateInput(this)) {
             //         // this.value = dateToValue;
             //         return true;
             //     }
