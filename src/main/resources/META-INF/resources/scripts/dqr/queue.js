@@ -77,7 +77,18 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
+
     $(function(){
+
+
+        // render elements for any 'time' cells
+        function renderTimeCell(time){
+            return spawn('div.center.mono', [
+                ['span.hidden.time.sort-value', (time + '')],
+                ['span.locale-string', (new Date(time)).toLocaleString().replace(', ', '<br>')]
+            ])
+        }
+
 
         function resolvePACSLabel(id){
             var PACSdata = dqr.PACSData[id + ''];
@@ -110,15 +121,15 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function userImportQueuePanel(){
+        function setupImportQueuePanel(admin){
             return {
-                userImportQueuePanel: {
+                importQueuePanel: {
                     tag: 'div',
                     element: { title: 'PACS Import Queue' },
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/queueWithOrder/user',
+                            load: '*/xapi/dqr/query/queueWithOrder' + (admin ? '' : '/user'),
                             apply: function(data){
                                 if (!data.length) {
                                     console.log('nothing')
@@ -269,6 +280,16 @@ var XNAT = getObject(XNAT || {});
                                     sort: true//,
                                     // td: { className: 'center' }
                                 },
+                                queuedTime: {
+                                    label: 'Queued',
+                                    sort: true,
+                                    apply: renderTimeCell
+                                },
+                                executedTime: {
+                                    label: 'Executed',
+                                    sort: true,
+                                    apply: renderTimeCell
+                                },
                                 // username: {
                                 //     label: 'User',
                                 //     filter: true,
@@ -311,7 +332,7 @@ var XNAT = getObject(XNAT || {});
 
             // render queue
             XNAT.spawner
-                .spawn(userImportQueuePanel())
+                .spawn(setupImportQueuePanel())
                 .render(queueDisplayContainer$)
                 .done(function(){
                     XNAT.plugins.dqr.selectableItems(queueDisplayContainer$);

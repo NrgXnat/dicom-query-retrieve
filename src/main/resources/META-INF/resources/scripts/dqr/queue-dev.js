@@ -77,7 +77,18 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
+
     $(function(){
+
+
+        // render elements for any 'time' cells
+        function renderTimeCell(time){
+            return spawn('div.center.mono', [
+                ['span.hidden.time.sort-value', (time + '')],
+                ['span.locale-string', (new Date(time)).toLocaleString().replace(', ', '<br>')]
+            ])
+        }
+
 
         function resolvePACSLabel(id){
             var PACSdata = dqr.PACSData[id + ''];
@@ -110,15 +121,27 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function userImportQueuePanel(){
+        function showQueuedItemData(e){
+            e.preventDefault();
+            var id = this.getAttribute('href').split('#id=')[1];
+            XNAT.dialog.message(false, 'Show data for queued item [' + id + '].');
+        }
+
+        function removeQueuedItem(e){
+            e.preventDefault();
+            var id = this.getAttribute('href').split('#id=')[1];
+            XNAT.dialog.message(false, 'Remove queued queued item [' + id + '].');
+        }
+
+        function setupImportQueuePanel(admin){
             return {
-                userImportQueuePanel: {
+                importQueuePanel: {
                     tag: 'div',
                     element: { title: 'PACS Import Queue' },
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/queueWithOrder/user',
+                            load: '*/xapi/dqr/query/queueWithOrder' + (admin ? '' : '/user'),
                             apply: function(data){
                                 if (!data.length) {
                                     console.log('nothing')
@@ -126,14 +149,8 @@ var XNAT = getObject(XNAT || {});
                             },
                             table: {
                                 on: [
-                                    ['click', 'a.show-queue-item-data', function(e){
-                                        e.preventDefault();
-                                        XNAT.dialog.message(false, 'Show the queued item data.')
-                                    }],
-                                    ['click', 'a.remove-queue-item', function(e){
-                                        e.preventDefault();
-                                        XNAT.dialog.message(false, 'Remove the queued item now.')
-                                    }]
+                                    ['click', 'a.show-queue-item-data', showQueuedItemData],
+                                    ['click', 'a.remove-queue-item', removeQueuedItem]
                                 ]
                             },
                             items: {
@@ -175,7 +192,9 @@ var XNAT = getObject(XNAT || {});
                                     th: { style: { width: '80px' } },
                                     td: { className: 'center mono' },
                                     apply: function(id){
-                                        return spawn('a.link.show-queue-item-data|href=#!', id + '')
+                                        return spawn('a.link.show-queue-item-data', {
+                                            attr: { href: '#id=' + id }
+                                        }, id + '')
                                     }
                                 },
                                 xnat_project: {
@@ -206,7 +225,7 @@ var XNAT = getObject(XNAT || {});
                                     td: { className: 'center' },
                                     apply: function(){
                                         return spawn('a.remove-queue-item.nolink.btn-hover', {
-                                            href: '#!',
+                                            attr: { href: '#id=' + this.id },
                                             title: 'Remove queued item'
                                         }, [
                                             ['b.x', '&times;']
@@ -218,6 +237,19 @@ var XNAT = getObject(XNAT || {});
                     }
                 }
             };
+        }
+
+
+        function adminImportQueuePanel(){
+            return $.extend(true, {}, setupImportQueuePanel(), {
+                importQueuePanel: {
+                    contents: {
+                        pacsQueueTable: {
+                            load: '*/xapi/dqr/query/queueWithOrder'
+                        }
+                    }
+                }
+            })
         }
 
         // queue panel rendered below
@@ -269,6 +301,16 @@ var XNAT = getObject(XNAT || {});
                                     sort: true//,
                                     // td: { className: 'center' }
                                 },
+                                queuedTime: {
+                                    label: 'Queued',
+                                    sort: true,
+                                    apply: renderTimeCell
+                                },
+                                executedTime: {
+                                    label: 'Executed',
+                                    sort: true,
+                                    apply: renderTimeCell
+                                },
                                 // username: {
                                 //     label: 'User',
                                 //     filter: true,
@@ -311,7 +353,7 @@ var XNAT = getObject(XNAT || {});
 
             // render queue
             XNAT.spawner
-                .spawn(userImportQueuePanel())
+                .spawn(setupImportQueuePanel())
                 .render(queueDisplayContainer$)
                 .done(function(){
                     XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
