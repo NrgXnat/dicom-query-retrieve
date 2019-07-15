@@ -41,8 +41,11 @@ var XNAT = getObject(XNAT || {});
         return $(getByClassName(cls));
     }
 
+    function getPACSData(){
+        return (dqr.getPACSData = XNAT.xhr.get('~/data/pacs'));
+    }
 
-    dqr.getPACSData = XNAT.xhr.get('~/data/pacs');
+    getPACSData();
 
     dqr.PACSData = {};
 
@@ -97,6 +100,27 @@ var XNAT = getObject(XNAT || {});
                 '-'
         }
 
+
+        function showItemData(url, callback){
+            return XNAT.xhr.get({
+                url: url,
+                success: function(data){
+                    console.log(data);
+                    XNAT.dialog.open({
+                        width: 800,
+                        content: prettifyJSON(data),
+                        buttons: [
+                            {
+                                label: 'Close',
+                                close: true,
+                                isDefault: true
+                            }
+                        ]
+                    });
+                }
+            });
+        }
+
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
 
@@ -121,17 +145,76 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
+
         function showQueuedItemData(e){
             e.preventDefault();
-            var id = this.getAttribute('href').split('#id=')[1];
-            XNAT.dialog.message(false, 'Show data for queued item [' + id + '].');
+            var itemId = this.getAttribute('href').split('#id=')[1];
+            showItemData(XNAT.url.restUrl('/xapi/dqr/query/queue/request/' + itemId));
         }
 
-        function removeQueuedItem(e){
-            e.preventDefault();
-            var id = this.getAttribute('href').split('#id=')[1];
-            XNAT.dialog.message(false, 'Remove queued queued item [' + id + '].');
+
+        function removeQueuedItem(itemId){
+            return XNAT.xhr
+                       .delete('/xapi/dqr/query/queue/request/' + itemId)
+                       .done(function(){
+                           XNAT.ui.banner.top(2000, 'Item removed from queue.', 'success');
+                           // re-render queue table
+                           spawnImportQueuePanel();
+                       })
+                       .fail(function(){
+                           console.warn(arguments);
+                           XNAT.ui.banner.top(3000, 'An error occured. Item not removed');
+                       });
         }
+
+
+        function removeItemDialog(e){
+            e.preventDefault();
+
+            var itemId = this.getAttribute('href').split('#id=')[1];
+
+            XNAT.dialog.open({
+                title: 'Remove queued item?',
+                width: 400,
+                content: '' +
+                    'Would you like to remove the item from the queue? This will abort the import ' +
+                    'for this item and shift the remaining queued items up in the queue.',
+                buttons: [
+                    {
+                        label: 'Remove',
+                        isDefault: true,
+                        close: false,
+                        action: function(dlg){
+                            removeQueuedItem(itemId).always(function(){
+                                dlg.close();
+                            });
+                        }
+                    },
+                    {
+                        label: 'Cancel',
+                        close: true
+                    }
+                ]
+            });
+
+        }
+
+
+        function spawnImportQueuePanel(admin){
+
+            var queueDisplayContainer$ = getById$('pacs-import-queue-display');
+
+            // render queue
+            XNAT.spawner
+                .spawn(setupImportQueuePanel(admin))
+                .render(queueDisplayContainer$.empty())
+                .done(function(){
+                    XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
+                    // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
+                });
+
+        }
+
 
         function setupImportQueuePanel(admin){
             return {
@@ -148,9 +231,11 @@ var XNAT = getObject(XNAT || {});
                                 }
                             },
                             table: {
+                                // click events will be delegated to the parent <table> element
+                                // since the elements they apply to are dynamically rendered
                                 on: [
                                     ['click', 'a.show-queue-item-data', showQueuedItemData],
-                                    ['click', 'a.remove-queue-item', removeQueuedItem]
+                                    ['click', 'a.remove-queue-item', removeItemDialog]
                                 ]
                             },
                             items: {
@@ -274,7 +359,20 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function userImportHistoryPanel(){
+
+        function spawnImportHistoryPanel(admin){
+
+            var historyDisplayContainer$ = getById$('pacs-import-history-display');
+
+            // render history
+            XNAT.spawner
+                .spawn(setupImportHistoryPanel(admin))
+                .render(historyDisplayContainer$.empty());
+
+        }
+
+
+        function setupImportHistoryPanel(admin){
             return {
                 userImportHistoryPanel: {
                     tag: 'div',
@@ -282,7 +380,7 @@ var XNAT = getObject(XNAT || {});
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/history/user',
+                            load: '*/xapi/dqr/query/history' + (admin ? '' : '/user'),
                             apply: function(data){
                                 console.log(data);
                                 return data
@@ -349,24 +447,8 @@ var XNAT = getObject(XNAT || {});
 
             setupPACSList(json.ResultSet.Result);
 
-            var queueDisplayContainer$ = getById$('pacs-import-queue-display').empty();
-
-            // render queue
-            XNAT.spawner
-                .spawn(setupImportQueuePanel())
-                .render(queueDisplayContainer$)
-                .done(function(){
-                    XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
-                    // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
-                });
-
-
-            var historyDisplayContainer$ = getById$('pacs-import-history-display').empty();
-
-            // render history
-            XNAT.spawner
-                .spawn(userImportHistoryPanel())
-                .render(historyDisplayContainer$);
+            spawnImportQueuePanel();
+            spawnImportHistoryPanel();
 
         });
 
