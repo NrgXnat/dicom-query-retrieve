@@ -185,6 +185,12 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                             pacsReq.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
                             pacsReq.setExecutedTime(new Date());
                             pacsReq.setQueuedTime(requestToDequeue.getQueuedTime());
+                            pacsReq.setStudyDate(requestToDequeue.getStudyDate());
+                            pacsReq.setStudyId(requestToDequeue.getStudyId());
+                            pacsReq.setAccessionNumber(requestToDequeue.getAccessionNumber());
+                            pacsReq.setPacsId(requestToDequeue.getPacsId());
+                            pacsReq.setPatientName(requestToDequeue.getPatientName());
+
 
                             XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
 

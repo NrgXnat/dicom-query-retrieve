@@ -32,6 +32,16 @@ public class Series implements DqrDomainObject, Serializable {
 
     private String seriesDescription;
 
+    private String studyDate;
+
+    private String studyId;
+
+    private String accessionNumber;
+
+    private String patientId;
+
+    private String patientName;
+
     public Series() {
     }
 
@@ -79,32 +89,87 @@ public class Series implements DqrDomainObject, Serializable {
         this.seriesDescription = seriesDescription;
     }
 
+    public String getStudyDate() {
+        return studyDate;
+    }
+
+    public void setStudyDate(String studyDate) {
+        this.studyDate = studyDate;
+    }
+
+    public String getStudyId() {
+        return studyId;
+    }
+
+    public void setStudyId(String studyId) {
+        this.studyId = studyId;
+    }
+
+    public String getAccessionNumber() {
+        return accessionNumber;
+    }
+
+    public void setAccessionNumber(String accessionNumber) {
+        this.accessionNumber = accessionNumber;
+    }
+
+    public String getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(String patientId) {
+        this.patientId = patientId;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
+    }
+
     @Override
     public String getUniqueIdentifier() {
         return getSeriesInstanceUid();
     }
 
     @Override
-    public int hashCode() {
-        return new HashCodeBuilder(61, 67).append(study).append(seriesInstanceUid).append(seriesNumber)
-                .append(modality).append(seriesDescription).toHashCode();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Series series = (Series) o;
+
+        if (study != null ? !study.equals(series.study) : series.study != null) return false;
+        if (seriesInstanceUid != null ? !seriesInstanceUid.equals(series.seriesInstanceUid) : series.seriesInstanceUid != null)
+            return false;
+        if (seriesNumber != null ? !seriesNumber.equals(series.seriesNumber) : series.seriesNumber != null)
+            return false;
+        if (modality != null ? !modality.equals(series.modality) : series.modality != null) return false;
+        if (seriesDescription != null ? !seriesDescription.equals(series.seriesDescription) : series.seriesDescription != null)
+            return false;
+        if (studyDate != null ? !studyDate.equals(series.studyDate) : series.studyDate != null) return false;
+        if (studyId != null ? !studyId.equals(series.studyId) : series.studyId != null) return false;
+        if (accessionNumber != null ? !accessionNumber.equals(series.accessionNumber) : series.accessionNumber != null)
+            return false;
+        if (patientId != null ? !patientId.equals(series.patientId) : series.patientId != null) return false;
+        return patientName != null ? patientName.equals(series.patientName) : series.patientName == null;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-        Series other = (Series) obj;
-        return new EqualsBuilder().append(study, other.study).append(seriesInstanceUid, other.seriesInstanceUid)
-                .append(seriesNumber, other.seriesNumber).append(modality, other.modality)
-                .append(seriesDescription, other.seriesDescription).isEquals();
+    public int hashCode() {
+        int result = study != null ? study.hashCode() : 0;
+        result = 31 * result + (seriesInstanceUid != null ? seriesInstanceUid.hashCode() : 0);
+        result = 31 * result + (seriesNumber != null ? seriesNumber.hashCode() : 0);
+        result = 31 * result + (modality != null ? modality.hashCode() : 0);
+        result = 31 * result + (seriesDescription != null ? seriesDescription.hashCode() : 0);
+        result = 31 * result + (studyDate != null ? studyDate.hashCode() : 0);
+        result = 31 * result + (studyId != null ? studyId.hashCode() : 0);
+        result = 31 * result + (accessionNumber != null ? accessionNumber.hashCode() : 0);
+        result = 31 * result + (patientId != null ? patientId.hashCode() : 0);
+        result = 31 * result + (patientName != null ? patientName.hashCode() : 0);
+        return result;
     }
 
     @Override

@@ -274,6 +274,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
     }
 
+    /**
+     * @deprecated Use the csvimport/generalImportFromJson REST call instead.
+     */
+    @Deprecated
     @ApiOperation(value = "Issues the PACS import requests specified in the JSON and performs the specified remapping on the data when it comes in.", response = Boolean.class)
     @ApiResponses({@ApiResponse(code = 200, message = "PACS requests successfully issued."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),

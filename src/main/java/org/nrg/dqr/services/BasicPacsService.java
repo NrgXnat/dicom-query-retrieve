@@ -743,6 +743,12 @@ public class BasicPacsService implements PacsService {
                 String currStudy = studyEntry.getKey();
                 StudyImportInformation studyInfo = studyEntry.getValue();
                 if (currStudy != null) {
+                    String currStudyDate = null;
+                    String currStudyId = null;
+                    String currAccessionNumber = null;
+                    String currPatientId = null;
+                    String currPatientName = null;
+                    boolean extraStudyInfoSet=false;
                     String currAnonScript = studyInfo.getAnonScript();
                     List<String> seriesDescriptionsList = studyInfo.getSeriesDescriptions();
                     List<String> seriesInstanceUIDs = studyInfo.getSeriesInstanceUIDs();
@@ -795,6 +801,14 @@ public class BasicPacsService implements PacsService {
                             //Import all the series in the study
                             for (Series currSeries : seriesResults) {
                                 seriesToImport.add(currSeries.getSeriesInstanceUid());
+                                if(!extraStudyInfoSet) {
+                                    currStudyDate = currSeries.getStudyDate();
+                                    currStudyId = currSeries.getStudyId();
+                                    currAccessionNumber = currSeries.getAccessionNumber();
+                                    currPatientId = currSeries.getPatientId();
+                                    currPatientName = currSeries.getPatientName();
+                                    extraStudyInfoSet=true;
+                                }
                             }
                         } else {
                             //Import all the series in the study that have seriesDescription in the series description list
@@ -802,6 +816,14 @@ public class BasicPacsService implements PacsService {
                                 String result = currSeries.getSeriesInstanceUid();
                                 if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
                                     seriesToImport.add(result);
+                                    if(!extraStudyInfoSet) {
+                                        currStudyDate = currSeries.getStudyDate();
+                                        currStudyId = currSeries.getStudyId();
+                                        currAccessionNumber = currSeries.getAccessionNumber();
+                                        currPatientId = currSeries.getPatientId();
+                                        currPatientName = currSeries.getPatientName();
+                                        extraStudyInfoSet=true;
+                                    }
                                 }
                             }
                         }
@@ -812,6 +834,14 @@ public class BasicPacsService implements PacsService {
                                 String result = currSeries.getSeriesInstanceUid();
                                 if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
                                     seriesToImport.add(result);
+                                    if(!extraStudyInfoSet) {
+                                        currStudyDate = currSeries.getStudyDate();
+                                        currStudyId = currSeries.getStudyId();
+                                        currAccessionNumber = currSeries.getAccessionNumber();
+                                        currPatientId = currSeries.getPatientId();
+                                        currPatientName = currSeries.getPatientName();
+                                        extraStudyInfoSet=true;
+                                    }
                                 }
                             }
                         } else {
@@ -821,6 +851,14 @@ public class BasicPacsService implements PacsService {
                                 if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
                                     if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
                                         seriesToImport.add(result);
+                                        if(!extraStudyInfoSet) {
+                                            currStudyDate = currSeries.getStudyDate();
+                                            currStudyId = currSeries.getStudyId();
+                                            currAccessionNumber = currSeries.getAccessionNumber();
+                                            currPatientId = currSeries.getPatientId();
+                                            currPatientName = currSeries.getPatientName();
+                                            extraStudyInfoSet=true;
+                                        }
                                     }
                                 }
                             }
@@ -828,7 +866,6 @@ public class BasicPacsService implements PacsService {
                     }
 
                     String _seriesIdsString = "";
-
 
                     for (String currSeries : seriesToImport) {
                         if (_seriesIdsString.length() != 0) {
@@ -845,6 +882,11 @@ public class BasicPacsService implements PacsService {
                             pacsReq.setStudyInstanceUid(currStudy);
                             pacsReq.setSeriesIds(_seriesIdsString);
                             pacsReq.setDestinationAeTitle(aeTitle);
+                            pacsReq.setStudyDate(currStudyDate);
+                            pacsReq.setStudyId(currStudyId);
+                            pacsReq.setAccessionNumber(currAccessionNumber);
+                            pacsReq.setPatientId(currPatientId);
+                            pacsReq.setPatientName(currPatientName);
                             if (currAnonScript != null) {
                                 pacsReq.setRemappingScript(currAnonScript);
                             }
@@ -1148,56 +1190,6 @@ public class BasicPacsService implements PacsService {
                 }
 
                 try {
-//                PacsEntityService pacsEntityService = getPacsEntityService();
-//                boolean pacsIsAvailable = pacsEntityService.isAvailable(pacs);
-//                if(pacsIsAvailable) {
-//                    final String path = "/studies/" + studyId;
-//                    if (_log.isDebugEnabled()) {
-//                        _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-//                    }
-//                    if (studyId == null) {
-//                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
-//                    } else {
-//                        XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-//                        XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-//                    }
-//
-//                    ExecutedPacsRequest pacsReq = new ExecutedPacsRequest();
-//                    pacsReq.setPacsId(pacsId);
-//                    pacsReq.setUsername(user.getUsername());
-//                    pacsReq.setXnatProject(project);
-//                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
-//                    pacsReq.setSeriesIds(_seriesIdsString);
-//                    pacsReq.setDestinationAeTitle(ae);
-//                    pacsReq.setExecutedTime(new Date());
-//
-//                    XDAT.getContextService().getBean(ExecutedPacsRequestService.class).create(pacsReq);
-//
-//                    importFromPacsRequest(pacsReq);
-//
-//                    final String siteUrl = XDAT.getSiteConfigPreferences().getSiteUrl();
-//                    final StringBuilder prearchive = new StringBuilder(siteUrl);
-//                    if (!siteUrl.endsWith("/")) {
-//                        prearchive.append("/");
-//                    }
-//                    prearchive.append("app/template/XDATScreen_prearchives.vm");
-//
-//                    try {
-//                        if (_log.isDebugEnabled()) {
-//                            _log.debug("Completed DICOM request for study " + currStudy.getStudyInstanceUid() + (StringUtils.isBlank(project) ? " with no project assignment." : " assigned to project " + project));
-//                        }
-//                        //sendNotification(context, "Selected DICOM series requested", "SeriesRequested");
-//                    } catch (Exception exception) {
-//                        _log.warn("User " + user.getLogin() + " successfully requested one or more DICOM series, but an error occurred sending the notification email.", exception);
-//                    }
-//
-//                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-//                    eventDetails.setComment("Series: " + _seriesIdsString);
-//                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, currStudy.getStudyId(), project, eventDetails);
-//                    assert wrk != null;
-//                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-//                }
-//                else{
                     QueuedPacsRequest pacsReq = new QueuedPacsRequest();
                     pacsReq.setPacsId(pacsId);
                     pacsReq.setUsername(user.getUsername());

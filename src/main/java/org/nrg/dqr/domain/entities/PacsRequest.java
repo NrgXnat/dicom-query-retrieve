@@ -24,6 +24,11 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     protected String _status;
     protected Long _priority;
     protected Date _queuedTime;
+    protected String _studyDate;
+    protected String _studyId;
+    protected String _accessionNumber;
+    protected String _patientId;
+    protected String _patientName;
 
     public static final String QUEUED_STATUS_TEXT = "QUEUED";
     public static final String PROCESSING_STATUS_TEXT = "PROCESSING";
@@ -113,5 +118,45 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setPriority(Long _priority) {
         this._priority = _priority;
+    }
+
+    public String getStudyDate() {
+        return _studyDate;
+    }
+
+    public void setStudyDate(String _studyDate) {
+        this._studyDate = _studyDate;
+    }
+
+    public String getStudyId() {
+        return _studyId;
+    }
+
+    public void setStudyId(String _studyId) {
+        this._studyId = _studyId;
+    }
+
+    public String getAccessionNumber() {
+        return _accessionNumber;
+    }
+
+    public void setAccessionNumber(String _accessionNumber) {
+        this._accessionNumber = _accessionNumber;
+    }
+
+    public String getPatientId() {
+        return _patientId;
+    }
+
+    public void setPatientId(String _patientId) {
+        this._patientId = _patientId;
+    }
+
+    public String getPatientName() {
+        return _patientName;
+    }
+
+    public void setPatientName(String _patientName) {
+        this._patientName = _patientName;
     }
 }

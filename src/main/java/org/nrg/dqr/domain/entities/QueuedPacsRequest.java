@@ -33,7 +33,8 @@ public class QueuedPacsRequest extends PacsRequest {
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
                 .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_remappingScript).append(_destinationAeTitle)
-                .append(_status).append(_queuedTime).append(_priority).append(_priority).toHashCode();
+                .append(_status).append(_queuedTime).append(_priority).append(_studyDate).append(_studyId)
+                .append(_accessionNumber).append(_patientId).append(_patientName).toHashCode();
     }
 
     @Override
@@ -52,7 +53,9 @@ public class QueuedPacsRequest extends PacsRequest {
                 .append(_xnatProject, other._xnatProject).append(_studyInstanceUid, other._studyInstanceUid)
                 .append(_seriesIds, other._seriesIds).append(_remappingScript, other._remappingScript)
                 .append(_destinationAeTitle, other._destinationAeTitle).append(_status, other._status)
-                .append(_queuedTime, other._queuedTime).append(_priority, other._priority).isEquals();
+                .append(_queuedTime, other._queuedTime).append(_priority, other._priority).append(_studyDate, other._studyDate)
+                .append(_studyId, other._studyId).append(_accessionNumber, other._accessionNumber)
+                .append(_patientId, other._patientId).append(_patientName, other._patientName).isEquals();
     }
 
     @Override
@@ -61,13 +64,18 @@ public class QueuedPacsRequest extends PacsRequest {
         buffer.append("username: ").append(_username).append(", ");
         buffer.append("pacsId: ").append(_pacsId).append(", ");
         buffer.append("xnatProject: ").append(_xnatProject).append(", ");
-        buffer.append("studyId: ").append(_studyInstanceUid).append(", ");
+        buffer.append("studyInstanceUid: ").append(_studyInstanceUid).append(", ");
         buffer.append("seriesIds: ").append(_seriesIds).append(", ");
         buffer.append("remappingScript: ").append(_remappingScript).append(", ");
         buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
         buffer.append("status: ").append(_status).append(", ");
         buffer.append("queuedTime: ").append(_queuedTime).append(", ");
         buffer.append("priority: ").append(_priority).append(", ");
+        buffer.append("studyDate: ").append(_studyDate).append(", ");
+        buffer.append("studyId: ").append(_studyId).append(", ");
+        buffer.append("accessionNumber: ").append(_accessionNumber).append(", ");
+        buffer.append("patientId: ").append(_patientId).append(", ");
+        buffer.append("patientName: ").append(_patientName).append(", ");
         return buffer.toString();
     }
 }

@@ -30,7 +30,7 @@ import org.nrg.dqr.preferences.DqrPreferences;
 public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> {
 
     private final static int[] RETURN_TAG_PATHS = new int[]{
-            Tag.SeriesDescription
+            Tag.SeriesDescription,Tag.StudyDate,Tag.StudyID,Tag.AccessionNumber,Tag.PatientID,Tag.PatientName
     };
 
     public CFindSCUSeriesLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU,
@@ -58,6 +58,12 @@ public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> 
         }
         series.setModality(StringUtils.trim(d.getString(Tag.Modality)));
         series.setSeriesDescription(StringUtils.trim(d.getString(Tag.SeriesDescription)));
+        series.setStudyDate(StringUtils.trim(d.getString(Tag.StudyDate)));
+        series.setStudyId(StringUtils.trim(d.getString(Tag.StudyID)));
+        series.setAccessionNumber(StringUtils.trim(d.getString(Tag.AccessionNumber)));
+        series.setPatientId(StringUtils.trim(d.getString(Tag.PatientID)));
+        series.setPatientName(StringUtils.trim(d.getString(Tag.PatientName)));
+
         return series;
     }
 

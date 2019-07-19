@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
+@Deprecated
 @XnatRestlet("/services/pacs/{PACS_ID}/import/series")
 public class PacsSeriesImporter extends PacsServiceResource {
 
