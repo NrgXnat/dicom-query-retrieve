@@ -538,8 +538,7 @@ XNAT.app = getObject(XNAT.app || {});
                             });
 
                             function isDqrEnabled(identifier){
-                                var enabledIdentifiers = ['dqrClassicExtractors','dqrObjectIdentifier'];
-                                if (enabledIdentifiers.indexOf(identifier) >= 0) return 'true'
+                                if (identifier.toLowerCase().indexOf('dqr') >= 0) {return 'true'}
                             }
                             function associatedReceivers(identifier){
                                 var associatedReceivers = [];
