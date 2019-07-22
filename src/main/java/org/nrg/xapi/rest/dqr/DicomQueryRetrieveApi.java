@@ -875,9 +875,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the series."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthorizedRoles({"Dqr", "Administrator"})
-    @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies/{studyUids}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Role)
+    @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Role)
     public ResponseEntity<Map<String,PacsSearchResults<String, Series>>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable("pacsId") final String pacsId,
-                                                  @ApiParam("List of studies to get series for.") @PathVariable(name = "studyUids") final String studyUids) {
+                                                  @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) {
         Map<String,PacsSearchResults<String, Series>> seriesMap = new HashMap<>();
         final UserI user = getSessionUser();
         final String[] studiesArray = org.apache.commons.lang.StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");

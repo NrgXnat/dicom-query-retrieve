@@ -593,9 +593,10 @@ var XNAT = getObject(XNAT || {});
 
     function getStudies(pacsId, studyUIDs){
         var UIDS = [].concat(studyUIDs).join(',');
-        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies/' + UIDS);
-        return XNAT.xhr.getJSON({
+        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies' );
+        return XNAT.xhr.postJSON({
             url: URL,
+            data: UIDS,
             success: function(studies){
                 console.log(studies);
             }
