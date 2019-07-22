@@ -247,7 +247,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                 requestTimeInMilliseconds = afterRequest.getTimeInMillis() - beforeRequest.getTimeInMillis();
 
                                 final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-                                XDAT.getMailService().sendHtmlMessage(adminEmail, user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
+                                XDAT.getMailService().sendHtmlMessage(adminEmail, adminEmail, "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
                             }
                         } catch (Exception exception) {
                             _log.warn("User " + username + " requested one or more DICOM series, but an error occurred sending the notification email.", exception);
