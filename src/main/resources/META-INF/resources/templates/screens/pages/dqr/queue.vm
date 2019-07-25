@@ -2,6 +2,7 @@
 #* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
@@ -36,7 +37,7 @@
 
 #set ($isAllowed = false)
 
-#if ($user.checkRole("Administrator") || $user.checkRole("Dqr"))
+#if ($user.checkRole("Administrator") || $user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))
 
     #set ($isAllowed = true)
 

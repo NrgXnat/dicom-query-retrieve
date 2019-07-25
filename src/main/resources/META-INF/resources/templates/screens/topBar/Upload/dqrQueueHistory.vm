@@ -4,6 +4,7 @@
 #* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
@@ -21,6 +22,12 @@
     window.isAllowed = true;
 </script>
 <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
+#elseif ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr())
+    #set ($isAllowed = true)
+    <script>
+        window.isAllowed = true;
+    </script>
+    <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
 #else
     #if ($user.checkRole("Dqr"))
         #set ($isAllowed = true)

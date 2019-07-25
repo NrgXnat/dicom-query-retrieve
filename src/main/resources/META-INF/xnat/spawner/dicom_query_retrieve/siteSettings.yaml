@@ -80,6 +80,22 @@ dqrOtherPreferencePanel:
                 configured than are currently open, additional threads will be opened (if there are more threads open
                 than are currently configured, they will be ended once they complete their current PACS request). Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+        allowAllUsersToUseDqr:
+            kind: panel.input.switchbox
+            name: allowAllUsersToUseDqr
+            label: Allow DQR for All Users
+            onText: Enabled
+            offText: Disabled
+            description: >
+                Should all users always be able to use DQR to access PACS, or should only users that are assigned the 'Dqr' role be able to do so?
+        allowAllProjectsToUseDqr:
+            kind: panel.input.switchbox
+            name: allowAllProjectsToUseDqr
+            label: Allow DQR for All Projects
+            onText: Enabled
+            offText: Disabled
+            description: >
+                Should users be able to import data to all projects using DQR, or only to projects that have DQR enabled in their project settings?
         notifyAdminOnImport:
             kind: panel.input.switchbox
             name: notifyAdminOnImport

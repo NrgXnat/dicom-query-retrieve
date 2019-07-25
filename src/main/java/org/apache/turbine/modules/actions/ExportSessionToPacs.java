@@ -20,6 +20,7 @@ import org.apache.turbine.util.parser.ParameterParser;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
@@ -91,7 +92,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
         catch(Exception e){
             throw new RuntimeException("Error checking permissions for session.");
         }
-        if(!Roles.checkRole(_user,"Dqr") && !Roles.checkRole(_user,"Administrator")){
+        if(!Roles.checkRole(_user,"Dqr") && !Roles.checkRole(_user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
             throw new RuntimeException("You do not have access to DQR functionality.");
         }
         else {

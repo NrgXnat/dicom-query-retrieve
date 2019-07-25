@@ -24,6 +24,7 @@ import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.ExecutedPacsRequestService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.QueuedPacsRequestService;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.helpers.Groups;
@@ -84,7 +85,7 @@ public class PacsSeriesImporter extends PacsServiceResource {
         if(user.isGuest()){
             respondWithNeedToBeLoggedIn();
         }
-        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
+        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You do not have access to DQR functionality.");
         }
         else if(!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user,"Administrator") && !Groups.hasAllDataAccess(user)){

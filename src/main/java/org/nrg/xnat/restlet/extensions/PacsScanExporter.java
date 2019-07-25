@@ -16,6 +16,7 @@ import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsService;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
@@ -61,7 +62,7 @@ public class PacsScanExporter extends ScanResource {
                 catch(Exception e){
                     throw new RuntimeException("Error checking permissions for session.");
                 }
-                if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
+                if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
                     throw new RuntimeException("You do not have access to DQR functionality.");
                 }
                 else {

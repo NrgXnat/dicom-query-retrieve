@@ -29,6 +29,7 @@ import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.restlet.InvalidStudyDateRangeException;
 import org.nrg.dqr.restlet.JsonViews;
 import org.nrg.dqr.restlet.RequestUtils;
@@ -70,7 +71,7 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         if(user.isGuest()){
             throw new NotAuthenticatedException("");
         }
-        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator")){
+        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
             throw new RuntimeException("You do not have access to DQR functionality.");
         }
 

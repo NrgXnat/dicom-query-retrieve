@@ -14,6 +14,7 @@ package org.nrg.xnat.restlet.extensions;
 
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.restlet.JsonViews;
+import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xnat.restlet.XnatRestlet;
@@ -39,7 +40,7 @@ public class PacsStudyResource extends PacsServiceResource {
                 respondWithNeedToBeLoggedIn();
                 return null;
             }
-            else if(!Roles.checkRole(getUser(),"Administrator") && !Roles.checkRole(getUser(),"Dqr")){
+            else if(!Roles.checkRole(getUser(),"Administrator") && !Roles.checkRole(getUser(),"Dqr") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
                 getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to search the PACS.");
                 return null;
             }

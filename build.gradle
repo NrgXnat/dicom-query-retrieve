@@ -8,7 +8,7 @@
  */
 
 def pluginVersion = '1.0.0-PRERELEASE'
-def vXnat = '1.7.5'
+def vXnat = '1.7.6-SNAPSHOT'
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'groovy'
@@ -47,9 +47,9 @@ buildscript {
         classpath "org.apache.maven.plugins:maven-antrun-plugin:1.8"
         classpath "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
         classpath "javax.validation:validation-api:2.0.0.Final"
-        classpath "org.nrg.xdat:core:1.7.5"
-        classpath "org.nrg:framework:1.7.5"
-        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.5"){
+        classpath "org.nrg.xdat:core:1.7.6-SNAPSHOT"
+        classpath "org.nrg:framework:1.7.6-SNAPSHOT"
+        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.6-SNAPSHOT"){
             exclude group:'torque'
         }
     }

@@ -1,6 +1,7 @@
 <!-- Sequence: 20 -->
 
-#if (($item.canEdit($user) && $user.checkRole("Dqr")) || $user.checkRole("Administrator"))
+#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
+#if (($item.canEdit($user) && ($user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))) || $user.checkRole("Administrator"))
 
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
 

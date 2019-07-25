@@ -73,5 +73,31 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         }
     }
 
+    @NrgPreference(defaultValue = "false")
+    public boolean getAllowAllUsersToUseDqr() {
+        return getBooleanValue("allowAllUsersToUseDqr");
+    }
+
+    public void setAllowAllUsersToUseDqr(final boolean allowAllUsersToUseDqr) {
+        try {
+            setBooleanValue(allowAllUsersToUseDqr, "allowAllUsersToUseDqr");
+        } catch (InvalidPreferenceName e) {
+            _log.error("Invalid preference name 'allowAllUsersToUseDqr': something is very wrong here.", e);
+        }
+    }
+
+    @NrgPreference(defaultValue = "false")
+    public boolean getAllowAllProjectsToUseDqr() {
+        return getBooleanValue("allowAllProjectsToUseDqr");
+    }
+
+    public void setAllowAllProjectsToUseDqr(final boolean allowAllProjectsToUseDqr) {
+        try {
+            setBooleanValue(allowAllProjectsToUseDqr, "allowAllProjectsToUseDqr");
+        } catch (InvalidPreferenceName e) {
+            _log.error("Invalid preference name 'allowAllProjectsToUseDqr': something is very wrong here.", e);
+        }
+    }
+
     private static final Logger _log = LoggerFactory.getLogger(DqrPreferences.class);
 }
