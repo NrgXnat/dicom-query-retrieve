@@ -292,7 +292,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
                                                   @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         UserI                      user             = getSessionUser();
-        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
+        if (!_preferences.getAllowAllProjectsToUseDqr() && !_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
@@ -326,7 +326,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                         @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
                                                         @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         UserI                      user             = getSessionUser();
-        if (!_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
+        if (!_preferences.getAllowAllProjectsToUseDqr() && !_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         } else if (!Permissions.canEditProject(user, project) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
@@ -516,7 +516,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "isDqrProject/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
     public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @ProjectId final String projectId) {
-        return new ResponseEntity<>(_adminSettingsForProjectService.isDqrEnabledForProject(projectId), HttpStatus.OK);
+        return new ResponseEntity<>(_preferences.getAllowAllProjectsToUseDqr() || _adminSettingsForProjectService.isDqrEnabledForProject(projectId), HttpStatus.OK);
     }
 
     @ApiOperation(value = "Get stored IRB number for project.", response = String.class)

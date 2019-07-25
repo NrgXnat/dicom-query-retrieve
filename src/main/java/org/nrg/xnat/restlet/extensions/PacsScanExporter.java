@@ -66,7 +66,7 @@ public class PacsScanExporter extends ScanResource {
                     throw new RuntimeException("You do not have access to DQR functionality.");
                 }
                 else {
-                    if (!XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(scan.getProject())) {
+                    if (!XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllProjectsToUseDqr() && !XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(scan.getProject())) {
                         //You cannot import into a project that does not have DQR enabled.
                         throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
                     }
