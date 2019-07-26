@@ -706,7 +706,7 @@ XNAT.app = getObject(XNAT.app || {});
     }
     historyTable.removeQueueEntry = removeQueueEntry;
 
-    function sortQueueData(callback){
+    function getQueueData(callback){
         callback = isFunction(callback) ? callback : function(){};
 
         var URL = getQueryQueueUrl();
@@ -727,7 +727,7 @@ XNAT.app = getObject(XNAT.app || {});
             })
     }
 
-    function sortHistoryData(callback){
+    function getHistoryData(callback){
         callback = isFunction(callback) ? callback : function(){};
 
         var URL = getQueryHistoryUrl();
@@ -789,13 +789,19 @@ XNAT.app = getObject(XNAT.app || {});
                 tr.id = data.id;
                 addDataAttrs(tr, { filter: '0' });
             },
-            sortable: 'id, pacs, dataRequested, user, DATE, PROJECT',
-            filter: 'id, pacs, dataRequested, user, DATE, PROJECT',
+            sortable: 'id, pacs, DATE, dataRequested, user, PROJECT',
+            filter: 'id, pacs, DATE, dataRequested, user, PROJECT',
+            // `order` is a comma-separated list (or array) of the
+            // keys in `items` to make sure the columns are rendered
+            // in the correct order, since object property iteration
+            // is not guaranteed to be in the order as defined below
+            order: 'id, pacs, DATE, dataRequested, user, PROJECT',
             items: {
                 // by convention, name 'custom' columns with ALL CAPS
                 // 'custom' columns do not correspond directly with
                 // a data item,
                 id: {
+                    seq: '01',
                     label: 'ID',
                     th: { style: { width: '80px' }},
                     td: { style: { width: '80px' }},
@@ -829,6 +835,7 @@ XNAT.app = getObject(XNAT.app || {});
                     }
                 },
                 pacs: {
+                    seq: '02',
                     label: 'DICOM AE',
                     filter: true,
                     apply: function(){
@@ -836,6 +843,7 @@ XNAT.app = getObject(XNAT.app || {});
                     }
                 },
                 DATE: {
+                    seq: '03',
                     label: 'Date',
                     th: { className: 'dqr-query center' },
                     td: { className: 'dqr-query'},
@@ -909,6 +917,7 @@ XNAT.app = getObject(XNAT.app || {});
                     }
                 },
                 dataRequested: {
+                    seq: '04',
                     label: 'Data Requested',
                     filter: true, // add filter: true to individual items to add a filter,
                     apply: function(){
@@ -922,6 +931,7 @@ XNAT.app = getObject(XNAT.app || {});
                     }
                 },
                 user: {
+                    seq: '05',
                     label: 'User',
                     filter: true,
                     apply: function(){
@@ -929,6 +939,7 @@ XNAT.app = getObject(XNAT.app || {});
                     }
                 },
                 PROJECT: {
+                    seq: '06',
                     label: 'Project',
                     filter: true,
                     apply: function(){
@@ -1147,11 +1158,13 @@ XNAT.app = getObject(XNAT.app || {});
     });
 
     historyTable.init = historyTable.refresh = function(){
+        
         var $historyContainer = $('#dqr-history-container'),
             $queueContainer = $('#dqr-queue-container'),
             _historyTable, _queueTable;
 
-        sortHistoryData().done(function(data){
+        getHistoryData().done(function(data){
+            
             if (data.length) {
 
                 setTimeout(function(){
@@ -1171,7 +1184,9 @@ XNAT.app = getObject(XNAT.app || {});
                 }, 10);
             }
 
-            sortQueueData().done(function(data){
+        }).always(function(){
+
+            getQueueData().done(function(data){
                 if (data.length){
                     setTimeout(function(){
                         _queueTable = XNAT.spawner.spawn({
@@ -1188,8 +1203,9 @@ XNAT.app = getObject(XNAT.app || {});
                     $queueContainer.css('margin-bottom','2em');
                 }
             })
-        });
 
+        });
+        
     };
 
     historyTable.init();

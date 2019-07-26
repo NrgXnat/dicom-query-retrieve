@@ -499,19 +499,6 @@ var XNAT = getObject(XNAT || {});
             };
         }
 
-
-        function adminImportQueuePanel(){
-            return $.extend(true, {}, setupImportQueuePanel(), {
-                importQueuePanel: {
-                    contents: {
-                        pacsQueueTable: {
-                            load: '*/xapi/dqr/query/queueWithOrder'
-                        }
-                    }
-                }
-            })
-        }
-
         // queue panel rendered below
 
         // `/xapi/dqr/history/user`
@@ -672,9 +659,6 @@ var XNAT = getObject(XNAT || {});
 
             spawnImportQueuePanel();
             spawnImportHistoryPanel();
-
-            // lastQueuePanel = window.setInterval(spawnImportQueuePanel, 1);
-            // lastHistoryPanel = window.setInterval(spawnImportHistoryPanel, 1);
 
         });
 
