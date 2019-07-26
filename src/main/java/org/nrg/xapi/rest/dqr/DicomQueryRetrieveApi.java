@@ -285,7 +285,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                         method = RequestMethod.POST,
                         consumes = MediaType.APPLICATION_JSON_VALUE,
                         produces = MediaType.APPLICATION_JSON_VALUE,
-                        restrictTo = Role)
+                        restrictTo = Authorizer)
     public ResponseEntity<Boolean> importFromPacs(@RequestBody final CsvRow[] rows,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
@@ -634,6 +634,24 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             log.error("IO exception when updating IRB file.", e);
             return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
+    @ApiOperation(value = "Deletes the stored IRB file for project.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "IRB file for the project was successfully removed."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "Insufficient privileges to delete the IRB file for the project."),
+            @ApiResponse(code = 404, message = "The requested IRB file for the project wasn't found."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.DELETE, restrictTo = Delete)
+    @ResponseBody
+    public ResponseEntity<Boolean> deleteIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+        final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        if (info == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        _projectIrbInfoEntityService.delete(info);
+
         return new ResponseEntity<>(true, HttpStatus.OK);
     }
 
