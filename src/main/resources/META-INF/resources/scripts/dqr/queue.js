@@ -101,14 +101,122 @@ var XNAT = getObject(XNAT || {});
         }
 
 
+        var dataDisplayModel = {
+            // config for the actual <table> element
+            table: { title: 'Ur Datas' },
+            // config for header
+            headerO: {
+                tr: { addClass: 'ur-datas-header' },
+                key: {
+                    addClass: 'left',
+                    html: '<b>Key</b>'
+                },
+                value: {
+                    addClass: 'left',
+                    html: '<b>Value</b>'
+                }
+            },
+            // text for header row cells
+            header: ['Key', 'Value'],
+            // do not render a header
+            header_: false,
+            // `items` can be a simple comma-separated list...
+            items: 'item1, item2, item3',
+            // ...or an actual array (safer)
+            items_: ['item1', 'item2', 'item3'],
+            // if there's no `items` property, then all
+            // object properties will be rendered in the table
+            rows: {
+                item1: 'Foo',
+                item2: 'Bar',
+                item3: 'Baz'
+            }
+        };
+
+        function dataDisplay(opts){
+
+            var displayTable = XNAT.table(extend(true, {
+                className: 'xnat-table',
+                style: { 'width': '100%' }
+            }, opts.table));
+
+            if (opts.header) {
+                displayTable.tr(opts.header.tr || {});
+                displayTable.th(opts.header.key || opts.header[0] || 'Key');
+                displayTable.th(opts.header.value || opts.header[1] || 'Value');
+            }
+
+            var rowData = opts.rows || opts.data;
+            var rows;
+
+            if (opts.items) {
+                if (Array.isArray(opts.items)) {
+                    rows = opts.items
+                }
+                else {
+                    rows = opts.items.split(',').map(function(item, i){
+                        return item.trim()
+                    })
+                }
+            }
+            else {
+                rows = Object.keys(rowData);
+            }
+
+            rows && forEach(rows, function(key, i){
+
+                displayTable.tr(opts.trs || opts.tr || {});
+                displayTable.td('<b>' + key + '</b>');
+
+                var value = rowData[key];
+                var cell = extend(true, {
+                    html: ''
+                }, opts.tds || opts.td);
+
+                if (stringable(value)) {
+                    cell.textContent = value + '';
+                }
+                else if (Array.isArray(value)) {
+                    cell.textContent = value.join(', ');
+                }
+                else {
+                    try {
+                        cell.textContent = (JSON.stringify(value))
+                    }
+                    catch(e) {
+                        console.warn(e);
+                    }
+                }
+
+                displayTable.td(cell);
+
+            });
+
+            return displayTable.get();
+
+        }
+
+
         function showItemData(url, callback){
             return XNAT.xhr.get({
                 url: url,
                 success: function(data){
                     console.log(data);
+                    if (typeof data.seriesIds === 'string') {
+                        data.seriesIds = data.seriesIds.split(',').join('<br>')
+                    }
                     XNAT.dialog.open({
                         width: 800,
-                        content: prettifyJSON(data),
+                        content: dataDisplay({
+                            header: {
+                                key: 'Key',
+                                value: 'Value'
+                            },
+                            tds: {
+                                addClass: 'mono'
+                            },
+                            rows: data
+                        }),
                         buttons: [
                             {
                                 label: 'Close',
@@ -347,6 +455,14 @@ var XNAT = getObject(XNAT || {});
         ];
 
 
+        function showHistoryItemData(e){
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var itemId = this.getAttribute('data-id') || this.getAttribute('href').split('#id=')[1];
+            showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/request/' + itemId));
+        }
+
+
         function spawnImportHistoryPanel(admin){
 
             var historyDisplayContainer$ = getById$('pacs-import-history-display');
@@ -372,13 +488,24 @@ var XNAT = getObject(XNAT || {});
                                 console.log(data);
                                 return data
                             },
+                            table: {
+                                on: [
+                                    ['click', '.show-history-item-data', showHistoryItemData],
+                                    ['click', 'tr[data-id]', showHistoryItemData]
+                                ]
+                            },
                             items: {
                                 _id: '~data-id',
                                 _pacsId: '~data-pacs-id',
                                 id: {
                                     label: 'ID',
                                     sort: true,
-                                    td: { className: 'center mono' }
+                                    td: { className: 'center mono' },
+                                    apply: function(id){
+                                        return spawn('a.link.show-history-item-data', {
+                                            attr: { href: '#id=' + id }
+                                        }, id + '')
+                                    }
                                 },
                                 status: {
                                     label: 'Status',
