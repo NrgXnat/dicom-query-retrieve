@@ -117,10 +117,10 @@ Hide JSP tags from the Velocity parser.
                 white-space: nowrap;
                 z-index: 2;
                 padding: 2px 8px 1px;
-                background: #339933;
+                background: #15629D;
                 color: #fff;
                 border-radius: 16px;
-                border: 1px solid #228822;
+                border: 1px solid #075087;
                 font-size: 12px;
             }
 
