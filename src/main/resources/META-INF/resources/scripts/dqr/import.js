@@ -706,9 +706,9 @@ var XNAT = getObject(XNAT || {});
     function importSessionsOfSelectedTypeToProject(){
 
         var $searchResultsTable = $('#all-search-results');
-        var selectedSessions    = $searchResultsTable.find('input.select-session:checked');
+        var $selectedSessions   = $searchResultsTable.find('input.select-session:checked').filter(':visible');
 
-        var studyUIDs = selectedSessions.toArray().map(function(ckbx, i){
+        var studyUIDs = $selectedSessions.toArray().map(function(ckbx, i){
             return ckbx.value;
         });
 
@@ -718,7 +718,7 @@ var XNAT = getObject(XNAT || {});
 
         var projectId = window.projectId || getQueryStringValue('project');
 
-        var selectedScanTypes = $('#scan-types-list').find('input.select-scan-type:checked');
+        var selectedScanTypes = $('#scan-types-list').find('input.select-scan-type:checked').filter(':visible');
 
         var scanTypes = selectedScanTypes.toArray().map(function(ckbx, i){
             return ckbx.value;
@@ -808,7 +808,6 @@ var XNAT = getObject(XNAT || {});
 
         });
 
-
         console.log('SUBMIT...');
         console.log(jsonData);
 
@@ -820,7 +819,7 @@ var XNAT = getObject(XNAT || {});
             ], false),
             data: JSON.stringify(jsonData),
             success: function(){
-                console.log(arguments);
+                window.jsdebug && console.log(arguments);
                 XNAT.dialog.message({
                     title: ' ',
                     width: 400,
@@ -831,7 +830,7 @@ var XNAT = getObject(XNAT || {});
                             'this dialog to start a new search.</p>' +
                             '<p>' +
                             'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=admin#tab=queue') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=dqr#tab=queue') + '">' +
                             'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
                             'go back to the project page.</a></p>' +
@@ -1270,7 +1269,7 @@ var XNAT = getObject(XNAT || {});
                             e.preventDefault();
                             console.log('importing...');
                             var studyUIDs = [];
-                            $pacsSearchResults.find('input.select-session:checked').each(function(){
+                            $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
                                 studyUIDs.push(this.value);
                             });
                             if (!studyUIDs.length) {

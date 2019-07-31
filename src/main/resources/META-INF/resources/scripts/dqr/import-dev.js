@@ -594,7 +594,7 @@ var XNAT = getObject(XNAT || {});
 
     function getStudies(pacsId, studyUIDs){
         var UIDS = [].concat(studyUIDs).join(',');
-        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies' );
+        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies');
         return XNAT.xhr.postJSON({
             url: URL,
             data: UIDS,
@@ -698,7 +698,7 @@ var XNAT = getObject(XNAT || {});
                 }
             }
         }).get();
-        XNAT.plugins.dqr.selectableItems(scanTypesTable);
+        XNAT.plugins.dqr.selectableItemsDev(scanTypesTable);
         return scanTypesTable;
     }
 
@@ -706,9 +706,11 @@ var XNAT = getObject(XNAT || {});
     function importSessionsOfSelectedTypeToProject(){
 
         var $searchResultsTable = $('#all-search-results');
-        var selectedSessions    = $searchResultsTable.find('input.select-session:checked');
+        var $selectedSessions   = $searchResultsTable.find('input.select-session:checked').filter(':visible');
 
-        var studyUIDs = selectedSessions.toArray().map(function(ckbx, i){
+        console.log($selectedSessions);
+
+        var studyUIDs = $selectedSessions.toArray().map(function(ckbx, i){
             return ckbx.value;
         });
 
@@ -718,7 +720,7 @@ var XNAT = getObject(XNAT || {});
 
         var projectId = window.projectId || getQueryStringValue('project');
 
-        var selectedScanTypes = $('#scan-types-list').find('input.select-scan-type:checked');
+        var selectedScanTypes = $('#scan-types-list').find('input.select-scan-type:checked').filter(':visible');
 
         var scanTypes = selectedScanTypes.toArray().map(function(ckbx, i){
             return ckbx.value;
@@ -808,7 +810,6 @@ var XNAT = getObject(XNAT || {});
 
         });
 
-
         console.log('SUBMIT...');
         console.log(jsonData);
 
@@ -820,7 +821,7 @@ var XNAT = getObject(XNAT || {});
             ], false),
             data: JSON.stringify(jsonData),
             success: function(){
-                console.log(arguments);
+                window.jsdebug && console.log(arguments);
                 XNAT.dialog.message({
                     title: ' ',
                     width: 400,
@@ -831,7 +832,7 @@ var XNAT = getObject(XNAT || {});
                             'this dialog to start a new search.</p>' +
                             '<p>' +
                             'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=admin#tab=queue') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=dqr#tab=queue') + '">' +
                             'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
                             'go back to the project page.</a></p>' +
@@ -1204,11 +1205,11 @@ var XNAT = getObject(XNAT || {});
 
         function renderBottom(receivers){
 
-            var aeMenu$ = $.spawn('select#ae-menu');
-            var aeMenu0 = aeMenu$[0];
+            var aeMenu$         = $.spawn('select#ae-menu');
+            var aeMenu0         = aeMenu$[0];
             var defaultReceiver = receivers[0];
-            var defaultLabel = defaultReceiver.aeTitle + ':' + defaultReceiver.port;
-            var receiverMap = {};
+            var defaultLabel    = defaultReceiver.aeTitle + ':' + defaultReceiver.port;
+            var receiverMap     = {};
 
             // toggleRemapping(/^true$/.test(defaultReceiver.customProcessing));
 
@@ -1236,7 +1237,7 @@ var XNAT = getObject(XNAT || {});
             function toggleRemapping(e){
 
                 var selectedOption = this.value;
-                var doProcessing = /^true$/.test(receiverMap[selectedOption].customProcessing);
+                var doProcessing   = /^true$/.test(receiverMap[selectedOption].customProcessing);
 
                 !relabelInputs$ && (relabelInputs$ = $pacsSearchResults.find('input.relabel'));
 
@@ -1270,7 +1271,7 @@ var XNAT = getObject(XNAT || {});
                             e.preventDefault();
                             console.log('importing...');
                             var studyUIDs = [];
-                            $pacsSearchResults.find('input.select-session:checked').each(function(){
+                            $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
                                 studyUIDs.push(this.value);
                             });
                             if (!studyUIDs.length) {
