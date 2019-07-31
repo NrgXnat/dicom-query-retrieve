@@ -17,23 +17,18 @@
 #if ($user.checkRole("Administrator"))
     #set ($isAdmin = true)
     #set ($isAllowed = true)
+    <script>
+        window.isAdmin   = true;
+    </script>
+#elseif ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr())
+    #set ($isAllowed = true)
+#elseif ($user.checkRole("Dqr"))
+    #set ($isAllowed = true)
+#end
+
+#if ($isAllowed == true)
 <script>
-    window.isAdmin   = true;
     window.isAllowed = true;
 </script>
 <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
-#elseif ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr())
-    #set ($isAllowed = true)
-    <script>
-        window.isAllowed = true;
-    </script>
-    <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
-#else
-    #if ($user.checkRole("Dqr"))
-        #set ($isAllowed = true)
-    <script>
-        window.isAllowed = true;
-    </script>
-    <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
-    #end
 #end
