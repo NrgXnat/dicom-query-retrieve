@@ -135,6 +135,7 @@ var XNAT = getObject(XNAT || {});
                 maxDate: DATE_TODAY,
                 // todayButton: DATE_TODAY,
                 autoClose: false,
+                keyboardNav: false,
                 // range: true,
                 // multipleDatesSeparator: '-',
                 dateFormat: DATE_FORMAT
@@ -662,7 +663,8 @@ var XNAT = getObject(XNAT || {});
                     filter: function(){
                         return spawn('div.center', [
                             ['input.selectable-all|type=checkbox', {
-                                checked: true
+                                checked: true,
+                                attr: { checked: 'checked' }
                             }]
                         ]);
                     },
@@ -1202,26 +1204,64 @@ var XNAT = getObject(XNAT || {});
 
         function renderBottom(receivers){
 
-            var aeMenu = spawn('select#ae-menu');
+            var aeMenu$ = $.spawn('select#ae-menu');
+            var aeMenu0 = aeMenu$[0];
+            var defaultReceiver = receivers[0];
+            var defaultLabel = defaultReceiver.aeTitle + ':' + defaultReceiver.port;
+            var receiverMap = {};
+
+            // toggleRemapping(/^true$/.test(defaultReceiver.customProcessing));
 
             forEach(receivers, function(item, i){
                 var AE = item.aeTitle + ':' + item.port;
-                console.log(AE);
-                aeMenu.appendChild(spawn('option.receiver', {
-                    title: AE,
-                    value: AE,
-                    data: {
-                        id: (item.id + ''),
-                        identifier: item.identifier
-                    },
-                    disabled: !item.enabled
-                }, AE));
+                window.jsdebug && console.log(AE);
+                receiverMap[AE] = item;
+                // only add 'dqr' receivers to the menu
+                if (/dqr/i.test(item.identifier)) {
+                    aeMenu0.appendChild(spawn('option.receiver', {
+                        title: AE,
+                        value: AE,
+                        data: {
+                            id: (item.id + ''),
+                            identifier: item.identifier,
+                            processing: item.customProcessing
+                        },
+                        disabled: !item.enabled
+                    }, AE));
+                }
             });
 
-            $searchResultsSubmit.spawn('div.pull-right', [
+            var relabelInputs$ = null;
+
+            function toggleRemapping(e){
+
+                var selectedOption = this.value;
+                var doProcessing = /^true$/.test(receiverMap[selectedOption].customProcessing);
+
+                !relabelInputs$ && (relabelInputs$ = $pacsSearchResults.find('input.relabel'));
+
+                if (window.jsdebug) {
+                    console.log(relabelInputs$);
+                console.log(selectedOption);
+                }
+
+                if (!doProcessing) {
+                    relabelInputs$.prop('disabled', true).css('opacity', '0.6').val('');
+                }
+                else {
+                    relabelInputs$.prop('disabled', false).css('opacity', '1');
+                }
+
+            }
+
+            toggleRemapping.call(aeMenu0);
+
+            $searchResultsSubmit.spawn('div.pull-right', {
+                on: [['change', '#ae-menu', toggleRemapping]]
+            }, [
                 ['br'],
                 'Select SCP Receiver: ',
-                aeMenu,
+                aeMenu0,
                 '&nbsp;&nbsp;',
                 ['button#import-selected-sessions.btn.btn1|type=button', {
                     html: 'Begin Import',
