@@ -663,8 +663,8 @@ var XNAT = getObject(XNAT || {});
                     filter: function(){
                         return spawn('div.center', [
                             ['input.selectable-all|type=checkbox', {
-                                checked: true,
-                                attr: { checked: 'checked' }
+                                value: '*',
+                                checked: true
                             }]
                         ]);
                     },
@@ -693,13 +693,14 @@ var XNAT = getObject(XNAT || {});
                     label: 'Study Count',
                     apply: function(){
                         var item = this;
-                        return item.studyUIDs.length + '';
+                        return spawn('div.center.mono', item.studyUIDs.length + '');
                     }
                 }
             }
-        }).get();
-        XNAT.plugins.dqr.selectableItemsDev(scanTypesTable);
-        return scanTypesTable;
+        });
+
+        return scanTypesTable.get();
+
     }
 
 
@@ -864,6 +865,9 @@ var XNAT = getObject(XNAT || {});
             XNAT.dialog.open({
                 title: 'Import from PACS',
                 content: scanTypesTable,
+                afterShow: function(dlg){
+                    XNAT.plugins.dqr.selectableItemsDev(dlg.body$.find('#scan-types-list'));
+                },
                 buttons: [
                     {
                         label: 'Import Selected',
