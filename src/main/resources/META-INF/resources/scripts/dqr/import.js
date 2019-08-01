@@ -77,7 +77,7 @@ var XNAT = getObject(XNAT || {});
 
     var $studyDateFromContainer = $('#study-date-from-container');
     var $studyDateToContainer   = $('#study-date-to-container');
-    var $studyDateToday = $('#study-date-today');
+    var $studyDateToday         = $('#study-date-today');
 
     function dateInputSetup$(id, name){
         return $.spawn('input|type=text', {
@@ -1207,11 +1207,12 @@ var XNAT = getObject(XNAT || {});
 
         function renderBottom(receivers){
 
-            var aeMenu$ = $.spawn('select#ae-menu');
-            var aeMenu0 = aeMenu$[0];
+            var aeMenu$         = $.spawn('select#ae-menu');
+            var aeMenu0         = aeMenu$[0];
             var defaultReceiver = receivers[0];
-            var defaultLabel = defaultReceiver.aeTitle + ':' + defaultReceiver.port;
-            var receiverMap = {};
+            var defaultLabel    = defaultReceiver.aeTitle + ':' + defaultReceiver.port;
+            var hasReceiver     = false;
+            var receiverMap     = {};
 
             // toggleRemapping(/^true$/.test(defaultReceiver.customProcessing));
 
@@ -1221,7 +1222,8 @@ var XNAT = getObject(XNAT || {});
                 receiverMap[AE] = item;
                 // only add 'dqr' receivers to the menu
                 if (/dqr/i.test(item.identifier)) {
-                    aeMenu0.appendChild(spawn('option.receiver', {
+                    !hasReceiver && (hasReceiver = item.enabled);
+                    aeMenu$.spawn('option.receiver', {
                         title: AE,
                         value: AE,
                         data: {
@@ -1230,7 +1232,7 @@ var XNAT = getObject(XNAT || {});
                             processing: item.customProcessing
                         },
                         disabled: !item.enabled
-                    }, AE));
+                    }, AE);
                 }
             });
 
@@ -1238,53 +1240,71 @@ var XNAT = getObject(XNAT || {});
 
             function toggleRemapping(e){
 
-                var selectedOption = this.value;
-                var doProcessing = /^true$/.test(receiverMap[selectedOption].customProcessing);
+                try {
+                    var selectedOption = this.value;
+                    var doProcessing   = (hasReceiver && selectedOption) ?
+                        /^true$/.test(receiverMap[selectedOption].customProcessing) :
+                        false;
 
-                !relabelInputs$ && (relabelInputs$ = $pacsSearchResults.find('input.relabel'));
+                    !relabelInputs$ && (relabelInputs$ = $pacsSearchResults.find('input.relabel'));
 
-                if (window.jsdebug) {
-                    console.log(relabelInputs$);
-                console.log(selectedOption);
+                    if (window.jsdebug) {
+                        console.log(relabelInputs$);
+                        console.log(selectedOption);
+                    }
+
+                    if (!doProcessing) {
+                        relabelInputs$.prop('disabled', true).css('opacity', '0.6').val('');
+                    }
+                    else {
+                        relabelInputs$.prop('disabled', false).css('opacity', '1');
+                    }
                 }
-
-                if (!doProcessing) {
-                    relabelInputs$.prop('disabled', true).css('opacity', '0.6').val('');
-                }
-                else {
-                    relabelInputs$.prop('disabled', false).css('opacity', '1');
+                catch(e) {
+                    window.jsdebug && console.warn(e);
                 }
 
             }
 
             toggleRemapping.call(aeMenu0);
 
+            var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
+                html: 'Begin Import',
+                on: [
+                    ['click', function(e){
+                        e.preventDefault();
+                        console.log('importing...');
+                        var studyUIDs = [];
+                        $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
+                            studyUIDs.push(this.value);
+                        });
+                        if (!studyUIDs.length) {
+                            XNAT.dialog.message(false, 'Please select at least one study to import.');
+                            return false;
+                        }
+                        dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                        scanTypesDialog(dqr.selectedPacs, studyUIDs);
+                    }]
+                ]
+            });
+
+            if (!hasReceiver) {
+                aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
+                aeMenu0.disabled           = true;
+                beginImportButton.disabled = true;
+                beginImportButton.classList && beginImportButton.classList.add('disabled');
+            }
+
             $searchResultsSubmit.spawn('div.pull-right', {
                 on: [['change', '#ae-menu', toggleRemapping]]
             }, [
-                ['br'],
-                'Select SCP Receiver: ',
+                '<br>',
+                hasReceiver ?
+                    'Select SCP Receiver: ' :
+                    '<small style="color:#777;"><i>There are no available DQR receivers.</i></small>&nbsp;',
                 aeMenu0,
                 '&nbsp;&nbsp;',
-                ['button#import-selected-sessions.btn.btn1|type=button', {
-                    html: 'Begin Import',
-                    on: [
-                        ['click', function(e){
-                            e.preventDefault();
-                            console.log('importing...');
-                            var studyUIDs = [];
-                            $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
-                                studyUIDs.push(this.value);
-                            });
-                            if (!studyUIDs.length) {
-                                XNAT.dialog.message(false, 'Please select at least one study to import.');
-                                return false;
-                            }
-                            dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                            scanTypesDialog(dqr.selectedPacs, studyUIDs);
-                        }]
-                    ]
-                }]
+                beginImportButton
             ]);
 
         }
