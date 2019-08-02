@@ -104,7 +104,13 @@ irbSettings:
             label: Upload IRB File
             method: PUT
             action: "~/xapi/dqr/projectSettings/{{XNAT.data.projectId}}/irbFile"
-            description: Upload new or replace existing IRB file.
+            description: >
+                Upload new or replace existing IRB file.
+                <div id="irb-file-warning" class="hidden" style="margin-top:10px;">
+                    <div class="warning" style="display:inline-block;">
+                        <i>Previously uploaded files will be replaced and cannot be recovered.</i>
+                    </div>
+                </div>
         irbSettingsJS:
             tag: "script|src=~/scripts/dqr/irbSettings.js"
 

@@ -86,15 +86,21 @@
                 waitForElement(1, '#irb-file-link', function($el){
 
                     var link = this;
-                    var div  = document.getElementById('irb-file-download');
 
                     link.textContent = filename;
                     link.href        = XNAT.url.rootUrl(baseUrl + '/irbFile/' + filename);
                     link.classList.add('link');
-                    div.classList.remove('hidden');
+
+                    var file  = document.getElementById('irb-file-download');
+                    file.classList.remove('hidden');
+
+                    var warning = document.getElementById('irb-file-warning');
+                    warning.classList.remove('hidden')
+
                 });
 
             }
+
         },
         failure: function(){
             console.error(arguments);
