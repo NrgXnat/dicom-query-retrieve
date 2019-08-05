@@ -847,7 +847,8 @@ XNAT.app = getObject(XNAT.app || {});
                     label: 'Date',
                     th: { className: 'dqr-query center' },
                     td: { className: 'dqr-query'},
-                    filter: function(table){
+                    filter: true,
+                    filterDisabled: function(table){
                         var MIN = 60*1000;
                         var HOUR = MIN*60;
                         var X8HRS = HOUR*8;
@@ -1158,13 +1159,13 @@ XNAT.app = getObject(XNAT.app || {});
     });
 
     historyTable.init = historyTable.refresh = function(){
-        
+
         var $historyContainer = $('#dqr-history-container'),
             $queueContainer = $('#dqr-queue-container'),
             _historyTable, _queueTable;
 
         getHistoryData().done(function(data){
-            
+
             if (data.length) {
 
                 setTimeout(function(){
@@ -1205,7 +1206,7 @@ XNAT.app = getObject(XNAT.app || {});
             })
 
         });
-        
+
     };
 
     historyTable.init();

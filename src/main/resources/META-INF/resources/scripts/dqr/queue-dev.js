@@ -460,11 +460,13 @@ var XNAT = getObject(XNAT || {});
                                 xnat_project: {
                                     label: 'Project',
                                     sort: true,
+                                    filter: true,
                                     td: { className: 'center show-data' }
                                 },
                                 pacs_id: {
                                     label: 'PACS',
                                     sort: true,
+                                    filter: true,
                                     td: { className: 'center show-data' },
                                     apply: function(id){
                                         return spawn('span.pacs-label', resolvePACSLabel(id))
@@ -477,6 +479,7 @@ var XNAT = getObject(XNAT || {});
                                 destination_ae_title: {
                                     label: 'Dest. AE',
                                     sort: true,
+                                    filter: true,
                                     td: { className: 'center show-data' }
                                 },
                                 REMOVE: {
@@ -593,12 +596,14 @@ var XNAT = getObject(XNAT || {});
                                 queuedTime: {
                                     label: 'Queued',
                                     sort: true,
+                                    filter: true,
                                     apply: renderTimeCell,
                                     td: { className: 'center show-data' }
                                 },
                                 executedTime: {
                                     label: 'Executed',
                                     sort: true,
+                                    filter: true,
                                     td: { className: 'center show-data' },
                                     apply: renderTimeCell
                                 },
