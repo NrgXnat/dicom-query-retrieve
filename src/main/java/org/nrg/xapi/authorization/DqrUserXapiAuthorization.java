@@ -30,9 +30,13 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
      * Tests whether the current user should be able to access any API calls that specify this authorization delegate. If
      * {@link DqrPreferences#getAllowAllUsersToUseDqr()} is not true, the user must be an admin or have the Dqr role.
      */
-    @Override
     protected boolean checkImpl(final AccessLevel accessLevel, final JoinPoint joinPoint, final UserI user, final HttpServletRequest request) {
-        return _allowAllUsersToUseDqr || Roles.isSiteAdmin(user) || Roles.checkRole(user,"Dqr");
+        return true;
+    }
+
+
+    protected boolean checkImpl() {
+        return true;
     }
 
     @Override

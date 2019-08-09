@@ -15,16 +15,16 @@ import java.util.List;
 
 import org.dcm4che2.data.Tag;
 import org.nrg.dcm.Extractor;
-import org.nrg.dcm.TextExtractor;
 
 import com.google.common.collect.ImmutableList;
+import org.nrg.dcm.TextExtractor;
 
 public class StudyIdDicomSessionIdentifier {
     private static final ImmutableList<Extractor> sessionExtractors;
 
     static {
         final ImmutableList.Builder<Extractor> sessb = new ImmutableList.Builder<Extractor>();
-        sessb.add(new TextExtractor(Tag.StudyID));
+        sessb.add(new OverrideStudyIdExtractor(Tag.StudyID,Tag.StudyInstanceUID));
         sessionExtractors = sessb.build();
     }
 
