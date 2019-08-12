@@ -515,7 +515,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to check whether the project is a Dqr project."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "isDqrProject/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
-    public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @ProjectId final String projectId) {
+    public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @Project final String projectId) {
         return new ResponseEntity<>(_preferences.getAllowAllProjectsToUseDqr() || _adminSettingsForProjectService.isDqrEnabledForProject(projectId), HttpStatus.OK);
     }
 
@@ -525,7 +525,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Delete)
-    public ResponseEntity<String> getIrbNumber(@PathVariable("projectId") @ProjectId final String projectId) {
+    public ResponseEntity<String> getIrbNumber(@PathVariable("projectId") @Project final String projectId) {
         return new ResponseEntity<>(_projectIrbInfoEntityService.findIrbNumberForProject(projectId), HttpStatus.OK);
     }
 
@@ -536,7 +536,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{passedFileName}", method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @Project final String projectId) throws IOException {
         //Filename is included in the URL to avoid confusing some browsers (even though it's unused).
 
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
@@ -569,7 +569,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<String> getIrbFilename(@PathVariable("projectId") @ProjectId final String projectId) {
+    public ResponseEntity<String> getIrbFilename(@PathVariable("projectId") @Project final String projectId) {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             return new ResponseEntity<>("", HttpStatus.OK);
@@ -584,7 +584,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Delete)
-    public ResponseEntity<Boolean> putIrbNumber(@PathVariable("projectId") @ProjectId final String projectId,
+    public ResponseEntity<Boolean> putIrbNumber(@PathVariable("projectId") @Project final String projectId,
                                                 @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber") final String irbNumber) {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info != null) {
@@ -610,7 +610,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Delete)
     public ResponseEntity<Boolean> putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile") MultipartFile irbFile,
-                                              @PathVariable("projectId") @ProjectId final String projectId) {
+                                              @PathVariable("projectId") @Project final String projectId) {
         try {
             String         fileName = irbFile.getOriginalFilename();
             byte[]         bytes    = irbFile.getBytes();
@@ -645,7 +645,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.DELETE, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<Boolean> deleteIrbFile(@PathVariable("projectId") @ProjectId final String projectId) throws IOException {
+    public ResponseEntity<Boolean> deleteIrbFile(@PathVariable("projectId") @Project final String projectId) throws IOException {
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
