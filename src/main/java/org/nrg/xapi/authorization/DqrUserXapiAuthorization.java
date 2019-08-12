@@ -31,12 +31,7 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
      * {@link DqrPreferences#getAllowAllUsersToUseDqr()} is not true, the user must be an admin or have the Dqr role.
      */
     protected boolean checkImpl(final AccessLevel accessLevel, final JoinPoint joinPoint, final UserI user, final HttpServletRequest request) {
-        return true;
-    }
-
-
-    protected boolean checkImpl() {
-        return true;
+        return _allowAllUsersToUseDqr || Roles.isSiteAdmin(user) || Roles.checkRole(user, "Dqr");
     }
 
     @Override
