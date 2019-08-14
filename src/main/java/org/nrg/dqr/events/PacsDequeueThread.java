@@ -198,7 +198,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                 long startTime = Calendar.getInstance().getTimeInMillis();
                                 pacsService.importFromPacsRequest(pacsReq);
                                 long endTime = Calendar.getInstance().getTimeInMillis();
-                                long importTime = endTime - startTime;
+                                requestTimeInMilliseconds = endTime - startTime;
 
 
                                 requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
@@ -240,12 +240,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                     String template = "SeriesRequested";
                                     final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
                                     context.put("adminEmail", adminEmail);
-
-
-                                    Calendar beforeRequest = Calendar.getInstance();
                                     context.put("pacs", pacsEntityService.retrieve(pacsId));
-                                    Calendar afterRequest = Calendar.getInstance();
-                                    requestTimeInMilliseconds = afterRequest.getTimeInMillis() - beforeRequest.getTimeInMillis();
 
                                     final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
                                     XDAT.getMailService().sendHtmlMessage(adminEmail, adminEmail, "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
@@ -260,7 +255,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                             assert wrk != null;
                             PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
 
-                            TimeUnit.MILLISECONDS.sleep(((100 / utilizationPercent) - 1) * requestTimeInMilliseconds);
+                            TimeUnit.MICROSECONDS.sleep((long)((((double)100 / (double)utilizationPercent) - 1) * requestTimeInMilliseconds*1000));
                         }
                     }
                     else{
