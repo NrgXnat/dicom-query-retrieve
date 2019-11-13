@@ -73,6 +73,19 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         }
     }
 
+    @NrgPreference(defaultValue = "30 minutes")
+    public String getAssumeSameSessionIfArrivedWithin() {
+        return getValue("assumeSameSessionIfArrivedWithin");
+    }
+
+    public void setAssumeSameSessionIfArrivedWithin(final String assumeSameSessionIfArrivedWithin) {
+        try {
+            set(assumeSameSessionIfArrivedWithin, "assumeSameSessionIfArrivedWithin");
+        } catch (InvalidPreferenceName e) {
+            _log.error("Invalid preference name 'assumeSameSessionIfArrivedWithin': something is very wrong here.", e);
+        }
+    }
+
     @NrgPreference(defaultValue = "false")
     public boolean getAllowAllUsersToUseDqr() {
         return getBooleanValue("allowAllUsersToUseDqr");

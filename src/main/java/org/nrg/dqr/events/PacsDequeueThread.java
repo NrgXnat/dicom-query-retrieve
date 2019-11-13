@@ -254,7 +254,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                             PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
                             assert wrk != null;
                             PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-
                             TimeUnit.MICROSECONDS.sleep((long)((((double)100 / (double)utilizationPercent) - 1) * requestTimeInMilliseconds*1000));
                         }
                     }
