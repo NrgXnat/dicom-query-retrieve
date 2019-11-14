@@ -137,7 +137,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         }
                     }
                     catch(Exception e){
-                        _log.error("Error getting requests to dequeue for PACS "+currPacs.getId()+".");
+                        _log.error("Error getting requests to dequeue for PACS "+currPacs.getId()+".",e);
                     }
                 }
             }
