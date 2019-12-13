@@ -190,14 +190,14 @@ var XNAT = getObject(XNAT || {});
                 }, opts.tds || opts.td);
 
                 if (stringable(value)) {
-                    cell.html = escapeHTML(value + '');
+                    cell.textContent = value + '';
                 }
                 else if (Array.isArray(value)) {
-                    cell.html = escapeHTML(value.join(', '));
+                    cell.textContent = value.join(', ');
                 }
                 else {
                     try {
-                        cell.html = escapeHTML(JSON.stringify(value))
+                        cell.textContent = (JSON.stringify(value));
                     }
                     catch(e) {
                         console.warn(e);
@@ -218,7 +218,7 @@ var XNAT = getObject(XNAT || {});
                 url: url,
                 success: function(data){
                     console.log(data);
-                    data.seriesIds = data.seriesIds.split(',').join(', ');
+                    //data.seriesIds = data.seriesIds.split(',').join(', ');
                     XNAT.dialog.open({
                         width: 800,
                         content: dataDisplay({
@@ -229,7 +229,9 @@ var XNAT = getObject(XNAT || {});
                             tds: {
                                 addClass: 'mono'
                             },
-                            rows: data
+                            rows: extend(data, {
+                                seriesIds: data.seriesIds.split(',').join('<br>')
+                            })
                         }),
                         buttons: [
                             {
@@ -246,10 +248,33 @@ var XNAT = getObject(XNAT || {});
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
 
+        // `/xapi/dqr/query/queueWithOrder/user`
+        var queueSample = [
+            {
+                'queue_location': 1,
+                'id': 3,
+                'created': 1558034448618,
+                'disabled': 0,
+                'enabled': true,
+                'timestamp': 1558034448618,
+                'destination_ae_title': 'XNAT',
+                'pacs_id': 1,
+                'priority': 1,
+                'queued_time': 1558034448617,
+                'series_ids': '1.3.46.670589.11.5730.5.0.3144.2010043014121521435',
+                'status': 'QUEUED',
+                'study_instance_uid': '1.3.46.670589.11.5730.5.0.1744.2010043012343685002',
+                'username': 'admin',
+                'xnat_project': 'foo'
+            }
+        ];
+
+
         function showQueuedItemData(e){
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
+            // var itemId = this.getAttribute('href').split('#id=')[1];
             showItemData(XNAT.url.restUrl('/xapi/dqr/query/queue/request/' + itemId));
         }
 
@@ -502,6 +527,19 @@ var XNAT = getObject(XNAT || {});
             };
         }
 
+
+        function adminImportQueuePanel(){
+            return $.extend(true, {}, setupImportQueuePanel(), {
+                importQueuePanel: {
+                    contents: {
+                        pacsQueueTable: {
+                            load: '*/xapi/dqr/query/queueWithOrder'
+                        }
+                    }
+                }
+            });
+        }
+
         // queue panel rendered below
 
         // `/xapi/dqr/history/user`
@@ -529,6 +567,7 @@ var XNAT = getObject(XNAT || {});
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
+            // var itemId = this.getAttribute('data-id') || this.getAttribute('href').split('#id=')[1];
             showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/request/' + itemId));
         }
 
