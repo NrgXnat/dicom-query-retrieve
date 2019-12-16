@@ -766,7 +766,7 @@ public class BasicPacsService implements PacsService {
                         if (!scpInstance.isEnabled()) {
                             throw new Exception("Invalid DICOM SCP Receiver ID.");
                         }
-                        if (!scpInstance.getCustomProcessing()) {
+                        if (!scpInstance.isCustomProcessing()) {
                             throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
                         }
                         List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
@@ -944,7 +944,7 @@ public class BasicPacsService implements PacsService {
                             if (!scpInstance.isEnabled()) {
                                 throw new Exception("Invalid DICOM SCP Receiver ID.");
                             }
-                            if (!scpInstance.getCustomProcessing()) {
+                            if (!scpInstance.isCustomProcessing()) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
                             }
                             List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
