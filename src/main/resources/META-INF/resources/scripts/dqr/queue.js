@@ -80,7 +80,6 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
-    var REFRESH_INTERVAL = 60 * 1000;
 
     $(function(){
 
@@ -300,14 +299,10 @@ var XNAT = getObject(XNAT || {});
 
         }
 
-        var lastQueuePanel;
 
         function spawnImportQueuePanel(admin){
 
             var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
-
-            // clear the last timer before re-rendering
-            lastQueuePanel && window.clearInterval(lastQueuePanel);
 
             // render queue
             XNAT.spawner
@@ -317,8 +312,6 @@ var XNAT = getObject(XNAT || {});
                     XNAT.plugins.dqr.selectableItems(queueDisplayContainer$);
                     // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
                 });
-
-            lastQueuePanel = window.setInterval(spawnImportQueuePanel, REFRESH_INTERVAL);
 
         }
 
@@ -532,21 +525,15 @@ var XNAT = getObject(XNAT || {});
             showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/request/' + itemId));
         }
 
-        var lastHistoryPanel;
 
         function spawnImportHistoryPanel(admin){
 
             var historyDisplayContainer$ = getById$('pacs-import-history-display').html('loading...');
 
-            // clear the timeout of the last timer before re-rendering
-            lastHistoryPanel && window.clearInterval(lastHistoryPanel);
-
             // render history
             XNAT.spawner
                 .spawn(setupImportHistoryPanel(admin))
                 .render(historyDisplayContainer$.empty());
-
-            lastHistoryPanel = window.setInterval(spawnImportHistoryPanel, REFRESH_INTERVAL);
 
         }
 
