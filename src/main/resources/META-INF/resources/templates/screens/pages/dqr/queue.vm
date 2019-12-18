@@ -41,7 +41,7 @@
 
     #set ($isAllowed = true)
 
-<script>window.isAllowed = true</script>
+    <script>window.isAllowed = true</script>
 
     <style type="text/css">
         table.click-rows tr:hover { cursor: pointer }
@@ -51,71 +51,72 @@
         }
     </style>
 
-<div id="page-body">
-    <div class="pad">
+    <div id="page-body">
+        <div class="pad">
 
-##            #parse("/page/dqr/queue/view.html.jsp")
-
-        <header id="content-header">
-            <div class="pad" style="padding:20px 0;">
-                <h2 class="pull-left" style="margin:0;">
-                    PACS Import Queue and History
-                </h2>
-##                <div id="select-pacs-menu-container" class="pull-right">
-##                    <label for="select-pacs"><b>Source PACS:</b></label>
-##                    <select id="select-pacs" style="min-width: 200px; display: none;" class="menu-ready">
-##                        <option value="">Select PACS…</option>
-##                        <option value="1" title="ORTHANC">ORTHANC</option>
-##                    </select>
-##                    <script>
-##                        menuInit($('#select-pacs'), {}, 200);
-##                    </script>
-##                </div>
-                <div class="clearfix clear"></div>
-            </div>
-        </header>
-
-        <div id="pacs-queue-history-tabs">
-        <div class="content-tabs xnat-tab-container" style="display: block;">
-
-            <div class="xnat-nav-tabs top xnat-tab-nav">
-                <ul class="tab-group">
-                    <li class="tab active" data-tab="queue"><a title="Queue" href="#!">Queue</a></li>
-                    <li class="tab" data-tab="history"><a title="History" href="#!">History</a></li>
-                </ul>
+            <header id="content-header">
+                <div class="pad" style="padding:20px 0;">
+                    <h2 class="pull-left" style="margin:0;">
+                        PACS Import Queue and History
+                    </h2>
+    ##                <div id="select-pacs-menu-container" class="pull-right">
+    ##                    <label for="select-pacs"><b>Source PACS:</b></label>
+    ##                    <select id="select-pacs" style="min-width: 200px; display: none;" class="menu-ready">
+    ##                        <option value="">Select PACS…</option>
+    ##                        <option value="1" title="ORTHANC">ORTHANC</option>
+    ##                    </select>
+    ##                    <script>
+    ##                        menuInit($('#select-pacs'), {}, 200);
+    ##                    </script>
+    ##                </div>
+                    <div class="clearfix clear"></div>
                 </div>
+            </header>
 
-                <div class="xnat-tab-content">
-                <div class="tab-pane active" data-name="queue" data-tab="queue">
-                    <div id="pacs-import-queue-display">
-                        <p class="loading"></p>
-                        <script>
-                            // if it takes more than two seconds to get the data,
-                            // the 'loading' text should show
-                            window.setTimeout(function(){
-                                $('#pacs-import-queue-display').find('p.loading').text('Loading data...');
-                            }, 2000)
-                        </script>
-                        <!-- PACS import queue table will render here -->
+            <div id="pacs-queue-history-tabs">
+                <div class="content-tabs xnat-tab-container" style="display: block;">
+
+                    <div class="xnat-nav-tabs top xnat-tab-nav">
+                        <ul class="tab-group">
+                            <li class="tab active" data-tab="queue"><a title="Queue" href="#!">Queue</a></li>
+                            <li class="tab" data-tab="history"><a title="History" href="#!">History</a></li>
+                        </ul>
                     </div>
-                </div>
-                <div class="tab-pane" data-name="history" data-tab="history">
-                    <div id="pacs-import-history-display">
-                        <p class="loading"></p>
-                        <script>
-                            // if it takes more than two seconds to get the data,
-                            // the 'loading' text should show
-                            window.setTimeout(function(){
-                                $('#pacs-import-history-display').find('p.loading').text('Loading data...');
-                            }, 2000)
-                        </script>
-                        <!-- PACS import history table will render here -->
+
+                    <div class="xnat-tab-content">
+                        <div class="tab-pane active" data-name="queue" data-tab="queue">
+                            <div id="pacs-import-queue-display">
+                                <p class="loading"></p>
+                                <script>
+                                    // if it takes more than two seconds to get the data,
+                                    // the 'loading' text should show
+                                    window.setTimeout(function(){
+                                        $('#pacs-import-queue-display').find('p.loading').text('Loading data...');
+                                    }, 2000)
+                                </script>
+                                <!-- PACS import queue table will render here -->
+                            </div>
+                        </div>
+                        <div class="tab-pane" data-name="history" data-tab="history">
+                            <div id="pacs-import-history-display">
+                                <p class="loading"></p>
+                                <script>
+                                    // if it takes more than two seconds to get the data,
+                                    // the 'loading' text should show
+                                    window.setTimeout(function(){
+                                        $('#pacs-import-history-display').find('p.loading').text('Loading data...');
+                                    }, 2000)
+                                </script>
+                                <!-- PACS import history table will render here -->
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
 
-            </div>
         </div>
+    </div>
 
     <script src="${SITE_ROOT}/scripts/dqr/queue.js"></script>
 

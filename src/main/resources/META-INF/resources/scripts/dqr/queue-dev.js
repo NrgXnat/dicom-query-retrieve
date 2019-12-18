@@ -27,6 +27,9 @@ var XNAT = getObject(XNAT || {});
         getObject(XNAT.plugin.dqr || {});
 
 
+    dqr.adminView = window.isAdmin && getQueryStringValue('role') === 'admin';
+
+
     // shortcuts for basic element selection
     function getById(id){
         return document.getElementById(id);
@@ -80,7 +83,6 @@ var XNAT = getObject(XNAT || {});
         }
     };
 
-    var REFRESH_INTERVAL = 60 * 1000;
 
     $(function(){
 
@@ -230,7 +232,7 @@ var XNAT = getObject(XNAT || {});
                                 addClass: 'mono'
                             },
                             rows: extend(data, {
-                                seriesIds: data.seriesIds.split(',').join('<br>')
+                                seriesIds: data.seriesIds.split(',').join(', ')
                             })
                         }),
                         buttons: [
@@ -325,25 +327,19 @@ var XNAT = getObject(XNAT || {});
 
         }
 
-        var lastQueuePanel;
 
-        function spawnImportQueuePanel(admin){
+        function spawnImportQueuePanel(count){
 
             var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
 
-            // clear the last timer before re-rendering
-            lastQueuePanel && window.clearInterval(lastQueuePanel);
-
             // render queue
             XNAT.spawner
-                .spawn(setupImportQueuePanel(admin))
+                .spawn(setupImportQueuePanel(count))
                 .render(queueDisplayContainer$.empty())
                 .done(function(){
                     XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
                     // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
                 });
-
-            lastQueuePanel = window.setInterval(spawnImportQueuePanel, REFRESH_INTERVAL);
 
         }
 
@@ -371,28 +367,190 @@ var XNAT = getObject(XNAT || {});
             }
         ];
 
-        function setupImportQueuePanel(admin){
+        var importQueueColumns = {
+            queue_location: {
+                label: 'Position',
+                sort: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            id: {
+                label: 'ID',
+                sort: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            // priority: {
+            //     label: 'Priority',
+            //     sort: true,
+            //     th: { style: { width: '80px' } },
+            //     td: { className: ['center', 'show-data'] }
+            // },
+            // status: {
+            //     label: 'Status',
+            //     sort: true,
+            //     td: { className: ['center', 'show-data'] }
+            // },
+            queued_time: {
+                label: 'Queued',
+                sort: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            patient_name: {
+                label: 'Patient Name',
+                sort: true,
+                filter: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            study_date: {
+                label: 'Study Date',
+                sort: true,
+                filter: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            xnat_project: {
+                label: 'Project',
+                sort: true,
+                filter: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            pacs_id: {
+                label: 'PACS',
+                sort: true,
+                filter: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            // username: {
+            //     label: 'User',
+            //     td: { className: 'center' }
+            // },
+            destination_ae_title: {
+                label: 'Dest. AE',
+                sort: true,
+                filter: true,
+                th: { style: { width: '80px' } },
+                td: { style: { width: '80px' } }
+            },
+            REMOVE: {
+                label: 'Remove',
+                th: { style: { width: '70px' } },
+                td: { style: { width: '70px' } }
+            }
+        };
+
+        var importQueueColumnOrder = [
+            // '_id',
+            // '_pacs_id',
+            // 'CKBX',
+            'queue_location',
+            'id',
+            // 'priority',
+            // 'status',
+            'queued_time',
+            'patient_name',
+            'study_date',
+            'xnat_project',
+            'pacs_id',
+            'destination_ae_title',
+            'REMOVE'
+        ];
+
+        function setupImportQueuePanel(count){
             return {
                 importQueuePanel: {
                     tag: 'div',
                     element: { title: 'PACS Import Queue' },
                     contents: {
+                        pacsQueueHeader: count && count.length ? {
+                            kind: 'table.dataTable',
+                            container: '#pacs-import-queue-display',
+                            overflowY: 'scroll',
+                            body: false,
+                            table: {
+                                className: 'table-group-member table-header',
+                                style: { tableLayout: 'fixed' }
+                            },
+                            order: importQueueColumnOrder,
+                            items: extend(true, {}, importQueueColumns, {
+                                // _id: '~data-id',
+                                // _pacs_id: '~data-pacs-id',
+                                queue_location: {
+                                    label: 'Position'
+                                },
+                                id: {
+                                    label: 'ID'
+                                },
+                                // priority: {
+                                //     label: 'Priority'
+                                // },
+                                // status: {
+                                //     label: 'Status'
+                                // },
+                                queued_time: {
+                                    label: 'Queued'
+                                },
+                                patient_name: {
+                                    label: 'Patient Name'
+                                },
+                                study_date: {
+                                    label: 'Study Date'
+                                },
+                                xnat_project: {
+                                    label: 'Project'
+                                },
+                                pacs_id: {
+                                    label: 'PACS'
+                                },
+                                // username: {
+                                //     label: 'User'
+                                // },
+                                destination_ae_title: {
+                                    label: 'Dest. AE'
+                                },
+                                REMOVE: {
+                                    label: 'Remove'
+                                }
+                            })
+                        } : {
+                            tag: 'div'
+                        },
+                        //
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/queueWithOrder' + (admin ? '' : '/user'),
+                            container: '#pacs-import-queue-display',
+                            header: false,
+                            overflowY: 'scroll',
+                            maxHeight: '480px',
+                            load: '*/xapi/dqr/query/queueWithOrder' + (dqr.adminView ? '' : '/user'),
                             messages: {
                                 noData: '<div class="message">There are no queued items to display.</div>'
                             },
                             apply: function(data){
+                                var output = data;
                                 if (!data.length) {
-                                    console.log('nothing')
+                                    console.log('nothing');
+                                    return []
                                 }
+                                if (data.length > 100) {
+                                    return output.slice(0, 100);
+                                }
+                                return output.map(function(item, i){
+                                    (item.series_ids && item.series_ids.length) &&
+                                    (item.series_ids = item.series_ids.split(','));
+                                    return item;
+                                });
                                 // return data.map(function(item, i){
                                 //     data.series_ids = data.series_ids.split(',')
                                 // })
                             },
                             table: {
-                                classes: 'highlight click-rows',
+                                className: 'table-group-member table-data highlight click-rows',
+                                style: { tableLayout: 'fixed' },
                                 // click events will be delegated to the parent <table> element
                                 // since the elements they apply to are dynamically rendered
                                 on: [
@@ -401,23 +559,12 @@ var XNAT = getObject(XNAT || {});
                                     ['click', 'a.remove-queue-item', removeItemDialog]
                                 ]
                             },
-                            order: [
-                                // 'CKBX',
-                                'queue_location',
-                                'id',
-                                // 'priority',
-                                // 'status',
-                                'queued_time',
-                                'patient_name',
-                                'study_date',
-                                'xnat_project',
-                                'pacs_id',
-                                'destination_ae_title',
-                                'REMOVE'
-                            ],
-                            items: {
-                                _id: '~data-id',
-                                _pacs_id: '~data-pacs-id',
+                            order: importQueueColumnOrder,
+                            trs:  function(tr, item){
+                                tr.setAttribute('data-id', item.id);
+                                tr.setAttribute('data-pacs-id', item.pacs_id);
+                            },
+                            items: extend(true, {}, importQueueColumns, {
                                 // TODO: select multiple items for deletion
                                 // CKBX: {
                                 //     label: '<input type="checkbox" id="select-all-queue-items" class="selectable-all">',
@@ -430,9 +577,6 @@ var XNAT = getObject(XNAT || {});
                                 //     }
                                 // },
                                 queue_location: {
-                                    label: 'Position',
-                                    sort: true,
-                                    th: { style: { width: '80px' } },
                                     td: { className: 'center mono show-data'}
                                     // apply: function(loc){
                                     //     return spawn('div.center', loc)
@@ -520,7 +664,7 @@ var XNAT = getObject(XNAT || {});
                                         ])
                                     }
                                 }
-                            }
+                            })
                         }
                     }
                 }
@@ -571,51 +715,81 @@ var XNAT = getObject(XNAT || {});
             showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/request/' + itemId));
         }
 
-        var lastHistoryPanel;
 
-        function spawnImportHistoryPanel(admin){
+        function spawnImportHistoryPanel(count){
 
             var historyDisplayContainer$ = getById$('pacs-import-history-display').html('loading...');
 
-            // clear the timeout of the last timer before re-rendering
-            lastHistoryPanel && window.clearInterval(lastHistoryPanel);
-
             // render history
             XNAT.spawner
-                .spawn(setupImportHistoryPanel(admin))
-                .render(historyDisplayContainer$.empty());
+                .spawn(setupImportHistoryPanel(false))
+                .done(function(){
 
-            lastHistoryPanel = window.setInterval(spawnImportHistoryPanel, REFRESH_INTERVAL);
+                    var spawneri = this;
+
+                    historyDisplayContainer$.empty().append(count && count >= 5 ? spawn('div.info', {
+                        style: {
+                            marginBottom: '20px',
+                            lineHeight: '28px',
+                            verticalAlign: 'middle'
+                        }
+                    }, [
+                        ['i', "Only the last 100 items are shown below. Click 'Show All' to view the entire import history."],
+                        ['button.pull-right.float-right|type=button', {
+                            on: [
+                                ['click', function(e){
+                                    XNAT.dialog.open({
+                                        title: 'PACS Import History',
+                                        content: XNAT.spawner.spawn(setupImportHistoryPanel(true)).get(),
+                                        width: 1100,
+                                        buttons: [
+                                            {
+                                                label: 'Close',
+                                                isDefault: true,
+                                                close: true
+                                            }
+                                        ]
+                                    })
+                                }]
+                            ]
+                        }, 'Show All'],
+                        ['div.clear.clearfix']
+                    ]) : '' ).append(spawneri.get())
+
+                });
 
         }
 
 
-        function setupImportHistoryPanel(admin){
+        function setupImportHistoryPanel(all){
             return {
                 userImportHistoryPanel: {
-                    tag: 'div',
+                    tag: 'div#user-import-history-panel-container',
                     element: { title: 'PACS Import History' },
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/history' + (admin ? '' : '/user'),
+                            load: '*/xapi/dqr/query/history' + (dqr.adminView ? '' : '/user'),
                             messages: {
                                 noData: '<div class="message">There are no import records to display.</div>'
                             },
                             apply: function(data){
                                 console.log(data);
-                                return data.length ? data.reverse() : [];
+                                var history = data && data.length ? data.reverse() : [];
+                                return all ? history : history.slice(0, 100);
                             },
                             table: {
-                                classes: 'highlight click-rows',
+                                className: 'highlight click-rows',
                                 on: [
                                     // ['click', '.show-history-item-data', showHistoryItemData],
                                     ['click', 'td.show-data', showHistoryItemData]
                                 ]
                             },
+                            trs:  function(tr, rowData){
+                                tr.setAttribute('data-id', rowData.id);
+                                tr.setAttribute('data-pacs-id', rowData.pacsId);
+                            },
                             items: {
-                                _id: '~data-id',
-                                _pacsId: '~data-pacs-id',
                                 id: {
                                     label: 'ID',
                                     sort: true,
@@ -699,10 +873,12 @@ var XNAT = getObject(XNAT || {});
 
         dqr.getPACSData.done(function(json){
 
-            setupPACSList(json.ResultSet.Result);
+            var results = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
 
-            spawnImportQueuePanel();
-            spawnImportHistoryPanel();
+            setupPACSList(results);
+
+            spawnImportQueuePanel(results.length);
+            spawnImportHistoryPanel(results.length);
 
         });
 
@@ -745,8 +921,8 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        //
-        updateHashQuery('tab', 'queue');
+        // only update the hash query if it's *not* already present
+        !getUrlHashValue('tab=') && updateHashQuery('tab', 'queue');
 
 
         // tabSpawn.done(function(){

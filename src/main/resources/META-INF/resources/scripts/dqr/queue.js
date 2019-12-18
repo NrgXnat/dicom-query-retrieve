@@ -189,14 +189,14 @@ var XNAT = getObject(XNAT || {});
                 }, opts.tds || opts.td);
 
                 if (stringable(value)) {
-                    cell.html = escapeHTML(value + '');
+                    cell.textContent = value + '';
                 }
                 else if (Array.isArray(value)) {
-                    cell.html = escapeHTML(value.join(', '));
+                    cell.textContent = value.join(', ');
                 }
                 else {
                     try {
-                        cell.html = escapeHTML(JSON.stringify(value))
+                        cell.textContent = (JSON.stringify(value));
                     }
                     catch(e) {
                         console.warn(e);
@@ -533,12 +533,36 @@ var XNAT = getObject(XNAT || {});
             // render history
             XNAT.spawner
                 .spawn(setupImportHistoryPanel(admin))
-                .render(historyDisplayContainer$.empty());
+                .done(function(){
+                    var spawneri = this;
+                    historyDisplayContainer$.empty();
+                    historyDisplayContainer$.append(spawn('div.clear.clearfix', [
+                        ['small.pull-left.float-left', "Only the last 100 items are shown below. Click 'Show All' to view the entire import history."],
+                        ['button.pull-right.float-right|type=button', {
+                            on: {
+                                click: function(){
+                                    XNAT.dialog.open({
+                                        title: 'PACS Import History',
+                                        content: XNAT.spawner.spawn(setupImportHistoryPanel(admin, true)).get(),
+                                        width: 800,
+                                        buttons: [
+                                            {
+                                                label: 'Done',
+                                                isDefault: true,
+                                                close: true
+                                            }
+                                        ]
+                                    })    
+                                }
+                            }
+                        }, 'Show All']
+                    ]))
+                });
 
         }
 
 
-        function setupImportHistoryPanel(admin){
+        function setupImportHistoryPanel(admin, all){
             return {
                 userImportHistoryPanel: {
                     tag: 'div',
@@ -552,7 +576,8 @@ var XNAT = getObject(XNAT || {});
                             },
                             apply: function(data){
                                 console.log(data);
-                                return data.length ? data.reverse() : [];
+                                var history = data && data.length ? data.reverse() : [];
+                                return all ? history : history.slice(0, 100);
                             },
                             table: {
                                 classes: 'highlight click-rows',
