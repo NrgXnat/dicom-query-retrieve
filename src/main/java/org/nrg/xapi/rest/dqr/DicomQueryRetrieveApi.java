@@ -207,6 +207,37 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         }
     }
 
+    @ApiOperation(value = "Deletes the queued DICOM query requests with given IDs.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns true to indicate the queued DICOM query requests were successfully deleted."),
+            @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
+            @ApiResponse(code = 404, message = "The queued DICOM query requests weren't found."),
+            @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "query/queue/deleteRequests", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
+    public ResponseEntity<Boolean> queryQueueDeleteMultiple(@RequestBody final String[] idsToDelete) {
+        try {
+            final UserI       user = getSessionUser();
+            for(String idToDelete :idsToDelete) {
+                QueuedPacsRequest req = _queuedRequestService.get(Long.parseLong(idToDelete));
+                if (req == null) {
+                    return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
+                }
+                if (Roles.isSiteAdmin(user)) {
+                    _queuedRequestService.delete(Long.parseLong(idToDelete));
+                } else {
+                    if (StringUtils.equals(req.getUsername(), user.getUsername())) {
+                        _queuedRequestService.delete(Long.parseLong(idToDelete));
+                    } else {
+                        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+                    }
+                }
+            }
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(true, HttpStatus.OK);
+    }
+
     @ApiOperation(value = "Uses the uploaded csv to generate JSON containing information about what would be imported if the user decides to continue.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
