@@ -47,7 +47,7 @@ public class PacsSessionExportRequestListener {
                     pacsService.exportSeries(pacsSessionExportRequest.getRequestingUser(),
                             pacsToExportTo, pacsScanExportRequest.getScan());
                 }
-                //sendCompleteNotification(pacsSessionExportRequest);
+                sendCompleteNotification(pacsSessionExportRequest);
                 log.info("Listener completed session export request");
                 final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
                 final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
@@ -70,7 +70,7 @@ public class PacsSessionExportRequestListener {
         // refresh the user, just in case their email has changed since they made the request
         try {
             final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
-            XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
+            XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), new String[] { user.getEmail() },
                     "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request Complete",
                     "The session you requested has been successfully exported to the PACS.");
             final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_COMPLETE");
