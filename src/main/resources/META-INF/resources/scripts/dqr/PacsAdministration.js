@@ -176,13 +176,6 @@ XNAT.app = getObject(XNAT.app || {});
                             validation: 'required'
                         }),
                         XNAT.ui.panel.input.switchbox({
-                            name: 'extendedNegotiations',
-                            label: 'Extended Negotiations',
-                            onText: 'Supported',
-                            offText: 'Not Supported',
-                            value: false
-                        }),
-                        XNAT.ui.panel.input.switchbox({
                             name: 'queryable',
                             label: 'Queryable',
                             onText: 'Yes',
