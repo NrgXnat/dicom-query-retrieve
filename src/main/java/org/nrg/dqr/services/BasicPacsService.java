@@ -518,7 +518,12 @@ public class BasicPacsService implements PacsService {
             if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
                 String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
                 String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                searchCriteria.setPatientName(lastName+","+firstName);
+                if(StringUtils.isNotBlank(firstName)){
+                    searchCriteria.setPatientName(lastName+","+firstName);
+                }
+                else{
+                    searchCriteria.setPatientName(lastName);
+                }
                 areThereSearchCriteriaForThisRow = true;
             }
             if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
@@ -643,7 +648,12 @@ public class BasicPacsService implements PacsService {
             if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
                 String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
                 String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                searchCriteria.setPatientName(lastName+","+firstName);
+                if(StringUtils.isNotBlank(firstName)){
+                    searchCriteria.setPatientName(lastName+","+firstName);
+                }
+                else{
+                    searchCriteria.setPatientName(lastName);
+                }
                 areThereSearchCriteriaForThisRow = true;
             }
             if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
@@ -1069,7 +1079,12 @@ public class BasicPacsService implements PacsService {
                 if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
                     String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
                     String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                    searchCriteria.setPatientName(lastName+","+firstName);
+                    if(StringUtils.isNotBlank(firstName)){
+                        searchCriteria.setPatientName(lastName+","+firstName);
+                    }
+                    else{
+                        searchCriteria.setPatientName(lastName);
+                    }
                 }
                 if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
                     searchCriteria.setPatientId(row.get(patientIdColumn));
