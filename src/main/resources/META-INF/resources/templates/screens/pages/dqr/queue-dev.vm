@@ -158,8 +158,8 @@
     </div>
 </div>
 
-    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/selectableItems-dev.js"></script>
-    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/filterableItems-dev.js"></script>
+##    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/selectableItems-dev.js"></script>
+##    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/filterableItems-dev.js"></script>
     <script src="${SITE_ROOT}/scripts/dqr/queue-dev.js"></script>
 
 #else
