@@ -51,15 +51,15 @@ var XNAT = getObject(XNAT || {});
         var $container = (container && container.jquery) ? container : $(container);
 
         // text inputs to use as filters
-        var $filterInputs = $container.find('input.filter-input, input.filter-data');
+        var filterInputs = 'input.filter-input, input.filter-data';
 
         // <select> menus to use as filters
-        var $filterMenus = $container.find('select.filter-menu');
+        var filterMenus = 'select.filter-menu';
 
         // don't do anything if there are no filter inputs or menus
-        if (!$filterInputs.length && !$filterMenus.length) {
-            return;
-        }
+        // if (!$filterInputs.length && !$filterMenus.length) {
+        //     return;
+        // }
 
         function performanceNow(){
             return (window.performance && window.performance.now) ? window.performance.now() : Date.now();
@@ -69,12 +69,10 @@ var XNAT = getObject(XNAT || {});
         var filterComposite = '';
 
         // detach previously bound listeners
-        $filterInputs.off('focus.filter keyup.filter');
-        $filterMenus.off('change.filter');
+        $container.off('focus.filter keyup.filter', filterInputs);
+        $container.off('change.filter', filterMenus);
 
-        var $allFilters = [].concat($filterInputs.toArray(), $filterMenus.toArray());
-
-        var $dataRows;
+        var $filterInputs, $filterMenus, $allFilters, $dataRows;
         var dataItems = [];
 
         // filter name string *should* be:
@@ -82,14 +80,29 @@ var XNAT = getObject(XNAT || {});
         // ...but can also be:
         // 'urFilterName:filter'
         // if you want (for whatever reason)
-        function parseFilterName(str){
-            return str ? (str.split(/filter:/i)[1] || str.split(/:filter/i)[0] || str || '').trim() : '';
+        function parseFilterName(name){
+            return name ? (name.split(/filter:/i)[1] || name.split(/:filter/i)[0] || name || '').trim() : '';
         }
 
         function cacheItems(){
             var start = performanceNow();
+
+            $filterInputs = $container.find(filterInputs);
+            $filterMenus = $container.find(filterMenus);
+
+            $allFilters = [].concat($filterInputs.toArray(), $filterMenus.toArray());
+
+            if (!$allFilters.length) {
+                return [];
+            }
+
             $dataRows = $container.find('.filter-data-row');
-            dataItems = [];
+            // dataItems = [];
+
+            // if (dataItems.length && $dataRows.length) {
+            //     return $dataRows;
+            // }
+
             // cache each item's data
             $dataRows.toArray().forEach(function(row, i){
                 var $row     = $(row);
@@ -170,11 +183,11 @@ var XNAT = getObject(XNAT || {});
             console.log(filterComposite);
         }
 
-        $filterInputs.on('focus.filter', function(){
+        $container.on('focus.filter', filterInputs, function(){
             $(this).select();
             // save reference to the data rows on focus
             // (should make filtering slightly faster)
-            // cacheItems();
+            cacheItems();
         });
 
         // $filterMenus.on('focus.filter', cacheItems);
@@ -218,7 +231,7 @@ var XNAT = getObject(XNAT || {});
             $container.triggerHandler('multicheck');
         }
 
-        $filterInputs.on('keyup.filter', function(e){
+        $container.on('keyup.filter', filterInputs, function(e){
             // the <input> [title] attribute should be 'filter:item-name'
             // var name = parseFilterName(this.title);
             var val = this.value;
@@ -239,13 +252,13 @@ var XNAT = getObject(XNAT || {});
         });
 
 
-        $filterMenus.on('change.filter', function(e){
+        $container.on('change.filter', filterMenus, function(e){
             // the <select> [title] attribute should be 'filter:item-name'
             filterRows();
         });
 
         return {
-            rows: $dataRows.length ? $dataRows.toArray() : [],
+            // rows: $dataRows.length ? $dataRows.toArray() : [],
             getRows: function(){
                 $dataRows = cacheItems();
                 return (this.rows = $dataRows.toArray());
