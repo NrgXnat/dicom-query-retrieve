@@ -790,22 +790,32 @@ var XNAT = getObject(XNAT || {});
                 return type === NONE ? '' : type;
             });
 
-            jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
+            // remove this item if there are no associated series descriptions
+            if (jsonData[uid].seriesDescriptions.length === 0) {
 
-            forEach(jsonData[uid].seriesDescriptions, function(type){
-                jsonData[uid].seriesInstanceUids =
-                    jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
-            });
+                delete jsonData[uid];
 
-            jsonData[uid].relabelMap = (function(){
-                var relabelMapTemp = {};
-                var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
-                $importRow.find('input.relabel').each(function(){
-                    // only add to the relabelMap object if there's a value
-                    this.value && (relabelMapTemp[this.title] = this.value || '');
+            }
+            else {
+
+                jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
+
+                forEach(jsonData[uid].seriesDescriptions, function(type){
+                    jsonData[uid].seriesInstanceUids =
+                        jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
                 });
-                return relabelMapTemp;
-            })();
+
+                jsonData[uid].relabelMap = (function(){
+                    var relabelMapTemp = {};
+                    var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
+                    $importRow.find('input.relabel').each(function(){
+                        // only add to the relabelMap object if there's a value
+                        this.value && (relabelMapTemp[this.title] = this.value || '');
+                    });
+                    return relabelMapTemp;
+                })();
+
+            }
 
         });
 
@@ -1073,9 +1083,9 @@ var XNAT = getObject(XNAT || {});
                         ['blur', 'input.relabel', function(e){
                             var uid = $(this).closest('tr').data('uid');
                             console.log(uid);
-                            if (this.value) {
+                            // if (this.value) {
                                 dqr.allSearchResults[uid].relabelMap[this.title] = this.value;
-                            }
+                            // }
                         }],
                         ['click', 'td:has(.select-row)', function(e){
                             $(this).closest('tr').find('input.select-session').trigger('click');

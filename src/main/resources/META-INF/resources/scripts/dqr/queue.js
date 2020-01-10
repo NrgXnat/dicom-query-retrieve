@@ -447,20 +447,26 @@ var XNAT = getObject(XNAT || {});
                                     label: 'Position',
                                     sort: true,
                                     th: { style: { width: '80px' } },
-                                    td: { className: 'center mono show-data' }
-                                    // apply: function(loc){
-                                    //     return spawn('div.center', loc)
-                                    // }
+                                    td: { className: 'show-data' },
+                                    apply: function(loc){
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(loc, 8)],
+                                            loc
+                                        ])
+                                    }
                                 },
                                 id: {
                                     label: 'ID',
                                     sort: true,
                                     th: { style: { width: '80px' } },
-                                    td: { className: 'center mono show-data' },
+                                    td: { className: 'show-data' },
                                     apply: function(id){
-                                        return spawn('a.link.show-queue-item-data', {
-                                            attr: { href: '#id=' + id }
-                                        }, id + '')
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(id, 8)],
+                                            ['a.link.show-queue-item-data', {
+                                                attr: { href: '#id=' + id }
+                                            }, id + '']
+                                        ])
                                     }
                                 },
                                 // priority: {
@@ -657,11 +663,14 @@ var XNAT = getObject(XNAT || {});
                                 id: {
                                     label: 'ID',
                                     sort: true,
-                                    td: { className: 'center mono show-data' },
+                                    td: { className: 'show-data' },
                                     apply: function(id){
-                                        return spawn('a.link.show-history-item-data', {
-                                            attr: { href: '#id=' + id }
-                                        }, id + '')
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(id, 8)],
+                                            ['a.link.show-history-item-data', {
+                                                attr: { href: '#id=' + id }
+                                            }, id + '']
+                                        ])
                                     }
                                 },
                                 status: {
