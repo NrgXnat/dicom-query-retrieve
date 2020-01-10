@@ -53,7 +53,9 @@ Hide JSP tags from the Velocity parser.
             /* style the dialog conainer? */
             .load-content { margin: 10px; }
 
-            #pacs-schedule-view { width: auto; }
+            #pacs-schedule-view {
+                width: 1073px;
+            }
 
             #pacs-schedule-view > .pad {
                 padding: 20px; overflow: auto;
