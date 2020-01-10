@@ -1483,6 +1483,7 @@ var XNAT = getObject(XNAT || {});
                     failure: function(){
                         console.warn('error importing CSV');
                         console.warn(arguments);
+                        XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
                     }
                 });
             }
