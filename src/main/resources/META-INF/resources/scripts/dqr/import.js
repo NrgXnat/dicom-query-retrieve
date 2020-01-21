@@ -1231,7 +1231,7 @@ var XNAT = getObject(XNAT || {});
                 window.jsdebug && console.log(AE);
                 receiverMap[AE] = item;
                 // only add 'dqr' receivers to the menu
-                if (/dqr/i.test(item.identifier)) {
+                if (/dqr/i.test(item.identifier) && item.customProcessing) {
                     !hasReceiver && (hasReceiver = item.enabled);
                     aeMenu$.spawn('option.receiver', {
                         title: AE,
