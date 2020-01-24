@@ -250,7 +250,7 @@ var XNAT = getObject(XNAT || {});
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
 
-        // `/xapi/dqr/query/queueWithOrder/user`
+        // `/xapi/dqr/query/queue/user/ordered`
         var queueItemSample = [
             {
                 'queue_location': 1,
@@ -352,7 +352,7 @@ var XNAT = getObject(XNAT || {});
             });
         }
 
-        // `/xapi/dqr/query/queueWithOrder/user`
+        // `/xapi/dqr/query/queue/user/ordered`
         var queueSample = [
             {
                 "queue_location": 1,
@@ -384,7 +384,7 @@ var XNAT = getObject(XNAT || {});
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/queueWithOrder' + (dqr.adminView ? '' : '/user') + '?t=' + Date.now(),
+                            load: '*/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered/paged?start=1&end=100&t=' + Date.now(),
                             messages: {
                                 noData: '<div class="message">There are no queued items to display.</div>'
                             },
@@ -448,20 +448,26 @@ var XNAT = getObject(XNAT || {});
                                     label: 'Position',
                                     sort: true,
                                     th: { style: { width: '80px' } },
-                                    td: { className: 'center mono show-data' }
-                                    // apply: function(loc){
-                                    //     return spawn('div.center', loc)
-                                    // }
+                                    td: { className: 'show-data' },
+                                    apply: function(loc){
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(loc, 8)],
+                                            loc
+                                        ])
+                                    }
                                 },
                                 id: {
                                     label: 'ID',
                                     sort: true,
                                     th: { style: { width: '80px' } },
-                                    td: { className: 'center mono show-data' },
+                                    td: { className: 'show-data' },
                                     apply: function(id){
-                                        return spawn('a.link.show-queue-item-data', {
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(id, 8)],
+                                            ['a.link.show-queue-item-data', {
                                             attr: { href: '#id=' + id }
-                                        }, id + '')
+                                            }, id + '']
+                                        ])
                                     }
                                 },
                                 // priority: {
@@ -626,7 +632,28 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        function setupImportHistoryPanel(all){
+        function historyUrl(opts) {
+
+            var urlParts = [];
+
+            urlParts[0] = '*/xapi/dqr/query/';
+
+            urlParts.push('?t=' + Date.now());
+
+            return urlParts;
+
+        }
+
+
+
+        function setupImportHistoryPanel(all, pageIndex){
+            var historyUrl = [
+                all ?
+                    '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') :
+                    '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') + '/paged?start=1&end=100'
+            ];
+
+            historyUrl.push('?t=' + Date.now());
             return {
                 userImportHistoryPanel: {
                     tag: 'div#user-import-history-panel-container',
@@ -637,7 +664,7 @@ var XNAT = getObject(XNAT || {});
                         // },
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/history' + (dqr.adminView ? '' : '/user') + '?t=' + Date.now(),
+                            load: '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') + '/paged?start=1&end=100&t=' + Date.now(),
                             messages: {
                                 noData: '<div class="message">There are no import records to display.</div>'
                             },
@@ -659,11 +686,14 @@ var XNAT = getObject(XNAT || {});
                                 id: {
                                     label: 'ID',
                                     sort: true,
-                                    td: { className: 'center mono show-data' },
+                                    td: { className: 'show-data' },
                                     apply: function(id){
-                                        return spawn('a.link.show-history-item-data', {
+                                        return spawn('div.center.mono', [
+                                            ['span.hidden.sort.sort-value', zeroPad(id, 8)],
+                                            ['a.link.show-history-item-data', {
                                             attr: { href: '#id=' + id }
-                                        }, id + '')
+                                            }, id + '']
+                                        ])
                                     }
                                 },
                                 status: {

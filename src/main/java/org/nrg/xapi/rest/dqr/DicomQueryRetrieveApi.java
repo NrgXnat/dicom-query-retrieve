@@ -76,7 +76,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/history/all", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGet() {
         return new ResponseEntity<>(_executedRequestService.getAll(), HttpStatus.OK);
     }
@@ -86,7 +86,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/historyCount", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/history/all/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<Integer> queryHistoryCountGet() {
         return new ResponseEntity<>(_executedRequestService.getAll().size(), HttpStatus.OK);
     }
@@ -109,7 +109,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/historyCount/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "query/history/user/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<Integer> userQueryHistoryCountGet() {
         final UserI user = getSessionUser();
         return new ResponseEntity<>(_executedRequestService.getAllForUser(user).size(), HttpStatus.OK);
@@ -121,12 +121,17 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/historyPaged/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryPagedGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
+    @XapiRequestMapping(value = "query/history/all/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryPagedGet(
+            @ApiParam("Page start") @RequestParam(name = "start") final int pageStart,
+            @ApiParam("Page end") @RequestParam(name = "end") final int pageEnd) {
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAll();
-        int start = pageSize*pageIndex;
-        int end = (start + pageSize) > allRequests.size() ? allRequests.size() : (start + pageSize);
-        if(start>=allRequests.size()){
+        int start = Math.max(0, pageStart - 1);
+        int end = Math.min(pageEnd, allRequests.size());
+        if (start > end) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
@@ -140,13 +145,18 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/historyPaged/user/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryPagedGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
+    @XapiRequestMapping(value = "query/history/user/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryPagedGet(
+            @ApiParam("Page start") @RequestParam(name = "start") final int pageStart,
+            @ApiParam("Page end") @RequestParam(name = "end") final int pageEnd) {
         final UserI user = getSessionUser();
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
-        int start = pageSize*pageIndex;
-        int end = (start + pageSize) > allRequests.size() ? allRequests.size() : (start + pageSize);
-        if(start>=allRequests.size()){
+        int start = Math.max(0, pageStart - 1);
+        int end = Math.min(pageEnd, allRequests.size());
+        if (start > end) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
@@ -178,7 +188,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/queue/all", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<QueuedPacsRequest>> queryQueueGet() {
         return new ResponseEntity<>(_queuedRequestService.getAll(), HttpStatus.OK);
     }
@@ -188,7 +198,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queueCount", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/queue/all/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<Integer> queryQueueCountGet() {
         return new ResponseEntity<>(_queuedRequestService.getAll().size(), HttpStatus.OK);
     }
@@ -211,7 +221,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queueCount/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "query/queue/user/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<Integer> queryUserQueueCountGet() {
         final UserI user = getSessionUser();
         return new ResponseEntity<>(_queuedRequestService.getAllForUser(user).size(), HttpStatus.OK);
@@ -222,7 +232,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queueWithOrder", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/queue/all/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet() {
         return new ResponseEntity<>(_queuedRequestService.getAllWithOrder(), HttpStatus.OK);
     }
@@ -233,7 +243,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queueWithOrder/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "query/queue/user/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet() {
         final UserI user = getSessionUser();
         return new ResponseEntity<>(_queuedRequestService.getAllWithOrderForUser(user), HttpStatus.OK);
@@ -245,7 +255,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queuePaged/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "query/queue/all/paged/{pageIndex}/{pageSize}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<QueuedPacsRequest>> queryQueuePagedGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
         List<QueuedPacsRequest> allRequests = _queuedRequestService.getAll();
         int start = pageSize*pageIndex;
@@ -264,7 +274,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queuePaged/user/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "query/queue/user/paged/{pageIndex}/{pageSize}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<QueuedPacsRequest>> queryUserQueuePagedGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
         final UserI user = getSessionUser();
         List<QueuedPacsRequest> allRequests = _queuedRequestService.getAllForUser(user);
@@ -283,12 +293,17 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queuePagedWithOrder/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<Map<String, Object>>> queryQueuePagedWithOrderGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
+    @XapiRequestMapping(value = "query/queue/all/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<List<Map<String, Object>>> queryQueuePagedWithOrderGet(
+            @ApiParam("Page start") @RequestParam(name = "start") final int pageStart,
+            @ApiParam("Page end") @RequestParam(name = "end") final int pageEnd) {
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
-        int start = pageSize*pageIndex;
-        int end = (start + pageSize) > allRequests.size() ? allRequests.size() : (start + pageSize);
-        if(start>=allRequests.size()){
+        int start = Math.max(0, pageStart - 1);
+        int end = Math.min(pageEnd, allRequests.size());
+        if (start > end) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
@@ -302,13 +317,18 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queuePagedWithOrder/user/pageSize/{pageSize}/pageIndex/{pageIndex}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<Map<String, Object>>> queryUserQueuePagedWithOrderGet(@PathVariable("pageSize") final int pageSize, @PathVariable("pageIndex") final int pageIndex) {
+    @XapiRequestMapping(value = "query/queue/user/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public ResponseEntity<List<Map<String, Object>>> queryUserQueuePagedWithOrderGet(
+            @ApiParam("Page start") @RequestParam(name = "start") final int pageStart,
+            @ApiParam("Page end") @RequestParam(name = "end") final int pageEnd) {
         final UserI user = getSessionUser();
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
-        int start = pageSize*pageIndex;
-        int end = (start + pageSize) > allRequests.size() ? allRequests.size() : (start + pageSize);
-        if(start>=allRequests.size()){
+        int start = Math.max(0, pageStart - 1);
+        int end = Math.min(pageEnd, allRequests.size());
+        if (start > end) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
