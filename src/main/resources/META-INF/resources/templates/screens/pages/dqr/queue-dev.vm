@@ -2,6 +2,7 @@
 #* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
+#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
@@ -36,21 +37,36 @@
 
 #set ($isAllowed = false)
 
-#if ($user.checkRole("Administrator") || $user.checkRole("Dqr"))
-
+#if ($user.checkRole("Administrator") || $user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))
     #set ($isAllowed = true)
+#end
+
+## block a non-admin from viewing the admin view
+#if (!$user.checkRole("Administrator") && $role == 'admin')
+    #set ($isAllowed = false)
+#end
+
+#if ($isAllowed)
 
 <script>
     window.isAllowed = true;
     window.adminView = window.isAdmin && '$!role' === 'admin';
 </script>
 
+<style type="text/css">
+    table.click-rows tr:hover { cursor: pointer }
+    table.click-rows tr:active {
+        cursor: pointer;
+        background-color: #c2e7ff !important;
+    }
+</style>
+
 <div id="page-body">
     <div class="pad">
 
         <header id="content-header">
-            <div class="pad" style="padding:10px 0;">
-                <h2 class="pull-left">
+                <div class="pad" style="padding:20px 0;">
+                    <h2 class="pull-left" style="margin:0;">
                     PACS Import Queue and History
                 </h2>
                 #if ($user.checkRole("Administrator"))

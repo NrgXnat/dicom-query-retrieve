@@ -40,16 +40,27 @@
 #if ($user.checkRole("Administrator") || $user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))
 
     #set ($isAllowed = true)
+#end
 
-    <script>window.isAllowed = true</script>
+## block a non-admin from viewing the admin view
+#if (!$user.checkRole("Administrator") && $role == 'admin')
+    #set ($isAllowed = false)
+#end
 
-    <style type="text/css">
-        table.click-rows tr:hover { cursor: pointer }
-        table.click-rows tr:active {
-            cursor: pointer;
-            background-color: #c2e7ff !important;
-        }
-    </style>
+#if ($isAllowed)
+
+<script>
+    window.isAllowed = true;
+    window.adminView = window.isAdmin && '$!role' === 'admin';
+</script>
+
+<style type="text/css">
+    table.click-rows tr:hover { cursor: pointer }
+    table.click-rows tr:active {
+        cursor: pointer;
+        background-color: #c2e7ff !important;
+    }
+</style>
 
     <div id="page-body">
         <div class="pad">
