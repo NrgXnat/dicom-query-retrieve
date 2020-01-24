@@ -105,7 +105,7 @@ public class BasicPacsService implements PacsService {
                 String newValue = entry.getValue();
                 if (StringUtils.isNotBlank(newValue) && tags!=null) {
                     for(String tag:tags) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, newValue)) {
+                        if (StringUtils.equals(CLEAR_SIGNIFIER, newValue) || StringUtils.equals(CLEAR_SIGNIFIER+CLEAR_SIGNIFIER+CLEAR_SIGNIFIER, newValue)) {
                             currAnonScript += tag + " := \"\"" + System.lineSeparator();
                         } else {
                             currAnonScript += tag + " := \"" + newValue + "\"" + System.lineSeparator();
@@ -592,7 +592,7 @@ public class BasicPacsService implements PacsService {
 //                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
 //                            anonymizeThisRow = true;
 //                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER+CLEAR_SIGNIFIER+CLEAR_SIGNIFIER, stringToRemapTo)) {
                         anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
                         anonymizeThisRow = true;
                     } else {
@@ -642,22 +642,22 @@ public class BasicPacsService implements PacsService {
 
             final PacsSearchCriteria searchCriteria = new PacsSearchCriteria();
             if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                searchCriteria.setAccessionNumber(row.get(accessionNumberColumn));
+                searchCriteria.setAccessionNumber(removeExtraQuotes(row.get(accessionNumberColumn)));
                 areThereSearchCriteriaForThisRow = true;
             }
             if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
                 String lastName = (lastNameColumn==-1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
                 String firstName = (firstNameColumn==-1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
                 if(StringUtils.isNotBlank(firstName)){
-                    searchCriteria.setPatientName(lastName+","+firstName);
+                    searchCriteria.setPatientName(removeExtraQuotes(lastName+","+firstName));
                 }
                 else{
-                    searchCriteria.setPatientName(lastName);
+                    searchCriteria.setPatientName(removeExtraQuotes(lastName));
                 }
                 areThereSearchCriteriaForThisRow = true;
             }
             if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                searchCriteria.setPatientId(row.get(patientIdColumn));
+                searchCriteria.setPatientId(removeExtraQuotes(row.get(patientIdColumn)));
                 areThereSearchCriteriaForThisRow = true;
             }
             if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
@@ -699,11 +699,11 @@ public class BasicPacsService implements PacsService {
                 }
             }
             if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                searchCriteria.setDob(row.get(dobColumn));
+                searchCriteria.setDob(removeExtraQuotes(row.get(dobColumn)));
                 areThereSearchCriteriaForThisRow = true;
             }
             if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                searchCriteria.setModality(row.get(modalityColumn));
+                searchCriteria.setModality(removeExtraQuotes(row.get(modalityColumn)));
                 areThereSearchCriteriaForThisRow = true;
             }
             if(!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs){
@@ -718,7 +718,7 @@ public class BasicPacsService implements PacsService {
             for(Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()){
                 String stringToRemapTo = row.get(entry.getKey());
                 if(StringUtils.isNotBlank(stringToRemapTo)) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER+CLEAR_SIGNIFIER+CLEAR_SIGNIFIER, stringToRemapTo)) {
                         anonMapForThisRow.put(entry.getValue(),"\"\"");
                     } else {
                         anonMapForThisRow.put(entry.getValue(),stringToRemapTo);
@@ -1143,7 +1143,7 @@ public class BasicPacsService implements PacsService {
 //                            anonScriptForThisRow += "- " + entry.getValue() + System.lineSeparator();
 //                            anonymizeThisRow = true;
 //                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER+CLEAR_SIGNIFIER+CLEAR_SIGNIFIER, stringToRemapTo)) {
                             anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
                             anonymizeThisRow = true;
                         } else {
@@ -1275,5 +1275,14 @@ public class BasicPacsService implements PacsService {
 
     private static ArchiveProcessorInstanceService getProcessorService() {
         return XDAT.getContextService().getBean(ArchiveProcessorInstanceService.class);
+    }
+
+    private static String removeExtraQuotes(String inputString){
+        if(inputString!=null && StringUtils.equals(inputString,CLEAR_SIGNIFIER+CLEAR_SIGNIFIER+CLEAR_SIGNIFIER)){
+           return CLEAR_SIGNIFIER;
+        }
+        else{
+            return inputString;
+        }
     }
 }
