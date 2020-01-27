@@ -163,21 +163,22 @@ var XNAT = getObject(XNAT || {});
             }
 
             var rowData = opts.rows || opts.data;
-            var rows = [];
-
-            if (opts.items) {
-                if (Array.isArray(opts.items)) {
-                    rows = opts.items
+            var rows = (function(){
+                if (opts.items) {
+                    if (Array.isArray(opts.items)) {
+                        return opts.items
+                    }
+                    else {
+                        return opts.items.split(',').map(function(item, i){
+                            return item.trim()
+                        })
+                    }
                 }
                 else {
-                    rows = opts.items.split(',').map(function(item, i){
-                        return item.trim()
-                    })
+                    return Object.keys(rowData);
                 }
-            }
-            else {
-                rows = Object.keys(rowData);
-            }
+            })();
+
 
             rows.length && forEach(rows, function(key, i){
 
@@ -189,13 +190,13 @@ var XNAT = getObject(XNAT || {});
                 var value = rowData[key];
                 var cell  = extend(true, {
                     html: ''
-                }, opts.tds || opts.td);
+                }, opts.tds, opts.td);
 
                 if (stringable(value)) {
-                    cell.textContent = value + '';
+                    cell.html = value + '';
                 }
                 else if (Array.isArray(value)) {
-                    cell.textContent = value.join(', ');
+                    cell.html = value.join('<br>');
                 }
                 else {
                     try {
@@ -221,7 +222,7 @@ var XNAT = getObject(XNAT || {});
                 success: function(data){
                     console.log(data);
                     if (data && data.seriesIds) {
-                        data.seriesIds = data.seriesIds.split(',').join(', ');
+                        data.seriesIds = data.seriesIds.split(',').join('<br>');
                     }
                     XNAT.dialog.open({
                         width: 800,
@@ -632,28 +633,10 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        function historyUrl(opts) {
-
-            var urlParts = [];
-
-            urlParts[0] = '*/xapi/dqr/query/';
-
-            urlParts.push('?t=' + Date.now());
-
-            return urlParts;
-
-        }
-
-
-
-        function setupImportHistoryPanel(all, pageIndex){
-            var historyUrl = [
-                all ?
-                    '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') :
-                    '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') + '/paged?start=1&end=100'
-            ];
-
-            historyUrl.push('?t=' + Date.now());
+        function setupImportHistoryPanel(all){
+            var historyUrl = '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
+            historyUrl += (!all ? '/paged?start=1&end=100&' : '?');
+            historyUrl += ('t=' + Date.now());
             return {
                 userImportHistoryPanel: {
                     tag: 'div#user-import-history-panel-container',
@@ -664,7 +647,7 @@ var XNAT = getObject(XNAT || {});
                         // },
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') + '/paged?start=1&end=100&t=' + Date.now(),
+                            load: historyUrl,
                             messages: {
                                 noData: '<div class="message">There are no import records to display.</div>'
                             },
@@ -691,7 +674,7 @@ var XNAT = getObject(XNAT || {});
                                         return spawn('div.center.mono', [
                                             ['span.hidden.sort.sort-value', zeroPad(id, 8)],
                                             ['a.link.show-history-item-data', {
-                                            attr: { href: '#id=' + id }
+                                                attr: { href: '#id=' + id }
                                             }, id + '']
                                         ])
                                     }
@@ -716,12 +699,6 @@ var XNAT = getObject(XNAT || {});
                                     td: { className: 'center show-data executedTime' },
                                     apply: renderTimeCell
                                 },
-                                // username: {
-                                //     label: 'User',
-                                //     filter: true,
-                                //     sort: true,
-                                //     td: { className: 'center' }
-                                // },
                                 patientName: {
                                     label: 'Patient Name',
                                     filter: true,
@@ -738,6 +715,13 @@ var XNAT = getObject(XNAT || {});
                                     td: { className: 'show-data nowrap studyDate' },
                                     apply: renderDayCell
                                 },
+                                // only render "User" column for admin view
+                                username: dqr.adminView ? {
+                                    label: 'User',
+                                    filter: true,
+                                    sort: true,
+                                    td: { className: 'center' }
+                                } : '~!',
                                 xnatProject: {
                                     label: 'Project',
                                     filter: true,

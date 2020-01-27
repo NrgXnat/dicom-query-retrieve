@@ -189,13 +189,13 @@ var XNAT = getObject(XNAT || {});
                 var value = rowData[key];
                 var cell = extend(true, {
                     html: ''
-                }, opts.tds || opts.td);
+                }, opts.tds, opts.td);
 
                 if (stringable(value)) {
-                    cell.textContent = value + '';
+                    cell.html = value + '';
                 }
                 else if (Array.isArray(value)) {
-                    cell.textContent = value.join(', ');
+                    cell.html = value.join('<br>');
                 }
                 else {
                     try {
@@ -221,7 +221,7 @@ var XNAT = getObject(XNAT || {});
                 success: function(data){
                     console.log(data);
                     if (data && data.seriesIds) {
-                        data.seriesIds = data.seriesIds.split(',').join(', ');
+                        data.seriesIds = data.seriesIds.split(',').join('<br>');
                     }
                     XNAT.dialog.open({
                         width: 800,
@@ -631,6 +631,9 @@ var XNAT = getObject(XNAT || {});
 
 
         function setupImportHistoryPanel(all){
+            var historyUrl = '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
+            historyUrl += (!all ? '/paged?start=1&end=100&' : '?');
+            historyUrl += ('t=' + Date.now());
             return {
                 userImportHistoryPanel: {
                     tag: 'div#user-import-history-panel-container',
@@ -641,7 +644,7 @@ var XNAT = getObject(XNAT || {});
                         // },
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user') + '/paged?start=1&end=100&t=' + Date.now(),
+                            load: historyUrl,
                             messages: {
                                 noData: '<div class="message">There are no import records to display.</div>'
                             },
