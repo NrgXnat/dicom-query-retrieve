@@ -385,7 +385,7 @@ var XNAT = getObject(XNAT || {});
                     contents: {
                         pacsQueueTable: {
                             kind: 'table.dataTable',
-                            load: '*/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered/paged?start=1&end=100&t=' + Date.now(),
+                            load: '*/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered/paged?t=' + Date.now(),
                             messages: {
                                 noData: '<div class="message">There are no queued items to display.</div>'
                             },
@@ -635,7 +635,7 @@ var XNAT = getObject(XNAT || {});
 
         function setupImportHistoryPanel(all){
             var historyUrl = '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
-            historyUrl += (!all ? '/paged?start=1&end=100&' : '?');
+            historyUrl += (!all ? '/paged?' : '?');
             historyUrl += ('t=' + Date.now());
             return {
                 userImportHistoryPanel: {
@@ -716,12 +716,12 @@ var XNAT = getObject(XNAT || {});
                                     apply: renderDayCell
                                 },
                                 // only render "User" column for admin view
-                                username: dqr.adminView ? {
+                                username: !dqr.adminView ? '~!' : {
                                     label: 'User',
                                     filter: true,
                                     sort: true,
                                     td: { className: 'center' }
-                                } : '~!',
+                                },
                                 xnatProject: {
                                     label: 'Project',
                                     filter: true,
