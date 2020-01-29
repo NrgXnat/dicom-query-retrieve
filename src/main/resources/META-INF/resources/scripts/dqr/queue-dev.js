@@ -29,6 +29,9 @@ var XNAT = getObject(XNAT || {});
 
     dqr.adminView = window.isAdmin && getQueryStringValue('role') === 'admin';
 
+    // objects to hold data and metadata for queue and history tables
+    dqr.queue   = {};
+    dqr.history = {};
 
     // shortcuts for basic element selection
     function getById(id){
@@ -44,21 +47,21 @@ var XNAT = getObject(XNAT || {});
         return $(getByClassName(cls));
     }
 
-    function getPACSData(){
-        return (dqr.getPACSData = XNAT.xhr.get('~/data/pacs'));
+    function getPacsList(){
+        return (dqr.getPacsList = XNAT.xhr.get('~/data/pacs'));
     }
 
-    getPACSData();
+    getPacsList();
 
-    dqr.PACSData = {};
+    dqr.pacsList = {};
 
     function setupPACSList(data){
         data.forEach(function(PACS, i){
-            dqr.PACSData[PACS.id + ''] = PACS;
+            dqr.pacsList[PACS.id + ''] = PACS;
         });
     }
 
-    var PACSDataSample = {
+    var pacsInfoSample = {
         "ResultSet": {
             "Result": [
                 {
@@ -110,9 +113,9 @@ var XNAT = getObject(XNAT || {});
 
 
         function resolvePACSLabel(id){
-            var PACSdata = dqr.PACSData[id + ''];
-            return PACSdata ?
-                PACSdata.label || PACSdata.aeTitle || '-' :
+            var pacsInfo = dqr.pacsList[id + ''];
+            return pacsInfo ?
+                pacsInfo.label || pacsInfo.aeTitle || '-' :
                 '-'
         }
 
@@ -148,6 +151,7 @@ var XNAT = getObject(XNAT || {});
                 item3: 'Baz'
             }
         };
+
 
         function dataDisplay(opts){
 
@@ -329,32 +333,23 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        function spawnImportQueuePanel(count){
-
-            var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
-
-            // render queue
-            XNAT.spawner
-                .spawn(setupImportQueuePanel(count))
-                .done(function(){
-                    console.log(arguments);
-                    // XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
-                    // XNAT.plugins.dqr.filterableItemsDev(queueDisplayContainer$);
-                })
-                .render(queueDisplayContainer$.empty());
-
+        /**
+         * Get size of queue or history list to setup UI elements for table paging
+         * @param part string - url part for request ('queue/user', 'queue/all', 'history/user', or 'history/all')
+         * @param [fn] Function - optional callback function
+         * @returns {*}
+         */
+        function getListSize(part, fn){
+            var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl('/xapi/dqr/query/' + part + '/count'));
+            if (fn && isFunction(fn)) {
+                listSizeReq.done(fn)
+            }
+            return listSizeReq;
         }
 
-        function filterInput(name){
-            return spawn('input.filter-input|type=text', {
-                title: 'filter:' + name,
-                style: { padding: '4px 6px', border: '1px solid #ccc' },
-                data: { filter: name }
-            });
-        }
 
         // `/xapi/dqr/query/queue/user/ordered`
-        var queueSample = [
+        var queueItemSample = [
             {
                 "queue_location": 1,
                 "id": 26,
@@ -376,6 +371,7 @@ var XNAT = getObject(XNAT || {});
                 "study_date": "20171128"
             }
         ];
+
 
         function setupImportQueuePanel(count){
             return {
@@ -466,7 +462,7 @@ var XNAT = getObject(XNAT || {});
                                         return spawn('div.center.mono', [
                                             ['span.hidden.sort.sort-value', zeroPad(id, 8)],
                                             ['a.link.show-queue-item-data', {
-                                            attr: { href: '#id=' + id }
+                                                attr: { href: '#id=' + id }
                                             }, id + '']
                                         ])
                                     }
@@ -550,10 +546,35 @@ var XNAT = getObject(XNAT || {});
             };
         }
 
+
+        function spawnImportQueuePanel(count){
+
+            var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
+
+            // render queue
+            XNAT.spawner
+                .spawn(setupImportQueuePanel(count))
+                .done(function(){
+                    console.log(arguments);
+                    // XNAT.plugins.dqr.selectableItemsDev(queueDisplayContainer$);
+                    // XNAT.plugins.dqr.filterableItemsDev(queueDisplayContainer$);
+                })
+                .render(queueDisplayContainer$.empty());
+
+        }
+
+        function filterInput(name){
+            return spawn('input.filter-input|type=text', {
+                title: 'filter:' + name,
+                style: { padding: '4px 6px', border: '1px solid #ccc' },
+                data: { filter: name }
+            });
+        }
+
         // queue panel rendered below
 
         // `/xapi/dqr/history/user`
-        var historySample = [
+        var historyItemSample = [
             {
                 "executedTime": 1557865056364,
                 "username": "bob",
@@ -582,79 +603,40 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        function spawnImportHistoryPanel(count){
-
-            var historyDisplayContainer$ = getById$('pacs-import-history-display').html('loading...');
-
-            // render history
-            XNAT.spawner
-                .spawn(setupImportHistoryPanel(false))
-                .done(function(){
-
-                    var spawneri = this;
-
-                    // only render a 'note' if there are more than 100 items
-                    var note = count && count >= 100 ? spawn('div.info', {
-                        style: {
-                            marginBottom: '20px',
-                            lineHeight: '28px',
-                            verticalAlign: 'middle'
-                        }
-                    }, [
-                        ['i', "Only the last 100 items are shown below. Click 'Show All' to view the entire import history."],
-                        ['button.pull-right.float-right|type=button', {
-                            on: [
-                                ['click', function(e){
-                                    XNAT.dialog.open({
-                                        title: 'PACS Import History',
-                                        content: XNAT.spawner.spawn(setupImportHistoryPanel(true)).get(),
-                                        width: 1100,
-                                        buttons: [
-                                            {
-                                                label: 'Close',
-                                                isDefault: true,
-                                                close: true
-                                            }
-                                        ]
-                                    })
-                                }]
-                            ]
-                        }, 'Show All'],
-                        ['div.clear.clearfix']
-                    ]) : '';
-
-                    historyDisplayContainer$.empty().append(note).append(spawneri.done(function(){
-                        console.log(this);
-                        console.log(arguments);
-                    }).get())
-
-                });
-
+        function setupHistoryUrl(all, page, size){
+            var historyUrl = '/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
+            historyUrl += (all ? '?' : '/paged?page=' + (page || 0) + '&size=' + (size || 6) + '&');
+            historyUrl += ('t=' + Date.now());
+            return XNAT.url.rootUrl(historyUrl);
         }
 
 
-        function setupImportHistoryPanel(all){
-            var historyUrl = '*/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
-            historyUrl += (!all ? '/paged?' : '?');
-            historyUrl += ('t=' + Date.now());
+        function getHistory(all, fn) {
+            var historyReq = XNAT.xhr.get(setupHistoryUrl)
+        }
+
+
+        function setupImportHistoryPanel(historyData){
+
+            window.jsdebug && console.log(historyData);
+
             return {
                 userImportHistoryPanel: {
                     tag: 'div#user-import-history-panel-container',
                     element: { title: 'PACS Import History' },
-                    contents: {
-                        // pacsImportHistoryMessage: {
-                        //     tag: 'div#pacs-import-history-message.info'
-                        // },
-                        pacsQueueTable: {
+                    contents: !historyData.length ? {
+                        pacsImportHistoryMessage: {
+                            tag: 'div#pacs-import-history-message.info',
+                            content: 'There are no import history records to display.'
+                        }
+                    } : {
+                        importHistoryTable: {
                             kind: 'table.dataTable',
-                            load: historyUrl,
-                            messages: {
-                                noData: '<div class="message">There are no import records to display.</div>'
-                            },
+                            data: (historyData && historyData.length) ? sortObjectsNumeric(historyData, 'executedTime').reverse() : [],
                             apply: function(data){
+                                console.log('history table data');
                                 console.log(data);
-                                var history = (data && data.length) ? data.reverse() : [];
-                                return all ? history : history.slice(0, 100);
+                                return data;
                             },
                             table: {
                                 classes: 'highlight click-rows',
@@ -733,8 +715,8 @@ var XNAT = getObject(XNAT || {});
                                     filter: true,
                                     sort: true,
                                     td: { className: 'center show-data pacsId' },
-                                    apply: function(id){
-                                        return spawn('span.pacs-label', resolvePACSLabel(id))
+                                    apply: function(pacsId){
+                                        return spawn('span.pacs-label', resolvePACSLabel(pacsId))
                                     }
                                 },
                                 destinationAeTitle: {
@@ -751,14 +733,81 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        dqr.getPACSData.done(function(json){
+        function spawnImportHistoryPanel(all, page, size){
 
-            var pacsData = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
+            var historyDisplayContainer$ = getById$('pacs-import-history-display').html('loading...');
 
-            setupPACSList(pacsData);
+            // get the data BEFORE rendering the table
+            XNAT.xhr.get(setupHistoryUrl(all, page, size)).done(function(historyData){
 
-            spawnImportQueuePanel(pacsData.length);
-            spawnImportHistoryPanel(pacsData.length);
+                getListSize('history/' + (dqr.adminView ? 'all' : 'user')).done(function(historySize){
+
+                    // render history
+                    XNAT.spawner
+                        .spawn(setupImportHistoryPanel(historyData))
+                        .done(function(){
+
+                            var spawneri = this;
+
+                            // only render a 'note' if there are more than 100 items
+                            var note = historySize > 6 ? spawn('div.info', {
+                                style: {
+                                    marginBottom: '20px',
+                                    lineHeight: '28px',
+                                    verticalAlign: 'middle'
+                                }
+                            }, [
+                                ['i', "Only the 6 most recent imports are shown below. Click 'Show More' to view more history entries."],
+                                ['button.pull-right.float-right|type=button', {
+                                    on: [
+                                        ['click', function(e){
+                                            XNAT.xhr.get(setupHistoryUrl(true)).done(function(allHistoryData){
+                                                XNAT.dialog.open({
+                                                    title: 'PACS Import History',
+                                                    content: XNAT.spawner.spawn(setupImportHistoryPanel(allHistoryData)).get(),
+                                                    width: 1200,
+                                                    buttons: [
+                                                        {
+                                                            label: 'Close',
+                                                            isDefault: true,
+                                                            close: true
+                                                        }
+                                                    ]
+                                                })
+                                            })
+                                        }]
+                                    ]
+                                }, 'Show More'],
+                                ['div.clear.clearfix']
+                            ]) : '';
+
+                            historyDisplayContainer$.empty().append(note).append(spawneri.done(function(){
+                                console.log(this);
+                                console.log(arguments);
+                            }).get())
+
+                        });
+
+
+                });
+
+            })
+
+        }
+
+
+        dqr.getPacsList.done(function(json){
+
+            var pacsList = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
+
+            if (pacsList.length) {
+
+                setupPACSList(pacsList);
+
+                spawnImportQueuePanel();
+                spawnImportHistoryPanel();
+
+            }
 
         });
 
