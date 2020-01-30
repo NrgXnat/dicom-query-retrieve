@@ -6,7 +6,7 @@ projectSettings:
     kind: tabs
     name: dqrAdminPage
     groups:
-        dqrSettings: DICOM QRS
+        dqrSettings: DICOM Query-Retrieve Plugin
     contents:
         ${enableDqrTab}
         ${irbSettingsTab}

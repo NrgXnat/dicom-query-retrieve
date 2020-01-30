@@ -5,7 +5,7 @@
 dqrPacsTab:
     kind: tab
     name: dqrPacsTab
-    label: DICOM QRS Settings
+    label: DICOM Query-Retrieve Plugin
     group: dqrTabGroup
     active: false
     contents:
@@ -46,7 +46,7 @@ dqrDicomIdentifierPanel:
             tag: div.message
             content: >
                 The DICOM Query Retrieve Plugin adds new DICOM Object Identifiers to your XNAT configuration. In general, these identifiers affect how DICOM metadata is mapped into XNAT-enabled datatypes. Each DICOM SCP Receiver that you have defined in your core XNAT administrative settings will be assigned to use one of these identifiers. <br><br>
-                In order to ensure proper project routing on imports, you must have an SCP Receiver defined that uses a QRS-enabled DICOM Object Identifier from this list. Then, your PACS must be configured to send to that SCP Receiver.
+                In order to ensure proper project routing on imports, you must have an SCP Receiver defined that uses a DQR-enabled DICOM Object Identifier from this list. Then, your PACS must be configured to send to that SCP Receiver.
             after: >
                 <br>
         dqrDicomIdentifierTableContainer:
@@ -221,7 +221,7 @@ siteSettings:
     kind: tabs
     name: dqrAdminPage
     groups:
-        dqrTabGroup: DICOM QRS
+        dqrTabGroup: DICOM Query-Retrieve Plugin
     contents:
         ${dqrPacsTab}
         ${dqrHistoryTab}

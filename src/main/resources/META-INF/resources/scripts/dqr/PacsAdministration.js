@@ -548,7 +548,7 @@ XNAT.app = getObject(XNAT.app || {});
                             identifierTable.tr()
                                 .th({ addClass: 'left', html: '<b>Identifier Label</b>' })
                                 .th('<b>Identifier Class</b>')
-                                .th('<b>QRS-Enabled</b>')
+                                .th('<b>DQR-Enabled</b>')
                                 .th('<b>Associated SCP Receivers</b>')
 
                             Object.keys(identifierObj).forEach(function(key){
