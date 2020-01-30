@@ -59,7 +59,7 @@
                     <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
                     <select id="ae" id="ae" name="ae" style="min-width:200px;" class="required hidden" aria-required="true">
                         <option selected value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#else false#end">
-                            ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
+                            ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (DQR Enabled)#end
                         </option>
                     </select>
                     <input type="hidden" id="default-scp-id" value="${scp.getId()}" />
@@ -69,7 +69,7 @@
                         <option disabled selected value="">(Select AE)</option>
                         #foreach($scp in $enabledScps)
                             <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#else false#end">
-                                ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (QRS Enabled)#end
+                                ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (DQR Enabled)#end
                             </option>
                         #end
                     </select>
@@ -90,7 +90,7 @@
                             });
                         }
 
-                        if (!qrsEnabled) jq('#pacsSeriesAeSelector').append('<br><div class="alert">Warning: None of your available SCP Receivers have QRS-enabled DICOM Object Identifiers. This may cause unexpected behavior on import. Consult your XNAT Admin.</div>');
+                        if (!qrsEnabled) jq('#pacsSeriesAeSelector').append('<br><div class="alert">Warning: None of your available SCP Receivers have DQR-enabled DICOM Object Identifiers. This may cause unexpected behavior on import. Consult your XNAT Admin.</div>');
                     })
                 </script>
             </div>
