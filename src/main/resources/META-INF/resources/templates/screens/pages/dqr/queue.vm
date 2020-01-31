@@ -38,7 +38,6 @@
 #set ($isAllowed = false)
 
 #if ($user.checkRole("Administrator") || $user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))
-
     #set ($isAllowed = true)
 #end
 
@@ -62,82 +61,116 @@
     }
 </style>
 
-    <div id="page-body">
-        <div class="pad">
+<div id="page-body">
+    <div class="pad">
 
-            <header id="content-header">
-                <div class="pad" style="padding:20px 0;">
-                    <h2 class="pull-left" style="margin:0;">
-                        PACS Import Queue and History
-                    </h2>
-    ##                <div id="select-pacs-menu-container" class="pull-right">
-    ##                    <label for="select-pacs"><b>Source PACS:</b></label>
-    ##                    <select id="select-pacs" style="min-width: 200px; display: none;" class="menu-ready">
-    ##                        <option value="">Select PACS…</option>
-    ##                        <option value="1" title="ORTHANC">ORTHANC</option>
-    ##                    </select>
-    ##                    <script>
-    ##                        menuInit($('#select-pacs'), {}, 200);
-    ##                    </script>
-    ##                </div>
-                    <div class="clearfix clear"></div>
-                </div>
-            </header>
+        <header id="content-header">
+            <div class="pad" style="padding:20px 0;">
+                <h2 class="pull-left" style="margin:0;">
+                    PACS Import Queue and History
+                </h2>
+                #if ($user.checkRole("Administrator"))
 
-            <div id="pacs-queue-history-tabs">
-                <div class="content-tabs xnat-tab-container" style="display: block;">
-
-                    <div class="xnat-nav-tabs top xnat-tab-nav">
-                        <ul class="tab-group">
-                            <li class="tab active" data-tab="queue"><a title="Queue" href="#!">Queue</a></li>
-                            <li class="tab" data-tab="history"><a title="History" href="#!">History</a></li>
-                        </ul>
+                    ## toggle the 'role' param to switch between views
+                    <div class="pull-right align-right" id="switch-queue-history-view">
+                        <p>
+                            <label>View import queue and history for:
+                                <select id="switch-view-menu" class="hidden" style="width:150px;">
+                                    <option value="user" #if($role != 'admin')selected#end>current user</option>
+                                    <option value="admin" #if($role == 'admin')selected#end>all users</option>
+                                </select>
+                            </label>
+                        </p>
                     </div>
 
-                    <div class="xnat-tab-content">
-                        <div class="tab-pane active" data-name="queue" data-tab="queue">
-                            <div id="pacs-import-queue-display">
-                                <p class="loading"></p>
-                                <script>
-                                    // if it takes more than two seconds to get the data,
-                                    // the 'loading' text should show
-                                    window.setTimeout(function(){
-                                        $('#pacs-import-queue-display').find('p.loading').text('Loading data...');
-                                    }, 2000)
-                                </script>
-                                <!-- PACS import queue table will render here -->
-                            </div>
-                        </div>
-                        <div class="tab-pane" data-name="history" data-tab="history">
-                            <div id="pacs-import-history-display">
-                                <p class="loading"></p>
-                                <script>
-                                    // if it takes more than two seconds to get the data,
-                                    // the 'loading' text should show
-                                    window.setTimeout(function(){
-                                        $('#pacs-import-history-display').find('p.loading').text('Loading data...');
-                                    }, 2000)
-                                </script>
-                                <!-- PACS import history table will render here -->
-                            </div>
-                        </div>
-                    </div>
+                    #[[
+                    <script>
+                        (function(XNAT){
 
-                </div>
+                            var switchViewMenu = $('#switch-view-menu');
+
+                            switchViewMenu.on('change', function(e){
+                                e.preventDefault();
+                                console.log(this.value);
+                                var tab              = getUrlHashValue('tab=');
+                                window.location.href = XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=' + this.value + (tab ? '#tab=' + tab : ''));
+                            });
+
+                            menuInit(switchViewMenu, {}, 150);
+
+                            // var switchViewContainer = document.getElementById('switch-queue-history-view');
+
+                            // var USER = window.username;
+                            // var ALL = 'all users';
+                            // var roleParam = window.adminView ? 'dqr' : 'admin';
+
+                            // switchViewContainer.querySelector('.username').textContent = window.adminView ? ALL : USER;
+                            // switchViewContainer.querySelector('.which-view').textContent = window.adminView ? USER : ALL;
+                            // ## switchViewContainer.querySelector('#switch-view-link').setAttribute('href', '${SITE_ROOT}/')
+
+                        })(getObject(window.XNAT))
+                    </script>
+                    ]]#
+
+                #end
+                <div class="clearfix clear"></div>
             </div>
+        </header>
 
+        <div id="pacs-queue-history-tabs">
+            <div class="content-tabs xnat-tab-container" style="display: block;">
+
+                <div class="xnat-nav-tabs top xnat-tab-nav">
+                    <ul class="tab-group">
+                        <li class="tab active" data-tab="queue"><a title="Queue" href="#!">Queue</a></li>
+                        <li class="tab" data-tab="history"><a title="History" href="#!">History</a></li>
+                    </ul>
+                </div>
+
+                <div class="xnat-tab-content">
+                    <div class="tab-pane active" data-name="queue" data-tab="queue">
+                        <div id="pacs-import-queue-display">
+                            <p class="loading"></p>
+                            <script>
+                                // if it takes more than two seconds to get the data,
+                                // the 'loading' text should show
+                                window.setTimeout(function(){
+                                    $('#pacs-import-queue-display').find('p.loading').text('Loading data...');
+                                }, 2000)
+                            </script>
+                            <!-- PACS import queue table will render here -->
+                        </div>
+                    </div>
+                    <div class="tab-pane" data-name="history" data-tab="history">
+                        <div id="pacs-import-history-display">
+                            <p class="loading"></p>
+                            <script>
+                                // if it takes more than two seconds to get the data,
+                                // the 'loading' text should show
+                                window.setTimeout(function(){
+                                    $('#pacs-import-history-display').find('p.loading').text('Loading data...');
+                                }, 2000)
+                            </script>
+                            <!-- PACS import history table will render here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
+
     </div>
+</div>
 
-    <script src="${SITE_ROOT}/scripts/dqr/queue.js"></script>
+<script src="${SITE_ROOT}/scripts/dqr/queue.js"></script>
 
-    #else
+#else
 
-        <div class="error">Not authorized. Redirecting...</div>
-        <script>
-            window.setTimeout(function(){
-                window.location.href = '${SITE_ROOT}/'
-            }, 2000)
-        </script>
+<div class="error">Not authorized. Redirecting...</div>
+<script>
+    window.setTimeout(function(){
+        window.location.href = '${SITE_ROOT}/'
+    }, 2000)
+</script>
 
 #end
