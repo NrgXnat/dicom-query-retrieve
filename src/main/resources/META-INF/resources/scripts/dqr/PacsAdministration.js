@@ -955,7 +955,7 @@ XNAT.app = getObject(XNAT.app || {});
             var historyEntry = XNAT.app.dqr.queryHistory[id];
             var historyDialogButtons = [
                 {
-                    label: 'OK',
+                    label: 'Close',
                     isDefault: true,
                     close: true
                 }
@@ -1012,7 +1012,7 @@ XNAT.app = getObject(XNAT.app || {});
             console.log(id);
             XNAT.ui.dialog.message({
                 title: false,
-                content: 'Sorry, could not display this history item.',
+                content: 'Sorry, could not display this history item.'
             });
         }
     };
