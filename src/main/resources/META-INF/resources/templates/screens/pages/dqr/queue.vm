@@ -92,8 +92,9 @@
                             switchViewMenu.on('change', function(e){
                                 e.preventDefault();
                                 console.log(this.value);
-                                var tab              = getUrlHashValue('tab=');
-                                window.location.href = XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=' + this.value + (tab ? '#tab=' + tab : ''));
+                                var tabValue = getUrlHashValue('tab=');
+                                var urlHash = tabValue ? XNAT.url.updateHashQuery(window.location.hash, 'tab', tabValue, /\/*#\/*|#+/) : '';
+                                window.location.href = XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=' + this.value + urlHash);
                             });
 
                             menuInit(switchViewMenu, {}, 150);

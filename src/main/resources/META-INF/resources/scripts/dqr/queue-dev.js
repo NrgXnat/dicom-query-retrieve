@@ -996,7 +996,7 @@ var XNAT = getObject(XNAT || {});
                 hash = (hash + key + value);
             }
             else {
-                delim   = delim !== undef ? delim : /#|\/#/;
+                delim   = delim !== undef ? delim : /\/*#\/*|#+/;
                 oldPart = key + hash.split(key)[1].split(delim)[0];
                 newPart = key + value;
                 hash    = hash.replace(oldPart, newPart);

@@ -8,40 +8,7 @@
 ##<script src="${SITE_ROOT}/scripts/lib/lodash/lodash.js"></script>
 ##<script src="${SITE_ROOT}/scripts/lib/xx.js"></script>
 
-#[[
-<script>
-    // ==================================================
-    // Override `XNAT.tab.activate()` until it can be fixed
-    XNAT.tab.activate = XNAT.tab.select = function(name, container){
-        // console.log('tab.select / tab.activate');
-        XNAT.tab.active = XNAT.tabs.active =
-            name || XNAT.tab.active || XNAT.tabs.active;
-        var $container = $$(container || XNAT.tabs.container || 'body');
-        var tabSelector =
-                XNAT.tab.active ?
-                    '[data-tab="' + XNAT.tab.active + '"]' :
-                    '[data-tab]';
-        if (!$(tabSelector).first().length) return;
-        $container
-            .find('li.tab')
-            .removeClass('active')
-            .filter(tabSelector)
-            .addClass('active')
-            .hidden(false);
-        $container
-            .find('div.tab-pane')
-            .removeClass('active')
-            .filter(tabSelector)
-            .addClass('active')
-            .hidden(false);
-            // if a tab is being activated, make sure
-            // the container is NOT hidden
-            $container.hidden(false, 200);
-            window.location.hash = XNAT.url.updateHashQuery(window.location.hash, 'tab', XNAT.tab.active, /\*#\/*|#+/);
-    };
-    // ==================================================
-</script>
-]]#
+<script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/xnat-patch.js"></script>
 
 <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/selectableItems.js"></script>
 <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/filterableItems.js"></script>
