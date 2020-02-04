@@ -65,13 +65,13 @@
     <div class="pad">
 
         <header id="content-header">
-                <div class="pad" style="padding:20px 0;">
-                    <h2 class="pull-left" style="margin:0;">
+            <div class="pad" style="padding:20px 0;">
+                <h2 class="pull-left" style="margin:0;">
                     PACS Import Queue and History
                 </h2>
                 #if ($user.checkRole("Administrator"))
 
-                    ## toggle the 'as' param to switch between views
+                    ## toggle the 'role' param to switch between views
                     <div class="pull-right align-right" id="switch-queue-history-view">
                         <p>
                             <label>View import queue and history for:
@@ -93,8 +93,9 @@
                             switchViewMenu.on('change', function(e){
                                 e.preventDefault();
                                 console.log(this.value);
-                                var tab = getUrlHashValue('tab=');
-                                window.location.href = XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=' + this.value + (tab ? '#tab=' + tab : ''));
+                                var tabValue = getUrlHashValue('tab=');
+                                var urlHash = tabValue ? XNAT.url.updateHashQuery(window.location.hash, 'tab', tabValue, /\/*#\/*|#+/) : '';
+                                window.location.href = XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=' + this.value + urlHash);
                             });
 
                             menuInit(switchViewMenu, {}, 150);
@@ -127,7 +128,6 @@
                 <div class="clearfix clear"></div>
             </div>
         </header>
-
 
         <div id="pacs-queue-history-tabs">
             <div class="content-tabs xnat-tab-container" style="display: block;">
@@ -176,15 +176,15 @@
 
 ##    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/selectableItems-dev.js"></script>
 ##    <script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/filterableItems-dev.js"></script>
-    <script src="${SITE_ROOT}/scripts/dqr/queue-dev.js"></script>
+<script src="${SITE_ROOT}/scripts/dqr/queue-dev.js"></script>
 
 #else
 
-    <div class="error">Not authorized. Redirecting...</div>
-    <script>
-        window.setTimeout(function(){
-            window.location.href = '${SITE_ROOT}/'
-        }, 2000)
-    </script>
+<div class="error">Not authorized. Redirecting...</div>
+<script>
+    window.setTimeout(function(){
+        window.location.href = '${SITE_ROOT}/'
+    }, 2000)
+</script>
 
 #end
