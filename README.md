@@ -5,6 +5,7 @@ Core XNAT includes a DICOM SCP receiver that allows your system to receive image
 With these new capabilities, the DQR Plugin can significantly impact your ability to interact with clinical PACS data. It also offers fine-tuned administrative controls, to help XNAT administrators and PACS administrators set and enforce policies on things such as data transfer rate and availability. 
 
 **With the DQR Plugin, users can:**
+
 * Find patient records by date, by MRN, by name, or other fields
 * Import one, some, or all scan series for a given study into XNAT as a new image session
 * Apply custom relabeling on every new import as needed
@@ -12,6 +13,7 @@ With these new capabilities, the DQR Plugin can significantly impact your abilit
 * Send new scan series data back to PACS from your XNAT
 
 **With the DQR Plugin, XNAT admins can:**
+
 * Set up and manage connections to PACS systems and other DICOM AEs
 * Configure availability windows and data throughput rates for each connected PACS
 * Fine-tune XNAT's DICOM anonymization and relabeling behavior
