@@ -1088,7 +1088,9 @@ var XNAT = getObject(XNAT || {});
                             // }
                         }],
                         ['click', 'td:has(.select-row)', function(e){
-                            $(this).closest('tr').find('input.select-session').trigger('click');
+                            if (!$(e.target).is('input.select-session')) {
+                                $(this).closest('tr').find('input.select-session').trigger('click');
+                            }
                         }]
                     ]
                 },
@@ -1108,7 +1110,7 @@ var XNAT = getObject(XNAT || {});
                                 value: uid
                             });
                             ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
-                            return ckbxLabel(ckbx);
+                            return ckbxLabel(spawn('div.center.select-row', [ckbx]));
                         }
                     },
                     accessionNumber: {
