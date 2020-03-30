@@ -704,7 +704,7 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    function importSessionsOfSelectedTypeToProject(){
+    function importSessionsOfSelectedTypeToProject(scanTypesDialog){
 
         var $searchResultsTable = $('#all-search-results');
         var $selectedSessions   = $searchResultsTable.find('input.select-session:checked').filter(':visible');
@@ -835,22 +835,21 @@ var XNAT = getObject(XNAT || {});
                     title: ' ',
                     width: 400,
                     content: (function(){
-                        return '<div style="margin:30px;">' +
-                            '<p>' +
-                            'PACS data has been queued for import. You may close ' +
-                            'this dialog to start a new search.</p>' +
-                            '<p>' +
-                            'You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=dqr#tab=queue') + '">' +
+                        return '' +
+                            '<div class="success">PACS data has been queued for import.</div>' +
+                            '<p style="margin:1em;">' +
+                            'Close this dialog to return to the search results. You can also ' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=dqr#tab=queue') + '">' +
                             'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
-                            'go back to the project page.</a></p>' +
-                            '</div>';
+                            'go back to the project page.</a>' +
+                            '</p>';
                     })(),
                     okLabel: 'Close',
-                    okAction: function(){
-                        XNAT.dialog.loading.open();
-                        window.location.reload(true);
+                    okAction: function(obj){
+                        scanTypesDialog.close();
+                        // XNAT.dialog.loading.open();
+                        // window.location.reload(true);
                     }
                 });
             },
@@ -882,7 +881,7 @@ var XNAT = getObject(XNAT || {});
                         isDefault: true,
                         close: false,
                         action: function(obj){
-                            importSessionsOfSelectedTypeToProject();
+                            importSessionsOfSelectedTypeToProject(obj);
                         }
                     },
                     {

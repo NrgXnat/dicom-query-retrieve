@@ -704,7 +704,7 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    function importSessionsOfSelectedTypeToProject(){
+    function importSessionsOfSelectedTypeToProject(scanTypesDialog){
 
         var $searchResultsTable = $('#all-search-results');
         var $selectedSessions   = $searchResultsTable.find('input.select-session:checked').filter(':visible');
@@ -792,22 +792,32 @@ var XNAT = getObject(XNAT || {});
                 return type === NONE ? '' : type;
             });
 
-            jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
+            // remove this item if there are no associated series descriptions
+            if (jsonData[uid].seriesDescriptions.length === 0) {
 
-            forEach(jsonData[uid].seriesDescriptions, function(type){
-                jsonData[uid].seriesInstanceUids =
-                    jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
-            });
+                delete jsonData[uid];
 
-            jsonData[uid].relabelMap = (function(){
-                var relabelMapTemp = {};
-                var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
-                $importRow.find('input.relabel').each(function(){
-                    // only add to the relabelMap object if there's a value
-                    this.value && (relabelMapTemp[this.title] = this.value || '');
+            }
+            else {
+
+                jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
+
+                forEach(jsonData[uid].seriesDescriptions, function(type){
+                    jsonData[uid].seriesInstanceUids =
+                        jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
                 });
-                return relabelMapTemp;
-            })();
+
+                jsonData[uid].relabelMap = (function(){
+                    var relabelMapTemp = {};
+                    var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
+                    $importRow.find('input.relabel').each(function(){
+                        // only add to the relabelMap object if there's a value
+                        this.value && (relabelMapTemp[this.title] = this.value || '');
+                    });
+                    return relabelMapTemp;
+                })();
+
+            }
 
         });
 
@@ -827,22 +837,21 @@ var XNAT = getObject(XNAT || {});
                     title: ' ',
                     width: 400,
                     content: (function(){
-                        return '<div style="margin:30px;">' +
-                            '<p>' +
-                            'PACS data has been queued for import. You may close ' +
-                            'this dialog to start a new search.</p>' +
-                            '<p>' +
-                            'You can also ' +
+                        return '' +
+                            '<div class="success">PACS data has been queued for import.</div>' +
+                            '<p style="margin:1em;">' +
+                            'Close this dialog to return to the search results. You can also ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=dqr#tab=queue') + '">' +
                             'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
-                            'go back to the project page.</a></p>' +
-                            '</div>';
+                            'go back to the project page.</a>' +
+                            '</p>';
                     })(),
                     okLabel: 'Close',
-                    okAction: function(){
-                        XNAT.dialog.loading.open();
-                        window.location.reload(true);
+                    okAction: function(obj){
+                        scanTypesDialog.close();
+                        // XNAT.dialog.loading.open();
+                        // window.location.reload(true);
                     }
                 });
             },
@@ -874,7 +883,7 @@ var XNAT = getObject(XNAT || {});
                         isDefault: true,
                         close: false,
                         action: function(obj){
-                            importSessionsOfSelectedTypeToProject();
+                            importSessionsOfSelectedTypeToProject(obj);
                         }
                     },
                     {
@@ -1080,7 +1089,9 @@ var XNAT = getObject(XNAT || {});
                             }
                         }],
                         ['click', 'td:has(.select-row)', function(e){
-                            $(this).closest('tr').find('input.select-session').trigger('click');
+                            if (!$(e.target).is('input.select-session')) {
+                                $(this).closest('tr').find('input.select-session').trigger('click');
+                            }
                         }]
                     ]
                 },
@@ -1100,7 +1111,7 @@ var XNAT = getObject(XNAT || {});
                                 value: uid
                             });
                             ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
-                            return ckbxLabel(ckbx);
+                            return ckbxLabel(spawn('div.center.select-row', [ckbx]));
                         }
                     },
                     accessionNumber: {
@@ -1223,7 +1234,7 @@ var XNAT = getObject(XNAT || {});
                 window.jsdebug && console.log(AE);
                 receiverMap[AE] = item;
                 // only add 'dqr' receivers to the menu
-                if (/dqr/i.test(item.identifier)) {
+                if (/dqr/i.test(item.identifier) && item.customProcessing) {
                     !hasReceiver && (hasReceiver = item.enabled);
                     aeMenu$.spawn('option.receiver', {
                         title: AE,
@@ -1475,6 +1486,7 @@ var XNAT = getObject(XNAT || {});
                     failure: function(){
                         console.warn('error importing CSV');
                         console.warn(arguments);
+                        XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
                     }
                 });
             }
