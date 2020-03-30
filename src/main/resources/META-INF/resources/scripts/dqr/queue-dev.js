@@ -462,7 +462,7 @@ var XNAT = getObject(XNAT || {});
                         // importQueueTableNav: setupTableNav('queue'),
                         importQueueTable: {
                             kind: 'table.dataTable',
-                            data: hasData ? sortObjectsNumeric(queueData, 'queued_time').reverse() : [],
+                            data: hasData ? queueData : [],
                             // messages: {
                             //     noData: '<div class="message">There are no queued items to display.</div>'
                             // },

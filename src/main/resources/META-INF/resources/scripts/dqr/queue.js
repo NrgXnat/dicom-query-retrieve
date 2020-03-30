@@ -420,7 +420,7 @@ var XNAT = getObject(XNAT || {});
                         // importQueueTableNav: setupTableNav('queue'),
                         importQueueTable: {
                             kind: 'table.dataTable',
-                            data: hasData ? sortObjectsNumeric(queueData, 'queued_time').reverse() : [],
+                            data: hasData ? queueData : [],
                             // messages: {
                             //     noData: '<div class="message">There are no queued items to display.</div>'
                             // },
@@ -969,9 +969,28 @@ var XNAT = getObject(XNAT || {});
         // update parameter(s) stored in the url hash in the format
         // #foo=bar
         function updateHashQuery(key, value){
+
+            var hashParts = window.location.hash.split(/#+/).map(function(query, i){
+
+                if (!query) return '';
+
+                var queryParts = query.split(/=+/);
+                var paramName, paramValue;
+
+                if (queryParts.length) {
+                    paramName  = queryParts[0].trim();
+                    paramValue = paramName === key ? '' + firstDefined(value, '') : queryParts[1].trim();
+                }
+
+                return [paramName, paramValue].join('=');
+
+            });
+
+            return (window.location.hash = hashParts.join('#'));
+
             // make sure key starts with '#' and ends with '='
-            key = key.replace(/^#*/, '#').replace(/=*$/, '=');
-            return updateHashPart(window.location.hash, key, value);
+            // key = key.replace(/^#*/, '#').replace(/=*$/, '=');
+            // return updateHashPart(window.location.hash, key, value);
         }
 
 

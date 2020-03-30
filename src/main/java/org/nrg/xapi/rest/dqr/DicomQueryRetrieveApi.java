@@ -104,9 +104,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGet() {
+    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGet(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder
+    ) {
         final UserI user = getSessionUser();
-        return new ResponseEntity<>(_executedRequestService.getAllForUser(user), HttpStatus.OK);
+        List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
+        if (!sortOrder.equalsIgnoreCase("asc")) {
+            Collections.reverse(allRequests);
+        }
+        return new ResponseEntity<>(allRequests, HttpStatus.OK);
     }
 
 
@@ -125,51 +131,67 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
 
 
-    @ApiOperation(value = "Get list of DICOM query request history entries for all users within a specified range.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
+    @ApiOperation(
+            value = "Get list of DICOM query request history entries for all users within a specified range.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
+    )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/history/all/range", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGetRange(
-            @ApiParam("Page start") @RequestParam(name = "start", defaultValue = "1") final int pageStart,
-            @ApiParam("Page end") @RequestParam(name = "end", defaultValue = "100") final int pageEnd) {
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
+            @ApiParam("Range start") @RequestParam(name = "start", defaultValue = "1") final int rangeStart,
+            @ApiParam("Range end") @RequestParam(name = "end", defaultValue = "100") final int rangeEnd) {
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAll();
-        int start = Math.max(0, pageStart - 1);
-        int end = Math.min(pageEnd, allRequests.size());
-        if (start > end) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        if (start >= allRequests.size()) {
+        int start = Math.max(1, rangeStart);
+        int end = Math.min(rangeEnd, allRequests.size());
+        // if (start > end) {
+        //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
+        if (start > allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
+        if (!sortOrder.equalsIgnoreCase("asc")) {
+            Collections.reverse(allRequests);
+        }
+        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start - 1, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
 
 
 
-    @ApiOperation(value = "Get paged list of DICOM query request history entries for all users.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
+    @ApiOperation(
+            value = "Get paged list of DICOM query request history entries for all users.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
+    )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/history/all/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGetPaged(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
             @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
             @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAll();
         int start = pageIndex * pageSize;
         int end = Math.min((start + pageSize), allRequests.size());
-        if (start > end) {
-           return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        // if (start > end) {
+        //    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        if (!sortOrder.equalsIgnoreCase("asc")) {
+            Collections.reverse(allRequests);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
@@ -177,9 +199,13 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
 
 
-    @ApiOperation(value = "Get list of DICOM query request history entries for the current user within a specified range.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
+    @ApiOperation(
+            value = "Get list of DICOM query request history entries for the current user within a specified range.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
+    )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
@@ -187,19 +213,23 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user/range", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGetRange(
-            @ApiParam("Page start") @RequestParam(name = "start", defaultValue = "1") final int pageStart,
-            @ApiParam("Page end") @RequestParam(name = "end", defaultValue = "100") final int pageEnd) {
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
+            @ApiParam("Range start") @RequestParam(name = "start", defaultValue = "1") final int rangeStart,
+            @ApiParam("Range end") @RequestParam(name = "end", defaultValue = "100") final int rangeEnd) {
         final UserI user = getSessionUser();
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
-        int start = Math.max(0, pageStart - 1);
-        int end = Math.min(pageEnd, allRequests.size());
-        if (start > end) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        int start = Math.max(1, rangeStart);
+        int end = Math.min(rangeEnd, allRequests.size());
+        // if (start > end) {
+        //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
+        // if (start > allRequests.size()) {
+        //    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        // }
+        if (!sortOrder.equalsIgnoreCase("asc")) {
+            Collections.reverse(allRequests);
         }
-        if (start >= allRequests.size()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
+        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start - 1, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
 
@@ -207,7 +237,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @ApiOperation(value = "Get paged list of DICOM query request history for the current user.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
@@ -215,17 +245,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGetPaged(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
             @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
             @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
         final UserI user = getSessionUser();
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
         int start = pageIndex * pageSize;
         int end = Math.min((start + pageSize), allRequests.size());
-        if (start > end) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        // if (start > end) {
+        //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        if (!sortOrder.equalsIgnoreCase("asc")) {
+            Collections.reverse(allRequests);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
@@ -312,8 +346,14 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet() {
-        return new ResponseEntity<>(_queuedRequestService.getAllWithOrder(), HttpStatus.OK);
+    public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder
+    ) {
+        List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
+        if (!sortOrder.equalsIgnoreCase("desc")) {
+            Collections.reverse(allRequests);
+        }
+        return new ResponseEntity<>(allRequests, HttpStatus.OK);
     }
 
 
@@ -325,16 +365,22 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet() {
+    public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder
+    ) {
         final UserI user = getSessionUser();
-        return new ResponseEntity<>(_queuedRequestService.getAllWithOrderForUser(user), HttpStatus.OK);
+        List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
+        if (!sortOrder.equalsIgnoreCase("desc")) {
+            Collections.reverse(allRequests);
+        }
+        return new ResponseEntity<>(allRequests, HttpStatus.OK);
     }
 
 
 
     @ApiOperation(value = "Get paged list of queued DICOM query requests for all users.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system with brief information about each.", response = QueuedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
@@ -351,6 +397,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+        Collections.reverse(allRequests);
         List<QueuedPacsRequest> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
@@ -359,7 +406,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @ApiOperation(value = "Get paged list of queued DICOM query requests for the current user.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system for the current user with brief information about each.", response = QueuedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
@@ -378,6 +425,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+        Collections.reverse(allRequests);
         List<QueuedPacsRequest> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
@@ -386,23 +434,27 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @ApiOperation(value = "Get paged list of queued DICOM query requests with order information for all users.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system with brief information about each (including order information).", response = QueuedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<Map<String, Object>>> queryQueueGetPagedWithOrder(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder,
             @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
             @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
         int start = pageIndex * pageSize;
         int end = Math.min((start + pageSize), allRequests.size());
-        if (start > end) {
-           return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        if (start >= allRequests.size()) {
+        // if (start > end) {
+        //    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
+        if (start > allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        if (sortOrder.equalsIgnoreCase("desc")) {
+            Collections.reverse(allRequests);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
@@ -412,7 +464,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @ApiOperation(value = "Get paged list of queued DICOM query requests with order information for the current user.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system for the current user with brief information about each (including order information).", response = QueuedPacsRequest.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of queued DICOM query requests."),
-            @ApiResponse(code = 204, message = "No results on that page."),
+            @ApiResponse(code = 204, message = "No results. Invalid page range."),
             @ApiResponse(code = 400, message = "Request could not be completed as submitted."),
             @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
             @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
@@ -420,17 +472,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<Map<String, Object>>> queryUserQueueGetPagedWithOrder(
+            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder,
             @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
             @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
         final UserI user = getSessionUser();
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
         int start = pageIndex * pageSize;
         int end = Math.min((start + pageSize), allRequests.size());
-        if (start > end) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+        // if (start > end) {
+        //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        if (sortOrder.equalsIgnoreCase("desc")) {
+            Collections.reverse(allRequests);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
