@@ -1,3 +1,17 @@
+#################################################
+####  Root Site Admin Spawner Config Object  ####
+#################################################
+
+siteSettings:
+    kind: tabs
+    name: dqrAdminPage
+    groups:
+        dqrTabGroup: DICOM Query-Retrieve
+    contents:
+        ${dqrPacsTab}
+        ${dqrHistoryTab}
+        #${dqrAnon}
+
 ####
 #### DQR Site Settings Panels
 ####
@@ -5,7 +19,7 @@
 dqrPacsTab:
     kind: tab
     name: dqrPacsTab
-    label: DICOM Query-Retrieve Plugin
+    label: DQR Settings
     group: dqrTabGroup
     active: false
     contents:
@@ -29,9 +43,7 @@ dqrPacsPanel:
     contents:
         dqrPacsTableContainer:
             tag: "div#pacsDiv"
-            element:
-                html: >
-                    No DICOM AE connections yet
+            content: No DICOM AE connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/dqr/PacsAdministration.js"
         dqrPacsCss:
@@ -57,7 +69,7 @@ dqrOtherPreferencePanel:
     name: dqrOtherPreferencePanel
     label: Other Preferences
     method: POST
-    url: /xapi/dqr
+    url: ~/xapi/dqr
     contentType: json
     contents:
         dqrCallingAe:
@@ -117,12 +129,13 @@ dqrOtherPreferencePanel:
                 get split up into multiple sessions. However, if you're more worried about avoiding remapping issues
                 when requesting the same session repeatedly in quick succession, this should be set to 0. Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+
 #### DQR History Tab ####
 
 dqrHistoryPanel:
     kind: panel
     name: dqrHistoryPanel
-    label: DICOM AE Query History
+    label: DICOM AE Import Queue and History
     footer: false
     contents:
         dqrQueueContainer:
@@ -210,21 +223,5 @@ dqrAnonPanel:
             code: text
             description: >
                 Anonymization script to apply to incoming PACS data. (Double-click to open in a code editor dialog.)
-
-
-
-#################################################
-####  Root Site Admin Spawner Config Object  ####
-#################################################
-
-siteSettings:
-    kind: tabs
-    name: dqrAdminPage
-    groups:
-        dqrTabGroup: DICOM Query-Retrieve Plugin
-    contents:
-        ${dqrPacsTab}
-        ${dqrHistoryTab}
-        #${dqrAnon}
 
 # end
