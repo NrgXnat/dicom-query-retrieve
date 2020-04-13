@@ -1131,6 +1131,7 @@ var XNAT = getObject(XNAT || {});
                         apply: function(){
                             // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
                             var patientName = this.patient.name.lastNameCommaFirstName || '';
+                            /^null$/.test(patientName) && (patientName = '');
                             return spawn('div.truncate.select-row.filter-data-item', {
                                 title: patientName,
                                 data: { filter: 'patientName' }
@@ -1301,7 +1302,7 @@ var XNAT = getObject(XNAT || {});
 
             if (!hasReceiver) {
                 aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
-                aeMenu0.disabled           = true;
+                aeMenu0.disabled = true;
                 beginImportButton.disabled = true;
                 beginImportButton.classList && beginImportButton.classList.add('disabled');
             }

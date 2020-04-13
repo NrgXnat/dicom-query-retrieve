@@ -1133,6 +1133,7 @@ var XNAT = getObject(XNAT || {});
                         apply: function(){
                             // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
                             var patientName = this.patient.name.lastNameCommaFirstName || '';
+                            /^null$/.test(patientName) && (patientName = '');
                             return spawn('div.truncate.select-row.filter-data-item', {
                                 title: patientName,
                                 data: { filter: 'patientName' }
