@@ -101,6 +101,10 @@ var XNAT = getObject(XNAT || {});
         }
     }
 
+    function localeDate(time){
+        return (new Date(time)).toLocaleString()
+    }
+
 
     $(function(){
 
@@ -109,7 +113,7 @@ var XNAT = getObject(XNAT || {});
         function renderTimeCell(time){
             return spawn('div.center.mono.nowrap', [
                 ['span.hidden.time.sort-value', (time + '')],
-                ['span.locale-string', (new Date(time)).toLocaleString().replace(', ', '<br>')]
+                ['span.locale-string', localeDate(time).replace(', ', '<br>')]
             ])
         }
 
@@ -246,7 +250,7 @@ var XNAT = getObject(XNAT || {});
                     }
                     XNAT.dialog.open({
                         width: 800,
-                        title: 'Query to ' + resolvePACSLabel(data.pacsId) + ' on ' + formatDate(data.queuedTime),
+                        title: 'Query to ' + resolvePACSLabel(data.pacsId) + ' on ' + localeDate(data.queuedTime),
                         content: dataDisplay({
                             header: {
                                 key: 'Key',
@@ -432,7 +436,7 @@ var XNAT = getObject(XNAT || {});
 
 
         function setupQueueUrl(all, page, size){
-            var queueUrl      = '/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered';
+            var queueUrl = '/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered';
             var queueUrlQuery = [];
             if (!all) {
                 queueUrl += ('/paged');
@@ -749,7 +753,7 @@ var XNAT = getObject(XNAT || {});
 
 
         function setupHistoryUrl(all, page, size){
-            var historyUrl      = '/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
+            var historyUrl = '/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
             var historyUrlQuery = [];
             if (!all) {
                 historyUrl += ('/paged');

@@ -101,6 +101,10 @@ var XNAT = getObject(XNAT || {});
         }
     }
 
+    function localeDate(time){
+        return (new Date(time)).toLocaleString()
+    }
+
 
     $(function(){
 
@@ -109,7 +113,7 @@ var XNAT = getObject(XNAT || {});
         function renderTimeCell(time){
             return spawn('div.center.mono.nowrap', [
                 ['span.hidden.time.sort-value', (time + '')],
-                ['span.locale-string', (new Date(time)).toLocaleString().replace(', ', '<br>')]
+                ['span.locale-string', localeDate(time).replace(', ', '<br>')]
             ])
         }
 
@@ -246,7 +250,7 @@ var XNAT = getObject(XNAT || {});
                     }
                     XNAT.dialog.open({
                         width: 800,
-                        title: 'Query to ' + resolvePACSLabel(data.pacsId) + ' on ' + formatDate(data.queuedTime),
+                        title: 'Query to ' + resolvePACSLabel(data.pacsId) + ' on ' + localeDate(data.queuedTime),
                         content: dataDisplay({
                             header: {
                                 key: 'Key',
