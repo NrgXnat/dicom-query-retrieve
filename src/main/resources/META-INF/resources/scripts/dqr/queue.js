@@ -245,8 +245,13 @@ var XNAT = getObject(XNAT || {});
                 url: url,
                 success: function(data){
                     console.log(data);
-                    if (data && data.seriesIds) {
-                        data.seriesIds = data.seriesIds.split(',').join('<br>');
+                    data = getObject(data);
+                    if (data.seriesIds) {
+                        // data.seriesIds = data.seriesIds.split(',').join(', ');
+                        data.seriesIds = spawn('pre|style=margin:0', data.seriesIds.split(',').join(',\n')).outerHTML
+                    }
+                    if (data.remappingScript) {
+                        data.remappingScript = spawn('pre|style=margin:0', data.remappingScript).outerHTML
                     }
                     XNAT.dialog.open({
                         width: 800,
@@ -745,7 +750,8 @@ var XNAT = getObject(XNAT || {});
                         // importHistoryTableNav: hasData && historyData.length > SIZE ? setupTableNav('history') : {},
                         importHistoryTable: {
                             kind: 'table.dataTable',
-                            data: hasData ? sortObjectsNumeric(historyData, 'executedTime').reverse() : [],
+                            // data: hasData ? sortObjectsNumeric(historyData, 'executedTime') : [],
+                            data: historyData || [],
                             apply: function(data){
                                 console.log('history table data');
                                 console.log(data);

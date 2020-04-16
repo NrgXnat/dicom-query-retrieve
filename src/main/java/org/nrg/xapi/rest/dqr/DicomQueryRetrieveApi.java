@@ -350,7 +350,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder
     ) {
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
-        if (!sortOrder.equalsIgnoreCase("desc")) {
+        if (sortOrder.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         return new ResponseEntity<>(allRequests, HttpStatus.OK);
@@ -370,7 +370,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     ) {
         final UserI user = getSessionUser();
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
-        if (!sortOrder.equalsIgnoreCase("desc")) {
+        if (sortOrder.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         return new ResponseEntity<>(allRequests, HttpStatus.OK);

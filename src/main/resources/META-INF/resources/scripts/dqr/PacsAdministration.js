@@ -409,7 +409,8 @@ XNAT.app = getObject(XNAT.app || {});
                                  });
                                  console.log(URL);
                                  XNAT.dialog.load(URL, {
-                                     width: 1150
+                                     width: 1150,
+                                     maxBtn: false
                                  });
                              }]]
                          }, 'Schedule') ])
