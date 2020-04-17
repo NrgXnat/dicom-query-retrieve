@@ -1084,9 +1084,9 @@ var XNAT = getObject(XNAT || {});
                         ['blur', 'input.relabel', function(e){
                             var uid = $(this).closest('tr').data('uid');
                             console.log(uid);
-                            if (this.value) {
+                            // if (this.value) {
                                 dqr.allSearchResults[uid].relabelMap[this.title] = this.value;
-                            }
+                            // }
                         }],
                         ['click', 'td:has(.select-row)', function(e){
                             if (!$(e.target).is('input.select-session')) {
@@ -1106,11 +1106,11 @@ var XNAT = getObject(XNAT || {});
                         label: false,
                         td: { style: { width: WIDTHS.select } },
                         apply: function(){
-                            var uid      = this.studyInstanceUid;
-                            var ckbx     = spawn('input.select-session.selectable-one|type=checkbox', {
-                                value: uid
+                            var uid  = this.studyInstanceUid;
+                            var ckbx = spawn('input.select-session.selectable-one|type=checkbox', {
+                                value: uid,
+                                checked: firstDefined(dqr.allSearchResults[uid].checked, false)
                             });
-                            ckbx.checked = firstDefined(dqr.allSearchResults[uid].checked, false);
                             return ckbxLabel(spawn('div.center.select-row', [ckbx]));
                         }
                     },
@@ -1274,7 +1274,7 @@ var XNAT = getObject(XNAT || {});
                         relabelInputs$.prop('disabled', false).css('opacity', '1');
                     }
                 }
-                catch(e){
+                catch(e) {
                     window.jsdebug && console.warn(e);
                 }
 
@@ -1413,21 +1413,46 @@ var XNAT = getObject(XNAT || {});
 
     $searchSubmit.on('click', function(e){
         e.preventDefault();
-        var self         = this;
-        dqr.selectedPacs = $selectPacsMenu.val();
-        if (!dqr.selectedPacs) {
-            XNAT.dialog.message(false, 'Please select a PACS to query.', {
-                okAction: function(obj){
-                    // $selectPacsMenu.click();
-                    // menuUpdate($selectPacsMenu);
-                }
+
+        var self = this;
+
+        var searchResultsTable$ = $('#all-search-results');
+
+        function doSearch(){
+            dqr.selectedPacs = $selectPacsMenu.val();
+            if (!dqr.selectedPacs) {
+                XNAT.dialog.message(false, 'Please select a PACS to query.', {
+                    okAction: function(obj){
+                        // $selectPacsMenu.click();
+                        // menuUpdate($selectPacsMenu);
+                    }
+                });
+                return;
+            }
+            pingPACS(dqr.selectedPacs, function(){
+                renderResultsTable(false);
+                searchPACS.apply(self, arguments);
             });
-            return;
         }
-        pingPACS(dqr.selectedPacs, function(){
-            renderResultsTable(false);
-            searchPACS.apply(self, arguments);
-        });
+
+        // confirm clearing of search results before doing new search
+        if (searchResultsTable$.find('tr[data-uid]').length) {
+            XNAT.dialog.confirm({
+                title: 'Perform New Search?',
+                content: '' +
+                    'Performing a new search will clear the results table below. ' +
+                    'Would you like to clear the results and continue?',
+                okLabel: 'Continue',
+                okAction: function(dialog){
+                    doSearch();
+                }
+            })
+        }
+        // if there are no results displayed, just do it
+        else {
+            doSearch()
+        }
+
     });
 
     // handle CSV import
