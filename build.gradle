@@ -7,78 +7,43 @@
  * Released under the Simplified BSD.
  */
 
-def pluginVersion = '1.0.0-PRERELEASE'
-def vXnat = '1.7.6'
+def pluginVersion = "1.0.0-PRERELEASE"
+def vXnat = "1.7.6"
 
-apply plugin: 'io.spring.dependency-management'
-apply plugin: 'groovy'
-apply plugin: 'java'
-apply plugin: 'jacoco'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'idea'
+apply plugin: "java"
+apply plugin: "jacoco"
+apply plugin: "maven-publish"
+apply plugin: "idea"
+apply plugin: "eclipse"
 apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: 'eclipse'
+apply plugin: "io.spring.dependency-management"
 
 buildscript {
     repositories {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-        maven {
-            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
-            name 'XNAT Release Repository'
-        }
-        maven {
-            url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
-            name 'XNAT Snapshot Repository'
-        }
+        maven { url "https://plugins.gradle.org/m2" }
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     }
     dependencies {
-        classpath "org.hibernate:hibernate-validator:6.0.3.Final"
-        classpath "io.franzbecker:gradle-lombok:1.11"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE"
-        classpath "org.apache.maven.plugins:maven-resources-plugin:2.5"
-        classpath "org.apache.maven.plugins:maven-compiler-plugin:3.7.0"
-        classpath "org.apache.maven.plugins:maven-surefire-plugin:2.20.1"
-        classpath "org.apache.maven.plugins:maven-antrun-plugin:1.8"
-        classpath "org.apache.maven.plugins:maven-jar-plugin:3.0.2"
-        classpath "javax.validation:validation-api:2.0.0.Final"
-        classpath "org.nrg.xdat:core:1.7.6-SNAPSHOT"
-        classpath "org.nrg:framework:1.7.6-SNAPSHOT"
-        classpath ("org.nrg.xnat.build:xnat-data-builder:1.7.6-SNAPSHOT"){
-            exclude group:'torque'
-        }
+        classpath "io.franzbecker:gradle-lombok:3.3.0"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.6"
     }
 }
 
-group 'org.nrg.xnat'
+group "org.nrg.xnat"
 version pluginVersion
-
 
 repositories {
     mavenLocal()
-    maven {
-        url "http://maven.imagej.net/content/groups/public"
-        name "ImageJ Maven Repository"
-    }
+    maven { url "https://maven.imagej.net/content/groups/public" }
     jcenter()
     mavenCentral()
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-release'
-        name 'XNAT Release Repository'
-    }
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot'
-        name 'XNAT Snapshot Repository'
-    }
-    maven {
-        url 'https://nrgxnat.jfrog.io/nrgxnat/ext-release'
-        name 'XNAT External Release Repository'
-    }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
+    maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
 }
 
 sourceCompatibility = 1.7
@@ -93,7 +58,7 @@ if (hasProperty("rt.17.jar")) {
         tasks.withType(JavaCompile) {
             options.fork = true
             options.compilerArgs << "-XDignore.symbol.file"
-            options.bootClasspath = rt17jar
+            options.bootstrapClasspath = files(rt17jar as String)
         }
     }
 } else {
@@ -105,8 +70,38 @@ compileJava {
     options.fork = false
 }
 
+sourceSets {
+    main {
+        java {
+            srcDir "src/main/java"
+            srcDir "build/xnat-generated/src/main/java"
+        }
+        resources {
+            srcDir "src/main/resources"
+            srcDir "build/xnat-generated/src/main/resources"
+        }
+    }
+}
+
+configurations {
+    all {
+        exclude group: "edu.ucar", module: "netcdf"
+        exclude group: "jakarta-regexp"
+        exclude group: "net.sf.saxon", module: "Saxon-B"
+        exclude group: "org.apache.geronimo.specs"
+        exclude module: "pipelineCNDAXNAT"
+        exclude module: "xnat-pipeline"
+        exclude group: "jamon"
+    }
+    implementation.extendsFrom(implementAndInclude)
+}
+
+dependencyManagement.imports {
+    mavenBom "org.nrg:parent:${vXnat}"
+}
+
 jacoco {
-    toolVersion = "0.7.9"
+    toolVersion = dependencyManagement.importedProperties["jacoco.version"]
 }
 
 jacocoTestReport {
@@ -118,79 +113,94 @@ jacocoTestReport {
     }
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir 'src/main/java'
-            srcDir 'build/xnat-generated/src/main/java'
-        }
-        resources {
-            srcDir 'src/main/resources'
-            srcDir 'build/xnat-generated/src/main/resources'
-        }
-    }
-}
-
-configurations {
-    all {
-        exclude group: 'edu.ucar', module: 'netcdf'
-        exclude group: 'jakarta-regexp'
-        exclude group: 'net.sf.saxon', module: 'Saxon-B'
-        exclude group: 'org.apache.geronimo.specs'
-        exclude module: 'pipelineCNDAXNAT'
-        exclude group: 'jamon'
-    }
-    compile.extendsFrom(compileAndInclude)
-}
-
-dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnat}"
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
 dependencies {
-    implementation "org.nrg.xnat:web"
-    implementation 'javax.servlet:servlet-api'
-    implementation 'velocity:velocity'
-    implementation 'org.hibernate:hibernate-core'
-    implementation 'com.google.guava:guava'
-    implementation 'commons-lang:commons-lang'
-    implementation 'com.fasterxml.jackson.core:jackson-core'
-    implementation 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api'
-    implementation 'javax.jms:javax.jms-api'
-    implementation 'javax.inject:javax.inject'
-    implementation 'org.restlet:org.restlet'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'org.nrg:mail'
-    implementation "org.nrg:dicomtools"
-    implementation "org.nrg:dicom-xnat-mx"
-    implementation "org.nrg.dicom:dicom-edit4"
-    implementation "org.nrg.xnat:xnat-data-models"
-    implementation "org.nrg.xdat:core"
-    implementation "org.nrg:framework"
-    implementation "org.nrg:config"
-    implementation "javax.servlet:javax.servlet-api"
-    implementation "turbine:turbine"
-    implementation "org.apache.velocity:velocity"
-    implementation "org.springframework:spring-beans"
-    implementation "org.springframework:spring-context"
-    implementation "org.springframework:spring-jms"
+    implementation("org.nrg.xnat:web") {
+        transitive = false
+    }
+    implementation("org.nrg.xnat:xnat-data-models") {
+        transitive = false
+    }
+    implementation("org.nrg.xdat:core") {
+        transitive = false
+    }
+    implementation("org.nrg.dicom:mizer") {
+        transitive = false
+    }
+    implementation("org.nrg:dicomtools") {
+        transitive = false
+    }
+    implementation("org.nrg:prefs") {
+        transitive = false
+    }
+    implementation("org.nrg:config") {
+        transitive = false
+    }
+    implementation("org.nrg:dicom-xnat-mx") {
+        transitive = false
+    }
+    implementation("org.nrg:dicom-xnat-util") {
+        transitive = false
+    }
+    implementation("org.nrg:framework") {
+        transitive = false
+    }
+    /*
+    implementation("org.nrg:mail") {
+        transitive = false
+    }
+    implementation("org.nrg.dicom:dicom-edit4") {
+        transitive = false
+    }
+    implementation("org.nrg.xnat:xnat-data-models") {
+        transitive = false
+    }
+    */
+
+//    implementation "org.springframework:spring-beans"
+//    implementation "org.springframework:spring-context"
+//    implementation "org.springframework:spring-jms"
+//    implementation "org.springframework:spring-tx"
+//    implementation "org.springframework:spring-webmvc"
+    implementation "org.springframework:spring-web"
     implementation "org.springframework:spring-tx"
-    implementation 'org.springframework:spring-webmvc'
+    implementation "org.springframework:spring-jms"
+    implementation "org.springframework:spring-jdbc"
     implementation "io.springfox:springfox-swagger2"
+//
+    implementation "dcm4che:dcm4che-core:2.0.29"
+    implementation "dcm4che:dcm4che-net:2.0.29"
+    implementation "org.hibernate:hibernate-core"
+    implementation "org.hibernate:hibernate-envers"
+    implementation "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
+    implementation "com.fasterxml.jackson.core:jackson-core"
+    implementation "com.fasterxml.jackson.core:jackson-annotations"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+//    implementation "com.google.guava:guava"
+    implementation "org.apache.commons:commons-lang3"
+    implementation "org.aspectj:aspectjweaver"
+
     implementation "javax.validation:validation-api:2.0.1.Final"
+//    implementation "javax.servlet:javax.servlet-api"
+//    implementation "javax.jms:javax.jms-api"
+//    implementation "javax.inject:javax.inject"
+//    implementation "org.apache.velocity:velocity"
+    implementation "org.restlet:org.restlet"
+    implementation "turbine:turbine"
 
-    compileAndInclude('dcm4che.tool:dcm4che-tool-dcmecho') {
+
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho") {
         transitive = false
     }
-    compileAndInclude('dcm4che.tool:dcm4che-tool-dcmqr') {
-        transitive = false
-    }
-    compileAndInclude('commons-cli:commons-cli:1.4') {
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
         transitive = false
     }
 
-    testImplementation 'junit:junit'
+    testImplementation "junit:junit"
     testImplementation "org.springframework:spring-test"
     testImplementation "log4j:log4j"
 }
@@ -198,16 +208,91 @@ dependencies {
 task fatJar(type: Jar) {
     zip64 true
     classifier = "fat"
-    // files and folders with '-dev' or '--xx' in their name
+    // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
     exclude "**/resources/**/*--xx**"
     from {
-        configurations.compileAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.implementAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
     } {
         exclude "META-INF/*.SF"
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
     with jar
+}
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    classifier "sources"
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifacts {
+                artifact sourceJar
+                artifact javadocJar
+                artifact fatJar
+            }
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode("name", "XNAT DICOM Query-Retrieve Plugin")
+                root.appendNode("url", "https://bitbucket.org/xnatdev/dicom-query-retrieve")
+                root.appendNode("inceptionYear", "2019")
+
+                root.appendNode("scm").with {
+                    appendNode("url", "https://bitbucket.org/xnatx/xnatx-ollection-plugin")
+                    appendNode("connection", "scm:https://bitbucket.org/xnatdev/dicom-query-retrieve")
+                    appendNode("developerConnection", "scm:git@bitbucket.org:xnatdev/dicom-query-retrieve.git")
+                }
+
+                root.appendNode("licenses").appendNode("license").with {
+                    appendNode("name", "Simplified BSD 2-Clause License")
+                    appendNode("url", "https://xnat.org/about/license.php")
+                    appendNode("distribution", "repo")
+                }
+
+                root.appendNode("developers").with {
+                    appendNode("developer").with {
+                        appendNode("id", "mfmckay")
+                        appendNode("name", "Mike McKay")
+                        appendNode("email", "mfmckay@wustl.edu")
+                    }
+                    appendNode("developer").with {
+                        appendNode("id", "rherrick")
+                        appendNode("name", "Rick Herrick")
+                        appendNode("email", "jrherrick@wustl.edu")
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                // These properties must be set in the ~/.gradle/gradle.properties file or passed on the Gradle command
+                // line in the form -PrepoUsername=foo -PrepoPassword=bar.
+                username propertyWithDefault("repoUsername", "username")
+                password propertyWithDefault("repoPassword", "password")
+            }
+            if (project.version.endsWith("-SNAPSHOT")) {
+                url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
+            } else {
+                url "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
+            }
+        }
+    }
+}
+
+def propertyWithDefault(String name, Object value) {
+    hasProperty(name) ? property(name) : value
 }
