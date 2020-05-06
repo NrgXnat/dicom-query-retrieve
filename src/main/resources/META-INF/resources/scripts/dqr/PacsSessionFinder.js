@@ -53,7 +53,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
         XNAT.xhr.ajax({
             type: "POST",
-            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies"),
             data: jq("#" + this.sessionSearchFormId).serialize(),
             dataType: "json",
             context: this,

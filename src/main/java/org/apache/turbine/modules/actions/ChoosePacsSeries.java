@@ -13,60 +13,66 @@
 package org.apache.turbine.modules.actions;
 
 import java.util.Date;
-
 import javax.jms.Destination;
-
-import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.dqr.domain.Series;
-import org.nrg.dqr.messaging.PacsSeriesImportRequest;
-import org.nrg.dqr.messaging.PacsStudyImportRequest;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
+import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.dqr.domain.Series;
+import org.nrg.xnatx.dqr.domain.Study;
+import org.nrg.xnatx.dqr.messaging.PacsScanImportRequest;
+import org.nrg.xnatx.dqr.messaging.PacsStudyImportRequest;
 import org.springframework.jms.core.JmsTemplate;
 
+@SuppressWarnings("unused")
 public class ChoosePacsSeries extends DqrSecureAction {
-
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
-
+    public void doPerform(final RunData data, final Context context) {
         final String[] selectedSeriesInstanceUids = (String[]) TurbineUtils.GetPassedObjects("selectedSeries", data);
         if (null == selectedSeriesInstanceUids) {
             context.put("numberOfProcessedSeries", 0);
         } else {
-            final PacsStudyImportRequest pacsStudyImportRequest = buildPacsStudyImportRequest(data,
-                    selectedSeriesInstanceUids);
+            final UserI                  user                   = XDAT.getUserDetails();
+            final PacsStudyImportRequest pacsStudyImportRequest = buildPacsStudyImportRequest(user, data, selectedSeriesInstanceUids);
             sendPacsStudyImportRequest(pacsStudyImportRequest);
             context.put("numberOfProcessedSeries", selectedSeriesInstanceUids.length);
-            context.put("user", TurbineUtils.getUser(data));
-            context.put("StringUtils", new StringUtils());
+            context.put("user", user);
         }
         data.setScreenTemplate("PacsSessionFinder3.vm");
     }
 
-    private PacsStudyImportRequest buildPacsStudyImportRequest(final RunData data,
-                                                               final String[] selectedSeriesInstanceUids) {
-        final PacsStudyImportRequest pacsStudyImportRequest = new PacsStudyImportRequest();
-        pacsStudyImportRequest.setPacs(getPacsFromSession(data));
-        pacsStudyImportRequest.setStudy(getStudyFromSession(data));
-        pacsStudyImportRequest.setDateRequested(new Date());
-        pacsStudyImportRequest.setRequestingUser(TurbineUtils.getUser(data));
+    private PacsStudyImportRequest buildPacsStudyImportRequest(final UserI user, final RunData data, final String[] selectedSeriesInstanceUids) {
+        final Study study = getStudyFromSession(data);
+
+        final PacsStudyImportRequest.PacsStudyImportRequestBuilder builder = PacsStudyImportRequest.builder();
+        builder.pacs(getPacsFromSession(data)).study(study).dateRequested(new Date()).requestingUser(user.getUsername());
         for (final String seriesInstanceUid : selectedSeriesInstanceUids) {
             // the client sends the UIDs with underscore separators so they'll be better HTML identifiers
             // translate back to the actual UID
-            final PacsSeriesImportRequest pacsSeriesImportRequest = new PacsSeriesImportRequest();
-            pacsSeriesImportRequest.setStudy(pacsStudyImportRequest.getStudy());
-            pacsSeriesImportRequest.setSeries(new Series(seriesInstanceUid.replace("_", ".")));
-            pacsStudyImportRequest.addSeries(pacsSeriesImportRequest);
+            builder.scan(PacsScanImportRequest.builder().study(study).series(Series.builder().seriesInstanceUid(seriesInstanceUid.replace("_", ".")).build()).build());
         }
-        return pacsStudyImportRequest;
+        return builder.build();
     }
 
     private void sendPacsStudyImportRequest(final PacsStudyImportRequest pacsStudyImportRequest) {
-        final Destination destination = XDAT.getContextService().getBean("pacsStudyImportRequest", Destination.class);
-        final JmsTemplate jmsTemplate = XDAT.getContextService().getBean(JmsTemplate.class);
-        jmsTemplate.convertAndSend(destination, pacsStudyImportRequest);
+        getJmsTemplate().convertAndSend(getDestination(), pacsStudyImportRequest);
     }
+
+    private Destination getDestination() {
+        if (_destination == null) {
+            _destination = XDAT.getContextService().getBean("pacsStudyImportRequest", Destination.class);
+        }
+        return _destination;
+    }
+
+    private JmsTemplate getJmsTemplate() {
+        if (_jmsTemplate == null) {
+            _jmsTemplate = XDAT.getContextService().getBean(JmsTemplate.class);
+        }
+        return _jmsTemplate;
+    }
+
+    private static Destination _destination;
+    private static JmsTemplate _jmsTemplate;
 }

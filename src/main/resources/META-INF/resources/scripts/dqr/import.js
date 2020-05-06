@@ -62,7 +62,7 @@ var XNAT = getObject(XNAT || {});
 
     function getPacsList(fn){
         return XNAT.xhr.get({
-            url: XNAT.url.restUrl('/data/pacs'),
+            url: XNAT.url.restUrl('/xapi/pacs'),
             success: function(json){
                 if (isFunction(fn)) {
                     fn.apply(this, arguments);
@@ -1384,7 +1384,7 @@ var XNAT = getObject(XNAT || {});
 
         // console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/data/services/pacs/' + selectedPacs + '/search/studies', {}, false);
+        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/search/studies', {}, false);
 
         // console.log(searchUrl);
 

@@ -1,3 +1,8 @@
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="pacsList" type="java.util.List" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="projectId" type="java.lang.String" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 <!-- BEGIN templates/screens/PacsSessionFinder.vm -->
@@ -22,9 +27,9 @@
     }
 
     jq(document).ready(function () {
-        if (window.pacsSessionFinder == undefined) {
+        if (window.pacsSessionFinder === undefined) {
             window.pacsSessionFinder = new PacsSessionFinder(
-                "sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", terms);
+                    "sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", terms);
         }
 
         jq("#searchButton").click(function (event) {
@@ -37,12 +42,12 @@
 
         jq("#sessionSearchForm input[type=text],select").keydown(function (event) {
             var enterKeyCode = 13;
-            if (event.keyCode == enterKeyCode) {
+            if (event.keyCode === enterKeyCode) {
                 jq("#searchButton").click();
             }
         });
 
-        if (window.studyDatePicker == undefined) {
+        if (window.studyDatePicker === undefined) {
             window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday");
         }
 
@@ -57,8 +62,7 @@
             errorPlacement: function (error, element) {
                 if (jq(element).prop("id") === "studyDateFrom" || jq(element).prop("id") === "studyDateTo") {
                     jq("#studyDateValidationErrorMessageHolder").append(error);
-                }
-                else {
+                } else {
                     error.css("color", "red");
                     error.insertAfter(element);
                 }
@@ -88,7 +92,7 @@
                 <select id="pacsId" name="pacsId">
                     <option VALUE="">(SELECT)</option>
                     #foreach($pacs in $pacsList)
-                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs()) selected="true" #end>#if( ! $pacs.getLabel() )$pacs.getAeTitle() #else $pacs.getLabel() #end</option>
+                        <option VALUE="$pacs.id" #if($pacs.isDefaultQueryRetrievePacs()) selected="selected" #end>#if(!${turbineUtils.isBlankString($pacs.label)})${pacs.aeTitle} #else ${pacs.label} #end</option>
                     #end
                 </select>
             </p>
@@ -111,8 +115,8 @@
                 </p>
                 <div style="line-height: 1">
                     <label for="studyDateFrom">${displayManager.getSingularDisplayNameForImageSession()} Date Range</label>
-                    <span style="margin:0 6px 0 0;">From</span><input id="studyDateFrom" name="studyDateFrom" type="text" maxlength="10" style="width: 90px;" />
-                    <span style="margin:0 6px;">To</span><input id="studyDateTo" name="studyDateTo" type="text" maxlength="10" style="width: 90px;" />
+                    <span style="margin:0 6px 0 0;">From</span><input id="studyDateFrom" name="studyDateFrom" type="text" maxlength="10" style="width: 90px;"/>
+                    <span style="margin:0 6px;">To</span><input id="studyDateTo" name="studyDateTo" type="text" maxlength="10" style="width: 90px;"/>
                 </div>
                 <p>
                     <label>&nbsp;</label>
@@ -122,7 +126,9 @@
             </div>
             <p><em><a href="javascript:" onclick="$('#advFields').toggle()">Toggle advanced search fields</a></em></p>
 
-            <p><button id="searchButton" class="btn1">Search</button></p>
+            <p>
+                <button id="searchButton" class="btn1">Search</button>
+            </p>
         </div>
     </div>
 
@@ -130,12 +136,12 @@
 </form>
 
 
-<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${projectId.id})" style="display:none;">
-    <input type="hidden" name="project" id="project" value="${projectId.id}" />
+<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${projectId})" style="display:none;">
+    <input type="hidden" name="project" id="project" value="${projectId}"/>
     <input type="hidden" id="studyInstanceUid" name="studyInstanceUid"/>
     <input type="hidden" id="hiddenPacsId" name="pacsId"/>
 </form>
 
-<div id="pacsSessionFinderDiv" style="margin: 1em 0" />
+<div id="pacsSessionFinderDiv" style="margin: 1em 0"/>
 
 <!-- END templates/screens/PacsSessionFinder.vm -->

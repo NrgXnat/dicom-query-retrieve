@@ -2,7 +2,7 @@
 #* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
 #* @vtlvariable="aes" type="java.util.ArrayList" *#
 #* @vtlvariable name="pacsList" type="java.util.ArrayList" *#
-#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/SpreadsheetBasedImporter.vm -->
@@ -50,8 +50,7 @@
                     #end
                 </select>
             </p>
-            <input type="hidden" id="project" name="project" value="${projectId.id}" class="required" />
-
+            <input type="hidden" id="project" name="project" value="${projectId}" class="required" />
             <div id="pacsSeriesAeSelector">
 
                 #if($enabledScps.size() == 1)

@@ -1,12 +1,14 @@
+#* @vtlvariable name="user" type="org.nrg.xdat.security.XDATUser" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 #* @vtlvariable name="siteConfig" type="org.nrg.xdat.preferences.SiteConfigPreferences" *#
 #* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
-#set ($projectId = $project.getId())
+#set ($projectId = $project.id)
 #set ($userHelper = $data.getSession().getAttribute("userHelper"))
 
 #set ($subjectDisplay = "$!displayManager.getSingularDisplayNameForSubject()")
@@ -18,7 +20,7 @@
     window.sessionDisplayLower = window.sessionDisplay.toLowerCase();
 </script>
 
-#if (!$projectId)
+#if ($turbineUtils.isBlankString($projectId))
     #set ($projectId = $turbineUtils.escapeHTML($!data.getParameters().getString('project')))
 #end
 

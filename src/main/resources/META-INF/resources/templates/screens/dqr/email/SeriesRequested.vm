@@ -1,7 +1,7 @@
 #* @vtlvariable name="seriesIds" type="java.util.List" *#
 #* @vtlvariable name="prearchive" type="java.lang.String" *#
 #* @vtlvariable name="adminEmail" type="java.lang.String" *#
-#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
 <p>
     Your requested DICOM series were imported from the PACS $pacs.aeTitle on port $pacs.queryRetrievePort. Once
     transferred, your DICOM series will be available as a new XNAT session in the <a href="$prearchive">system
@@ -9,9 +9,9 @@
 </p>
 
 <ul>
-#foreach($seriesId in $seriesIds)
-    <li>$seriesId</li>
-#end
+    #foreach($seriesId in $seriesIds)
+        <li>$seriesId</li>
+    #end
 </ul>
 
-<p>For support, contact the <a href="mailto:$adminEmail?subject=DICOM Import Assistance">system administrator</a>.</p>
+<p>For support, contact the <a href="mailto:${adminEmail}?subject=DICOM Import Assistance">system administrator</a>.</p>

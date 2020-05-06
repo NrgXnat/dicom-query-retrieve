@@ -1,0 +1,52 @@
+/*
+ * PacsSessionExportRequestListener
+ * DQR is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+package org.nrg.xnatx.dqr.messaging;
+
+import lombok.extern.slf4j.Slf4j;
+import org.nrg.xdat.security.XDATUser;
+import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+
+@SuppressWarnings("unused")
+@Slf4j
+public class PacsSessionExportRequestListener extends AbstractPacsRequestListener {
+    public void onPacsSessionExportRequest(final PacsSessionExportRequest request) throws Exception {
+        try {
+            log.info("Listener received session export request from user {}", request.getRequestingUser());
+
+            final Pacs pacsToExportTo = request.getPacs();
+            if (!pacsToExportTo.isStorable()) {
+                throw new PacsNotStorableException(request.getPacs().getId());
+            }
+
+            final XDATUser user = new XDATUser(request.getRequestingUser());
+            for (final PacsScanExportRequest pacsScanExportRequest : request.getScans()) {
+                getPacsService().exportSeries(user, pacsToExportTo, pacsScanExportRequest.getScan());
+            }
+
+            // Send complete notification
+            getMailService().sendMessage(getAdminEmail(), user.getEmail(), "[" + TurbineUtils.GetSystemName() + "] PACS Session Export Request Complete", "The session you requested has been successfully exported to the PACS.");
+
+            log.info("Listener completed session export request from user {}", request.getRequestingUser());
+        } catch (final UserNotFoundException e) {
+            // not much to do here - was their account deleted since they made the request?
+            log.error("User {} queued up a PACS export request, but their user account cannot be found to send them a confirmation email.", request.getRequestingUser());
+        } catch (final Exception e) {
+            // If errors are not logged before they're rethrown, they do not show up in any of the files
+            log.error("Choked on request {} with the following error", request, e);
+            throw e;
+        }
+    }
+}

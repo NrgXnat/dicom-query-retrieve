@@ -445,7 +445,7 @@ XNAT.app = getObject(XNAT.app || {});
     function getAllPacs() {
         XNAT.xhr.ajax({
             type: "GET",
-            url: XNAT.url.csrfUrl("/data/pacs"),
+            url: XNAT.url.csrfUrl("/xapi/pacs"),
             dataType: "json",
             success: showPacs,
             error: handlePacsSearchFailure
@@ -457,7 +457,7 @@ XNAT.app = getObject(XNAT.app || {});
     function deletePacs() {
         XNAT.xhr.ajax({
             type: "DELETE",
-            url: XNAT.url.csrfUrl("/data/pacs/" + currentOperation.pacs.id),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + currentOperation.pacs.id),
             success: getAllPacs,
             error: function (jqXHR) {
                 closeModalPanel(constants.MODAL_WINDOW_NAME);
@@ -471,7 +471,7 @@ XNAT.app = getObject(XNAT.app || {});
     function editPacs($form) {
         XNAT.xhr.ajax({
             type: "PUT",
-            url: XNAT.url.csrfUrl("/data/pacs/" + currentOperation.pacs.id),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + currentOperation.pacs.id),
             data: $form.serialize(),
             success: function () {
                 xmodal.close();
@@ -490,7 +490,7 @@ XNAT.app = getObject(XNAT.app || {});
     function addPacs($form) {
         XNAT.xhr.ajax({
             type: "POST",
-            url: XNAT.url.csrfUrl("/data/pacs"),
+            url: XNAT.url.csrfUrl("/xapi/pacs"),
             data: $form.serialize(),
             success: function () {
                 xmodal.close();

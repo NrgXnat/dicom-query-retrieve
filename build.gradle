@@ -7,18 +7,10 @@
  * Released under the Simplified BSD.
  */
 
-def pluginVersion = "1.0.0-PRERELEASE"
-def vXnat = "1.7.6"
-
-apply plugin: "java"
-apply plugin: "jacoco"
-apply plugin: "maven-publish"
-apply plugin: "idea"
-apply plugin: "eclipse"
-apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: "io.spring.dependency-management"
-
 buildscript {
+    ext {
+        vXnat = "1.7.6"
+    }
     repositories {
         mavenLocal()
         jcenter()
@@ -34,8 +26,17 @@ buildscript {
     }
 }
 
-group "org.nrg.xnat"
-version pluginVersion
+apply plugin: "java"
+apply plugin: "jacoco"
+apply plugin: "maven-publish"
+apply plugin: "idea"
+apply plugin: "eclipse"
+apply plugin: "io.franzbecker.gradle-lombok"
+apply plugin: "io.spring.dependency-management"
+apply plugin: "xnat-data-builder"
+
+group "org.nrg.xnatx.plugins"
+version "1.0.0-SNAPSHOT"
 
 repositories {
     mavenLocal()
@@ -119,84 +120,40 @@ lombok {
 }
 
 dependencies {
-    implementation("org.nrg.xnat:web") {
-        transitive = false
-    }
-    implementation("org.nrg.xnat:xnat-data-models") {
-        transitive = false
-    }
-    implementation("org.nrg.xdat:core") {
-        transitive = false
-    }
-    implementation("org.nrg.dicom:mizer") {
-        transitive = false
-    }
-    implementation("org.nrg:dicomtools") {
-        transitive = false
-    }
-    implementation("org.nrg:prefs") {
-        transitive = false
-    }
-    implementation("org.nrg:config") {
-        transitive = false
-    }
-    implementation("org.nrg:dicom-xnat-mx") {
-        transitive = false
-    }
-    implementation("org.nrg:dicom-xnat-util") {
-        transitive = false
-    }
-    implementation("org.nrg:framework") {
-        transitive = false
-    }
-    /*
-    implementation("org.nrg:mail") {
-        transitive = false
-    }
-    implementation("org.nrg.dicom:dicom-edit4") {
-        transitive = false
-    }
-    implementation("org.nrg.xnat:xnat-data-models") {
-        transitive = false
-    }
-    */
-
-//    implementation "org.springframework:spring-beans"
-//    implementation "org.springframework:spring-context"
-//    implementation "org.springframework:spring-jms"
-//    implementation "org.springframework:spring-tx"
-//    implementation "org.springframework:spring-webmvc"
+    implementation "org.nrg.xnat:web"
+    implementation "org.nrg.dicom:dicom-edit4"
+    implementation "org.nrg.dicom:dicom-edit6"
+    implementation "org.nrg:dicom-xnat-util"
+    implementation "org.nrg:dicom-xnat-mx"
     implementation "org.springframework:spring-web"
     implementation "org.springframework:spring-tx"
     implementation "org.springframework:spring-jms"
     implementation "org.springframework:spring-jdbc"
     implementation "io.springfox:springfox-swagger2"
-//
-    implementation "dcm4che:dcm4che-core:2.0.29"
-    implementation "dcm4che:dcm4che-net:2.0.29"
+    implementation "dcm4che:dcm4che-core"
+    implementation "dcm4che:dcm4che-net"
     implementation "org.hibernate:hibernate-core"
     implementation "org.hibernate:hibernate-envers"
     implementation "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-annotations"
     implementation "com.fasterxml.jackson.core:jackson-databind"
-//    implementation "com.google.guava:guava"
     implementation "org.apache.commons:commons-lang3"
     implementation "org.aspectj:aspectjweaver"
 
     implementation "javax.validation:validation-api:2.0.1.Final"
-//    implementation "javax.servlet:javax.servlet-api"
-//    implementation "javax.jms:javax.jms-api"
-//    implementation "javax.inject:javax.inject"
-//    implementation "org.apache.velocity:velocity"
     implementation "org.restlet:org.restlet"
-    implementation "turbine:turbine"
-
+    implementation("turbine:turbine") {
+        transitive = false
+    }
 
     implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho") {
         transitive = false
     }
     implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
+        transitive = false
+    }
+    implementAndInclude("commons-cli:commons-cli:1.4") {
         transitive = false
     }
 
@@ -205,9 +162,9 @@ dependencies {
     testImplementation "log4j:log4j"
 }
 
-task fatJar(type: Jar) {
+task xnatPluginJar(type: Jar) {
     zip64 true
-    classifier = "fat"
+    archiveClassifier.set "xpl"
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
@@ -240,7 +197,7 @@ publishing {
             artifacts {
                 artifact sourceJar
                 artifact javadocJar
-                artifact fatJar
+                artifact xnatPluginJar
             }
 
             pom.withXml {

@@ -1,5 +1,8 @@
+#* @vtlvariable name="sessionId" type="java.lang.String" *#
+#* @vtlvariable name="numberOfProcessedScans" type="java.lang.Integer" *#
+#* @vtlvariable name="XNAT_HOME" type="java.lang.String" *#
 <!-- BEGIN templates/screens/ExportSessionToPacsRequested.vm -->
-#if( 0 == $numberOfProcessedScans )
+#if(0 == ${numberOfProcessedScans})
     <h2>Export to PACS Unsuccessful</h2>
     <p>
         No scans in the session were exported.
@@ -9,16 +12,9 @@
     <p>
         The session has been scheduled for export to the PACS, and should be sent shortly.
     </p>
-
-##    <br/><br/>
-##    #if($StringUtils.isBlank($user.getEmail()))
-##    Check back in a little while.  (In the meantime, if you provide us your <a href="$link.setPage("XDATScreen_UpdateUser.vm")">email address</a>, we can notify you when the export is complete).
-##    #else
-##    You'll receive an email at <b>$user.getEmail()</b> when the export is complete.
-##    #end
 #end
 
 <p>
-    <a href="$!{XNAT_HOME}/data/experiments/$sessionId?format=html" title="Return to Session Page"><button class="btn primary">OK</button></a>
+    <a href="$!{XNAT_HOME}/data/experiments/${sessionId}?format=html" title="Return to Session Page"><button class="btn primary">OK</button></a>
 </p>
 <!-- END templates/screens/ExportSessionToPacsRequested.vm -->

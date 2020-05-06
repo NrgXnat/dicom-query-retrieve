@@ -30,7 +30,7 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
     this.findSeries = function () {
         $.ajax({
             type: "GET",
-            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies/" + study.studyInstanceUid + "/series"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies/" + study.studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,

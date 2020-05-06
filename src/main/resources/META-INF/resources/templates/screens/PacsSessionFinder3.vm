@@ -1,20 +1,23 @@
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="numberOfProcessedSeries" type="java.lang.Integer" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
+#* @vtlvariable name="user" type="org.nrg.xft.security.UserI" *#
 <!-- BEGIN templates/screens/PacsSessionFinder3.vm -->
 
 <h2 class="edit_title">Import Images from PACS</h2>
 
-#if( 0 == $numberOfProcessedSeries )
+#if(0 == ${numberOfProcessedSeries})
 <p>You did not choose any series to be uploaded.</p>
 #else
 <p>The series you chose have been requested from the clinical database, and should arrive shortly.
 
-    #if($StringUtils.isBlank($user.getEmail()))
-    Check back in a little while.  (In the meantime, if you provide us your <a
+    #if($turbineUtils.isBlankString($user.email))
+        Check back in a little while. (In the meantime, if you provide us your <a
             href="$link.setPage("XDATScreen_MyXNAT.vm")">email
         address</a>, we can notify you when the series have arrived).
     #else
-    You'll receive an email at <b>$user.getEmail()</b> when the import is complete.
+        You'll receive an email at <b>$user.getEmail()</b> when the import is complete.
     #end
-    </p>
+</p>
 #end
-
 <!-- END templates/screens/PacsSessionFinder3.vm -->

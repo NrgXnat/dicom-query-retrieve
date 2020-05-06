@@ -1,22 +1,19 @@
-#* @vtlvariable name="strategies" type="java.util.Map" *#
-#* @vtlvariable name="strategy" type="org.nrg.dqr.dicom.strategy.orm.OrmStrategy" *#
-#* @vtlvariable name="strategyEntry" type="java.util.Map.Entry" *#
-#* @vtlvariable name="strategyId" type="java.lang.String" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="strategies" type="java.util.Set" *#
+#* @vtlvariable name="strategy" type="java.lang.String" *#
 <!-- BEGIN templates/screens/PacsAdministration.vm -->
-
 <script type="text/javascript" src="$content.getURI("scripts/dqr/PacsAdministration.js")"></script>
 
 <h2 class="edit_header1">PACS Administration</h2>
 
-#if ($strategies.size() > 1)
-    <script>
-        // reset the default ORM Strategies array that feeds the select menu.
-        XNAT.app.dqr.PacsAdministration.ormStrategies = [];
-        #foreach($strategyEntry in $strategies)
-            XNAT.app.dqr.PacsAdministration.ormStrategies.push('$strategyEntry.value')
+#if (!$strategies.isEmpty())
+<script>
+    // reset the default ORM Strategies array that feeds the select menu.
+    XNAT.app.dqr.PacsAdministration.ormStrategies = [];
+        #foreach(${strategy} in ${strategies})
+        XNAT.app.dqr.PacsAdministration.ormStrategies.push('${strategy}')
         #end
-    </script>
+</script>
 #end
 
 <div id="pacsDiv"/>
@@ -26,6 +23,5 @@
         XNAT.app.dqr.PacsAdministration.init();
     });
 </script>
-
 <!-- this content is displayed in the modal when clicking the "hello" button -->
 <!-- END templates/screens/PacsAdministration.vm -->

@@ -30,7 +30,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     this.findSeries = function () {
         XNAT.xhr.ajax({
             type: "GET",
-            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/search/studies/" + studyInstanceUid + "/series"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies/" + studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,
@@ -119,21 +119,16 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     this.requestSeries = function (project, selectedSeries, ae) {
         that.project = project;
         openModalPanel("requestSeries", "Requesting " + selectedSeries.length + " selected series");
-        var data = "SERIES_IDS=";
-        for (var index = 0; index < selectedSeries.length; index++) {
-            if (index > 0) {
-                data += ",";
-            }
-            data += selectedSeries[index];
-        }
-        data += "&STUDY_ID=" + studyInstanceUid;
-        data += "&PROJECT=" + project;
+        const data = {};
+        data.seriesIds = selectedSeries;
+        data.studyId = studyInstanceUid;
+        data.project = project;
         if(ae) {
-            data += "&AE=" + ae;
+            data.ae = ae;
         }
         XNAT.xhr.ajax({
-            type: "PUT",
-            url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/import/series"),
+            type: "POST",
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId),
             data: data,
             context: this,
             success: this.showSeriesRequestResults,

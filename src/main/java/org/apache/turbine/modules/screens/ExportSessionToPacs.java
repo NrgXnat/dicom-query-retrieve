@@ -12,37 +12,32 @@
 
 package org.apache.turbine.modules.screens;
 
-import org.apache.commons.lang.StringUtils;
+import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.turbine.modules.screens.SecureScreen;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
 
-import java.util.List;
-
-public class ExportSessionToPacs extends SecureScreen {
-
+@SuppressWarnings("unused")
+public class ExportSessionToPacs extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) throws Exception {
+    protected void doBuildTemplate(final RunData data, final Context context) {
         final String sessionId = data.getParameters().get("sessionId");
         if (StringUtils.isBlank(sessionId)) {
             context.put("message", "You must specify a valid session ID that you want to export.");
         }
 
-        final List<Pacs> pacsList = XDAT.getContextService().getBean(PacsEntityService.class).findAllStorable();
+        final List<Pacs> pacsList = getPacsEntityService().findAllStorable();
         if (pacsList == null || pacsList.size() == 0) {
             context.put("message", "No PACS were found configured on this system.");
             return;
         }
         context.put("pacsList", pacsList);
 
-        final XnatImagesessiondata session = XnatImagesessiondata.getXnatImagesessiondatasById(sessionId, TurbineUtils.getUser(data), false);
+        final XnatImagesessiondata session = XnatImagesessiondata.getXnatImagesessiondatasById(sessionId, XDAT.getUserDetails(), false);
         if (session == null) {
             context.put("message", "There was no session associated with the requested session ID: " + sessionId);
             return;
@@ -50,12 +45,7 @@ public class ExportSessionToPacs extends SecureScreen {
         context.put("session", session);
         context.put("om", session);
         context.put("subject", session.getSubjectData());
-        if(data.getParameters().get("project")!=null) {
-            context.put("project", data.getParameters().get("project"));
-        }
-        else{
-            context.put("project", session.getProject());
-        }
+        context.put("projectId", StringUtils.defaultIfBlank(data.getParameters().get("project"), session.getProject()));
 
         final List<XnatImagescandataI> scans = session.getScans_scan();
         if (scans == null || scans.size() == 0) {

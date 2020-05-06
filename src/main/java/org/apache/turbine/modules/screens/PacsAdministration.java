@@ -14,27 +14,11 @@ package org.apache.turbine.modules.screens;
 
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
-import java.util.*;
-
-public class PacsAdministration extends SecureScreen {
-
+@SuppressWarnings("unused")
+public class PacsAdministration extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(RunData data, Context context) throws Exception {
-//        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-//          Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
-//        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
-//            strategies.put(strategy.getValue(), strategy.getKey());
-//        }
-        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-        Map<OrmStrategy, String> strategies = new TreeMap<>();
-        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
-            strategies.put(strategy.getValue(), strategy.getKey());
-        }
-        context.put("strategies", strategies);
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        context.put("strategies", getOrmStrategyMap().keySet());
     }
-
 }

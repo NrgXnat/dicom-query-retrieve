@@ -55,7 +55,7 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
                 var scanId = scanIds[index];
                 XNAT.xhr.ajax({
                     type: "POST",
-                    url: XNAT.url.csrfUrl("/data/services/pacs/" + pacsId + "/export/experiments/" + sessionId + "/scans/" + scanId),
+                    url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/experiments/" + sessionId + "/scans/" + scanId),
                     dataType: "json",
                     success: this.exportSuccess,
                     error: this.exportFailure

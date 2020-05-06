@@ -51,7 +51,7 @@ var XNAT = getObject(XNAT || {});
     }
 
     function getPacsList(){
-        return (dqr.getPacsList = XNAT.xhr.get('~/data/pacs'));
+        return (dqr.getPacsList = XNAT.xhr.get('~/xapi/pacs'));
     }
 
     getPacsList();

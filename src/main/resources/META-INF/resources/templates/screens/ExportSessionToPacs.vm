@@ -1,11 +1,14 @@
-#* @vtlvariable name="message" type="java.lang.String" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
-#* @vtlvariable name="link" type="org.apache.turbine.util.template.TemplateLink" *#
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="message" type="java.lang.String" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="pacsList" type="java.util.List" *#
-#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
-#* @vtlvariable name="session" type="org.nrg.xdat.om.XnatMrsessiondata" *#
-#* @vtlvariable name="scans" type="java.util.List" *#
+#* @vtlvariable name="projectId" type="java.lang.String" *#
 #* @vtlvariable name="scan" type="org.nrg.xdat.model.XnatImagescandataI" *#
+#* @vtlvariable name="scans" type="java.util.List" *#
+#* @vtlvariable name="session" type="org.nrg.xdat.om.XnatMrsessiondata" *#
+#* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
 <!-- BEGIN templates/screens/dqr/ExportSessionToPacs.vm -->
 #set ($SITE_ROOT = $content.getURI(''))
 
@@ -21,7 +24,7 @@
     }
 </style>
 
-<h2 class="edit_title" style="text-transform: capitalize">Export ${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} $session.label to PACS</h2>
+<h2 class="edit_title" style="text-transform: capitalize">Export ${displayManager.singularDisplayNameForSubject} ${displayManager.singularDisplayNameForImageSession} ${session.label} to PACS</h2>
 
 #if($message)
     <div class="error">$message</div>
@@ -41,13 +44,13 @@
                                 #else
                                     #set($selected = "")
                                 #end
-                                <option value="$pacs.id"$selected>#if( ! $pacs.getLabel() )$pacs.getAeTitle():$pacs.getQueryRetrievePort() ($pacs.getHost()) #else $pacs.getLabel() ($pacs.getHost()) #end</option>
+                                <option value="$pacs.id"$selected>#if(${turbineUtils.isBlankString($pacs.label)})$pacs.aeTitle:$pacs.queryRetrievePort ($pacs.host) #else $pacs.label ($pacs.host) #end</option>
                             #end
                         #end
                     </select>
                 </p>
                 <input type="hidden" id="session" name="session" value="$session.id"/>
-                <input type="hidden" id="project" name="project" value="$!project"/>
+                <input type="hidden" id="project" name="project" value="$!projectId"/>
             </div>
             <div>
                 <h4 style="text-transform: capitalize">${displayManager.getSingularDisplayNameForSubject()} ${displayManager.getSingularDisplayNameForImageSession()} Info</h4>

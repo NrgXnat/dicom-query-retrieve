@@ -1,0 +1,47 @@
+/*
+ * PacsSearchCriteria
+ * DQR is developed by the Neuroinformatics Research Group
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2013, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ *
+ * Last modified 9/24/13 6:11 PM
+ */
+
+package org.nrg.xnatx.dqr.dto;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.nrg.xnatx.dqr.utils.DqrDateRange;
+
+@Data
+@Accessors(prefix = "_")
+@Builder
+@AllArgsConstructor
+public class PacsSearchCriteria {
+    @JsonIgnore
+    public boolean isAtLeastOneKeyCriterionSpecified() {
+        return !StringUtils.isAllBlank(getPatientId(), getStudyInstanceUid(), getSeriesInstanceUid(), getAccessionNumber());
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
+
+    private final String       _patientId;
+    private final String       _patientName;
+    private final String       _studyInstanceUid;
+    private final String       _seriesInstanceUid;
+    private final String       _accessionNumber;
+    private final String       _modality;
+    private final String       _dob;
+    private final DqrDateRange _studyDateRange;
+}

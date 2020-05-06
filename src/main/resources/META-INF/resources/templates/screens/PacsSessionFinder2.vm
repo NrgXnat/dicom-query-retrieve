@@ -1,7 +1,8 @@
 #* @vtlvariable name="projects" type="java.util.ArrayList" *#
 #* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable name="projectId" type="java.lang.String" *#
 #* @vtlvariable="aes" type="java.util.ArrayList" *#
-#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
@@ -9,7 +10,7 @@
     if (XNAT.ui.breadcrumbs.length) {
         XNAT.ui.breadcrumbs.push({
             id:    'pacsSessionFinder',
-            link:  '$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId.getId()}")',
+            link:  '$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId}")',
             label: 'Select ${displayManager.getSingularDisplayNameForImageSession()} From PACS'
         })
     }
@@ -72,7 +73,7 @@
         <div style="display: inline-block; margin-right: 8%; vertical-align: top; width: 30%;">
             <div style="margin-bottom: 4em;">
                 <h4>Select Destination for Import</h4>
-                <input type="hidden" name="project" id="project" value="${projectId.id}" />
+                <input type="hidden" name="project" id="project" value="${projectId}" />
 
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($enabledScps.size() == 1)
@@ -149,7 +150,7 @@
                 <div id="pacsSeriesFinderDiv" class="data-table-container" style="margin-bottom:15px;"/>
             </div>
             <div id="pacsSeriesFinderFooter"/>
-            <a class="btn" id="cancel" name="cancel" href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId.getId()}")" style="padding-right: 1em">Retry ${displayManager.getSingularDisplayNameForImageSession()} Search</a>
+            <a class="btn" id="cancel" name="cancel" href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId}")" style="padding-right: 1em">Retry ${displayManager.getSingularDisplayNameForImageSession()} Search</a>
             <button class="btn1" id="pacsSeriesFinderSubmit" name="pacsSeriesFinderSubmit" onclick="requestSelectedSeries(); return false;">Request Selected Series</button>
             <span id="validationErrorMessageHolder" style="color:red;"/>
         </div>
