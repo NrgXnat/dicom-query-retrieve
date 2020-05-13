@@ -19,18 +19,19 @@ import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
-    List<PacsAvailability> findSettingsByPacs(Long pacsId);
+    List<PacsAvailability> findSettingsByPacs(final long pacsId);
 
-    List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day);
+    List<PacsAvailability> findSettingsByPacsByDay(final long pacsId, final int day);
 
-    Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId);
+    Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(final long pacsId);
 
     @Nullable
     PacsAvailability findAvailableNow(final long pacsId);
 
-    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap);
+    Boolean checkOverlap(final PacsAvailability availability, final boolean removeOverlap);
 
-    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap, long existingIntervalId);
+    Boolean checkOverlap(final PacsAvailability availability, final boolean removeOverlap, final long existingIntervalId);
 
-    void deleteAllForPacs(Long pacsId);
+    @SuppressWarnings("unused")
+    void deleteAllForPacs(final long pacsId);
 }

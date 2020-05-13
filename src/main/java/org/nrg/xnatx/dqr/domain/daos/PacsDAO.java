@@ -13,7 +13,6 @@
 package org.nrg.xnatx.dqr.domain.daos;
 
 import java.util.List;
-
 import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class PacsDAO extends AbstractHibernateDAO<Pacs> {
-
     public List<Pacs> findAllBut(final Pacs entity) {
         return findByCriteria(Restrictions.ne("id", entity.getId()));
     }

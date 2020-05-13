@@ -12,32 +12,30 @@
 
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.ProjectIrbInfoDAO;
 import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.services.ProjectIrbInfoEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class HibernateProjectIrbInfoEntityService extends AbstractHibernateEntityService<ProjectIrbInfo, ProjectIrbInfoDAO> implements ProjectIrbInfoEntityService {
-
     @Override
     @Transactional
-    public ProjectIrbInfo findIrbInfoForProject(String projectId){
+    public ProjectIrbInfo findIrbInfoForProject(final String projectId) {
         return getDao().findIrbInfoForProject(projectId);
     }
 
     @Override
     @Transactional
-    public String findIrbNumberForProject(String projectId){
+    public String findIrbNumberForProject(final String projectId) {
         return getDao().findIrbNumberForProject(projectId);
     }
 
     @Override
     @Transactional
-    public byte[] findIrbFileForProject(String projectId){
+    public byte[] findIrbFileForProject(final String projectId) {
         return getDao().findIrbFileForProject(projectId);
     }
-
 }

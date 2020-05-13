@@ -14,11 +14,6 @@ package org.nrg.xnatx.dqr.services.impl.basic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.io.File;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -28,9 +23,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -339,12 +336,7 @@ public class BasicPacsService implements PacsService {
     public boolean aeIsStorable(final String ae) {
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
         final boolean hasPort = ae.contains(":");
-        return Iterables.any(_dicomSCPManager.getDicomSCPInstances().values(), new Predicate<DicomSCPInstance>() {
-            @Override
-            public boolean apply(final DicomSCPInstance scp) {
-                return scp.isEnabled() && StringUtils.equalsIgnoreCase(ae, hasPort ? scp.getAeTitle() + scp.getPort() : scp.getAeTitle());
-            }
-        });
+        return _dicomSCPManager.getDicomSCPInstances().values().stream().anyMatch(scp -> scp.isEnabled() && StringUtils.equalsIgnoreCase(ae, hasPort ? scp.getAeTitle() + scp.getPort() : scp.getAeTitle()));
     }
 
     @Override
@@ -373,85 +365,82 @@ public class BasicPacsService implements PacsService {
         }
 
         //Skip the first row since that is a header row
-        return Lists.transform(rows.subList(1, rows.size()), new Function<List<String>, CsvRow>() {
-            @Override
-            public CsvRow apply(final List<String> row) {
-                boolean areThereSearchCriteriaForThisRow = false;
+        return rows.subList(1, rows.size()).stream().map(row -> {
+            boolean areThereSearchCriteriaForThisRow = false;
 
-                final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
-                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                    searchCriteriaBuilder.accessionNumber(row.get(accessionNumberColumn));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
-                    String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
-                    String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                    if (StringUtils.isNotBlank(firstName)) {
-                        searchCriteriaBuilder.patientName(lastName + "," + firstName);
-                    } else {
-                        searchCriteriaBuilder.patientName(lastName);
-                    }
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                    searchCriteriaBuilder.patientId(row.get(patientIdColumn));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                    final String studyDateCell = row.get(studyDateColumn);
-                    if (!studyDateCell.contains("-")) {
-                        final Date dateObject = DqrDateRange.parse(studyDateCell);
-                        assert dateObject != null;
-                        final Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(dateObject);
-                        calendar.add(Calendar.DATE, 1);
-                        searchCriteriaBuilder.studyDateRange(new DqrDateRange(dateObject, calendar.getTime()));
-                        areThereSearchCriteriaForThisRow = true;
-                    } else {
-                        final String startDateString = StringUtils.substringBefore(studyDateCell, "-");
-                        final String endDateString   = StringUtils.substringAfter(studyDateCell, "-");
-                        if (StringUtils.isNotBlank(startDateString)) {
-                            searchCriteriaBuilder.studyDateRange(new DqrDateRange(DqrDateRange.parse(startDateString), StringUtils.isNotBlank(endDateString) ? DqrDateRange.parse(endDateString) : null));
-                            areThereSearchCriteriaForThisRow = true;
-                        } else if (StringUtils.isNotBlank(endDateString)) {
-                            searchCriteriaBuilder.studyDateRange(new DqrDateRange(null, DqrDateRange.parse(endDateString)));
-                            areThereSearchCriteriaForThisRow = true;
-                        }
-                        //Range is open ended on both ends so no search criteria should be added.
-                    }
-                }
-                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                    searchCriteriaBuilder.dob(row.get(dobColumn));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                    searchCriteriaBuilder.modality(row.get(modalityColumn));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs) {
-                    log.error("No search criteria found for row. Users must specify at least one valid search criteria.");
-                    return null;
-                }
-
-                final PacsSearchCriteria               searchCriteria = searchCriteriaBuilder.build();
-                final PacsSearchResults<String, Study> studies        = getStudiesByExample(user, pacs, searchCriteria);
-
-                boolean       anonymizeThisRow     = false;
-                StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
-                for (Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()) {
-                    final String stringToRemapTo = row.get(entry.getKey());
-                    if (StringUtils.isNotBlank(stringToRemapTo)) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                            anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
-                        } else {
-                            anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
-                        }
-                        anonymizeThisRow = true;
-                    }
-                }
-                return CsvRow.builder().criteria(searchCriteria).anonScript(anonymizeThisRow ? anonScriptForThisRow.toString() : null).studies(studies.getResults().values()).build();
+            final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
+            if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
+                searchCriteriaBuilder.accessionNumber(row.get(accessionNumberColumn));
+                areThereSearchCriteriaForThisRow = true;
             }
-        });
+            if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                if (StringUtils.isNotBlank(firstName)) {
+                    searchCriteriaBuilder.patientName(lastName + "," + firstName);
+                } else {
+                    searchCriteriaBuilder.patientName(lastName);
+                }
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
+                searchCriteriaBuilder.patientId(row.get(patientIdColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
+                final String studyDateCell = row.get(studyDateColumn);
+                if (!studyDateCell.contains("-")) {
+                    final Date dateObject = DqrDateRange.parse(studyDateCell);
+                    assert dateObject != null;
+                    final Calendar calendar = Calendar.getInstance();
+                    calendar.setTime(dateObject);
+                    calendar.add(Calendar.DATE, 1);
+                    searchCriteriaBuilder.studyDateRange(new DqrDateRange(dateObject, calendar.getTime()));
+                    areThereSearchCriteriaForThisRow = true;
+                } else {
+                    final String startDateString = StringUtils.substringBefore(studyDateCell, "-");
+                    final String endDateString   = StringUtils.substringAfter(studyDateCell, "-");
+                    if (StringUtils.isNotBlank(startDateString)) {
+                        searchCriteriaBuilder.studyDateRange(new DqrDateRange(DqrDateRange.parse(startDateString), StringUtils.isNotBlank(endDateString) ? DqrDateRange.parse(endDateString) : null));
+                        areThereSearchCriteriaForThisRow = true;
+                    } else if (StringUtils.isNotBlank(endDateString)) {
+                        searchCriteriaBuilder.studyDateRange(new DqrDateRange(null, DqrDateRange.parse(endDateString)));
+                        areThereSearchCriteriaForThisRow = true;
+                    }
+                    //Range is open ended on both ends so no search criteria should be added.
+                }
+            }
+            if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
+                searchCriteriaBuilder.dob(row.get(dobColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
+                searchCriteriaBuilder.modality(row.get(modalityColumn));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs) {
+                log.error("No search criteria found for row. Users must specify at least one valid search criteria.");
+                return null;
+            }
+
+            final PacsSearchCriteria               searchCriteria = searchCriteriaBuilder.build();
+            final PacsSearchResults<String, Study> studies        = getStudiesByExample(user, pacs, searchCriteria);
+
+            boolean       anonymizeThisRow     = false;
+            StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
+            for (Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()) {
+                final String stringToRemapTo = row.get(entry.getKey());
+                if (StringUtils.isNotBlank(stringToRemapTo)) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
+                    } else {
+                        anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
+                    }
+                    anonymizeThisRow = true;
+                }
+            }
+            return CsvRow.builder().criteria(searchCriteria).anonScript(anonymizeThisRow ? anonScriptForThisRow.toString() : null).studies(studies.getResults().values()).build();
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -479,85 +468,82 @@ public class BasicPacsService implements PacsService {
             }
         }
 
-        return Lists.newArrayList(Iterables.filter(Lists.transform(rows.subList(1, rows.size()), new Function<List<String>, FindRow>() {
-            @Override
-            public FindRow apply(final List<String> row) {
-                boolean areThereSearchCriteriaForThisRow = false;
+        return rows.subList(1, rows.size()).stream().map(row -> {
+            boolean areThereSearchCriteriaForThisRow = false;
 
-                final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
-                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                    searchCriteriaBuilder.accessionNumber(removeExtraQuotes(row.get(accessionNumberColumn)));
-                    areThereSearchCriteriaForThisRow = true;
+            final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
+            if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
+                searchCriteriaBuilder.accessionNumber(removeExtraQuotes(row.get(accessionNumberColumn)));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
+                String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
+                String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+                if (StringUtils.isNotBlank(firstName)) {
+                    searchCriteriaBuilder.patientName(removeExtraQuotes(lastName + "," + firstName));
+                } else {
+                    searchCriteriaBuilder.patientName(removeExtraQuotes(lastName));
                 }
-                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
-                    String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
-                    String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                    if (StringUtils.isNotBlank(firstName)) {
-                        searchCriteriaBuilder.patientName(removeExtraQuotes(lastName + "," + firstName));
-                    } else {
-                        searchCriteriaBuilder.patientName(removeExtraQuotes(lastName));
-                    }
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
+                searchCriteriaBuilder.patientId(removeExtraQuotes(row.get(patientIdColumn)));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
+                String studyDateCell = row.get(studyDateColumn);
+                int    dashIndex     = studyDateCell.indexOf("-");
+                if (dashIndex == -1) {
+                    final Date dateObject = DqrDateRange.parse(studyDateCell);
+                    assert dateObject != null;
+                    final Calendar calendar = Calendar.getInstance();
+                    calendar.setTime(dateObject);
+                    calendar.add(Calendar.DATE, 1);
+                    searchCriteriaBuilder.studyDateRange(new DqrDateRange(dateObject, calendar.getTime()));
                     areThereSearchCriteriaForThisRow = true;
-                }
-                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                    searchCriteriaBuilder.patientId(removeExtraQuotes(row.get(patientIdColumn)));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                    String studyDateCell = row.get(studyDateColumn);
-                    int    dashIndex     = studyDateCell.indexOf("-");
-                    if (dashIndex == -1) {
-                        final Date dateObject = DqrDateRange.parse(studyDateCell);
-                        assert dateObject != null;
-                        final Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(dateObject);
-                        calendar.add(Calendar.DATE, 1);
-                        searchCriteriaBuilder.studyDateRange(new DqrDateRange(dateObject, calendar.getTime()));
+                } else {
+                    String startDateString = studyDateCell.substring(0, dashIndex);
+                    String endDateString   = studyDateCell.substring(dashIndex + 1);
+                    if (StringUtils.isNotBlank(startDateString)) {
+                        searchCriteriaBuilder.studyDateRange(new DqrDateRange(DqrDateRange.parse(startDateString), StringUtils.isNotBlank(endDateString) ? DqrDateRange.parse(endDateString) : null));
                         areThereSearchCriteriaForThisRow = true;
                     } else {
-                        String startDateString = studyDateCell.substring(0, dashIndex);
-                        String endDateString   = studyDateCell.substring(dashIndex + 1);
-                        if (StringUtils.isNotBlank(startDateString)) {
-                            searchCriteriaBuilder.studyDateRange(new DqrDateRange(DqrDateRange.parse(startDateString), StringUtils.isNotBlank(endDateString) ? DqrDateRange.parse(endDateString) : null));
+                        if (StringUtils.isNotBlank(endDateString)) {
+                            searchCriteriaBuilder.studyDateRange(new DqrDateRange(null, DqrDateRange.parse(endDateString)));
                             areThereSearchCriteriaForThisRow = true;
-                        } else {
-                            if (StringUtils.isNotBlank(endDateString)) {
-                                searchCriteriaBuilder.studyDateRange(new DqrDateRange(null, DqrDateRange.parse(endDateString)));
-                                areThereSearchCriteriaForThisRow = true;
-                            }  //Range is open ended on both ends so no search criteria should be added.
+                        }  //Range is open ended on both ends so no search criteria should be added.
 
-                        }
                     }
                 }
-                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                    searchCriteriaBuilder.dob(removeExtraQuotes(row.get(dobColumn)));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                    searchCriteriaBuilder.modality(removeExtraQuotes(row.get(modalityColumn)));
-                    areThereSearchCriteriaForThisRow = true;
-                }
-                if (!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs) {
-                    log.error("No search criteria found. Users must specify at least one valid search criteria.");
-                    return null;
-                }
-
-                Map<String, String> anonMapForThisRow = new HashMap<>();
-                for (Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()) {
-                    String stringToRemapTo = row.get(entry.getKey());
-                    if (StringUtils.isNotBlank(stringToRemapTo)) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                            anonMapForThisRow.put(entry.getValue(), "\"\"");
-                        } else {
-                            anonMapForThisRow.put(entry.getValue(), stringToRemapTo);
-                        }
-                    }
-                }
-
-                final PacsSearchCriteria searchCriteria = searchCriteriaBuilder.build();
-                return FindRow.builder().criteria(searchCriteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user, pacs, searchCriteria).getResults().values()).build();
             }
-        }), Predicates.<FindRow>notNull()));
+            if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
+                searchCriteriaBuilder.dob(removeExtraQuotes(row.get(dobColumn)));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
+                searchCriteriaBuilder.modality(removeExtraQuotes(row.get(modalityColumn)));
+                areThereSearchCriteriaForThisRow = true;
+            }
+            if (!areThereSearchCriteriaForThisRow && !allowRowThatGetsAllStudiesOnPacs) {
+                log.error("No search criteria found. Users must specify at least one valid search criteria.");
+                return null;
+            }
+
+            Map<String, String> anonMapForThisRow = new HashMap<>();
+            for (Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()) {
+                String stringToRemapTo = row.get(entry.getKey());
+                if (StringUtils.isNotBlank(stringToRemapTo)) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
+                        anonMapForThisRow.put(entry.getValue(), "\"\"");
+                    } else {
+                        anonMapForThisRow.put(entry.getValue(), stringToRemapTo);
+                    }
+                }
+            }
+
+            final PacsSearchCriteria searchCriteria = searchCriteriaBuilder.build();
+            return FindRow.builder().criteria(searchCriteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user, pacs, searchCriteria).getResults().values()).build();
+        }).collect(Collectors.toList()).stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
@@ -761,12 +747,7 @@ public class BasicPacsService implements PacsService {
                             if (processorInstances.isEmpty()) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
                             }
-                            if (Iterables.all(processorInstances, new Predicate<ArchiveProcessorInstance>() {
-                                @Override
-                                public boolean apply(final ArchiveProcessorInstance instance) {
-                                    return StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor");
-                                }
-                            })) {
+                            if (processorInstances.stream().allMatch(instance -> StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor"))) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
                             }
                         }
@@ -796,7 +777,7 @@ public class BasicPacsService implements PacsService {
             }
 
 
-            final String seriesIds = StringUtils.join(Iterables.transform(getSeriesByStudy(user, pacs, currStudy).getResults().values(), SERIES_TO_SERIES_UID_FUNCTION), ",");
+            final String seriesIds = StringUtils.join(getSeriesByStudy(user, pacs, currStudy).getResults().values().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), ",");
 
             try {
                 _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, studyId, seriesIds));
@@ -841,13 +822,7 @@ public class BasicPacsService implements PacsService {
                 }
             }
 
-            Lists.transform(rows.subList(1, rows.size()), new Function<List<String>, Study>() {
-                @Nullable
-                @Override
-                public Study apply(final List<String> row) {
-                    return null;
-                }
-            });
+            rows.subList(1, rows.size()).stream().map(row -> null).collect(Collectors.toList());
             for (int index = 1; index < rows.size(); index++) {//Skip the first row since that is a header row
                 List<String>                                       row                   = rows.get(index);
                 final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
@@ -935,7 +910,7 @@ public class BasicPacsService implements PacsService {
             //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
             final String                            studyId   = currStudy.getStudyInstanceUid();
             final PacsSearchResults<String, Series> series    = getSeriesByStudy(user, pacs, currStudy);
-            final String                            seriesIds = StringUtils.join(Iterables.transform(series.getResults().values(), SERIES_TO_SERIES_UID_FUNCTION), ",");
+            final String                            seriesIds = StringUtils.join(series.getResults().values().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), ",");
 
             try {
                 final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyId, seriesIds);
@@ -1113,14 +1088,6 @@ public class BasicPacsService implements PacsService {
     private static final String CLEAR_SIGNIFIER = "\"\"";
 
     private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
-
-    private static final Function<Series, String> SERIES_TO_SERIES_UID_FUNCTION = new Function<Series, String>() {
-        @Override
-        public String apply(final Series series) {
-            assert series != null;
-            return series.getSeriesInstanceUid();
-        }
-    };
 
     private final DqrPreferences                  _preferences;
     private final DicomSCPManager                 _dicomSCPManager;

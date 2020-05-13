@@ -12,16 +12,14 @@
 
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.PacsAvailabilityDAO;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,19 +41,19 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
 
     @Override
     @Transactional
-    public List<PacsAvailability> findSettingsByPacs(Long pacsId) {
+    public List<PacsAvailability> findSettingsByPacs(final long pacsId) {
         return getDao().findSettingsByPacs(pacsId);
     }
 
     @Override
     @Transactional
-    public List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day) {
+    public List<PacsAvailability> findSettingsByPacsByDay(final long pacsId, final int day) {
         return getDao().findSettingsByPacsByDay(pacsId, day);
     }
 
     @Override
     @Transactional
-    public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId) {
+    public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(final long pacsId) {
         Map<Integer, List<PacsAvailability>> availabilityByDay = new HashMap<>();
         for (int day = 1; day <= 7; day++) {
             availabilityByDay.put(day, getDao().findSettingsByPacsByDay(pacsId, day));
@@ -66,19 +64,13 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
     @Override
     @Nullable
     public PacsAvailability findAvailableNow(final long pacsId) {
-        final Calendar               calendar         = Calendar.getInstance();
-        final List<PacsAvailability> availabilityList = findSettingsByPacsByDay(pacsId, calendar.get(Calendar.DAY_OF_WEEK));
-        return Iterables.tryFind(availabilityList, new Predicate<PacsAvailability>() {
-            @Override
-            public boolean apply(final PacsAvailability availability) {
-                return availability.isAvailable(calendar);
-            }
-        }).orNull();
+        final Calendar calendar = Calendar.getInstance();
+        return findSettingsByPacsByDay(pacsId, calendar.get(Calendar.DAY_OF_WEEK)).stream().filter(availability -> availability.isAvailable(calendar)).findAny().orElse(null);
     }
 
     @Override
     @Transactional
-    public Boolean checkOverlap(PacsAvailability availabilityToCheck, boolean removeOverlap) {
+    public Boolean checkOverlap(final PacsAvailability availabilityToCheck, final boolean removeOverlap) {
         return checkOverlap(availabilityToCheck, removeOverlap, -1);
     }
 
@@ -148,9 +140,8 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
 
     @Override
     @Transactional
-    public void deleteAllForPacs(Long pacsId) {
-        final List<PacsAvailability> pacsAvailabilities = getDao().findSettingsByPacs(pacsId);
-        for (final PacsAvailability p : pacsAvailabilities) {
+    public void deleteAllForPacs(final long pacsId) {
+        for (final PacsAvailability p : getDao().findSettingsByPacs(pacsId)) {
             delete(p);
         }
     }

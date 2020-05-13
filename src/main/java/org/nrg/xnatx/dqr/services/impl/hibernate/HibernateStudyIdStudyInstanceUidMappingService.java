@@ -2,9 +2,9 @@ package org.nrg.xnatx.dqr.services.impl.hibernate;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.StudyIdStudyInstanceUidMappingDAO;
 import org.nrg.xnatx.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

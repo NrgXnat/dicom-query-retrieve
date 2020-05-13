@@ -17,18 +17,18 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.apache.turbine.util.RunData;
-import org.nrg.xnatx.dqr.domain.Study;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
-import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.turbine.modules.actions.SecureAction;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
+import org.nrg.xnatx.dqr.domain.Study;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
+import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
+import org.nrg.xnatx.dqr.services.PacsEntityService;
+import org.nrg.xnatx.dqr.services.PacsService;
 
 @Getter(AccessLevel.PROTECTED)
 @Setter(AccessLevel.PROTECTED)
@@ -115,12 +115,12 @@ public abstract class DqrSecureAction extends SecureAction {
     private final static String PACS_SESSION_KEY  = "pacs";
     private final static String STUDY_SESSION_KEY = "study";
 
-    private static PacsService                       _pacsService;
-    private static PacsEntityService                 _pacsEntityService;
+    private static PacsService               _pacsService;
+    private static PacsEntityService         _pacsEntityService;
     private static DqrPreferences            _dqrPreferences;
     private static DqrProjectSettingsService _dqrAdminSettings;
     private static SiteConfigPreferences     _siteConfigPreferences;
-    private static MailService                       _mailService;
+    private static MailService               _mailService;
 
     private long _pacsId;
     private Pacs _pacs;

@@ -11,17 +11,17 @@ package org.nrg.xnatx.dqr.services.impl.basic;
 
 import static org.nrg.xdat.turbine.utils.PropertiesHelper.RetrievePropertyObjects;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,13 +38,13 @@ public class DqrRoleRepositoryService implements RoleRepositoryServiceI {
         final Set<String> propFiles = Reflection.findResources(ROLE_DEFINITION_PACKAGE, ROLE_DEFINITION_PROPERTIES);
         if (propFiles != null) {
             for (final String props : propFiles) {
-                _allRoles.addAll(Lists.newArrayList(Iterables.transform(RetrievePropertyObjects(props, PROP_OBJECT_IDENTIFIER, PROP_OBJECT_FIELDS).values(), PROPS_TO_ROLE_DEF_FUNCTION)));
+                _allRoles.addAll(RetrievePropertyObjects(props, PROP_OBJECT_IDENTIFIER, PROP_OBJECT_FIELDS).values().stream().filter(Objects::nonNull).map(PROPS_TO_ROLE_DEF_FUNCTION).collect(Collectors.toList()));
             }
         }
         try {
             final List<Resource> resources = BasicXnatResourceLocator.getResources("classpath*:META-INF/conf/roles/**/*-definition.properties");
             for (final Resource resource : resources) {
-                _allRoles.addAll(Lists.newArrayList(Iterables.transform(RetrievePropertyObjects(resource.getURL(), PROP_OBJECT_IDENTIFIER, PROP_OBJECT_FIELDS).values(), PROPS_TO_ROLE_DEF_FUNCTION)));
+                _allRoles.addAll(RetrievePropertyObjects(resource.getURL(), PROP_OBJECT_IDENTIFIER, PROP_OBJECT_FIELDS).values().stream().map(PROPS_TO_ROLE_DEF_FUNCTION).collect(Collectors.toList()));
             }
         } catch (IOException e) {
             log.warn("An error occurred trying to find role definitions from resources matching the pattern \"classpath*:META-INF/conf/roles/**/*-definition.properties\"", e);
@@ -74,23 +74,12 @@ public class DqrRoleRepositoryService implements RoleRepositoryServiceI {
     private static final String[] PROP_OBJECT_FIELDS         = new String[]{NAME, DESC, KEY, WARNING};
     private static final String   PROP_OBJECT_IDENTIFIER     = "org.nrg.Role";
 
-    private static final Function<Map<String, Object>, RoleDefinitionI> PROPS_TO_ROLE_DEF_FUNCTION = new Function<Map<String, Object>, RoleDefinitionI>() {
-        @Override
-        public RoleDefinitionI apply(final Map<String, Object> properties) {
-            assert properties != null;
-            return POJORole.builder()
-                           .key((String) properties.get(KEY))
-                           .name(properties.get(NAME).toString())
-                           .description(properties.get(DESC).toString())
-                           .warning(properties.get(WARNING).toString())
-                           .build();
-        }
-    };
+    private static final Function<Map<String, Object>, RoleDefinitionI> PROPS_TO_ROLE_DEF_FUNCTION = properties -> POJORole.builder()
+                                                                                                                           .key((String) properties.get(KEY))
+                                                                                                                           .name(properties.get(NAME).toString())
+                                                                                                                           .description(properties.get(DESC).toString())
+                                                                                                                           .warning(properties.get(WARNING).toString())
+                                                                                                                           .build();
 
-    private final Set<RoleDefinitionI> _allRoles = new TreeSet<>(new Comparator<RoleDefinitionI>() {
-        @Override
-        public int compare(final RoleDefinitionI role1, final RoleDefinitionI role2) {
-            return role1.getKey().compareTo(role2.getKey());
-        }
-    });
+    private final Set<RoleDefinitionI> _allRoles = new TreeSet<>(Comparator.comparing(RoleDefinitionI::getKey));
 }

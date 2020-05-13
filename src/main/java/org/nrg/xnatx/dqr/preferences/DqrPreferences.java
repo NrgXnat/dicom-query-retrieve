@@ -32,7 +32,6 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
         super(preferenceService, eventService, configPaths, initPrefs);
-        log.info("This is the DQR preferences constructor");
     }
 
     @NrgPreference(defaultValue = "XNAT")

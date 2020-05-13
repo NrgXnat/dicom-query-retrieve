@@ -2,12 +2,11 @@ package org.nrg.xnatx.dqr;
 
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.dcm4che2.data.Tag;
-import org.nrg.dcm.Extractor;
 import org.nrg.dcm.TextExtractor;
 import org.nrg.dcm.id.ClassicDicomObjectIdentifier;
 import org.nrg.dcm.id.CompositeDicomObjectIdentifier;
@@ -15,6 +14,10 @@ import org.nrg.dcm.id.RoutedStudyDicomProjectIdentifier;
 import org.nrg.dcm.xnat.AttributeMapXnatImagesessiondataBeanFactory;
 import org.nrg.dcm.xnat.ModalityMapXnatImagesessiondataBeanFactory;
 import org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory;
+import org.nrg.framework.annotations.XnatPlugin;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xnat.DicomObjectIdentifier;
 import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeDeSerializer;
 import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeSerializer;
 import org.nrg.xnatx.dqr.dicom.converters.PacsSearchCriteriaDeserializer;
@@ -28,10 +31,6 @@ import org.nrg.xnatx.dqr.dicom.strategy.orm.dcm4chee.Dcm4cheeResultSetLimitStrat
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
-import org.nrg.framework.annotations.XnatPlugin;
-import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.services.StudyRoutingService;
-import org.nrg.xnat.DicomObjectIdentifier;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -70,8 +69,8 @@ public class DicomQueryRetrievePlugin {
     @Bean
     public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService studyRoutingService, final StudyIdStudyInstanceUidMappingService mappingService, final DqrPreferences preferences) {
         return new CompositeDicomObjectIdentifier(new RoutedStudyDicomProjectIdentifier(studyRoutingService),
-                                                  new ImmutableList.Builder<Extractor>().add(new TextExtractor(Tag.PatientName)).build(),
-                                                  new ImmutableList.Builder<Extractor>().add(new OverrideStudyIdExtractor(mappingService, preferences)).build(),
+                                                  Collections.singletonList(new TextExtractor(Tag.PatientName)),
+                                                  Collections.singletonList(new OverrideStudyIdExtractor(mappingService, preferences)),
                                                   ClassicDicomObjectIdentifier.getAAExtractors());
     }
 

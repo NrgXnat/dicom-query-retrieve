@@ -1,17 +1,13 @@
 package org.nrg.xnatx.dqr.security;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
@@ -58,13 +54,7 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
         final Set<String>                       projects       = new HashSet<>(getProjects(joinPoint));
         final List<? extends PacsImportRequest> importRequests = getParameters(joinPoint, PacsImportRequest.class);
         if (!importRequests.isEmpty()) {
-            projects.addAll(Lists.newArrayList(Iterables.filter(Lists.transform(importRequests, new Function<PacsImportRequest, String>() {
-                @Nullable
-                @Override
-                public String apply(final PacsImportRequest importRequest) {
-                    return importRequest.getProject();
-                }
-            }), Predicates.notNull())));
+            projects.addAll(importRequests.stream().map(PacsImportRequest::getProject).filter(Objects::nonNull).collect(Collectors.toList()));
         }
         final List<String> experiments = getExperiments(joinPoint);
         // None found, so user can proceed
@@ -79,12 +69,7 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
         final boolean               isRead     = StringUtils.equalsIgnoreCase("GET", request.getMethod());
         final MapSqlParameterSource parameters = new MapSqlParameterSource("username", user.getUsername()).addValue("action", isRead ? "read" : "edit");
         if (hasExperiments && !hasProjects) {
-            final List<String> forbidden = Lists.newArrayList(Iterables.filter(experiments, new Predicate<String>() {
-                @Override
-                public boolean apply(final String experiment) {
-                    return !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY, parameters.addValue("experiment", experiment), Boolean.class);
-                }
-            }));
+            final List<String> forbidden = experiments.stream().filter(experiment -> !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY, parameters.addValue("experiment", experiment), Boolean.class)).collect(Collectors.toList());
             if (!forbidden.isEmpty()) {
                 throw new InsufficientPrivilegesException(user.getUsername(), forbidden);
             }
@@ -92,12 +77,7 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
         }
         final String project = projects.iterator().next();
         parameters.addValue("project", project);
-        final List<String> forbidden = Lists.newArrayList(Iterables.filter(experiments, new Predicate<String>() {
-            @Override
-            public boolean apply(final String experiment) {
-                return !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY_IN_PROJECT, parameters.addValue("experiment", experiment), Boolean.class);
-            }
-        }));
+        final List<String> forbidden = experiments.stream().filter(experiment -> !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY_IN_PROJECT, parameters.addValue("experiment", experiment), Boolean.class)).collect(Collectors.toList());
         if (!forbidden.isEmpty()) {
             throw new InsufficientPrivilegesException(user.getUsername(), project, forbidden);
         }
