@@ -13,16 +13,28 @@
 package org.nrg.xnatx.dqr.messaging;
 
 import lombok.extern.slf4j.Slf4j;
+import org.nrg.mail.services.MailService;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.services.PacsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
 
-@SuppressWarnings("unused")
+@Component
 @Slf4j
-public class PacsSessionExportRequestListener extends AbstractPacsRequestListener {
-    public void onPacsSessionExportRequest(final PacsSessionExportRequest request) throws Exception {
+public class PacsSessionExportRequestListener extends AbstractPacsRequestListener<PacsSessionExportRequest> {
+    @Autowired
+    public PacsSessionExportRequestListener(final PacsService pacsService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+        super(pacsService, siteConfigPreferences, mailService);
+    }
+
+    @JmsListener(id = "pacsStudyExportRequest", destination = "pacsStudyExportRequest")
+    public void onRequest(final PacsSessionExportRequest request) throws Exception {
         try {
             log.info("Listener received session export request from user {}", request.getRequestingUser());
 

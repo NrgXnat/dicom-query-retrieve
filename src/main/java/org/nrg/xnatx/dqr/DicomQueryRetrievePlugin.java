@@ -44,10 +44,11 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan({"org.nrg.xnatx.dqr.domain.daos",
                 "org.nrg.xnatx.dqr.events",
                 "org.nrg.xnatx.dqr.events.listeners.methods",
+                "org.nrg.xnatx.dqr.messaging",
                 "org.nrg.xnatx.dqr.preferences",
                 "org.nrg.xnatx.dqr.processors",
+                "org.nrg.xnatx.dqr.rest",
                 "org.nrg.xnatx.dqr.services",
-                "org.nrg.xapi.rest.dqr",
                 "org.nrg.xnatx.dqr.tasks"})
 @Slf4j
 public class DicomQueryRetrievePlugin {
