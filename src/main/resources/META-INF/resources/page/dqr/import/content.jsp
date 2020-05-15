@@ -1,5 +1,14 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" trimDirectiveWhitespaces="true" %>
 <%@ page import="org.nrg.xdat.security.helpers.UserHelper" %>
+<%--
+  ~ dicom-query-retrieve: content.jsp
+  ~ XNAT http://www.xnat.org
+  ~ Copyright (c) 2005-2020, Washington University School of Medicine
+  ~ All Rights Reserved
+  ~
+  ~ Released under the Simplified BSD.
+  --%>
+
 <%--<%@ page import="org.nrg.xdat.display.DisplayManager" %>--%>
 <%--<%@ page import="org.nrg.xapi.rest.users.UsersApi" %>--%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>

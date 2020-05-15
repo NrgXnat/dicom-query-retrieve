@@ -1,13 +1,10 @@
 /*
- * CMoveSCU
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.dicom.command.cmove;
@@ -20,8 +17,8 @@ public interface CMoveSCU {
     /**
      * Sends a C-MOVE request to retrieve a series.
      *
-     * @param study     The study to which the desired series belongs.
-     * @param series    The desired series.
+     * @param study  The study to which the desired series belongs.
+     * @param series The desired series.
      */
     void cmoveSeries(final Study study, final Series series);
 }

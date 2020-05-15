@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.rest.DqrPacsApi
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.rest;
 
 import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
@@ -210,7 +219,7 @@ public class DqrPacsApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     public PacsSearchResults<String, Patient> searchForPatients(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
         final PacsSearchResults<String, Patient> patients;
-        final Pacs pacs = getQueryablePacs(id);
+        final Pacs                               pacs = getQueryablePacs(id);
         patients = _pacsService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {
             throw new NoContentException("No patients were found that met the specified criteria");
@@ -332,12 +341,12 @@ public class DqrPacsApi extends AbstractXapiRestController {
         }
     }
 
-    private static final String QUERY_PACS_EXISTS                = "SELECT EXISTS(SELECT id FROM xhbm_pacs WHERE id = :id)";
-    private static final String QUERY_IMAGE_SESSION_EXISTS       = "SELECT EXISTS(SELECT id FROM xnat_imagesessiondata WHERE id = :experimentId)";
-    private static final String QUERY_IMAGE_SESSION_AND_SCAN     = "SELECT s.xnat_imagescandata_id FROM xnat_imagesessiondata i LEFT JOIN xnat_imagescandata s ON i.id = s.image_session_id WHERE i.id = :experimentId AND s.id = :scanId";
-    private static final String MESSAGE_PACS_ID_MISMATCH         = "The ID for the update call \"%d\" does not match the PACS entity ID \"%d\"";
-    private static final String MESSAGE_SESSION_NOT_FOUND        = "No image session with ID \"%s\" exists on this system";
-    private static final String MESSAGE_SESSION_SCAN_NOT_FOUND   = "No image session \"%s\" with scan ID \"%s\" exists on this system";
+    private static final String QUERY_PACS_EXISTS              = "SELECT EXISTS(SELECT id FROM xhbm_pacs WHERE id = :id)";
+    private static final String QUERY_IMAGE_SESSION_EXISTS     = "SELECT EXISTS(SELECT id FROM xnat_imagesessiondata WHERE id = :experimentId)";
+    private static final String QUERY_IMAGE_SESSION_AND_SCAN   = "SELECT s.xnat_imagescandata_id FROM xnat_imagesessiondata i LEFT JOIN xnat_imagescandata s ON i.id = s.image_session_id WHERE i.id = :experimentId AND s.id = :scanId";
+    private static final String MESSAGE_PACS_ID_MISMATCH       = "The ID for the update call \"%d\" does not match the PACS entity ID \"%d\"";
+    private static final String MESSAGE_SESSION_NOT_FOUND      = "No image session with ID \"%s\" exists on this system";
+    private static final String MESSAGE_SESSION_SCAN_NOT_FOUND = "No image session \"%s\" with scan ID \"%s\" exists on this system";
 
     private final DqrPreferences             _preferences;
     private final PacsService                _pacsService;

@@ -1,28 +1,25 @@
 /*
- * Pacs
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-import org.hibernate.envers.Audited;
+import java.io.Serializable;
 import javax.persistence.Entity;
 import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
-import java.io.Serializable;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.envers.Audited;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"projectId"}))
@@ -78,15 +75,27 @@ public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializa
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         ProjectIrbInfo that = (ProjectIrbInfo) o;
 
-        if (!_projectId.equals(that._projectId)) return false;
-        if (!_irbNumber.equals(that._irbNumber)) return false;
-        if (!_irbFile.equals(that._irbFile)) return false;
+        if (!_projectId.equals(that._projectId)) {
+            return false;
+        }
+        if (!_irbNumber.equals(that._irbNumber)) {
+            return false;
+        }
+        if (!_irbFile.equals(that._irbFile)) {
+            return false;
+        }
         return _irbFileName.equals(that._irbFileName);
     }
 
@@ -103,9 +112,9 @@ public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializa
     @Override
     public String toString() {
         return "ProjectIrbInfo{" +
-                "projectId='" + _projectId + '\'' +
-                ", irbNumber='" + _irbNumber + '\'' +
-                ", irbFileName='" + _irbFileName + '\'' +
-                '}';
+               "projectId='" + _projectId + '\'' +
+               ", irbNumber='" + _irbNumber + '\'' +
+               ", irbFileName='" + _irbFileName + '\'' +
+               '}';
     }
 }

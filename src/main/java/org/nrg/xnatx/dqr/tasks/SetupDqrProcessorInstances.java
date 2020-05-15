@@ -1,7 +1,7 @@
 /*
- * web: org.nrg.xnat.initialization.tasks.UpdateUserAuthTable
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.tasks.SetupDqrProcessorInstances
  * XNAT http://www.xnat.org
- * Copyright (c) 2005-2017, Washington University School of Medicine and Howard Hughes Medical Institute
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
@@ -9,18 +9,17 @@
 
 package org.nrg.xnatx.dqr.tasks;
 
-import org.nrg.xnatx.dqr.processors.UpdateRequestStatusArchiveProcessor;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import org.nrg.xnat.archive.operations.ProcessorGradualDicomImportOperation;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.initialization.tasks.AbstractInitializingTask;
 import org.nrg.xnat.initialization.tasks.InitializingTaskException;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
+import org.nrg.xnatx.dqr.processors.UpdateRequestStatusArchiveProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 
 @Component
 public class SetupDqrProcessorInstances extends AbstractInitializingTask {
@@ -37,11 +36,11 @@ public class SetupDqrProcessorInstances extends AbstractInitializingTask {
 
     @Override
     protected void callImpl() throws InitializingTaskException {
-        try{
-            String dqrUpdateRequestStatusClassName = UpdateRequestStatusArchiveProcessor.class.getCanonicalName();
-            List<ArchiveProcessorInstance> dqrProcessors = _archiveProcessorInstanceService.getAllSiteProcessorsForClass(dqrUpdateRequestStatusClassName);
+        try {
+            String                         dqrUpdateRequestStatusClassName = UpdateRequestStatusArchiveProcessor.class.getCanonicalName();
+            List<ArchiveProcessorInstance> dqrProcessors                   = _archiveProcessorInstanceService.getAllSiteProcessorsForClass(dqrUpdateRequestStatusClassName);
             // Creates a DQR Update Request Status processor instance of none exists. Such an instance is necessary for request status to be updated (but the instance can be disabled if not desired for whatever reason).
-            if(dqrProcessors==null || dqrProcessors.size()==0){
+            if (dqrProcessors == null || dqrProcessors.size() == 0) {
                 //The processor instances table is new. Add default processor instances.
                 ArchiveProcessorInstance defaultUpdateRequestStatusProcessor = new ArchiveProcessorInstance();
                 defaultUpdateRequestStatusProcessor.setLocation(ProcessorGradualDicomImportOperation.NAME_OF_LOCATION_AT_BEGINNING_AFTER_DICOM_OBJECT_IS_READ);

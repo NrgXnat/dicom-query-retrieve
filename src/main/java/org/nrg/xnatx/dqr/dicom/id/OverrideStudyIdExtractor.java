@@ -1,3 +1,11 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.dicom.id.OverrideStudyIdExtractor
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
 
 package org.nrg.xnatx.dqr.dicom.id;
 
@@ -14,10 +22,10 @@ import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.jetbrains.annotations.Nullable;
 import org.nrg.dcm.Extractor;
+import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnatx.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
-import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 
 @Slf4j
 public class OverrideStudyIdExtractor implements Extractor {

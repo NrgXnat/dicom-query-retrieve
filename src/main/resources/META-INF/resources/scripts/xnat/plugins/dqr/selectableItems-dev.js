@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: selectableItems-dev.js
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 /**
  * 'Selectable Table' behavior...
  * ...init on *any* container element

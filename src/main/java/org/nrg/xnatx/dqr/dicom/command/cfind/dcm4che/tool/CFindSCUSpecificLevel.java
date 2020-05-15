@@ -1,13 +1,10 @@
 /*
- * CFindSCUSpecificLevel
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSpecificLevel
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
@@ -242,7 +239,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     protected abstract PacsSearchResults<String, T> wrapResults(final Map<String, T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
 
-    private final static String     DICOM_DATE_RANGE_SEPARATOR = "-";
+    private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
 
     private final DcmQR dcmQR;
 

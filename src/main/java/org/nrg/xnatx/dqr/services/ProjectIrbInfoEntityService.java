@@ -1,19 +1,16 @@
 /*
- * org.nrg.xnatx.dqr.services.PacsEntityService
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.services.ProjectIrbInfoEntityService
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.services;
 
-import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
+import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
 
 public interface ProjectIrbInfoEntityService extends BaseHibernateService<ProjectIrbInfo> {
 

@@ -1,13 +1,10 @@
 /*
- * BasicPatientNameStrategy
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.dicom.strategy.orm.BasicPatientNameStrategy
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
@@ -19,10 +16,10 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 
 public class BasicPatientNameStrategy implements PatientNameStrategy {
 
-    private static final String DICOM_PERSON_NAME_COMPONENT_SEPARATOR = "^";
+    private static final String DICOM_PERSON_NAME_COMPONENT_SEPARATOR               = "^";
     private static final String DICOM_PERSON_NAME_COMPONENT_SEPARATOR_REGEX_ESCAPED = "\\^";
-    private static final String DICOM_WILD_CARD_INDICATOR = "*";
-    private static final String DICOM_WILD_CARD_INDICATOR_REGEX_ESCAPED = "\\*";
+    private static final String DICOM_WILD_CARD_INDICATOR                           = "*";
+    private static final String DICOM_WILD_CARD_INDICATOR_REGEX_ESCAPED             = "\\*";
 
     @Override
     public PatientName dicomPatientNameToDqrPatientName(String dicomPatientName) {
@@ -35,11 +32,11 @@ public class BasicPatientNameStrategy implements PatientNameStrategy {
         if (StringUtils.isBlank(searchCriteria.getPatientName())) {
             dicomPersonNameSearchCriteria.addCriterion("");
         } else {
-            String patientNameString = myTrim(searchCriteria.getPatientName());
-            boolean isQuoted = patientNameString.startsWith("\"") & patientNameString.endsWith(("\""));
-            boolean containsCaret = patientNameString.contains("^");
-            boolean containsComma = patientNameString.contains(",");
-            boolean containsSpace = patientNameString.contains(" ");
+            String  patientNameString = myTrim(searchCriteria.getPatientName());
+            boolean isQuoted          = patientNameString.startsWith("\"") & patientNameString.endsWith(("\""));
+            boolean containsCaret     = patientNameString.contains("^");
+            boolean containsComma     = patientNameString.contains(",");
+            boolean containsSpace     = patientNameString.contains(" ");
 
             String processedPatientNameString = patientNameString;
             if (isQuoted) {
@@ -88,17 +85,17 @@ public class BasicPatientNameStrategy implements PatientNameStrategy {
 
     private static String removeBoundingQuotes(String name) {
         int length = name.length();
-        return name.substring(1, length-2);
+        return name.substring(1, length - 2);
     }
 
     private static String myTrim(String name) {
         String rtn = name.trim();
         rtn = rtn.replaceAll(" [ ]*", " ");
 
-        rtn = rtn.replaceAll("[ ]*\\^[ ]*","^");
-        rtn = rtn.replaceAll("[ ]*,[ ]*",",");
-        rtn = rtn.replaceAll("[ ]*\\.[ ]*",".");
-        rtn = rtn.replaceAll("[ ]*'[ ]*","'");
+        rtn = rtn.replaceAll("[ ]*\\^[ ]*", "^");
+        rtn = rtn.replaceAll("[ ]*,[ ]*", ",");
+        rtn = rtn.replaceAll("[ ]*\\.[ ]*", ".");
+        rtn = rtn.replaceAll("[ ]*'[ ]*", "'");
 
         return rtn;
     }
@@ -114,14 +111,16 @@ public class BasicPatientNameStrategy implements PatientNameStrategy {
     private static String parseWithCaret(String name) {
         return name;
     }
+
     private static String parseWithComma(String name) {
         String tokens[] = name.split(",");
-        String rtn = tokens[0].trim() + "^" + tokens[1].trim();
+        String rtn      = tokens[0].trim() + "^" + tokens[1].trim();
         return rtn;
     }
+
     private static String parseWithSpace(String name) {
         String tokens[] = name.split(" ");
-        String rtn = tokens[1] + "^" + tokens[0];
+        String rtn      = tokens[1] + "^" + tokens[0];
         return rtn;
     }
 

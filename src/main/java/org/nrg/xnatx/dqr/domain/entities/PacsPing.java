@@ -1,27 +1,23 @@
 /*
- * Pacs
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.entities.PacsPing
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.domain.entities;
 
+import java.io.Serializable;
+import java.util.Date;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
-
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import java.io.Serializable;
-import java.util.Date;
 
 @Entity
 @Table
@@ -29,9 +25,9 @@ import java.util.Date;
 public class PacsPing extends AbstractHibernateEntity implements Serializable {
     protected static final long serialVersionUID = 1L;
 
-    protected Long _pacsId;
+    protected Long    _pacsId;
     protected boolean _successful;
-    protected Date _pingTime;
+    protected Date    _pingTime;
 
     public Long getPacsId() {
         return _pacsId;
@@ -64,7 +60,7 @@ public class PacsPing extends AbstractHibernateEntity implements Serializable {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_pacsId).append(_successful)
-                .append(_pingTime).toHashCode();
+                                            .append(_pingTime).toHashCode();
     }
 
     @Override
@@ -80,7 +76,7 @@ public class PacsPing extends AbstractHibernateEntity implements Serializable {
         }
         final PacsPing other = (PacsPing) obj;
         return new EqualsBuilder().append(_pacsId, other._pacsId).append(_successful, other._successful)
-                .append(_pingTime, other._pingTime).isEquals();
+                                  .append(_pingTime, other._pingTime).isEquals();
     }
 
     @Override

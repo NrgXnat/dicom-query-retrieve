@@ -1,9 +1,23 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.events.PacsThreadsChecker
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.events;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.config.services.ConfigService;
+import org.nrg.mail.services.MailService;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xdat.security.user.XnatUserProvider;
+import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
@@ -13,11 +27,6 @@ import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
-import org.nrg.mail.services.MailService;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
-import org.nrg.xdat.security.user.XnatUserProvider;
-import org.nrg.xdat.services.StudyRoutingService;
-import org.nrg.xnat.task.AbstractXnatRunnable;
 
 /**
  * Created by mike on 1/23/18.

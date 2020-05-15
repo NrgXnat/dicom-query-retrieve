@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.rest.DicomQueryRetrieveApi
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.rest;
 
 import static org.nrg.xdat.security.helpers.AccessLevel.Admin;

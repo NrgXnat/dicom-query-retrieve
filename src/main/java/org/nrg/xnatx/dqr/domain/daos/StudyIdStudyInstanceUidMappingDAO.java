@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.daos.StudyIdStudyInstanceUidMappingDAO
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.domain.daos;
 
 import java.util.List;
@@ -13,7 +22,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class StudyIdStudyInstanceUidMappingDAO extends AbstractHibernateDAO<StudyIdStudyInstanceUidMapping> {
-    public List<StudyIdStudyInstanceUidMapping> findAllForStudyInstanceUid(final String studyInstanceUid){
+    public List<StudyIdStudyInstanceUidMapping> findAllForStudyInstanceUid(final String studyInstanceUid) {
         final Criteria criteria = getCriteriaForType();
         criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
         criteria.addOrder(Order.desc("created"));

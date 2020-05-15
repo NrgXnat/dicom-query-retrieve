@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.events.listeners.methods.PacsAvailabilityCheckerHandlerMethod
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.events.listeners.methods;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -10,6 +19,12 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.services.ConfigService;
+import org.nrg.mail.services.MailService;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xdat.security.user.XnatUserProvider;
+import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xnat.event.listeners.methods.AbstractScheduledXnatPreferenceHandlerMethod;
+import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.events.PacsThreads;
 import org.nrg.xnatx.dqr.events.PacsThreadsChecker;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
@@ -18,12 +33,6 @@ import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
-import org.nrg.mail.services.MailService;
-import org.nrg.xdat.preferences.SiteConfigPreferences;
-import org.nrg.xdat.security.user.XnatUserProvider;
-import org.nrg.xdat.services.StudyRoutingService;
-import org.nrg.xnat.event.listeners.methods.AbstractScheduledXnatPreferenceHandlerMethod;
-import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;

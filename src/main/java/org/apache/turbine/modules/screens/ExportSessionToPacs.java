@@ -1,13 +1,10 @@
 /*
- * org.apache.turbine.modules.screens.ExportSessionToPacs
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.apache.turbine.modules.screens.ExportSessionToPacs
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 11/20/13 11:21 AM
  */
 
 package org.apache.turbine.modules.screens;
@@ -16,10 +13,10 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
 
 @SuppressWarnings("unused")
 public class ExportSessionToPacs extends DqrSecureScreen {

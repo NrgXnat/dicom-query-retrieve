@@ -1,13 +1,10 @@
 /*
- * org.nrg.xnatx.dqr.services.PacsEntityService
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.services;
@@ -15,8 +12,8 @@ package org.nrg.xnatx.dqr.services;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
-import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
+import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
     List<PacsAvailability> findSettingsByPacs(final long pacsId);

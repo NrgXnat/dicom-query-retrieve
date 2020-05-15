@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.utils.ImportRequest
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.utils;
 
 import java.util.List;
@@ -13,7 +22,7 @@ public class ImportRequest {
     }
 
     protected List<ImportRow> importRows;
-    protected List<String> seriesDescriptions;
+    protected List<String>    seriesDescriptions;
 
     public List<ImportRow> getImportRows() {
         return importRows;
@@ -33,12 +42,18 @@ public class ImportRequest {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ImportRequest that = (ImportRequest) o;
 
-        if (importRows != null ? !importRows.equals(that.importRows) : that.importRows != null) return false;
+        if (importRows != null ? !importRows.equals(that.importRows) : that.importRows != null) {
+            return false;
+        }
         return seriesDescriptions != null ? seriesDescriptions.equals(that.seriesDescriptions) : that.seriesDescriptions == null;
     }
 
@@ -52,9 +67,9 @@ public class ImportRequest {
     @Override
     public String toString() {
         return "ImportRequest{" +
-                "importRows=" + importRows +
-                ", seriesDescriptions=" + seriesDescriptions +
-                '}';
+               "importRows=" + importRows +
+               ", seriesDescriptions=" + seriesDescriptions +
+               '}';
     }
 
 }

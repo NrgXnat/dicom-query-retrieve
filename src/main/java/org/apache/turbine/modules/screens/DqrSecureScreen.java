@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.apache.turbine.modules.screens.DqrSecureScreen
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.apache.turbine.modules.screens;
 
 import java.util.ArrayList;
@@ -36,7 +45,7 @@ public abstract class DqrSecureScreen extends SecureScreen {
     }
 
     protected Pair<List<DicomSCPInstance>, List<DicomSCPInstance>> getScpsAndEnabledScps() {
-        final List<DicomSCPInstance> scps = new ArrayList<>(getDicomSCPManager().getDicomSCPInstances().values());
+        final List<DicomSCPInstance> scps        = new ArrayList<>(getDicomSCPManager().getDicomSCPInstances().values());
         final List<DicomSCPInstance> enabledScps = scps.stream().filter(DicomSCPInstance::isEnabled).collect(Collectors.toList());
         return Pair.of(scps, enabledScps);
     }
@@ -62,7 +71,7 @@ public abstract class DqrSecureScreen extends SecureScreen {
         return _dicomSCPManager;
     }
 
-    private static PacsEntityService                 _pacsEntityService;
-    private static DicomSCPManager           _dicomSCPManager;
-    private static Map<String, OrmStrategy>          _strategies;
+    private static PacsEntityService        _pacsEntityService;
+    private static DicomSCPManager          _dicomSCPManager;
+    private static Map<String, OrmStrategy> _strategies;
 }

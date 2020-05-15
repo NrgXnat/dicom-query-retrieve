@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: filterableItems.js
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 /**
  * Faster and more versatile filtering that also works on non-table elements
  */

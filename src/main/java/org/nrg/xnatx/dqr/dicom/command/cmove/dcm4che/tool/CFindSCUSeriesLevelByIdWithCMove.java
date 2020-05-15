@@ -1,22 +1,19 @@
 /*
- * CFindSCUSeriesLevelByIdWithCMove
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool.CFindSCUSeriesLevelByIdWithCMove
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 
 import org.dcm4che2.tool.dcmqr.DcmQR;
+import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevelById;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
 public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {

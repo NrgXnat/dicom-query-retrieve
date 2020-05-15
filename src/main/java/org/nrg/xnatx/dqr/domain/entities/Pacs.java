@@ -1,13 +1,10 @@
 /*
- * Pacs
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.entities.Pacs
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.domain.entities;
@@ -172,9 +169,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
                + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
     }
 
-    private String _aeTitle;
-    private String _host;
-    private String _label;
+    private String  _aeTitle;
+    private String  _host;
+    private String  _label;
     private Boolean _queryable;
     private Integer _queryRetrievePort;
     private Boolean _defaultStoragePacs;

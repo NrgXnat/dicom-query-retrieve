@@ -1,13 +1,10 @@
 /*
- * DqrPersonName
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.DqrPersonName
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.nrg.xnatx.dqr.domain;
@@ -16,7 +13,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -64,9 +60,9 @@ public class DqrPersonName implements Serializable {
         final String[] patientNameParts = StringUtils.trimToEmpty(commaDelimitedName).split("\\s*,\\s*");
         personName = new PersonName();
         personName.set(PersonName.FAMILY,
-                StringUtils.trimToNull((patientNameParts.length >= 1 ? patientNameParts[0] : null)));
+                       StringUtils.trimToNull((patientNameParts.length >= 1 ? patientNameParts[0] : null)));
         personName.set(PersonName.GIVEN,
-                StringUtils.trimToNull((patientNameParts.length >= 2 ? patientNameParts[1] : null)));
+                       StringUtils.trimToNull((patientNameParts.length >= 2 ? patientNameParts[1] : null)));
     }
 
     public DqrPersonName(final PersonName personName) {
@@ -75,8 +71,8 @@ public class DqrPersonName implements Serializable {
 
     public boolean isBlank() {
         return StringUtils.isBlank(getLastName()) && StringUtils.isBlank(getFirstName())
-                && StringUtils.isBlank(getMiddleName()) && StringUtils.isBlank(getPrefix())
-                && StringUtils.isBlank(getSuffix());
+               && StringUtils.isBlank(getMiddleName()) && StringUtils.isBlank(getPrefix())
+               && StringUtils.isBlank(getSuffix());
     }
 
     public boolean hasFirstName() {
@@ -127,13 +123,13 @@ public class DqrPersonName implements Serializable {
         ois.defaultReadObject();
         personName = new PersonName();
         setPersonNameFields((String) ois.readObject(), (String) ois.readObject(), (String) ois.readObject(),
-                (String) ois.readObject(), (String) ois.readObject());
+                            (String) ois.readObject(), (String) ois.readObject());
     }
 
     @Override
     public int hashCode() {
         return new HashCodeBuilder(359, 367).append(getFirstName()).append(getLastName()).append(getMiddleName())
-                .append(getPrefix()).append(getSuffix()).toHashCode();
+                                            .append(getPrefix()).append(getSuffix()).toHashCode();
     }
 
     @Override
@@ -149,8 +145,8 @@ public class DqrPersonName implements Serializable {
         }
         final DqrPersonName other = (DqrPersonName) obj;
         return new EqualsBuilder().append(getFirstName(), other.getFirstName())
-                .append(getLastName(), other.getLastName()).append(getMiddleName(), other.getMiddleName())
-                .append(getPrefix(), other.getPrefix()).append(getSuffix(), other.getSuffix()).isEquals();
+                                  .append(getLastName(), other.getLastName()).append(getMiddleName(), other.getMiddleName())
+                                  .append(getPrefix(), other.getPrefix()).append(getSuffix(), other.getSuffix()).isEquals();
     }
 
     @Override

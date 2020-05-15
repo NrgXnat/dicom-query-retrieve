@@ -1,13 +1,10 @@
 /*
- * ExportSessionToPacs
- * DQR is developed by the Neuroinformatics Research Group
+ * dicom-query-retrieve: org.apache.turbine.modules.actions.ImportFromSpreadsheet
  * XNAT http://www.xnat.org
- * Copyright (c) 2013, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
- *
- * Last modified 9/24/13 6:11 PM
  */
 
 package org.apache.turbine.modules.actions;
@@ -18,13 +15,13 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.turbine.util.RunData;
 import org.apache.turbine.util.parser.ParameterParser;
 import org.apache.velocity.context.Context;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xapi.exceptions.NotAuthenticatedException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
 
 @SuppressWarnings("unused")
 @Slf4j

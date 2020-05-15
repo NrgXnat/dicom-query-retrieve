@@ -1,3 +1,12 @@
+/*
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.utils.ImportRow
+ * XNAT http://www.xnat.org
+ * Copyright (c) 2005-2020, Washington University School of Medicine
+ * All Rights Reserved
+ *
+ * Released under the Simplified BSD.
+ */
+
 package org.nrg.xnatx.dqr.utils;
 
 import java.util.List;
@@ -8,19 +17,19 @@ public class ImportRow {
     public ImportRow() {
     }
 
-    public ImportRow(Map<String,String> relabelMap, List<String> studyInstanceUIDs) {
+    public ImportRow(Map<String, String> relabelMap, List<String> studyInstanceUIDs) {
         this.relabelMap = relabelMap;
         this.studyInstanceUIDs = studyInstanceUIDs;
     }
 
-    protected Map<String,String> relabelMap;
-    protected List<String> studyInstanceUIDs;
+    protected Map<String, String> relabelMap;
+    protected List<String>        studyInstanceUIDs;
 
-    public Map<String,String> getRelabelMap() {
+    public Map<String, String> getRelabelMap() {
         return relabelMap;
     }
 
-    public void setRelabelMap(Map<String,String> relabelMap) {
+    public void setRelabelMap(Map<String, String> relabelMap) {
         this.relabelMap = relabelMap;
     }
 
@@ -34,12 +43,18 @@ public class ImportRow {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ImportRow importRow = (ImportRow) o;
 
-        if (relabelMap != null ? !relabelMap.equals(importRow.relabelMap) : importRow.relabelMap != null) return false;
+        if (relabelMap != null ? !relabelMap.equals(importRow.relabelMap) : importRow.relabelMap != null) {
+            return false;
+        }
         return studyInstanceUIDs != null ? studyInstanceUIDs.equals(importRow.studyInstanceUIDs) : importRow.studyInstanceUIDs == null;
     }
 
@@ -53,8 +68,8 @@ public class ImportRow {
     @Override
     public String toString() {
         return "ImportRow{" +
-                "anonScript='" + relabelMap + '\'' +
-                ", studyInstanceUIDs=" + studyInstanceUIDs +
-                '}';
+               "anonScript='" + relabelMap + '\'' +
+               ", studyInstanceUIDs=" + studyInstanceUIDs +
+               '}';
     }
 }

@@ -1,7 +1,7 @@
 /*
- * web: org.nrg.xnat.node.dao.XnatNodeInfoDAO
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.domain.daos.DqrProjectSettingsDAO
  * XNAT http://www.xnat.org
- * Copyright (c) 2005-2017, Washington University School of Medicine and Howard Hughes Medical Institute
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class DqrProjectSettingsDAO extends AbstractHibernateDAO<DqrProjectSettings> {
-    public DqrProjectSettings getDqrAdminSettingsByProjectId(final String projectId){
+    public DqrProjectSettings getDqrAdminSettingsByProjectId(final String projectId) {
         final Criteria criteria = getSession().createCriteria(getParameterizedType());
         criteria.add(Restrictions.eq("projectId", projectId));
         return instance(checked(criteria.list()));
