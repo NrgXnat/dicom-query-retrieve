@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
 import org.nrg.xapi.exceptions.NoContentException;
 import org.nrg.xapi.exceptions.NotFoundException;
@@ -25,12 +24,8 @@ import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Experiment;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.domain.Patient;
@@ -44,6 +39,7 @@ import org.nrg.xnatx.dqr.dto.PacsImportRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
+import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
@@ -109,11 +105,7 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
     public Pacs retrievePacs(final @ApiParam("ID of the PACS entry to be retrieved.") @PathVariable long id) throws PacsNotFoundException {
-        try {
-            return _pacsEntityService.get(id);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
-        }
+        return getPacs(id);
     }
 
     @ApiOperation(value = "Updates an existing PACS entry.")
@@ -145,19 +137,8 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/experiments/{experimentId}/scans/{scanId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public void exportToPacs(final @ApiParam("ID of the PACS entry to which data should be exported.") @PathVariable long id, final @ApiParam("ID of the experiment to be exported.") @PathVariable @Experiment String experimentId, final @ApiParam("ID of the scan to be exported.") @PathVariable String scanId) throws DataFormatException, NotFoundException, PacsNotStorableException, PacsNotFoundException, InitializationException {
-        final Pacs pacs;
-        try {
-            pacs = _pacsEntityService.get(id);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
-        }
-        if (!pacs.isStorable()) {
-            throw new PacsNotStorableException(pacs.getId());
-        }
-        final long scanKey = validate(experimentId, scanId);
-        _pacsService.exportSeries(getSessionUser(), pacs, XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(scanKey, getSessionUser(), false));
-        recordScanExport(_template.queryForObject(QUERY_PROJECT_FROM_IMAGE_SESSION, new MapSqlParameterSource("experimentId", experimentId), String.class), experimentId, scanId);
+    public void exportToPacs(final @ApiParam("ID of the PACS entry to which data should be exported.") @PathVariable long id, final @ApiParam("ID of the experiment to be exported.") @PathVariable @Experiment String experimentId, final @ApiParam("ID of the scan to be exported.") @PathVariable String scanId) throws NotFoundException, PacsNotStorableException, PacsNotFoundException {
+        _pacsService.exportSeries(getSessionUser(), getStorablePacs(id), XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(validate(experimentId, scanId), getSessionUser(), false));
     }
 
     @ApiOperation(value = "Imports the specified DICOM series from a single study from the specified PACS.")
@@ -227,13 +208,10 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/patients", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<String, Patient> searchForPatients(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException {
+    public PacsSearchResults<String, Patient> searchForPatients(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
         final PacsSearchResults<String, Patient> patients;
-        try {
-            patients = _pacsService.getPatientsByExample(getSessionUser(), _pacsEntityService.get(id), criteria);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
-        }
+        final Pacs pacs = getQueryablePacs(id);
+        patients = _pacsService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {
             throw new NoContentException("No patients were found that met the specified criteria");
         }
@@ -247,16 +225,12 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/patients/{patientId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Patient searchForPatient(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String patientId) throws PacsNotFoundException, NoContentException {
-        try {
-            final Patient patient = _pacsService.getPatientById(getSessionUser(), _pacsEntityService.get(id), patientId);
-            if (patient == null) {
-                throw new NoContentException("No patient was found with the ID " + patientId + " on the PACS " + id);
-            }
-            return patient;
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
+    public Patient searchForPatient(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String patientId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final Patient patient = _pacsService.getPatientById(getSessionUser(), getPacs(id), patientId);
+        if (patient == null) {
+            throw new NoContentException("No patient was found with the ID " + patientId + " on the PACS " + id);
         }
+        return patient;
     }
 
     @ApiOperation(value = "Searches for studies on the specified PACS.")
@@ -266,13 +240,8 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/studies", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<String, Study> searchForStudies(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException {
-        final PacsSearchResults<String, Study> studies;
-        try {
-            studies = _pacsService.getStudiesByExample(getSessionUser(), _pacsEntityService.get(id), criteria);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
-        }
+    public PacsSearchResults<String, Study> searchForStudies(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final PacsSearchResults<String, Study> studies = _pacsService.getStudiesByExample(getSessionUser(), getQueryablePacs(id), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
         }
@@ -286,16 +255,12 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/studies/{studyId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Study searchForStudy(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException {
-        try {
-            final Study study = _pacsService.getStudyById(getSessionUser(), _pacsEntityService.get(id), studyId);
-            if (study == null) {
-                throw new NoContentException("No study was found with the ID " + studyId + " on the PACS " + id);
-            }
-            return study;
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
+    public Study searchForStudy(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final Study study = _pacsService.getStudyById(getSessionUser(), getQueryablePacs(id), studyId);
+        if (study == null) {
+            throw new NoContentException("No study was found with the ID " + studyId + " on the PACS " + id);
         }
+        return study;
     }
 
     @ApiOperation(value = "Searches for a particular study on the specified PACS.", response = Series.class, responseContainer = "List")
@@ -305,43 +270,36 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/studies/{studyId}/series", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Collection<Series> searchForStudySeries(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException {
+    public Collection<Series> searchForStudySeries(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final PacsSearchResults<String, Series> series = _pacsService.getSeriesByStudy(getSessionUser(), getQueryablePacs(id), Study.builder().studyId(studyId).build());
+        if (series.getResults().isEmpty()) {
+            throw new NoContentException("No series found for study with the ID " + studyId + " on the PACS " + id);
+        }
+        return series.getResults().values();
+    }
+
+    private Pacs getPacs(final long pacsId) throws PacsNotFoundException {
         try {
-            final PacsSearchResults<String, Series> series = _pacsService.getSeriesByStudy(getSessionUser(), _pacsEntityService.get(id), Study.builder().studyId(studyId).build());
-            if (series.getResults().isEmpty()) {
-                throw new NoContentException("No series found for study with the ID " + studyId + " on the PACS " + id);
-            }
-            return series.getResults().values();
+            return _pacsEntityService.get(pacsId);
         } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new PacsNotFoundException(id);
+            throw new PacsNotFoundException(pacsId);
         }
     }
 
-    private void recordScanExport(final String projectId, final String experimentId, final String scanId) throws InitializationException, DataFormatException {
-        final PersistentWorkflowI workflow;
-        try {
-            workflow = PersistentWorkflowUtils.buildOpenWorkflow(getSessionUser(),
-                                                                 XnatMrsessiondata.SCHEMA_ELEMENT_NAME,
-                                                                 experimentId,
-                                                                 projectId,
-                                                                 EventUtils.newEventInstance(EventUtils.CATEGORY.DATA,
-                                                                                             EventUtils.TYPE.PROCESS,
-                                                                                             "EXPORT_TO_PACS_REQUEST", null,
-                                                                                             "Series: " + experimentId + "/" + scanId));
-        } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-            throw new DataFormatException("Error creating new workflow event: action name absent");
-        } catch (PersistentWorkflowUtils.IDAbsent e) {
-            throw new DataFormatException("Error creating new workflow event: entity ID absent");
-        } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-            throw new DataFormatException("Error creating new workflow event: justification absent but required when creating new workflow event");
+    private Pacs getQueryablePacs(final long pacsId) throws PacsNotFoundException, PacsNotQueryableException {
+        final Pacs pacs = getPacs(pacsId);
+        if (pacs.isQueryable()) {
+            return pacs;
         }
-        assert workflow != null;
-        try {
-            PersistentWorkflowUtils.complete(workflow, workflow.buildEvent());
-        } catch (Exception e) {
-            log.error("An unexpected error occurred while trying to complete the workflow {}", workflow.getId(), e);
-            throw new InitializationException(e);
+        throw new PacsNotQueryableException(pacsId);
+    }
+
+    private Pacs getStorablePacs(final long pacsId) throws PacsNotFoundException, PacsNotStorableException {
+        final Pacs pacs = getPacs(pacsId);
+        if (pacs.isStorable()) {
+            return pacs;
         }
+        throw new PacsNotStorableException(pacsId);
     }
 
     private long validate(final String experimentId, final String scanId) throws NotFoundException {
@@ -377,7 +335,6 @@ public class DqrPacsApi extends AbstractXapiRestController {
     private static final String QUERY_PACS_EXISTS                = "SELECT EXISTS(SELECT id FROM xhbm_pacs WHERE id = :id)";
     private static final String QUERY_IMAGE_SESSION_EXISTS       = "SELECT EXISTS(SELECT id FROM xnat_imagesessiondata WHERE id = :experimentId)";
     private static final String QUERY_IMAGE_SESSION_AND_SCAN     = "SELECT s.xnat_imagescandata_id FROM xnat_imagesessiondata i LEFT JOIN xnat_imagescandata s ON i.id = s.image_session_id WHERE i.id = :experimentId AND s.id = :scanId";
-    private static final String QUERY_PROJECT_FROM_IMAGE_SESSION = "SELECT project FROM xnat_experimentdata WHERE id = :experimentId";
     private static final String MESSAGE_PACS_ID_MISMATCH         = "The ID for the update call \"%d\" does not match the PACS entity ID \"%d\"";
     private static final String MESSAGE_SESSION_NOT_FOUND        = "No image session with ID \"%s\" exists on this system";
     private static final String MESSAGE_SESSION_SCAN_NOT_FOUND   = "No image session \"%s\" with scan ID \"%s\" exists on this system";

@@ -35,21 +35,20 @@ import org.nrg.xnatx.dqr.utils.StudyImportInformation;
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
 
-    PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs,
-                                                            final PacsSearchCriteria searchCriteria);
+    PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException;
 
-    Patient getPatientById(UserI user, final Pacs pacs, String patientId);
+    Patient getPatientById(UserI user, final Pacs pacs, String patientId) throws PacsNotQueryableException;
 
-    PacsSearchResults<String, Study> getStudiesByExample(UserI user, final Pacs pacs,
-                                                         final PacsSearchCriteria searchCriteria);
+    PacsSearchResults<String, Study> getStudiesByExample(UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException;
 
-    Study getStudyById(UserI user, final Pacs pacs, final String studyInstanceUid);
+    Study getStudyById(UserI user, final Pacs pacs, final String studyInstanceUid) throws PacsNotQueryableException;
 
-    PacsSearchResults<String, Series> getSeriesByStudy(UserI user, final Pacs pacs, final Study study);
+    PacsSearchResults<String, Series> getSeriesByStudy(UserI user, final Pacs pacs, final Study study) throws PacsNotQueryableException;
 
-    Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid);
+    @SuppressWarnings("unused")
+    Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid) throws PacsNotQueryableException;
 
-    PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid);
+    PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException;
 
     void importSeries(UserI user, final Pacs pacs, final Study study, final Series series, final String ae);
 

@@ -161,15 +161,15 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     @Override
     public String toString() {
-        return "{ " + "    aeTitle: \"" + _aeTitle + "\",\n"
-               + "    host: \"" + _host + "\",\n"
-               + "    label: \"" + _label + "\",\n"
-               + "    queryable: " + _queryable + ",\n"
-               + "    queryRetrievePort: " + _queryRetrievePort + ",\n"
-               + "    isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ",\n"
-               + "    storable: " + _storable + ",\n"
-               + "    isDefaultStoragePacs: " + _defaultStoragePacs + ",\n"
-               + "    supportsExtendedNegotiations: " + _supportsExtendedNegotiations + "\n}";
+        return "{ aeTitle: \"" + _aeTitle + "\", "
+               + "host: \"" + _host + "\", "
+               + "label: \"" + _label + "\", "
+               + "queryable: " + _queryable + ", "
+               + "queryRetrievePort: " + _queryRetrievePort + ", "
+               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+               + "storable: " + _storable + ", "
+               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
     }
 
     private String _aeTitle;

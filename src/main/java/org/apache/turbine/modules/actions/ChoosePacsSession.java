@@ -20,11 +20,12 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
+import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 
 @SuppressWarnings("unused")
 public class ChoosePacsSession extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
+    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, PacsNotQueryableException {
         final Pacs  pacs  = getPassedPacs(data);
         final Study study = getPacsService().getStudyById(XDAT.getUserDetails(), pacs, ((String) TurbineUtils.GetPassedParameter("studyInstanceUid", data)));
         setDqrSessionVariables(data, pacs, study);

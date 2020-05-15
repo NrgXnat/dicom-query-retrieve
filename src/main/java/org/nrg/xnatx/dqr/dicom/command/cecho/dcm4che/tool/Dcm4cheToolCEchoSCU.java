@@ -12,27 +12,20 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool;
 
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
+import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
-import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
+import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class Dcm4cheToolCEchoSCU implements CEchoSCU {
-
-    private static final Logger log = LoggerFactory.getLogger(Dcm4cheToolCEchoSCU.class);
-
-    private final DcmEcho _dcmEcho;
-    private final String _aeTitle;
-    private final String _remoteHost;
-    private final String _remoteAeTitle;
-    private final int _remoteQrPort;
-
     public Dcm4cheToolCEchoSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties) {
         Object callingAeObject = preferences.get("dqrCallingAe");
-        String callingAe = dicomConnectionProperties.getLocalAeTitle();
-        if(callingAeObject!=null && callingAeObject.toString()!=null){
+        String callingAe       = dicomConnectionProperties.getLocalAeTitle();
+        if (callingAeObject != null && callingAeObject.toString() != null) {
             callingAe = callingAeObject.toString();
         }
         _dcmEcho = new DcmEcho(_aeTitle = callingAe);
@@ -50,7 +43,7 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
             log.debug("Received C-ECHO response from PACS, calling from " + _aeTitle + " to " + _remoteAeTitle + ":" + _remoteQrPort + " on host " + _remoteHost + ".");
         } catch (final Exception e) {
             isInError = true;
-            log.error("There was a problem running the C-ECHO command against the DICOM network connection, calling from " + _aeTitle + " to " + _remoteAeTitle + ":" + _remoteQrPort + " on host " + _remoteHost + ".", e);
+            log.error("There was a problem running the C-ECHO command against the DICOM network connection, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost, e);
             throw new RuntimeException(e);
         } finally {
             try {
@@ -67,20 +60,29 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
 
     @Override
     public boolean canConnect() {
-        boolean canConnect = false;
         try {
             _dcmEcho.open();
             _dcmEcho.echo();
-            canConnect = true;
-        } catch (final Exception e) {
-            canConnect = false;
+            return true;
+        } catch (IOException e) {
+            log.warn("An error occurred trying to check the connection to AE {}:{} on host {}", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
+        } catch (ConfigurationException e) {
+            log.warn("A configuration error occurred trying to check the connection to AE {}:{} on host {}", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
+        } catch (InterruptedException e) {
+            log.warn("Tried to check the connection to AE {}:{} on host {} but the connection was interrupted", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
         } finally {
             try {
                 _dcmEcho.close();
-            } catch (final Exception e) {
-                canConnect = false;
+            } catch (InterruptedException e) {
+                log.warn("Tried to close the connection to AE {}:{} on host {} but the connection was interrupted", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
             }
         }
-        return canConnect;
+        return false;
     }
+
+    private final DcmEcho _dcmEcho;
+    private final String  _aeTitle;
+    private final String  _remoteHost;
+    private final String  _remoteAeTitle;
+    private final int     _remoteQrPort;
 }

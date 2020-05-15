@@ -14,49 +14,38 @@ package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
 import java.util.Calendar;
 import java.util.Date;
-
+import lombok.Data;
+import lombok.experimental.Accessors;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
+@Data
+@Accessors(prefix = "_")
 public class RecentStudiesStudyDateRangeLimitStrategy implements StudyDateRangeLimitStrategy {
-
-    private final int numberOfDays;
-
-    public RecentStudiesStudyDateRangeLimitStrategy(int numberOfDays) {
-        this.numberOfDays = numberOfDays;
-    }
-
     @Override
     public StudyDateRangeLimitResults limitStudyDateRange(final PacsSearchCriteria searchCriteria) {
         if (searchCriteria.isAtLeastOneKeyCriterionSpecified()) {
             return new NoLimitStudyDateRangeLimitStrategy().limitStudyDateRange(searchCriteria);
         }
 
-        DqrDateRange workingStudyDateRange = searchCriteria.getStudyDateRange();
-        if (null == workingStudyDateRange) {
-            workingStudyDateRange = new DqrDateRange();
-        }
-
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DATE, -numberOfDays);
-        Date earliestAllowedBeginningOfStudyDateRange = DateUtils.truncate(cal.getTime(), Calendar.DATE);
+        final DqrDateRange workingStudyDateRange = ObjectUtils.defaultIfNull(searchCriteria.getStudyDateRange(), new DqrDateRange());
+        final Calendar     calendar              = Calendar.getInstance();
+        calendar.add(Calendar.DATE, -_numberOfDays);
+        final Date earliestAllowedBeginningOfStudyDateRange = DateUtils.truncate(calendar.getTime(), Calendar.DATE);
 
         if (workingStudyDateRange.getStart().before(earliestAllowedBeginningOfStudyDateRange)) {
-            return new StudyDateRangeLimitResults(
-                    StudyDateRangeLimitResults.LimitType.RECENT_STUDIES_LIMIT,
-                    new DqrDateRange(earliestAllowedBeginningOfStudyDateRange, workingStudyDateRange.getEnd()),
-                    String.format(
-                            "The query results have been limited to studies performed within the past %d days to avoid overtaxing the PACS.",
-                            numberOfDays));
-        } else {
-            // the caller's query is more restrictive than what the PACS requires, so tell him we didn't limit him
-            return new NoLimitStudyDateRangeLimitStrategy().limitStudyDateRange(searchCriteria);
+            return new StudyDateRangeLimitResults(StudyDateRangeLimitResults.LimitType.RECENT_STUDIES_LIMIT,
+                                                  new DqrDateRange(earliestAllowedBeginningOfStudyDateRange, workingStudyDateRange.getEnd()),
+                                                  String.format(RESULTS_LIMITED_MESSAGE, _numberOfDays));
         }
+        // the caller's query is more restrictive than what the PACS requires, so tell him we didn't limit him
+        return new NoLimitStudyDateRangeLimitStrategy().limitStudyDateRange(searchCriteria);
     }
 
-    public int getNumberOfDays() {
-        return numberOfDays;
-    }
+    private static final String RESULTS_LIMITED_MESSAGE = "The query results have been limited to studies performed within the past %d days to avoid overtaxing the PACS.";
+
+    private final int _numberOfDays;
 }

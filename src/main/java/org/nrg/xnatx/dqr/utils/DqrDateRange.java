@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
@@ -12,6 +13,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 @Getter
 @Accessors(prefix = "_")
@@ -23,7 +25,7 @@ public class DqrDateRange {
      * represents a date range that is unbounded/infinite on both ends.
      */
     public DqrDateRange() {
-        this(null, null);
+        this(MIN_DATE, MAX_DATE);
     }
 
     public DqrDateRange(final Date start, final Date end) {
@@ -31,7 +33,53 @@ public class DqrDateRange {
         _end = new Date((end != null ? end : MAX_DATE).getTime());
     }
 
+    /**
+     * Creates a new date range that starts with the date contained in the <b>start</b>
+     * parameter and ends with the date contained in the <b>end</b> parameter.
+     *
+     * @param start The start date in text format.
+     * @param end   The end date in text format.
+     */
+    public DqrDateRange(final String start, final String end) {
+        this(parse(start), parse(end));
+    }
+
+    /**
+     * Creates a new date range that starts with the date contained in the <b>start</b>
+     * parameter and ends one day later.
+     *
+     * @param start The start date in text format.
+     */
+    public DqrDateRange(final String start) {
+        this(parse(start), 1);
+    }
+
+    /**
+     * Creates a new date range that starts with the date contained in the <b>start</b>
+     * parameter and ends <b>days</b> day later.
+     *
+     * @param start The start date in text format.
+     * @param days  The number of days in the date range.
+     */
+    public DqrDateRange(final String start, final int days) {
+        this(parse(start), days);
+    }
+
+    /**
+     * Creates a new date range that starts with the <b>start</b> date parameter and
+     * ends <b>days</b> day later.
+     *
+     * @param start The start date.
+     * @param days  The number of days in the date range.
+     */
+    public DqrDateRange(final Date start, final int days) {
+        this(start, getDatePlusDays(start, days));
+    }
+
     public static Date parse(final String date) {
+        if (StringUtils.isBlank(date)) {
+            return null;
+        }
         try {
             if (Pattern.matches(SLASHY_PATTERN, date)) {
                 return SLASHY_FORMATTER.parse(date);
@@ -42,10 +90,9 @@ public class DqrDateRange {
             if (Pattern.matches(BASIC_PATTERN, date)) {
                 return BASIC_FORMATTER.parse(date);
             }
-            throw new RuntimeException(String.format(PARSE_ERROR, date));
-        } catch (ParseException e) {
-            throw new RuntimeException(String.format(PARSE_ERROR, date));
+        } catch (ParseException ignored) {
         }
+        throw new RuntimeException(String.format(PARSE_ERROR, date));
     }
 
     public static String format(final Date date) {
@@ -88,6 +135,13 @@ public class DqrDateRange {
     @SuppressWarnings("unused")
     public boolean overlaps(final DqrDateRange arg) {
         return arg.includes(_start) || arg.includes(_end) || this.includes(arg);
+    }
+
+    private static Date getDatePlusDays(final Date date, final int days) {
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.DATE, days);
+        return calendar.getTime();
     }
 
     private static final DateFormat BASIC_FORMATTER  = new SimpleDateFormat("yyyyMMdd");

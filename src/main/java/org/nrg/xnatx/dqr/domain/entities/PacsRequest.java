@@ -1,6 +1,7 @@
 package org.nrg.xnatx.dqr.domain.entities;
 
 import java.io.Serializable;
+import java.net.URLDecoder;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.Column;
@@ -37,6 +38,15 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
 
     public void setSeriesIds(final List<String> seriesIds) {
         _seriesIds = StringUtils.join(seriesIds, ", ");
+    }
+
+    public String getDecodedAeAndPort() {
+        final String aeAndPort = getDestinationAeTitle();
+        try {
+            return URLDecoder.decode(aeAndPort, "UTF-8");
+        } catch (Exception ignored) {
+            return aeAndPort;
+        }
     }
 
     @Override

@@ -71,6 +71,7 @@ import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
+import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
@@ -1025,12 +1026,26 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (studyInstanceUids == null) {
             throw new NoContentException("No study instance UIDs specified for query on PACS " + pacsId);
         }
+
         final UserI user = getSessionUser();
         final Pacs  pacs = _pacsEntityService.retrieve(pacsId);
-        return Arrays.stream(studyInstanceUids)
-                     .map(studyUid -> Pair.of(studyUid, _pacsService.getSeriesByStudyUid(user, pacs, studyUid)))
+        if (!pacs.isQueryable()) {
+            throw new NoContentException("The PACS " + pacs.getId() + " is not queryable");
+        }
+
+        return Arrays.stream(studyInstanceUids).parallel()
+                     .map(studyUid -> Pair.of(studyUid, getSeriesByStudyUid(user, pacs, studyUid)))
                      .filter(pair -> pair.getValue() != null)
                      .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    }
+
+    private PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+        try {
+            return _pacsService.getSeriesByStudyUid(user, pacs, studyUid);
+        } catch (PacsNotQueryableException e) {
+            log.info("User {} requested series for study {} on PACS {}, but that PACS is not queryable, returning null", user.getUsername(), studyUid, pacs.getLabel());
+            return null;
+        }
     }
 
     private void notifyAdminOfCompleteIrbInfo(final String projectId, final ProjectIrbInfo info, final UserI user) {
