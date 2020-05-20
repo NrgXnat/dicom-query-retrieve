@@ -29,10 +29,18 @@ public class PacsThreads {
     }
 
     public void remove(final long pacsId) {
+        if (!_threadsPerPacs.containsKey(pacsId)) {
+            log.warn("Tried to decrement thread count for PACS {} but that's not in the thread table", pacsId);
+            return;
+        }
         final int current;
         final int updated;
         synchronized (THREAD_COUNT_LOCK) {
-            current = _threadsPerPacs.get(pacsId);
+            current = get(pacsId);
+            if (current == 0) {
+                log.warn("Tried to decrement thread count for PACS {} but that's already set to 0", pacsId);
+                return;
+            }
             updated = current - 1;
             _threadsPerPacs.put(pacsId, updated);
         }
@@ -40,11 +48,11 @@ public class PacsThreads {
     }
 
     public int get(final long pacsId) {
-        return _threadsPerPacs.containsKey(pacsId) ? _threadsPerPacs.get(pacsId) : 0;
+        return _threadsPerPacs.getOrDefault(pacsId, 0);
     }
 
     public boolean hasAvailable(final long pacsId, final int threads) {
-        final int current = _threadsPerPacs.get(pacsId);
+        final int current = get(pacsId);
         log.debug("PACS {} currently has {} threads, with {} available", pacsId, current, threads);
         return current <= threads;
     }

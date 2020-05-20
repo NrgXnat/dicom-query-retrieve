@@ -9,10 +9,6 @@
 
 package org.apache.turbine.modules.screens;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.turbine.modules.actions.DqrSecureAction;
 import org.apache.turbine.util.RunData;
@@ -24,9 +20,20 @@ import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public abstract class DqrSecureScreen extends SecureScreen {
+    @Override
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        context.put("dqrPreferences", getDqrPreferences());
+    }
+
     protected void storeProjectAndQueryablePacs(final RunData data, final Context context) {
         final List<Pacs> pacsList = getPacsEntityService().findAllQueryable();
         if (pacsList.isEmpty()) {
@@ -50,11 +57,11 @@ public abstract class DqrSecureScreen extends SecureScreen {
         return Pair.of(scps, enabledScps);
     }
 
-    protected Map<String, OrmStrategy> getOrmStrategyMap() {
-        if (_strategies == null) {
-            _strategies = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
+    protected DqrPreferences getDqrPreferences() {
+        if (_dqrPreferences == null) {
+            _dqrPreferences = XDAT.getContextService().getBean(DqrPreferences.class);
         }
-        return _strategies;
+        return _dqrPreferences;
     }
 
     protected PacsEntityService getPacsEntityService() {
@@ -71,6 +78,14 @@ public abstract class DqrSecureScreen extends SecureScreen {
         return _dicomSCPManager;
     }
 
+    protected Map<String, OrmStrategy> getOrmStrategyMap() {
+        if (_strategies == null) {
+            _strategies = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
+        }
+        return _strategies;
+    }
+
+    private static DqrPreferences           _dqrPreferences;
     private static PacsEntityService        _pacsEntityService;
     private static DicomSCPManager          _dicomSCPManager;
     private static Map<String, OrmStrategy> _strategies;

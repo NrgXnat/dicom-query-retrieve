@@ -16,6 +16,7 @@ import org.apache.velocity.context.Context;
 public class PacsSessionFinder2 extends DqrSecureScreen {
     @Override
     protected void doBuildTemplate(RunData data, Context context) {
+        super.doBuildTemplate(data, context);
         storeProjectAndQueryablePacs(data, context);
     }
 }

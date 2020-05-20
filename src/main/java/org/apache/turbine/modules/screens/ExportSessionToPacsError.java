@@ -16,6 +16,6 @@ import org.apache.velocity.context.Context;
 public class ExportSessionToPacsError extends DqrSecureScreen {
     @Override
     protected void doBuildTemplate(final RunData data, final Context context) {
-        // no-op so that SecureScreen.doBuildTemplate fires...
+        super.doBuildTemplate(data, context);
     }
 }

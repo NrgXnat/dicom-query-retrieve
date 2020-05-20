@@ -755,7 +755,7 @@ XNAT.app = getObject(XNAT.app || {});
                 else errorHandler(e, 'Could not retrieve project anonymization script');
             },
             success: function(data){
-                if (data.ResultSet.Result.length) {
+                if (data.length) {
                     csvimporter.projectAnon = true;
                 }
             }

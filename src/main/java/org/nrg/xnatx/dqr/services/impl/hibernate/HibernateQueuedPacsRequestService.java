@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Created by mike on 1/19/18.
  */
 @Service
+@Transactional
 public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequestService<QueuedPacsRequest, QueuedPacsRequestDAO> implements QueuedPacsRequestService {
     @Autowired
     public HibernateQueuedPacsRequestService(final NamedParameterJdbcTemplate template) {
@@ -33,13 +34,11 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     }
 
     @Override
-    @Transactional
     public List<Map<String, Object>> getAllWithOrder() {
         return _template.queryForList(QUERY_QUEUE_WITH_LOCATION, EmptySqlParameterSource.INSTANCE);
     }
 
     @Override
-    @Transactional
     public List<Map<String, Object>> getAllWithOrderForUser(final UserI user) {
         final MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("user", user.getUsername());
@@ -47,13 +46,11 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     }
 
     @Override
-    @Transactional
     public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(final long pacsId) {
         return getDao().findAllForPacsOrderedByPriorityAndDate(pacsId);
     }
 
     @Override
-    @Transactional
     public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId) {
         return getDao().findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId);
     }

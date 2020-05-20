@@ -9,25 +9,14 @@
 
 package org.nrg.xnatx.dqr.rest;
 
-import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
-import static org.nrg.xdat.security.helpers.AccessLevel.Authenticated;
-import static org.nrg.xdat.security.helpers.AccessLevel.Authorizer;
+import static org.nrg.xdat.security.helpers.AccessLevel.*;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
-import org.nrg.xapi.exceptions.NoContentException;
-import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.framework.beans.Beans;
+import org.nrg.xapi.exceptions.*;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Experiment;
@@ -56,6 +45,9 @@ import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -64,11 +56,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+
+import java.beans.FeatureDescriptor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 
 @Api(value = "XNAT External PACS API", tags = {"pacs", "send", "retrieve", "query", "import", "export"})
 @XapiRestController
@@ -92,8 +88,8 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
-    public List<Pacs> getAllPacs(final @ApiParam("Indicates whether the results should include only PACS that allow store (C-PUT) operations.") @RequestParam boolean storable,
-                                 final @ApiParam("Indicates whether the results should include only PACS that allow query (C-FIND) operations.") @RequestParam boolean queryable) {
+    public List<Pacs> getAllPacs(final @ApiParam("Indicates whether the results should include only PACS that allow store (C-PUT) operations.") @RequestParam(defaultValue = "false") boolean storable,
+                                 final @ApiParam("Indicates whether the results should include only PACS that allow query (C-FIND) operations.") @RequestParam(defaultValue = "false") boolean queryable) {
         return _pacsEntityService.findAll(storable, queryable);
     }
 
@@ -102,7 +98,7 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to create a new PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    @XapiRequestMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody Pacs pacs) {
         return _pacsEntityService.create(pacs);
     }
@@ -124,8 +120,37 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     public void updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long id, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody Pacs pacs) throws DataFormatException, PacsNotFoundException {
-        validate(id, pacs);
-        _pacsEntityService.update(pacs);
+        // TODO: Right now the Pacs object isn't getting its id property set. Don't validate the object, just set the ID from the path variable.
+        if (pacs.getId() == 0) {
+            log.debug("No ID found on Pacs object, setting from path variable");
+            pacs.setId(id);
+        } else {
+            validate(id, pacs);
+        }
+        final Pacs        existing    = _pacsEntityService.retrieve(id);
+        final BeanWrapper wrappedPacs = PropertyAccessorFactory.forBeanPropertyAccess(pacs);
+        BeanUtils.copyProperties(pacs, existing, Stream.of(wrappedPacs.getPropertyDescriptors()).filter(descriptor -> descriptor.getPropertyType().isPrimitive() || wrappedPacs.getPropertyValue(descriptor.getName()) == null).map(FeatureDescriptor::getName).toArray(String[]::new));
+        _pacsEntityService.update(existing);
+    }
+
+    @ApiOperation(value = "Updates an existing PACS entry.")
+    @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully updated."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the PACS entry."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
+    public void updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long id, final @ApiParam("Attributes for the updated PACS entry.") Map<String, Object> attributes) throws DataFormatException, PacsNotFoundException, InitializationException {
+        if (attributes.containsKey("pacsId")) {
+            attributes.put("id", attributes.remove("pacsId"));
+        }
+        try {
+            final Pacs pacs = Beans.getInitializedBean(attributes, Pacs.class);
+            validate(id, pacs);
+            _pacsEntityService.update(pacs);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            log.error("An error occurred trying to create a PACS object from the submitted form values", e);
+            throw new InitializationException(e);
+        }
     }
 
     @ApiOperation(value = "Deletes an existing PACS entry.")
@@ -217,9 +242,9 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/patients", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<String, Patient> searchForPatients(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final PacsSearchResults<String, Patient> patients;
-        final Pacs                               pacs = getQueryablePacs(id);
+    public PacsSearchResults<Patient> searchForPatients(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final PacsSearchResults<Patient> patients;
+        final Pacs                       pacs = getQueryablePacs(id);
         patients = _pacsService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {
             throw new NoContentException("No patients were found that met the specified criteria");
@@ -249,12 +274,12 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/studies", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<String, Study> searchForStudies(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final PacsSearchResults<String, Study> studies = _pacsService.getStudiesByExample(getSessionUser(), getQueryablePacs(id), criteria);
+    public Collection<Study> searchForStudies(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final PacsSearchResults<Study> studies = _pacsService.getStudiesByExample(getSessionUser(), getQueryablePacs(id), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
         }
-        return studies;
+        return studies.getResults();
     }
 
     @ApiOperation(value = "Searches for a particular study on the specified PACS.")
@@ -280,11 +305,11 @@ public class DqrPacsApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "{id}/studies/{studyId}/series", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
     public Collection<Series> searchForStudySeries(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final PacsSearchResults<String, Series> series = _pacsService.getSeriesByStudy(getSessionUser(), getQueryablePacs(id), Study.builder().studyId(studyId).build());
+        final PacsSearchResults<Series> series = _pacsService.getSeriesByStudy(getSessionUser(), getQueryablePacs(id), Study.builder().studyId(studyId).build());
         if (series.getResults().isEmpty()) {
             throw new NoContentException("No series found for study with the ID " + studyId + " on the PACS " + id);
         }
-        return series.getResults().values();
+        return series.getResults();
     }
 
     private Pacs getPacs(final long pacsId) throws PacsNotFoundException {

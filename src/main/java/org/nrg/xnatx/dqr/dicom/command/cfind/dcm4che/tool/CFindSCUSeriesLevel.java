@@ -9,9 +9,6 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
@@ -24,6 +21,10 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> {
     public CFindSCUSeriesLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
@@ -59,8 +60,8 @@ public abstract class CFindSCUSeriesLevel extends CFindSCUSpecificLevel<Series> 
     }
 
     @Override
-    protected PacsSearchResults<String, Series> wrapResults(final Map<String, Series> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
-        return PacsSearchResults.<String, Series>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
+    protected PacsSearchResults<Series> wrapResults(final Collection<Series> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
+        return PacsSearchResults.<Series>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
     }
 
     private static final List<Integer> RETURN_TAG_PATHS = Arrays.asList(Tag.SeriesDescription, Tag.StudyDate, Tag.StudyID, Tag.AccessionNumber, Tag.PatientID, Tag.PatientName);

@@ -1029,7 +1029,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public Map<String, PacsSearchResults<String, Series>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
+    public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
                                                                     @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException {
         final String[] studyInstanceUids = StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
         if (studyInstanceUids == null) {
@@ -1048,7 +1048,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                      .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
     }
 
-    private PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+    private PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
         try {
             return _pacsService.getSeriesByStudyUid(user, pacs, studyUid);
         } catch (PacsNotQueryableException e) {

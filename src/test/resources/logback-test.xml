@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ dicom-query-retrieve: logback-test.xml
+  ~ XNAT http://www.xnat.org
+  ~ Copyright (c) 2005-2020, Washington University School of Medicine
+  ~ All Rights Reserved
+  ~
+  ~ Released under the Simplified BSD.
+  -->
+
+<configuration>
+    <appender name="dqr" class="ch.qos.logback.core.FileAppender">
+        <append>false</append>
+        <file>dqr-test.log</file>
+        <encoder>
+            <pattern>%d [%t] %-5p %c - %m%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="org.nrg.dqr" additivity="false" level="DEBUG">
+        <appender-ref ref="dqr"/>
+    </logger>
+    <logger name="com.fasterxml.jackson" additivity="false" level="DEBUG">
+        <appender-ref ref="dqr"/>
+    </logger>
+</configuration>

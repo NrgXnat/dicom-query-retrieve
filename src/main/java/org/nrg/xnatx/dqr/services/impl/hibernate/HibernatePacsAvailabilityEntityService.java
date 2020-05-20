@@ -22,34 +22,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEntityService<PacsAvailability, PacsAvailabilityDAO> implements PacsAvailabilityEntityService {
-
     @Override
-    @Transactional
     public PacsAvailability create(final PacsAvailability entity) {
         return super.create(entity);
     }
 
     @Override
-    @Transactional
     public void update(final PacsAvailability entity) {
         super.update(entity);
     }
 
     @Override
-    @Transactional
     public List<PacsAvailability> findSettingsByPacs(final long pacsId) {
         return getDao().findSettingsByPacs(pacsId);
     }
 
     @Override
-    @Transactional
     public List<PacsAvailability> findSettingsByPacsByDay(final long pacsId, final int day) {
         return getDao().findSettingsByPacsByDay(pacsId, day);
     }
 
     @Override
-    @Transactional
     public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(final long pacsId) {
         Map<Integer, List<PacsAvailability>> availabilityByDay = new HashMap<>();
         for (int day = 1; day <= 7; day++) {
@@ -66,13 +61,11 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
     }
 
     @Override
-    @Transactional
     public Boolean checkOverlap(final PacsAvailability availabilityToCheck, final boolean removeOverlap) {
         return checkOverlap(availabilityToCheck, removeOverlap, -1);
     }
 
     @Override
-    @Transactional
     public Boolean checkOverlap(final PacsAvailability availabilityToCheck, final boolean removeOverlap, final long existingIntervalId) {
         final long   pacsId          = availabilityToCheck.getPacsId();
         final int    day             = availabilityToCheck.getDayOfWeek();
@@ -136,7 +129,6 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
     }
 
     @Override
-    @Transactional
     public void deleteAllForPacs(final long pacsId) {
         for (final PacsAvailability p : getDao().findSettingsByPacs(pacsId)) {
             delete(p);

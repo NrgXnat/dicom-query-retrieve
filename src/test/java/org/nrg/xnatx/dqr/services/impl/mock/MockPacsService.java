@@ -9,20 +9,9 @@
 
 package org.nrg.xnatx.dqr.services.impl.mock;
 
-import java.io.File;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.Patient;
-import org.nrg.xnatx.dqr.domain.PatientName;
-import org.nrg.xnatx.dqr.domain.ReferringPhysicianName;
-import org.nrg.xnatx.dqr.domain.Series;
-import org.nrg.xnatx.dqr.domain.Study;
+import org.nrg.xnatx.dqr.domain.*;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
@@ -32,6 +21,14 @@ import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
 import org.nrg.xnatx.dqr.utils.StudyImportInformation;
 
+import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 @SuppressWarnings("unused")
 public class MockPacsService implements PacsService {
     @Override
@@ -40,7 +37,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
         throw new RuntimeException("method not implemented");
     }
 
@@ -55,18 +52,15 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
-        final Patient            patient = getMockPatient();
-        final Map<String, Study> studies = new HashMap<>(2);
-        studies.put("34525253.34235.23456.1", getMockStudy(patient, "34525253.34235.23456.1"));
-        studies.put("65860386.24536543.25922", getMockStudy(patient, "65860386.24536543.25922"));
-        return PacsSearchResults.<String, Study>builder().results(studies).hasLimitedResultSetSize(true).build();
+    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
+        final Patient patient = getMockPatient();
+        return PacsSearchResults.<Study>builder().results(Arrays.asList(getMockStudy(patient, "34525253.34235.23456.1"), getMockStudy(patient, "65860386.24536543.25922"))).hasLimitedResultSetSize(true).build();
     }
 
     private Patient getMockPatient() {
         final Patient patient = new Patient();
         patient.setId("8675309");
-        patient.setName(new PatientName("Jenny, Jenny"));
+        patient.setName(new DqrPersonName("Jenny, Jenny"));
         try {
             patient.setBirthDate(DATE_FORMAT.parse("1990-01-01"));
         } catch (final ParseException e) {
@@ -90,12 +84,12 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) {
+    public PacsSearchResults<Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+    public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
         throw new RuntimeException("method not implemented");
     }
 

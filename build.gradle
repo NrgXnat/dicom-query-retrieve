@@ -45,6 +45,7 @@ repositories {
     mavenCentral()
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
+    maven { url "https://jitpack.io" }
 }
 
 sourceCompatibility = 8
@@ -76,6 +77,7 @@ configurations {
         exclude module: "pipelineCNDAXNAT"
         exclude module: "xnat-pipeline"
         exclude group: "jamon"
+        exclude group: "org.codehaus.jackson"
     }
     implementation.extendsFrom(implementAndInclude)
 }
@@ -102,6 +104,13 @@ lombok {
     sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
+test {
+    useJUnitPlatform {
+        includeEngines "junit-jupiter"
+        excludeEngines "junit-vintage"
+    }
+}
+
 dependencies {
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
@@ -123,8 +132,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation "org.apache.commons:commons-lang3"
     implementation "org.aspectj:aspectjweaver"
-
-    implementation "javax.validation:validation-api:2.0.1.Final"
+    implementation "javax.validation:validation-api"
     implementation "org.restlet:org.restlet"
     implementation("turbine:turbine") {
         transitive = false
@@ -136,13 +144,16 @@ dependencies {
     implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
         transitive = false
     }
-    implementAndInclude("commons-cli:commons-cli:1.4") {
+    implementAndInclude("commons-cli:commons-cli") {
         transitive = false
     }
 
-    testImplementation "junit:junit"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
-    testImplementation "log4j:log4j"
+    testImplementation "com.github.sbrannen:spring-test-junit5"
+    testImplementation "org.assertj:assertj-core"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
 }
 
 task xnatPluginJar(type: Jar) {

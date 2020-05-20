@@ -9,11 +9,6 @@
 
 package org.nrg.xnatx.dqr.events;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.velocity.VelocityContext;
@@ -40,11 +35,12 @@ import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
-import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsService;
-import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
+import org.nrg.xnatx.dqr.services.*;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by mike on 1/23/18.
@@ -96,7 +92,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         if (requestToDequeue != null) {
                             long                      requestTimeInMilliseconds = 0L;
                             final String              studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
-                            final String              seriesIds                 = requestToDequeue.getSeriesIds();
+                            final List<String>        seriesIds                 = requestToDequeue.getSeriesIds();
                             final String              projectId                 = requestToDequeue.getXnatProject();
                             final String              username                  = requestToDequeue.getUsername();
                             final UserI               user                      = Users.getUser(username);
@@ -164,8 +160,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                             final Context context = new VelocityContext();
                             context.put("prearchive", prearchive.toString());
-                            final List<String> seriesIdList = Arrays.asList(seriesIds.split("\\s*,\\s*"));
-                            context.put("seriesIds", seriesIdList);
+                            context.put("seriesIds", seriesIds);
 
                             try {
                                 log.debug("Completed DICOM request for study {} {}", studyInstanceUid, StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId);
@@ -173,9 +168,9 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                 context.put("adminEmail", adminEmail);
                                 context.put("pacs", _pacsEntityService.retrieve(_pacsId));
                                 if (_dqrPreferences.getNotifyAdminOnImport()) {
-                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIdList.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
+                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
                                 } else {
-                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), String.format(SUBJECT_FORMAT, seriesIdList.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
+                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
                                 }
                             } catch (Exception exception) {
                                 log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", username, exception);

@@ -9,9 +9,6 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.PersonName;
@@ -26,6 +23,10 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
     public CFindSCUStudyLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
@@ -54,13 +55,13 @@ public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
         study.setStudyId(StringUtils.trim(dicomObject.getString(Tag.StudyID)));
         study.setAccessionNumber(StringUtils.trim(dicomObject.getString(Tag.AccessionNumber)));
         study.setStudyDescription(StringUtils.trim(dicomObject.getString(Tag.StudyDescription)));
-        study.setModalitiesInStudy(dicomObject.getStrings(Tag.ModalitiesInStudy));
+        study.setModalitiesInStudy(Arrays.asList(dicomObject.getStrings(Tag.ModalitiesInStudy)));
         return study;
     }
 
     @Override
-    protected PacsSearchResults<String, Study> wrapResults(final Map<String, Study> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
-        return PacsSearchResults.<String, Study>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
+    protected PacsSearchResults<Study> wrapResults(final Collection<Study> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
+        return PacsSearchResults.<Study>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
     }
 
     private final static List<Integer> RETURN_TAG_PATHS = Arrays.asList(Tag.PatientID, Tag.PatientName, Tag.PatientBirthDate, Tag.PatientSex, Tag.StudyDescription, Tag.ReferringPhysicianName, Tag.ModalitiesInStudy);

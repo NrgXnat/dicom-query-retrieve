@@ -10,21 +10,19 @@
 package org.nrg.xnatx.dqr.domain;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.io.Serializable;
-import java.util.Date;
-import java.util.Map;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.Singular;
+import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.restlet.JsonViews;
-import org.nrg.xnatx.dqr.utils.DateAsStringSerializer;
+import org.nrg.xnatx.dqr.utils.DqrDateRange;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
 
 @Data
 @Builder
@@ -41,20 +39,40 @@ public class Patient implements DqrDomainObject, Serializable {
     }
 
     @Override
+    public String toString() {
+        final List<String> properties = new ArrayList<>();
+        if (StringUtils.isNotBlank(id)) {
+            properties.add("id: " + id);
+        }
+        if (name != null && !name.isBlank()) {
+            properties.add("name: " + name.getLastNameCommaFirstName());
+        }
+        if (birthDate != null) {
+            properties.add("birthDate: " + DqrDateRange.format(birthDate));
+        }
+        if (StringUtils.isNotBlank(sex)) {
+            properties.add("sex: " + sex);
+        }
+        if (studies != null && !studies.isEmpty()) {
+            properties.add("studies: { " + StringUtils.join(studies, ", ") + " }");
+        }
+        return "{ " + StringUtils.join(properties, ", ") + " }";
+    }
+
+    @Override
     public String getUniqueIdentifier() {
         return getId();
     }
 
     private String id;
 
-    private PatientName name;
+    private DqrPersonName name;
 
-    @JsonSerialize(using = DateAsStringSerializer.class)
     private Date birthDate;
 
     private String sex;
 
     @JsonView(JsonViews.PatientRootView.class)
     @Singular
-    private Map<String, Study> studies;
+    private Collection<Study> studies;
 }

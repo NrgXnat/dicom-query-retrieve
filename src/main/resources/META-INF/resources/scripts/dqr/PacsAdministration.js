@@ -305,7 +305,7 @@ XNAT.app = getObject(XNAT.app || {});
     }
 
     function showPacs(data) {
-        var pacsTableData = data.ResultSet.Result;
+        var pacsTableData = data;
 
         // intialize PACS table container and PACS list
         $(constants.PACS_DIV).empty();
@@ -466,10 +466,9 @@ XNAT.app = getObject(XNAT.app || {});
     }
 
     function editPacs($form) {
-        XNAT.xhr.ajax({
-            type: "PUT",
+        XNAT.xhr.putJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs/" + currentOperation.pacs.id),
-            data: $form.serialize(),
+            data: XNAT.xhr.formToJSON($form, true),
             success: function () {
                 xmodal.close();
                 getAllPacs();
@@ -485,10 +484,9 @@ XNAT.app = getObject(XNAT.app || {});
     }
 
     function addPacs($form) {
-        XNAT.xhr.ajax({
-            type: "POST",
+        XNAT.xhr.postJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs"),
-            data: $form.serialize(),
+            data: XNAT.xhr.formToJSON($form, true),
             success: function () {
                 xmodal.close();
                 getAllPacs();

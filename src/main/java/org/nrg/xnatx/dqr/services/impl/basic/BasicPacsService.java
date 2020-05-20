@@ -9,18 +9,6 @@
 
 package org.nrg.xnatx.dqr.services.impl.basic;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -65,13 +53,15 @@ import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
-import org.nrg.xnatx.dqr.utils.CsvRow;
-import org.nrg.xnatx.dqr.utils.DqrDateRange;
-import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
-import org.nrg.xnatx.dqr.utils.FindRow;
-import org.nrg.xnatx.dqr.utils.StudyImportInformation;
+import org.nrg.xnatx.dqr.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Nonnull;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -95,7 +85,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
+    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindPatientsByExample(searchCriteria);
     }
 
@@ -105,7 +95,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
+    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindStudiesByExample(searchCriteria);
     }
 
@@ -115,12 +105,12 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<String, Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) throws PacsNotQueryableException {
+    public PacsSearchResults<Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesByStudy(study);
     }
 
     @Override
-    public PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException {
+    public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesByStudyUid(studyUid);
     }
 
@@ -147,7 +137,7 @@ public class BasicPacsService implements PacsService {
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
         try {
             final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
-            for (final String seriesId : request.getSeriesIds().split("\\s*,\\s*")) {
+            for (final String seriesId : request.getSeriesIds()) {
                 log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
                 buildCMoveSCU(pacs, aeTitle).cmoveSeries(study, Series.builder().seriesInstanceUid(seriesId).build());
             }
@@ -184,7 +174,7 @@ public class BasicPacsService implements PacsService {
             }
 
             try {
-                return FindRow.builder().criteria(criteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user1, pacs, criteria).getResults().values()).build();
+                return FindRow.builder().criteria(criteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user1, pacs, criteria).getResults()).build();
             } catch (PacsNotQueryableException e) {
                 log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
                 return null;
@@ -209,8 +199,8 @@ public class BasicPacsService implements PacsService {
                 }
             }
             try {
-                final PacsSearchResults<String, Study> results = getStudiesByExample(user1, pacs, criteria);
-                return CsvRow.builder().criteria(criteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults().values()).build();
+                final PacsSearchResults<Study> results = getStudiesByExample(user1, pacs, criteria);
+                return CsvRow.builder().criteria(criteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults()).build();
             } catch (PacsNotQueryableException e) {
                 log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
                 return null;
@@ -275,9 +265,9 @@ public class BasicPacsService implements PacsService {
                 String login = _xnatUserProvider.getLogin();
                 log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, currStudy);
 
-                final PacsSearchResults<String, Series> series         = getSeriesByStudyUid(user, pacs, currStudy);
-                List<String>                            seriesToImport = new ArrayList<>();
-                final Collection<Series>                results        = series.getResults().values();
+                final PacsSearchResults<Series> series         = getSeriesByStudyUid(user, pacs, currStudy);
+                final List<String>              seriesToImport = new ArrayList<>();
+                final Collection<Series>        results        = series.getResults();
                 if (CollectionUtils.isEmpty(seriesInstanceUIDs)) {
                     if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
                         //Import all the series in the study
@@ -347,10 +337,9 @@ public class BasicPacsService implements PacsService {
                     }
                 }
 
-                final String seriesIdsString = StringUtils.join(seriesToImport, ",");
-                if (StringUtils.isNotBlank(seriesIdsString)) {
+                if (!seriesToImport.isEmpty()) {
                     try {
-                        final QueuedPacsRequest request = createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, currStudy, seriesIdsString);
+                        final QueuedPacsRequest request = createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, currStudy, seriesToImport);
                         if (currAnonScript != null) {
                             request.setRemappingScript(currAnonScript);
                         }
@@ -433,10 +422,8 @@ public class BasicPacsService implements PacsService {
                 _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
             }
 
-            final String seriesIds = StringUtils.join(getSeriesByStudy(user, pacs, study).getResults().values().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), ",");
-
             try {
-                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, studyId, seriesIds));
+                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList())));
                 valueToReturn.set(false);
             } catch (Exception e) {
                 if (e instanceof CMoveFailureException) {
@@ -520,7 +507,7 @@ public class BasicPacsService implements PacsService {
                 }
 
                 try {
-                    getStudiesByExample(user, pacs, searchCriteriaBuilder.build()).getResults().values().stream()
+                    getStudiesByExample(user, pacs, searchCriteriaBuilder.build()).getResults().stream()
                                                                                   .filter(Objects::nonNull)
                                                                                   .filter(study -> !studiesListMappedToAnonScript.containsKey(study))
                                                                                   .forEach(study -> studiesListMappedToAnonScript.put(study, anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null));
@@ -538,15 +525,13 @@ public class BasicPacsService implements PacsService {
             final Study  study      = entry.getKey();
             final String anonScript = entry.getValue();
 
+            final String studyInstanceUid = study.getStudyInstanceUid();
             try {
-                final String                            studyId   = study.getStudyInstanceUid();
-                final PacsSearchResults<String, Series> series    = getSeriesByStudy(user, pacs, study);
-                final String                            seriesIds = StringUtils.join(series.getResults().values().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), ",");
-                final QueuedPacsRequest                 request   = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyId, seriesIds);
+                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
                 request.setRemappingScript(anonScript);
                 _queuedPacsRequestService.create(request);
             } catch (PacsNotQueryableException e) {
-                log.warn("The PACS {} is not queryable, request not created for the study {}", pacs.getLabel(), study.getStudyInstanceUid(), e);
+                log.warn("The PACS {} is not queryable, request not created for the study {}", pacs.getLabel(), studyInstanceUid, e);
             } catch (CMoveFailureException e) {
                 log.error("C-MOVE operation failed: {}", e.getMessage(), e);
             } catch (Exception e) {
@@ -560,7 +545,7 @@ public class BasicPacsService implements PacsService {
     }
 
     @NotNull
-    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final String seriesIds) {
+    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds) {
         return QueuedPacsRequest.builder()
                                 .pacsId(pacsId)
                                 .username(user.getUsername())
@@ -671,7 +656,7 @@ public class BasicPacsService implements PacsService {
 //
 //                try {
 //                    final PacsSearchCriteria searchCriteria = searchCriteriaBuilder.build();
-//                    return FindRow.builder().criteria(searchCriteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user, pacs, searchCriteria).getResults().values()).build();
+//                    return FindRow.builder().criteria(searchCriteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user, pacs, searchCriteria).getResults()).build();
 //                } catch (PacsNotQueryableException e) {
 //                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
 //                    return null;
@@ -692,8 +677,8 @@ public class BasicPacsService implements PacsService {
 //                }
 //                try {
 //                    final PacsSearchCriteria               searchCriteria = searchCriteriaBuilder.build();
-//                    final PacsSearchResults<String, Study> results        = getStudiesByExample(user, pacs, searchCriteria);
-//                    return CsvRow.builder().criteria(searchCriteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults().values()).build();
+//                    final PacsSearchResults<Study> results        = getStudiesByExample(user, pacs, searchCriteria);
+//                    return CsvRow.builder().criteria(searchCriteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults()).build();
 //                } catch (PacsNotQueryableException e) {
 //                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
 //                    return null;

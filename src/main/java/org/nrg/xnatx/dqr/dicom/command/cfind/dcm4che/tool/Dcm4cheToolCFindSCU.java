@@ -31,7 +31,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public PacsSearchResults<String, Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria) {
         return new CFindSCUPatientLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
     }
 
@@ -41,7 +41,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public PacsSearchResults<String, Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria) {
         return new CFindSCUStudyLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
     }
 
@@ -51,7 +51,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public PacsSearchResults<String, Series> cfindSeriesByStudy(final Study study) {
+    public PacsSearchResults<Series> cfindSeriesByStudy(final Study study) {
         if (study == null) {
             return PacsSearchResults.emptyResults();
         }
@@ -59,7 +59,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public PacsSearchResults<String, Series> cfindSeriesByStudyUid(final String studyUid) {
+    public PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid) {
         if (StringUtils.isBlank(studyUid)) {
             return PacsSearchResults.emptyResults();
         }

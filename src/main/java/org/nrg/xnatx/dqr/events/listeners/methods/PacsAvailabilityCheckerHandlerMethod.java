@@ -51,9 +51,9 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
     @Autowired
     public PacsAvailabilityCheckerHandlerMethod(final ThreadPoolTaskScheduler scheduler, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsThreads threads, final QueuedPacsRequestService queuedPacsRequestService, final StudyRoutingService studyRoutingService, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         super(scheduler, AVAILABILITY_CHECK_FREQUENCY);
-        final Object checkFrequencyObject = dqrPreferences.get(AVAILABILITY_CHECK_FREQUENCY);
-        if (checkFrequencyObject != null && StringUtils.isNotBlank(checkFrequencyObject.toString())) {
-            setPacsAvailabilityCheckFrequency(dqrPreferences.get(AVAILABILITY_CHECK_FREQUENCY).toString());
+        final String checkFrequency = dqrPreferences.getPacsAvailabilityCheckFrequency();
+        if (StringUtils.isNotBlank(checkFrequency)) {
+            setPacsAvailabilityCheckFrequency(checkFrequency);
         } else {
             setPacsAvailabilityCheckFrequency(DEFAULT_CHECK_FREQUENCY);
         }

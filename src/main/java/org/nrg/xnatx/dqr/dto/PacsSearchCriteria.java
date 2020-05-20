@@ -10,18 +10,21 @@
 package org.nrg.xnatx.dqr.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.nrg.xnatx.dqr.dicom.converters.PacsSearchCriteriaDeserializer;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 @Data
 @Accessors(prefix = "_")
 @Builder
 @AllArgsConstructor
+@JsonDeserialize(using = PacsSearchCriteriaDeserializer.class)
 public class PacsSearchCriteria {
     @JsonIgnore
     public boolean isAtLeastOneKeyCriterionSpecified() {

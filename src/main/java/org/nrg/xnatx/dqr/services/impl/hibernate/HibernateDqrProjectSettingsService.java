@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityService<DqrProjectSettings, DqrProjectSettingsDAO> implements DqrProjectSettingsService {
     @Autowired
     public HibernateDqrProjectSettingsService(final NamedParameterJdbcTemplate template) {
@@ -32,7 +33,6 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public DqrProjectSettings findSettingsByProject(final String projectId) throws NotFoundException {
         if (StringUtils.isBlank(projectId)) {
             return null;
@@ -47,7 +47,6 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public boolean isDqrEnabledForProject(final String projectId) throws NotFoundException {
         final DqrProjectSettings settings = findSettingsByProject(projectId);
         return settings != null && settings.isEnabled();

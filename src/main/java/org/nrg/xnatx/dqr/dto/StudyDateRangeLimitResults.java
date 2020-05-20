@@ -9,26 +9,19 @@
 
 package org.nrg.xnatx.dqr.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
-
+@Value
+@Accessors(prefix = "_")
+@AllArgsConstructor
+@Builder
 public class StudyDateRangeLimitResults {
-
     public enum LimitType {
         NO_LIMIT, RECENT_STUDIES_LIMIT
-    }
-
-    private final LimitType limitType;
-
-    private final DqrDateRange dateRange;
-
-    private final String limitExplanation;
-
-    public StudyDateRangeLimitResults(final LimitType limitType, final DqrDateRange dateRange,
-                                      final String limitExplanation) {
-        this.limitType = limitType;
-        this.dateRange = dateRange;
-        this.limitExplanation = limitExplanation;
     }
 
     public StudyDateRangeLimitResults(final LimitType limitType, final DqrDateRange dateRange) {
@@ -36,18 +29,17 @@ public class StudyDateRangeLimitResults {
     }
 
     public boolean isUnlimited() {
-        return null == limitType || limitType.equals(LimitType.NO_LIMIT);
+        return null == _limitType || _limitType.equals(LimitType.NO_LIMIT);
     }
 
     public boolean isLimited() {
         return !isUnlimited();
     }
 
-    public DqrDateRange getDateRange() {
-        return dateRange;
-    }
-
-    public String getLimitExplanation() {
-        return limitExplanation;
-    }
+    @Builder.Default
+    LimitType    _limitType        = null;
+    @Builder.Default
+    DqrDateRange _dateRange        = null;
+    @Builder.Default
+    String       _limitExplanation = null;
 }

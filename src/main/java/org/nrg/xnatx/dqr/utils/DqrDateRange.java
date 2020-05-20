@@ -17,12 +17,17 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeDeSerializer;
+import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeSerializer;
 
 @Getter
 @Accessors(prefix = "_")

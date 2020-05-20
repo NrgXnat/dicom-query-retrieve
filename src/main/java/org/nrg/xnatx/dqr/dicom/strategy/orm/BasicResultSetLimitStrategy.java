@@ -9,15 +9,16 @@
 
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
-import org.nrg.xnatx.dqr.domain.PatientName;
+import org.nrg.xnatx.dqr.domain.DqrPersonName;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
+
+import javax.annotation.Nonnull;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
     public BasicResultSetLimitStrategy() {
@@ -29,7 +30,7 @@ public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
         _maxResults.put(QueryRetrieveLevel.PATIENT, maxPatientLevelResults);
         _maxResults.put(QueryRetrieveLevel.STUDY, maxStudyLevelResults);
         _maxResults.put(QueryRetrieveLevel.SERIES, Integer.MAX_VALUE);
-        this._studyDateRangeLimitStrategy = studyDateRangeLimitStrategy;
+        _studyDateRangeLimitStrategy = studyDateRangeLimitStrategy;
     }
 
     @Override
@@ -40,7 +41,7 @@ public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
     @Override
     public boolean searchCriteriaIsSufficientlySpecific(final PacsSearchCriteria searchCriteria) {
         return searchCriteria.isAtLeastOneKeyCriterionSpecified() ||
-               patientNameIsSufficientlySpecificAsTheSoleSearchCriterion(new PatientName(searchCriteria.getPatientName())) ||
+               patientNameIsSufficientlySpecificAsTheSoleSearchCriterion(new DqrPersonName(searchCriteria.getPatientName())) ||
                studyDateRangeIsSufficientlySpecificAsTheSoleSearchCriterion(searchCriteria.getStudyDateRange());
     }
 
@@ -57,7 +58,7 @@ public class BasicResultSetLimitStrategy implements ResultSetLimitStrategy {
         return 1;
     }
 
-    private boolean patientNameIsSufficientlySpecificAsTheSoleSearchCriterion(final PatientName patientName) {
+    private boolean patientNameIsSufficientlySpecificAsTheSoleSearchCriterion(final DqrPersonName patientName) {
         return patientName != null &&
                !patientName.isBlank() &&
                patientName.hasLastName() &&

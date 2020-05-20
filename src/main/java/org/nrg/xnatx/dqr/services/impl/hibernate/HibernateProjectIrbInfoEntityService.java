@@ -17,21 +17,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class HibernateProjectIrbInfoEntityService extends AbstractHibernateEntityService<ProjectIrbInfo, ProjectIrbInfoDAO> implements ProjectIrbInfoEntityService {
     @Override
-    @Transactional
     public ProjectIrbInfo findIrbInfoForProject(final String projectId) {
         return getDao().findIrbInfoForProject(projectId);
     }
 
     @Override
-    @Transactional
     public String findIrbNumberForProject(final String projectId) {
         return getDao().findIrbNumberForProject(projectId);
     }
 
     @Override
-    @Transactional
     public byte[] findIrbFileForProject(final String projectId) {
         return getDao().findIrbFileForProject(projectId);
     }

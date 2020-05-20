@@ -81,7 +81,7 @@ var XNAT = getObject(XNAT || {});
     }
 
     getPacsList(function fn(json){
-        renderPacsMenu(json.ResultSet.Result);
+        renderPacsMenu(json);
     });
 
     var $studyDateFromContainer = $('#study-date-from-container');
@@ -923,7 +923,7 @@ var XNAT = getObject(XNAT || {});
 
         // `json` must be an array containing SOMETHING
         // in order to render the results table
-        if ((json !== false && !isArray(json)) || !json.length) {
+        if (!isArray(json) || !json.length) {
             resetResults();
             $pacsNoResults.hidden(false);
             return undef;
@@ -932,11 +932,8 @@ var XNAT = getObject(XNAT || {});
         // $pacsNoResults.hidden(true);
 
         forEach(json, function(item){
-
             item.relabelMap = item.relabelMap || {};
-
             dqr.allSearchResults[item.studyInstanceUid] = item;
-
         });
 
         // console.log(dqr.allSearchResults);
@@ -1139,7 +1136,7 @@ var XNAT = getObject(XNAT || {});
                         td: { style: { width: WIDTHS.name } },
                         apply: function(){
                             // var patientName = this.patient.name.lastNameCommaFirstName.replace(/,/, '^');
-                            var patientName = this.patient.name.lastNameCommaFirstName || '';
+                            var patientName = this.patient.name || '';
                             /^null$/.test(patientName) && (patientName = '');
                             return spawn('div.truncate.select-row.filter-data-item', {
                                 title: patientName,
@@ -1381,27 +1378,32 @@ var XNAT = getObject(XNAT || {});
 
         $pacsSearchFields.find('input').not('.ignore').serializeArray().forEach(function(param, i){
             // skip fields that start with '!'
-            if (param.name.charAt(0) !== '!') {
+            if (param.name.charAt(0) !== '!' && param.value) {
                 searchCriteria[param.name] = param.value || '';
             }
         });
+
         searchCriteria.pacsId = selectedPacs;
 
         // transform date to expected format
-        searchCriteria.studyDateFrom = (searchCriteria.studyDateFrom ? (new SplitDate(searchCriteria.studyDateFrom)).US : '');
-        searchCriteria.studyDateTo   = (searchCriteria.studyDateTo ? (new SplitDate(searchCriteria.studyDateTo)).US : '');
+        if (searchCriteria.studyDateFrom) {
+            searchCriteria.studyDateFrom = (new SplitDate(searchCriteria.studyDateFrom)).US;
+        }
+        if (searchCriteria.studyDateTo) {
+            searchCriteria.studyDateTo = (new SplitDate(searchCriteria.studyDateTo)).US;
+        }
 
         // console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/search/studies', {}, false);
+        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
 
         // console.log(searchUrl);
 
-        return XNAT.xhr.post({
+        return XNAT.xhr.postJSON({
             url: searchUrl,
-            data: searchCriteria,
+            data: JSON.stringify(searchCriteria),
             success: function(json){
-                renderResultsTable(json.ResultSet.Result);
+                renderResultsTable(json);
             },
             failure: function(){
                 console.warn('Error:');

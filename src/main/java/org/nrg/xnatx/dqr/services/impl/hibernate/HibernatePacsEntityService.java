@@ -9,7 +9,6 @@
 
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
-import java.util.List;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.PacsDAO;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -17,13 +16,15 @@ import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
+@Transactional
 public class HibernatePacsEntityService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsEntityService {
     /**
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public Pacs create(final Pacs entity) {
         clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
         return super.create(entity);
@@ -33,7 +34,6 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public void update(final Pacs entity) {
         clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
         super.update(entity);
@@ -43,7 +43,6 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public List<Pacs> findAllQueryableAndStorable() {
         return getDao().findAllQueryableAndStorable();
     }
@@ -52,7 +51,6 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public List<Pacs> findAllStorable() {
         return getDao().findAllStorable();
     }
@@ -61,7 +59,6 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
      * {@inheritDoc}
      */
     @Override
-    @Transactional
     public List<Pacs> findAllQueryable() {
         return getDao().findAllQueryable();
     }
@@ -71,13 +68,7 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
      */
     @Override
     public List<Pacs> findAll(final boolean storable, final boolean queryable) {
-        if (storable && queryable) {
-            return findAllQueryableAndStorable();
-        }
-        if (storable) {
-            return findAllStorable();
-        }
-        return queryable ? findAllQueryable() : getAll();
+        return storable && queryable ? findAllQueryableAndStorable() : (storable ? findAllStorable() : (queryable ? findAllQueryable() : getAll()));
     }
 
     private void clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(final Pacs entity) {

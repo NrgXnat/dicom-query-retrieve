@@ -208,7 +208,7 @@ dqrAnonPanel:
                     kind: panel.select.multi
                     name: dqrAnonPACS
                     label: Select PACS
-                    options: "$? */xapi/pacs $:json | :ResultSet:Result"
+                    options: "$? */xapi/pacs $:json"
                     optionMap:
                         label: aeTitle
                     element:

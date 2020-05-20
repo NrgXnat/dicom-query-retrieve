@@ -9,10 +9,6 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
@@ -32,6 +28,11 @@ import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
@@ -66,7 +67,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
      *
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
-    public PacsSearchResults<String, T> cfind(final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<T> cfind(final PacsSearchCriteria searchCriteria) {
         try {
             pingPacs();
 
@@ -165,13 +166,8 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         return dicomResults;
     }
 
-    protected PacsSearchResults<String, T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) {
-        final Map<String, T> domainResults = new HashMap<>(dicomResults.size());
-        for (final DicomObject d : dicomResults) {
-            final T domainObject = mapDicomObjectToDomainObject(d);
-            domainResults.put(domainObject.getUniqueIdentifier(), domainObject);
-        }
-        return wrapResults(domainResults, dicomResults.size() == getMaxResults(), getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria));
+    protected PacsSearchResults<T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) {
+        return wrapResults(dicomResults.stream().map(this::mapDicomObjectToDomainObject).collect(Collectors.toList()), dicomResults.size() == getMaxResults(), getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria));
     }
 
     protected void performCMoveOnResults(PacsSearchCriteria searchCriteria, List<DicomObject> dicomResults) throws IOException, InterruptedException {
@@ -237,7 +233,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     protected abstract T mapDicomObjectToDomainObject(final DicomObject d);
 
-    protected abstract PacsSearchResults<String, T> wrapResults(final Map<String, T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
+    protected abstract PacsSearchResults<T> wrapResults(final Collection<T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
 
     private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
 

@@ -1,17 +1,24 @@
+#* @vtlvariable name="dqrPreferences" type="org.nrg.xnatx.dqr.preferences.DqrPreferences" *#
+#* @vtlvariable name="user" type="org.nrg.xdat.security.XDATUser" *#
+#* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
+#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
+#* @vtlvariable name="userHelper" type="org.nrg.xdat.security.services.UserHelperServiceI" *#
+<!-- BEGIN templates/screens/xnat_projectData/actionsBox/pacsImport.vm -->
 <!-- Sequence: 9 -->
 
-#* @vtlvariable name="contextService" type="org.nrg.framework.services.ContextService" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
 #set ($projectId = $project.getId())
 #set ($userHelper = $data.getSession().getAttribute("userHelper"))
-#if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && ($user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))) || $user.checkRole("Administrator"))
+#if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && ($user.checkRole("Dqr") || $dqrPreferences.getAllowAllUsersToUseDqr())) || $user.checkRole("Administrator"))
 <li id="import-from-pacs-action" class="yuimenuitem hidden">
     <a class="yuimenuitemlabel" href="${SITE_ROOT}/app/template/Page.vm?view=dqr/import&project=${projectId}">Import From PACS</a>
 </li>
 <script>
     (function(){
-        var importActionItem = $('#import-from-pacs-action');
+        const importActionItem = $('#import-from-pacs-action');
         XNAT.xhr.get({
             url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/$!{projectId}'),
             success: function(data){
@@ -30,3 +37,4 @@
     })()
 </script>
 #end
+<!-- END templates/screens/xnat_projectData/actionsBox/pacsImport.vm -->

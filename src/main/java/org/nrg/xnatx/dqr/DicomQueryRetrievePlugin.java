@@ -11,9 +11,6 @@ package org.nrg.xnatx.dqr;
 
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.dcm4che2.data.Tag;
 import org.nrg.dcm.TextExtractor;
@@ -27,22 +24,22 @@ import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xnat.DicomObjectIdentifier;
-import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeDeSerializer;
-import org.nrg.xnatx.dqr.dicom.converters.DqrDateRangeSerializer;
-import org.nrg.xnatx.dqr.dicom.converters.PacsSearchCriteriaDeserializer;
+import org.nrg.xnatx.dqr.dicom.converters.*;
 import org.nrg.xnatx.dqr.dicom.id.OverrideStudyIdExtractor;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.BasicOrmStrategy;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.BasicPatientNameStrategy;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.PatientNameStrategy;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.ResultSetLimitStrategy;
+import org.nrg.xnatx.dqr.dicom.strategy.orm.*;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.dcm4chee.Dcm4cheeResultSetLimitStrategy;
+import org.nrg.xnatx.dqr.domain.Patient;
+import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @XnatPlugin(value = "dicom-query-retrieve",
             name = "DICOM Query Retrieve Plugin",
@@ -56,6 +53,7 @@ import org.springframework.context.annotation.ComponentScan;
                 "org.nrg.xnatx.dqr.preferences",
                 "org.nrg.xnatx.dqr.processors",
                 "org.nrg.xnatx.dqr.rest",
+                "org.nrg.xnatx.dqr.security",
                 "org.nrg.xnatx.dqr.services",
                 "org.nrg.xnatx.dqr.tasks"})
 @Slf4j
@@ -91,9 +89,12 @@ public class DicomQueryRetrievePlugin {
     @Bean
     public Module dqrModule() {
         final SimpleModule module = new SimpleModule();
-        module.addSerializer(DqrDateRange.class, new DqrDateRangeSerializer());
         module.addDeserializer(DqrDateRange.class, new DqrDateRangeDeSerializer());
         module.addDeserializer(PacsSearchCriteria.class, new PacsSearchCriteriaDeserializer());
+        module.addSerializer(new DqrDateRangeSerializer());
+        module.addSerializer(new PacsSearchResultsSerializer());
+        module.addSerializer(new PatientSerializer());
+        module.addSerializer(new StudySerializer());
         return module;
     }
 }

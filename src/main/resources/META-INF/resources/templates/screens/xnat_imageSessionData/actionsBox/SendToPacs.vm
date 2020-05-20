@@ -35,7 +35,7 @@
                     XNAT.xhr.getJSON({
                         url: XNAT.url.rootUrl('/xapi/pacs?storable=true'),
                         success: function(data){
-                            if (data.ResultSet && data.ResultSet.Result && data.ResultSet.Result.length) {
+                            if (data && data.length) {
                                 window.location.assign(destination);
                             }
                             else {

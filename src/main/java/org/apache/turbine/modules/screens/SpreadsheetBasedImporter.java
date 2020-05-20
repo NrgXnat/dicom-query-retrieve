@@ -16,6 +16,7 @@ import org.apache.velocity.context.Context;
 public class SpreadsheetBasedImporter extends DqrSecureScreen {
     @Override
     protected void doBuildTemplate(final RunData data, final Context context) {
+        super.doBuildTemplate(data, context);
         storeProjectAndQueryablePacs(data, context);
         storeScpsAndEnabledScps(context);
     }

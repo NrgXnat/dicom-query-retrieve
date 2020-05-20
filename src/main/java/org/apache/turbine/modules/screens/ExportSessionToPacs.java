@@ -22,6 +22,8 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 public class ExportSessionToPacs extends DqrSecureScreen {
     @Override
     protected void doBuildTemplate(final RunData data, final Context context) {
+        super.doBuildTemplate(data, context);
+
         final String sessionId = data.getParameters().get("sessionId");
         if (StringUtils.isBlank(sessionId)) {
             context.put("message", "You must specify a valid session ID that you want to export.");

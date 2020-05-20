@@ -81,7 +81,7 @@ var XNAT = getObject(XNAT || {});
     }
 
     getPacsList(function fn(json){
-        renderPacsMenu(json.ResultSet.Result);
+        renderPacsMenu(json);
     });
 
     var $studyDateFromContainer = $('#study-date-from-container');
@@ -1395,7 +1395,7 @@ var XNAT = getObject(XNAT || {});
 
         // console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/search/studies', {}, false);
+        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
 
         // console.log(searchUrl);
 
@@ -1403,7 +1403,7 @@ var XNAT = getObject(XNAT || {});
             url: searchUrl,
             data: searchCriteria,
             success: function(json){
-                renderResultsTable(json.ResultSet.Result);
+                renderResultsTable(json);
             },
             failure: function(){
                 console.warn('Error:');

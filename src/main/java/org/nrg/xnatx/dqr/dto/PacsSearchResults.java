@@ -9,30 +9,33 @@
 
 package org.nrg.xnatx.dqr.dto;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.Collection;
+
 @Data
 @Accessors(prefix = "_")
 @Builder
 @AllArgsConstructor
-public class PacsSearchResults<K, V> {
+public class PacsSearchResults<V> {
     @SuppressWarnings("unchecked")
-    public static <K, V> PacsSearchResults<K, V> emptyResults() {
-        return (PacsSearchResults<K, V>) EMPTY_RESULTS;
+    public static <V> PacsSearchResults<V> emptyResults() {
+        return (PacsSearchResults<V>) EMPTY_RESULTS;
     }
 
+    @JsonIgnore
     public V getFirstResult() {
-        return _results == null || _results.isEmpty() ? null : _results.values().iterator().next();
+        return _results == null || _results.isEmpty() ? null : _results.iterator().next();
     }
 
     @SuppressWarnings("rawtypes")
     private static final PacsSearchResults EMPTY_RESULTS = PacsSearchResults.builder().build();
 
-    private final Map<K, V>                  _results;
+    private final Collection<V>              _results;
     private final boolean                    _hasLimitedResultSetSize;
     private final StudyDateRangeLimitResults _studyDateRangeLimitResults;
 }

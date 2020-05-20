@@ -27,7 +27,7 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
     this.findSeries = function () {
         $.ajax({
             type: "GET",
-            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies/" + study.studyInstanceUid + "/series"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/studies/" + study.studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,
@@ -36,13 +36,13 @@ function PacsSeriesFinder(study, targetDomElement, rowExpansionImage, rowExpansi
     };
 
     this.showSeriesSearchResults = function (data) {
-        this.sortResults(data.ResultSet.Result);
+        this.sortResults(data);
 
         var seriesDataTableIdSuffix = this.study.studyInstanceUid.replace(/\./g, "_");
         var seriesDataTable = jq('<table id="pacsSeriesFinderSearchResults_' + seriesDataTableIdSuffix + '" cellpadding="0" cellspacing="0" border="0" class="pacsSeriesSearchResults xnat-table compact clean alt1"/>');
         var that = this;
         var dataTableOptions = {
-            "aaData": data.ResultSet.Result,
+            "aaData": data,
             "aoColumns": [
                 {
                     "mData": "seriesNumber",

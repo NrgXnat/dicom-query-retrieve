@@ -16,6 +16,7 @@ import org.apache.velocity.context.Context;
 public class PacsAdministration extends DqrSecureScreen {
     @Override
     protected void doBuildTemplate(final RunData data, final Context context) {
+        super.doBuildTemplate(data, context);
         context.put("strategies", getOrmStrategyMap().keySet());
     }
 }

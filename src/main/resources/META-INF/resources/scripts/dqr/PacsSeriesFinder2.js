@@ -27,7 +27,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     this.findSeries = function () {
         XNAT.xhr.ajax({
             type: "GET",
-            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies/" + studyInstanceUid + "/series"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/studies/" + studyInstanceUid + "/series"),
             dataType: "json",
             context: this,
             success: this.showSeriesSearchResults,
@@ -40,7 +40,7 @@ function PacsSeriesFinder2(studyInstanceUid, seriesSearchResultsDivId, seriesSea
     this.showSeriesSearchResults = function (data) {
         var seriesSearchResultsTableId = seriesSearchResultsDivId + "Table";
 
-        var scans = data.ResultSet.Result;
+        var scans = data;
         scans = scans.sort(function(a,b){ return (parseInt(a.seriesNumber) > parseInt(b.seriesNumber)) ? 1 : -1 });
 
         var scanTable = XNAT.table({

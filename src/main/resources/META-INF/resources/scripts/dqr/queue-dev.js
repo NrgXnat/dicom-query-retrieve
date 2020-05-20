@@ -73,31 +73,25 @@ var XNAT = getObject(XNAT || {});
         });
     }
 
+    /*
     var pacsInfoSample = {
-        "ResultSet": {
-            "Result": [
-                {
-                    "host": "10.1.1.1",
-                    "label": "ORTHANC",
-                    "aeTitle": "ORTHANC",
-                    "defaultStoragePacs": true,
-                    "defaultQueryRetrievePacs": true,
-                    "queryable": true,
-                    "ormStrategySpringBeanId": "dicomOrmStrategy",
-                    "storable": true,
-                    "queryRetrievePort": 4242,
-                    "supportsExtendedNegotiations": false,
-                    "timestamp": 1559097735082,
-                    "enabled": true,
-                    "created": 1559097735082,
-                    "id": 1,
-                    "disabled": 0
-                }
-            ],
-            "resultSetSize": 1
-        }
+        "host": "10.1.1.1",
+        "label": "ORTHANC",
+        "aeTitle": "ORTHANC",
+        "defaultStoragePacs": true,
+        "defaultQueryRetrievePacs": true,
+        "queryable": true,
+        "ormStrategySpringBeanId": "dicomOrmStrategy",
+        "storable": true,
+        "queryRetrievePort": 4242,
+        "supportsExtendedNegotiations": false,
+        "timestamp": 1559097735082,
+        "enabled": true,
+        "created": 1559097735082,
+        "id": 1,
+        "disabled": 0
     };
-
+    */
 
     function formatDate(timestamp){
         var dateString = new Date(timestamp);
@@ -982,7 +976,7 @@ var XNAT = getObject(XNAT || {});
 
         dqr.getPacsList.done(function(json){
 
-            var pacsList = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
+            var pacsList = json ? json : [];
 
             if (pacsList.length) {
 

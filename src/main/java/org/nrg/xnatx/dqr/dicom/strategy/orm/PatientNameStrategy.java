@@ -9,12 +9,11 @@
 
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
-import org.nrg.xnatx.dqr.domain.PatientName;
+import org.nrg.xnatx.dqr.domain.DqrPersonName;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 
 public interface PatientNameStrategy {
+    DqrPersonName dicomPatientNameToDqrPatientName(final String dicomPatientName);
 
-    PatientName dicomPatientNameToDqrPatientName(String dicomPatientName);
-
-    DicomPersonNameSearchCriteria dqrSearchCriteriaToDicomSearchCriteria(PacsSearchCriteria searchCriteria);
+    DicomPersonNameSearchCriteria dqrSearchCriteriaToDicomSearchCriteria(final PacsSearchCriteria searchCriteria);
 }

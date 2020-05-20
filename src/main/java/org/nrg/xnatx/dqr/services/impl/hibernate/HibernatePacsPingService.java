@@ -21,15 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
  * Created by mike on 1/19/18.
  */
 @Service
+@Transactional
 public class HibernatePacsPingService extends AbstractHibernateEntityService<PacsPing, PacsPingDAO> implements PacsPingService {
     @Override
-    @Transactional
     public PacsPing getLatestPing(final long pacsId) {
         return getDao().getLatestPing(pacsId);
     }
 
     @Override
-    @Transactional
     public List<PacsPing> getPings(final long pacsId) {
         return getDao().getPings(pacsId);
     }

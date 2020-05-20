@@ -61,7 +61,10 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         final PacsAvailability availability = _pacsAvailabilityEntityService.findAvailableNow(pacsId);
                         if (availability != null && _threads.hasAvailable(pacsId, availability.getThreads())) {
                             final List<QueuedPacsRequest> requests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacsId);
-                            if (_pacsService.canConnect(_primaryAdminUserProvider.get(), _pacsEntityService.retrieve(pacsId))) {
+                            if (requests.isEmpty()) {
+                                continue;
+                            }
+                            if (_pacsService.canConnect(_primaryAdminUserProvider.get(), pacs)) {
                                 final AtomicInteger added                     = new AtomicInteger();
                                 final int           currentThreadsForThisPacs = _threads.get(pacsId);
                                 final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;

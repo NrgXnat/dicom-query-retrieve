@@ -9,9 +9,10 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
@@ -44,7 +45,7 @@ public abstract class CFindSCUPatientLevel extends CFindSCUSpecificLevel<Patient
     }
 
     @Override
-    protected PacsSearchResults<String, Patient> wrapResults(final Map<String, Patient> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
-        return PacsSearchResults.<String, Patient>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
+    protected PacsSearchResults<Patient> wrapResults(final Collection<Patient> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults) {
+        return PacsSearchResults.<Patient>builder().results(results).hasLimitedResultSetSize(hasLimitedResults).studyDateRangeLimitResults(studyDateRangeLimitResults).build();
     }
 }

@@ -19,15 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
  * Created by mike on 1/19/18.
  */
 @Service
+@Transactional
 public class HibernateExecutedPacsRequestService extends AbstractHibernatePacsRequestService<ExecutedPacsRequest, ExecutedPacsRequestDAO> implements ExecutedPacsRequestService {
     @Override
-    @Transactional
     public ExecutedPacsRequest getMostRecentForPacs(final long pacsId) {
         return instance(getDao().findByPacsIdOrderedByMostRecent(pacsId));
     }
 
     @Override
-    @Transactional
     public ExecutedPacsRequest getMostRecentForStudyInstanceUid(String studyInstanceUid) {
         return instance(getDao().findByStudyInstanceUidOrderedByMostRecent(studyInstanceUid));
     }

@@ -11,19 +11,13 @@ package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.PersonName;
-import org.nrg.xnatx.dqr.domain.PatientName;
+import org.nrg.xnatx.dqr.domain.DqrPersonName;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 
 public class BasicPatientNameStrategy implements PatientNameStrategy {
-
-    private static final String DICOM_PERSON_NAME_COMPONENT_SEPARATOR               = "^";
-    private static final String DICOM_PERSON_NAME_COMPONENT_SEPARATOR_REGEX_ESCAPED = "\\^";
-    private static final String DICOM_WILD_CARD_INDICATOR                           = "*";
-    private static final String DICOM_WILD_CARD_INDICATOR_REGEX_ESCAPED             = "\\*";
-
     @Override
-    public PatientName dicomPatientNameToDqrPatientName(String dicomPatientName) {
-        return new PatientName(new PersonName(dicomPatientName));
+    public DqrPersonName dicomPatientNameToDqrPatientName(final String dicomPatientName) {
+        return new DqrPersonName(new PersonName(dicomPatientName));
     }
 
     @Override
@@ -57,71 +51,40 @@ public class BasicPatientNameStrategy implements PatientNameStrategy {
                 processedPatientNameString = parseWithSpace(patientNameString);
             }
             dicomPersonNameSearchCriteria.addCriterion(processedPatientNameString);
-
-//            PatientName dqrPatientName = new PatientName(searchCriteria.getPatientName());
-//            String firstNameComponent = StringUtils.trimToEmpty(dqrPatientName.getFirstName());
-//            String lastNameComponent = StringUtils.trimToEmpty(dqrPatientName.getLastName());
-//            if(StringUtils.isNotBlank(lastNameComponent)){
-//                if(StringUtils.isNotBlank(firstNameComponent)){
-//                    dicomPersonNameSearchCriteria.addCriterion(lastNameComponent+DICOM_PERSON_NAME_COMPONENT_SEPARATOR+firstNameComponent);
-//                }
-//                else{
-//                    dicomPersonNameSearchCriteria.addCriterion(lastNameComponent+DICOM_PERSON_NAME_COMPONENT_SEPARATOR+DICOM_WILD_CARD_INDICATOR);
-//                }
-//            }
-//            else{
-//                if(StringUtils.isNotBlank(firstNameComponent)){
-//                    dicomPersonNameSearchCriteria.addCriterion(DICOM_WILD_CARD_INDICATOR+DICOM_PERSON_NAME_COMPONENT_SEPARATOR+firstNameComponent);
-//                }
-//                else{
-//                    dicomPersonNameSearchCriteria.addCriterion("");
-//                }
-//            }
-
-
         }
         return dicomPersonNameSearchCriteria;
     }
 
-    private static String removeBoundingQuotes(String name) {
-        int length = name.length();
-        return name.substring(1, length - 2);
+    private static String removeBoundingQuotes(final String name) {
+        return StringUtils.unwrap(name, "\"");
     }
 
-    private static String myTrim(String name) {
-        String rtn = name.trim();
-        rtn = rtn.replaceAll(" [ ]*", " ");
-
-        rtn = rtn.replaceAll("[ ]*\\^[ ]*", "^");
-        rtn = rtn.replaceAll("[ ]*,[ ]*", ",");
-        rtn = rtn.replaceAll("[ ]*\\.[ ]*", ".");
-        rtn = rtn.replaceAll("[ ]*'[ ]*", "'");
-
-        return rtn;
+    private static String myTrim(final String name) {
+        return name.trim()
+                   .replaceAll(" [ ]*", " ")
+                   .replaceAll("[ ]*\\^[ ]*", "^")
+                   .replaceAll("[ ]*,[ ]*", ",")
+                   .replaceAll("[ ]*\\.[ ]*", ".")
+                   .replaceAll("[ ]*'[ ]*", "'");
     }
 
-    private static String parseWithCaretCommaSpace(String name) {
+    private static String parseWithCaretCommaSpace(final String name) {
         return name;
     }
 
-    private static String parseWithCaretComma(String name) {
+    private static String parseWithCaretComma(final String name) {
         return name;
     }
 
-    private static String parseWithCaret(String name) {
+    private static String parseWithCaret(final String name) {
         return name;
     }
 
-    private static String parseWithComma(String name) {
-        String tokens[] = name.split(",");
-        String rtn      = tokens[0].trim() + "^" + tokens[1].trim();
-        return rtn;
+    private static String parseWithComma(final String name) {
+        return StringUtils.join(name.trim().split("\\s*,\\s*", 2), "^");
     }
 
-    private static String parseWithSpace(String name) {
-        String tokens[] = name.split(" ");
-        String rtn      = tokens[1] + "^" + tokens[0];
-        return rtn;
+    private static String parseWithSpace(final String name) {
+        return StringUtils.join(name.trim().split("\\s+", 2), "^");
     }
-
 }

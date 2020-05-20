@@ -50,7 +50,7 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
         XNAT.xhr.ajax({
             type: "POST",
-            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/search/studies"),
+            url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/studies"),
             data: jq("#" + this.sessionSearchFormId).serialize(),
             dataType: "json",
             context: this,
@@ -67,10 +67,10 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
 
         jq("#" + sessionSearchResultsDivId).empty().html('<div class="friendlyForm"><h4>PACS Query Results</h4></div><table cellpadding="0" cellspacing="0" border="0" class="pacsSessionSearchResults xnat-table data-table compact" id="' + sessionSearchResultsTableId + '"/>');
 
-        var stringStartsWithFilter = new StringStartsWithFilter();
+        // var stringStartsWithFilter = new StringStartsWithFilter();
 
         var dataTableOptions = {
-            "aaData": data.ResultSet.Result,
+            "aaData": data,
             "aoColumns": [
                 {
                     "bSearchable": false,
@@ -142,10 +142,10 @@ function PacsSessionFinder(sessionSearchFormId, sessionSelectionFormId, sessionS
             ]
         };
 
-        if (data.ResultSet.limitedResultSetSize) {
-            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>These search results were limited to " + data.ResultSet.resultSetSize + " records to avoid overtaxing the PACS.  You may need to narrow your search to find what you're looking for.</span>";
-        } else if (data.ResultSet.studyDateRangeLimitResults.limited) {
-            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>" + data.ResultSet.studyDateRangeLimitResults.limitExplanation + "</span>";
+        if (data.limitedResultSetSize) {
+            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>These search results were limited to " + data.resultSetSize + " records to avoid overtaxing the PACS.  You may need to narrow your search to find what you're looking for.</span>";
+        } else if (data.studyDateRangeLimitResults.limited) {
+            dataTableOptions.oLanguage.sInfoPostFix = "<br/><span style='color:red;'>" + data.studyDateRangeLimitResults.limitExplanation + "</span>";
         }
 
         jq("#" + sessionSearchResultsTableId).dataTable(dataTableOptions);
