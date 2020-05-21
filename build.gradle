@@ -20,8 +20,7 @@ buildscript {
         maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
     }
     dependencies {
-        classpath "io.franzbecker:gradle-lombok:3.3.0"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "io.franzbecker:gradle-lombok:4.0.0"
         classpath "org.nrg.xnat.build:xnat-data-builder:1.7.6"
     }
 }
@@ -32,7 +31,6 @@ apply plugin: "maven-publish"
 apply plugin: "idea"
 apply plugin: "eclipse"
 apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: "io.spring.dependency-management"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
@@ -82,14 +80,6 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
-dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnat}"
-}
-
-jacoco {
-    toolVersion = dependencyManagement.importedProperties["jacoco.version"]
-}
-
 jacocoTestReport {
     dependsOn test
     reports {
@@ -97,11 +87,6 @@ jacocoTestReport {
         csv.enabled = false
         html.destination file("${buildDir}/jacocoHtml")
     }
-}
-
-lombok {
-    version = dependencyManagement.importedProperties["lombok.version"] as String
-    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
 test {
@@ -112,6 +97,8 @@ test {
 }
 
 dependencies {
+    implementation enforcedPlatform("org.nrg:parent:${vXnat}")
+
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
     implementation "org.nrg.dicom:dicom-edit6"
@@ -138,13 +125,13 @@ dependencies {
         transitive = false
     }
 
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho") {
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho:2.0.29") {
         transitive = false
     }
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr:2.0.29") {
         transitive = false
     }
-    implementAndInclude("commons-cli:commons-cli") {
+    implementAndInclude("commons-cli:commons-cli:1.2") {
         transitive = false
     }
 
@@ -157,6 +144,7 @@ dependencies {
 }
 
 task xnatPluginJar(type: Jar) {
+    logger.lifecycle "Build tasks? ${build}"
     zip64 true
     archiveClassifier.set "xpl"
     // files and folders with "-dev" or "--xx" in their name
