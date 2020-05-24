@@ -9,112 +9,77 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import java.io.Serializable;
-import javax.persistence.Entity;
-import javax.persistence.Lob;
-import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.NotBlank;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.Singular;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.envers.Audited;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
+import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"projectId"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @Audited
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private String _projectId;
-    private String _irbNumber;
-    private String _irbFileName;
-
-    @Lob
-    private byte[] _irbFile;
-
-    // for Hibernate
-    public ProjectIrbInfo() {
-    }
-
     @NotBlank
     public String getProjectId() {
         return _projectId;
     }
 
-    public void setProjectId(String _projectId) {
-        this._projectId = _projectId;
+    public void setProjectId(final String projectId) {
+        _projectId = projectId;
     }
 
     public String getIrbNumber() {
         return _irbNumber;
     }
 
-    public void setIrbNumber(String _irbNumber) {
-        this._irbNumber = _irbNumber;
+    public void setIrbNumber(final String irbNumber) {
+        _irbNumber = irbNumber;
     }
 
-    public byte[] getIrbFile() {
-        return _irbFile;
+    @OneToMany(targetEntity = ProjectIrbFile.class, cascade = CascadeType.ALL)
+    public List<ProjectIrbFile> getProjectIrbFiles() {
+        return new ArrayList<>(_projectIrbFiles);
     }
 
-    public void setIrbFile(byte[] _irbFile) {
-        this._irbFile = _irbFile;
+    public void setProjectIrbFiles(final List<ProjectIrbFile> projectIrbFiles) {
+        _projectIrbFiles.clear();
+        _projectIrbFiles.addAll(projectIrbFiles);
     }
 
-    public String getIrbFileName() {
-        return _irbFileName;
+    public void addIrbFile(final ProjectIrbFile file) {
+        _projectIrbFiles.add(file);
     }
 
-    public void setIrbFileName(String _irbFileName) {
-        this._irbFileName = _irbFileName;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-
-        ProjectIrbInfo that = (ProjectIrbInfo) o;
-
-        if (!_projectId.equals(that._projectId)) {
-            return false;
-        }
-        if (!_irbNumber.equals(that._irbNumber)) {
-            return false;
-        }
-        if (!_irbFile.equals(that._irbFile)) {
-            return false;
-        }
-        return _irbFileName.equals(that._irbFileName);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = new HashCodeBuilder(13, 137)
-            .append(_projectId)
-            .append(_irbNumber)
-            .append(_irbFile)
-            .append(_irbFileName).toHashCode();
-        return result;
+    public void addIrbFile(final String fileName, final byte[] bytes) {
+        _projectIrbFiles.add(new ProjectIrbFile(this, fileName, bytes));
     }
 
     @Override
     public String toString() {
-        return "ProjectIrbInfo{" +
+        return "IrbInfo{" +
                "projectId='" + _projectId + '\'' +
                ", irbNumber='" + _irbNumber + '\'' +
-               ", irbFileName='" + _irbFileName + '\'' +
+               ", irbFiles='" + _projectIrbFiles.stream().map(ProjectIrbFile::getIrbFileName).collect(Collectors.joining(", ")) + '\'' +
                '}';
     }
+
+    private String _projectId;
+    private String _irbNumber;
+
+    @Singular
+    private final List<ProjectIrbFile> _projectIrbFiles = new ArrayList<>();
 }

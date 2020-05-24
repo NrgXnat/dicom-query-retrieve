@@ -76,6 +76,9 @@ configurations {
         exclude module: "xnat-pipeline"
         exclude group: "jamon"
         exclude group: "org.codehaus.jackson"
+        exclude group: "junit"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+        exclude group: "ch.qos.logback"
     }
     implementation.extendsFrom(implementAndInclude)
 }
@@ -144,7 +147,6 @@ dependencies {
 }
 
 task xnatPluginJar(type: Jar) {
-    logger.lifecycle "Build tasks? ${build}"
     zip64 true
     archiveClassifier.set "xpl"
     // files and folders with "-dev" or "--xx" in their name

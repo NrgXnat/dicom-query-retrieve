@@ -693,7 +693,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Delete)
-    public String getIrbNumber(@PathVariable("projectId") @Project final String projectId) {
+    public String getIrbNumber(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
         return _projectIrbInfoEntityService.findIrbNumberForProject(projectId);
     }
 
@@ -702,17 +702,16 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB file."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{passedFileName}", method = RequestMethod.GET, restrictTo = Delete)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{fileName}", method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable @Project final String projectId, @SuppressWarnings("unused") final @PathVariable String passedFileName) throws IOException, NotFoundException {
+    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable @Project final String projectId, final @PathVariable String fileName) throws IOException, NotFoundException {
         //Filename is included in the URL to avoid confusing some browsers (even though it's unused).
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             throw new NotFoundException("No IRB file found for project ID " + projectId);
         }
 
-        final byte[] bytes    = info.getIrbFile();
-        final String fileName = info.getIrbFileName();
+        final byte[] bytes    = info.getProjectIrbFiles().stream().filter(file -> file.getIrbFileName().equals(fileName)).findAny().orElseThrow(() -> new NotFoundException(projectId + ": " + fileName)).getIrbFile();
 
         final String mimeType;
         if (StringUtils.endsWith(fileName, ".pdf")) {
@@ -729,16 +728,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                              .body(new ByteArrayResource(bytes));
     }
 
-    @ApiOperation(value = "Get stored IRB filename for project.", response = String.class)
+    @ApiOperation(value = "Get stored IRB filename for project.", response = String.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "An IRB filename."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB filename."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public String getIrbFilename(@PathVariable("projectId") @Project final String projectId) {
-        final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
-        return info == null ? "" : info.getIrbFileName();
+    public List<String> getIrbFilenames(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
+        return  _projectIrbInfoEntityService.findIrbFileNamesForProject(projectId);
     }
 
     @ApiOperation(value = "Update IRB number for project.", response = Boolean.class)
@@ -748,12 +746,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Delete)
     public boolean putIrbNumber(@PathVariable("projectId") @Project final String projectId,
-                                @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber") final String irbNumber) {
+                                @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber") final String irbNumber) throws NotFoundException {
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info != null) {
             info.setIrbNumber(irbNumber);
             _projectIrbInfoEntityService.update(info);
-            if (info.getIrbFile() != null) {
+            if (!info.getProjectIrbFiles().isEmpty()) {
                 notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
             }
         } else {
@@ -775,25 +773,19 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     public boolean putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile") MultipartFile irbFile,
                               @PathVariable @Project final String projectId) throws InitializationException {
         try {
-            String         fileName = irbFile.getOriginalFilename();
-            byte[]         bytes    = irbFile.getBytes();
-            ProjectIrbInfo info     = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+            final String         fileName = irbFile.getOriginalFilename();
+            final byte[]         bytes = irbFile.getBytes();
+            final ProjectIrbInfo info  = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
             if (info != null) {
-                info.setIrbFileName(fileName);
-                info.setIrbFile(bytes);
-                _projectIrbInfoEntityService.update(info);
+                _projectIrbInfoEntityService.addIrbFile(info, fileName, bytes);
                 if (info.getIrbNumber() != null) {
                     notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
                 }
             } else {
                 //Create new IRB info object
-                final ProjectIrbInfo projectIrbInfo = new ProjectIrbInfo();
-                projectIrbInfo.setProjectId(projectId);
-                projectIrbInfo.setIrbFileName(fileName);
-                projectIrbInfo.setIrbFile(bytes);
-                _projectIrbInfoEntityService.create(projectIrbInfo);
+                _projectIrbInfoEntityService.createNewIrbInfo(projectId, fileName, bytes);
             }
-        } catch (IOException e) {
+        } catch (IOException | NotFoundException e) {
             log.error("IO exception when updating IRB file.", e);
             throw new InitializationException(e);
         }
