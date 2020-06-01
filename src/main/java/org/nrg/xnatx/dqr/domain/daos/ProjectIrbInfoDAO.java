@@ -12,12 +12,13 @@ package org.nrg.xnatx.dqr.domain.daos;
 import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xapi.exceptions.NotFoundException;
-import org.nrg.xnatx.dqr.domain.entities.ProjectIrbFile;
+import org.nrg.xnat.entities.FileStoreInfo;
 import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Repository
 public class ProjectIrbInfoDAO extends AbstractHibernateDAO<ProjectIrbInfo> {
@@ -34,13 +35,11 @@ public class ProjectIrbInfoDAO extends AbstractHibernateDAO<ProjectIrbInfo> {
         return findIrbInfoForProject(projectId).getIrbNumber();
     }
 
-    public List<ProjectIrbFile> findIrbFilesForProject(final String projectId) throws NotFoundException {
+    public List<FileStoreInfo> findIrbFilesForProject(final String projectId) throws NotFoundException {
         return findIrbInfoForProject(projectId).getProjectIrbFiles();
     }
 
     public List<String> findIrbFileNamesForProject(final String projectId) throws NotFoundException {
-        return checked(getSession().createQuery(HQL_IRB_FILE_NAMES).setParameter("projectId", projectId).list(), String.class);
+        return findIrbFilesForProject(projectId).stream().map(FileStoreInfo::getCoordinates).collect(Collectors.toList());
     }
-
-    private static final String HQL_IRB_FILE_NAMES = "SELECT f.irbFileName FROM IrbInfo i JOIN i.irbFiles f WHERE i.projectId = :projectId";
 }

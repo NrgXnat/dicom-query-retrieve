@@ -20,8 +20,6 @@ public interface PacsAvailabilityEntityService extends BaseHibernateService<Pacs
 
     List<PacsAvailability> findSettingsByPacsByDay(final long pacsId, final int day);
 
-    Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(final long pacsId);
-
     @Nullable
     PacsAvailability findAvailableNow(final long pacsId);
 

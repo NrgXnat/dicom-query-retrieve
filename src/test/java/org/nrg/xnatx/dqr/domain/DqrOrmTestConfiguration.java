@@ -74,6 +74,8 @@ public class DqrOrmTestConfiguration {
         properties.setProperty("hibernate.show_sql", "true");
         properties.setProperty("hibernate.cache.use_second_level_cache", "true");
         properties.setProperty("hibernate.cache.use_query_cache", "true");
+        properties.setProperty("hibernate.temp.use_jdbc_metadata_defaults", "false");
+        properties.setProperty("hibernate.jdbc.lob.non_contextual_creation", "true");
 
         final PropertiesFactoryBean bean = new PropertiesFactoryBean();
         bean.setProperties(properties);

@@ -141,6 +141,7 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
     testImplementation "com.github.sbrannen:spring-test-junit5"
+    testImplementation "org.mockito:mockito-core"
     testImplementation "org.assertj:assertj-core"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
@@ -191,7 +192,7 @@ publishing {
                 root.appendNode("inceptionYear", "2019")
 
                 root.appendNode("scm").with {
-                    appendNode("url", "https://bitbucket.org/xnatx/xnatx-ollection-plugin")
+                    appendNode("url", "https://bitbucket.org/xnatdev/dicom-query-retrieve")
                     appendNode("connection", "scm:https://bitbucket.org/xnatdev/dicom-query-retrieve")
                     appendNode("developerConnection", "scm:git@bitbucket.org:xnatdev/dicom-query-retrieve.git")
                 }

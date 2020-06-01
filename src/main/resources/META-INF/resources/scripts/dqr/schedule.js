@@ -470,10 +470,18 @@
         var tmpFrag = document.createDocumentFragment();
 
         // var scheduleUrl = '~/page/dqr/schedule-dev/scratch.json';
-        var scheduleUrl = XNAT.url.restUrl('/xapi/dqr/pacsAvailability/windowsByDay/' + window.pacsId);
+        var scheduleUrl = XNAT.url.restUrl('/xapi/pacs/' +  + window.pacsId + '/windows');
 
         // get data then apply it to each day
-        var getSchedule = XNAT.xhr.get(scheduleUrl);
+        var getSchedule = XNAT.xhr.get({
+            url: scheduleUrl,
+            success: function(data) {
+                return data.reduce((map, window) => { map[window.id] = window; return map; }, {});
+            },
+            fail: function(e) {
+
+            }
+        });
 
         getSchedule.done(function(data){
 

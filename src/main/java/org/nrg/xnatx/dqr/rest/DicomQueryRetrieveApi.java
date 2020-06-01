@@ -9,47 +9,19 @@
 
 package org.nrg.xnatx.dqr.rest;
 
-import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
-import static org.nrg.xdat.security.helpers.AccessLevel.Authorizer;
-import static org.nrg.xdat.security.helpers.AccessLevel.Delete;
-import static org.nrg.xdat.security.helpers.AccessLevel.Read;
+import static org.nrg.xdat.security.helpers.AccessLevel.*;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.mail.services.MailService;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
-import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xapi.exceptions.InitializationException;
-import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
-import org.nrg.xapi.exceptions.NoContentException;
-import org.nrg.xapi.exceptions.NotFoundException;
-import org.nrg.xapi.exceptions.NotModifiedException;
+import org.nrg.xapi.exceptions.*;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Project;
@@ -71,27 +43,14 @@ import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Series;
-import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
-import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
-import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
-import org.nrg.xnatx.dqr.domain.entities.PacsPing;
-import org.nrg.xnatx.dqr.domain.entities.ProjectIrbInfo;
-import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
-import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
-import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
-import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsPingService;
-import org.nrg.xnatx.dqr.services.PacsService;
-import org.nrg.xnatx.dqr.services.ProjectIrbInfoEntityService;
-import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
+import org.nrg.xnatx.dqr.services.*;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
 import org.nrg.xnatx.dqr.utils.StudyImportInformation;
@@ -101,13 +60,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URLConnection;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by mike on 1/19/18.
@@ -117,6 +79,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @RequestMapping(value = "/dqr")
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
+
     @Autowired
     public DicomQueryRetrieveApi(final DqrPreferences prefs, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final PacsPingService pacsPingService, final ProjectIrbInfoEntityService projectIrbInfoEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
         super(userManagementService, roleHolder);
@@ -181,9 +144,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-        value = "Get list of DICOM query request history entries for all users within a specified range.",
-        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
-        response = ExecutedPacsRequest.class, responseContainer = "List"
+            value = "Get list of DICOM query request history entries for all users within a specified range.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid range."),
@@ -199,9 +162,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-        value = "Get paged list of DICOM query request history entries for all users.",
-        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
-        response = ExecutedPacsRequest.class, responseContainer = "List"
+            value = "Get paged list of DICOM query request history entries for all users.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid page range."),
@@ -217,9 +180,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-        value = "Get list of DICOM query request history entries for the current user within a specified range.",
-        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.",
-        response = ExecutedPacsRequest.class, responseContainer = "List"
+            value = "Get list of DICOM query request history entries for the current user within a specified range.",
+            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.",
+            response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid range."),
@@ -493,11 +456,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "csvimport/importFromJson",
-                        method = RequestMethod.POST,
-                        consumes = MediaType.APPLICATION_JSON_VALUE,
-                        produces = MediaType.APPLICATION_JSON_VALUE,
-                        restrictTo = Authorizer)
+    @XapiRequestMapping(value = "csvimport/importFromJson", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public ResponseEntity<Boolean> importFromPacs(@RequestBody final List<CsvRow> rows,
                                                   @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
                                                   @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
@@ -517,11 +476,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "csvimport/generalImportFromJson",
-                        method = RequestMethod.POST,
-                        consumes = MediaType.APPLICATION_JSON_VALUE,
-                        produces = MediaType.APPLICATION_JSON_VALUE,
-                        restrictTo = Authorizer)
+    @XapiRequestMapping(value = "csvimport/generalImportFromJson", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public ResponseEntity<Boolean> importFromPacsGeneral(@RequestBody final Map<String, StudyImportInformation> studiesToImport,
                                                          @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final long pacsId,
                                                          @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
@@ -541,11 +496,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "send/toPacs",
-                        method = RequestMethod.PUT,
-                        consumes = MediaType.APPLICATION_JSON_VALUE,
-                        produces = MediaType.APPLICATION_JSON_VALUE,
-                        restrictTo = Authorizer)
+    @XapiRequestMapping(value = "send/toPacs", method = RequestMethod.PUT, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public Map<String, Object> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId") final long pacsId,
                                           @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String session,
                                           @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport") final String[] scansToExport) throws Exception {
@@ -711,21 +662,14 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             throw new NotFoundException("No IRB file found for project ID " + projectId);
         }
 
-        final byte[] bytes    = info.getProjectIrbFiles().stream().filter(file -> file.getIrbFileName().equals(fileName)).findAny().orElseThrow(() -> new NotFoundException(projectId + ": " + fileName)).getIrbFile();
+        final File file = Paths.get(info.getProjectIrbFiles().stream().filter(fileStoreInfo -> fileStoreInfo.getLabel().equals(fileName)).findAny().orElseThrow(() -> new NotFoundException(projectId + ": " + fileName)).getStoreUri()).toFile();
 
-        final String mimeType;
-        if (StringUtils.endsWith(fileName, ".pdf")) {
-            mimeType = MediaType.APPLICATION_PDF_VALUE;
-        } else {
-            try (final InputStream is = new BufferedInputStream(new ByteArrayInputStream(bytes))) {
-                mimeType = URLConnection.guessContentTypeFromStream(is);
-            }
-        }
+        final String mimeType = StringUtils.endsWith(fileName, ".pdf") ? MediaType.APPLICATION_PDF_VALUE : URLConnection.guessContentTypeFromName(fileName);
 
         return ResponseEntity.ok()
                              .header(HttpHeaders.CONTENT_TYPE, mimeType)
                              .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-                             .body(new ByteArrayResource(bytes));
+                             .body(new ByteArrayResource(FileUtils.readFileToByteArray(file)));
     }
 
     @ApiOperation(value = "Get stored IRB filename for project.", response = String.class, responseContainer = "List")
@@ -736,7 +680,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
     public List<String> getIrbFilenames(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
-        return  _projectIrbInfoEntityService.findIrbFileNamesForProject(projectId);
+        return _projectIrbInfoEntityService.findIrbFileNamesForProject(projectId);
     }
 
     @ApiOperation(value = "Update IRB number for project.", response = Boolean.class)
@@ -769,27 +713,34 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB file."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Delete)
-    public boolean putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile") MultipartFile irbFile,
-                              @PathVariable @Project final String projectId) throws InitializationException {
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Edit)
+    public boolean putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam final MultipartFile irbFile,
+                              @ApiParam(value = "IRB number; required when creating new IRB") @RequestParam(required = false) final String irbNumber,
+                              @PathVariable @Project final String projectId) throws InitializationException, ResourceAlreadyExistsException {
         try {
             final String         fileName = irbFile.getOriginalFilename();
-            final byte[]         bytes = irbFile.getBytes();
-            final ProjectIrbInfo info  = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+            final byte[]         bytes    = irbFile.getBytes();
+            final ProjectIrbInfo info     = getProjectIrbInfo(projectId);
             if (info != null) {
                 _projectIrbInfoEntityService.addIrbFile(info, fileName, bytes);
-                if (info.getIrbNumber() != null) {
-                    notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
-                }
+                notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
             } else {
                 //Create new IRB info object
-                _projectIrbInfoEntityService.createNewIrbInfo(projectId, fileName, bytes);
+                _projectIrbInfoEntityService.createNewIrbInfo(projectId, irbNumber, fileName, bytes);
             }
-        } catch (IOException | NotFoundException e) {
+        } catch (IOException e) {
             log.error("IO exception when updating IRB file.", e);
             throw new InitializationException(e);
         }
         return true;
+    }
+
+    private ProjectIrbInfo getProjectIrbInfo(final String projectId) {
+        try {
+            return _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+        } catch (NotFoundException e) {
+            return null;
+        }
     }
 
     @ApiOperation(value = "Deletes the stored IRB file for project.", response = Boolean.class)
@@ -809,10 +760,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return true;
     }
 
-    @ApiOperation(value = "Creates a new Dqr configuration for a project from the submitted attributes.", notes = "Returns the newly created Dqr configuration for a project with the submitted attributes.", response = DqrProjectSettings.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns the newly created Dqr configuration for the project."),
-                   @ApiResponse(code = 403, message = "Insufficient privileges to create the Dqr configuration for the project."),
-                   @ApiResponse(code = 404, message = "The requested Dqr configuration for the project wasn't found."),
+    @ApiOperation(value = "Creates a new DQR configuration for a project from the submitted attributes.", notes = "Returns the newly created DQR configuration for a project with the submitted attributes.", response = DqrProjectSettings.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns the newly created DQR configuration for the project."),
+                   @ApiResponse(code = 403, message = "Insufficient privileges to create the DQR configuration for the project."),
+                   @ApiResponse(code = 404, message = "The project for the new DQR configuration wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "adminProjectSettings", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
@@ -1005,15 +956,6 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return _pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
     }
 
-    @ApiOperation(value = "Get PACS availability intervals by day for the specified PACS.", notes = "The get PACS availability intervals by day function returns the PACS availability intervals for the specified PACS.", response = PacsAvailability.class, responseContainer = "List")
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability intervals by day for the PACS."),
-                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "pacsAvailability/windowsByDay/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    @ResponseBody
-    public Map<Integer, List<PacsAvailability>> getPacsAvailabilityIntervalsByDay(@PathVariable final long pacsId) {
-        return _pacsAvailabilityEntityService.findSettingsByPacsGroupedByDay(pacsId);
-    }
-
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
     @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -1022,7 +964,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
-                                                                    @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException {
+                                                            @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException {
         final String[] studyInstanceUids = StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
         if (studyInstanceUids == null) {
             throw new NoContentException("No study instance UIDs specified for query on PACS " + pacsId);

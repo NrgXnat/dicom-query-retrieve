@@ -9,17 +9,16 @@
 
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.annotation.Nullable;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.PacsAvailabilityDAO;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Nullable;
+import java.util.Calendar;
+import java.util.List;
 
 @Service
 @Transactional
@@ -42,15 +41,6 @@ public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEnt
     @Override
     public List<PacsAvailability> findSettingsByPacsByDay(final long pacsId, final int day) {
         return getDao().findSettingsByPacsByDay(pacsId, day);
-    }
-
-    @Override
-    public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(final long pacsId) {
-        Map<Integer, List<PacsAvailability>> availabilityByDay = new HashMap<>();
-        for (int day = 1; day <= 7; day++) {
-            availabilityByDay.put(day, getDao().findSettingsByPacsByDay(pacsId, day));
-        }
-        return availabilityByDay;
     }
 
     @Override
