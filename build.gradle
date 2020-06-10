@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.7.7-ML-SNAPSHOT"
+        vXnat = "ML-BETA"
     }
     repositories {
         mavenLocal()
@@ -21,7 +21,8 @@ buildscript {
     }
     dependencies {
         classpath "io.franzbecker:gradle-lombok:4.0.0"
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.6"
+        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
+        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
     }
 }
 
@@ -31,10 +32,11 @@ apply plugin: "maven-publish"
 apply plugin: "idea"
 apply plugin: "eclipse"
 apply plugin: "io.franzbecker.gradle-lombok"
+apply plugin: "io.spring.dependency-management"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
-version "1.0.0-SNAPSHOT"
+version vXnat
 
 repositories {
     mavenLocal()
@@ -99,6 +101,18 @@ test {
     }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.nrg:parent:${vXnat}"
+    }
+    generatedPomCustomization {
+        enabled = false
+    }
+}
+
+def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
+def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
+
 dependencies {
     implementation enforcedPlatform("org.nrg:parent:${vXnat}")
 
@@ -128,13 +142,13 @@ dependencies {
         transitive = false
     }
 
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho:2.0.29") {
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho:${vDcm4che}") {
         transitive = false
     }
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr:2.0.29") {
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr:${vDcm4che}") {
         transitive = false
     }
-    implementAndInclude("commons-cli:commons-cli:1.2") {
+    implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
         transitive = false
     }
 
@@ -177,8 +191,6 @@ task javadocJar(type: Jar) {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
-
             artifacts {
                 artifact sourceJar
                 artifact javadocJar
