@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "ML-0.2-SNAPSHOT"
+        vXnat = "1.7.7-SNAPSHOT"
     }
     repositories {
         mavenLocal()
@@ -36,7 +36,7 @@ apply plugin: "io.spring.dependency-management"
 apply plugin: "xnat-data-builder"
 
 group "org.nrg.xnatx.plugins"
-version vXnat
+version "1.0.0-SNAPSHOT"
 
 repositories {
     mavenLocal()
