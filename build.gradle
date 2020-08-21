@@ -9,34 +9,26 @@
 
 buildscript {
     ext {
-        vXnat = "1.7.7-ACTIVE-SNAPSHOT"
-    }
-    repositories {
-        mavenLocal()
-        jcenter()
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
-    }
-    dependencies {
-        classpath "io.franzbecker:gradle-lombok:4.0.0"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
-        classpath "org.nrg.xnat.build:xnat-data-builder:${vXnat}"
+        vXnat = "1.8.0-ACTIVE-SNAPSHOT"
     }
 }
 
-apply plugin: "java"
-apply plugin: "jacoco"
-apply plugin: "maven-publish"
-apply plugin: "idea"
-apply plugin: "eclipse"
-apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: "io.spring.dependency-management"
-apply plugin: "xnat-data-builder"
+plugins {
+    id "java"
+    id "jacoco"
+    id "maven-publish"
+    id "idea"
+    id "eclipse"
+    id "com.dorongold.task-tree" version "1.5"
+    id "com.palantir.git-version" version "0.12.3"
+    id "io.franzbecker.gradle-lombok" version "4.0.0"
+    id "io.spring.dependency-management" version "1.0.9.RELEASE"
+    id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
+}
 
 group "org.nrg.xnatx.plugins"
 version "1.0.0-ACTIVE-SNAPSHOT"
+description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
     mavenLocal()
@@ -58,11 +50,9 @@ compileJava {
 sourceSets {
     main {
         java {
-            srcDir "src/main/java"
             srcDir "build/xnat-generated/src/main/java"
         }
         resources {
-            srcDir "src/main/resources"
             srcDir "build/xnat-generated/src/main/resources"
         }
     }
@@ -157,13 +147,96 @@ dependencies {
     testImplementation "com.github.sbrannen:spring-test-junit5"
     testImplementation "org.mockito:mockito-core"
     testImplementation "org.assertj:assertj-core"
+    testImplementation "com.h2database:h2"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
 }
 
+// Pulls in the Jenkins BUILD_NUMBER environment variable if available.
+def buildDate = new Date()
+def buildNumber = System.getenv().BUILD_NUMBER?.toInteger() ?: "Manual"
+def isDirty, branchName, gitHash, gitHashFull, commitDistance, lastTag, isCleanTag
+
+try {
+    def gitDetails = versionDetails()
+    isDirty = gitVersion().endsWith ".dirty"
+    branchName = gitDetails.branchName ?: "Unknown"
+    gitHash = gitDetails.gitHash
+    gitHashFull = gitDetails.gitHashFull
+    commitDistance = gitDetails.commitDistance
+    lastTag = gitDetails.lastTag
+    isCleanTag = gitDetails.isCleanTag
+} catch (IllegalArgumentException e) {
+    logger.info "Got an error trying to read VCS metadata from git. It's possible this project is not under VCS control. Using placeholder values for manifest entries."
+    isDirty = true
+    branchName = "Unknown"
+    gitHash = "None"
+    gitHashFull = "None"
+    commitDistance = 0
+    lastTag = "None"
+    isCleanTag = false
+}
+
+ext.gitManifest = manifest {
+    attributes "Application-Name": project.description,
+            "Build-Date": buildDate,
+            "Build-Number": buildNumber,
+            "Implementation-Version": project.version,
+            "Implementation-Sha": gitHash,
+            "Implementation-Sha-Full": gitHashFull,
+            "Implementation-Commit": commitDistance,
+            "Implementation-LastTag": lastTag,
+            "Implementation-Branch": branchName,
+            "Implementation-CleanTag": isCleanTag,
+            "Implementation-Dirty": isDirty
+}
+
+logger.info """
+Building artifacts with manifest attributes:
+
+ * Build-Date:              ${buildDate}
+ * Build-Number:            ${buildNumber}
+ * Implementation-Version:  ${version}
+ * Implementation-Sha-Full: ${gitHashFull}
+ * Implementation-Sha:      ${gitHash}
+ * Implementation-Commit:   ${commitDistance}
+ * Implementation-LastTag:  ${lastTag}
+ * Implementation-Branch:   ${branchName}
+ * Implementation-CleanTag: ${isCleanTag}
+ * Implementation-Dirty:    ${isDirty}
+"""
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    classifier "sources"
+    manifest {
+        from gitManifest
+    }
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier "javadoc"
+    manifest {
+        from gitManifest
+    }
+    from javadoc.destinationDir
+}
+
+jar {
+    dependsOn test, sourceJar, javadocJar
+    enabled = true
+    manifest {
+        from gitManifest
+    }
+}
+
 task xnatPluginJar(type: Jar) {
+    dependsOn test, sourceJar, javadocJar
     zip64 true
     archiveClassifier.set "xpl"
+    manifest {
+        from gitManifest
+    }
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
@@ -178,16 +251,6 @@ task xnatPluginJar(type: Jar) {
     with jar
 }
 
-task sourceJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar) {
-    classifier "javadoc"
-    from javadoc.destinationDir
-}
-
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -199,7 +262,7 @@ publishing {
 
             pom.withXml {
                 def root = asNode()
-                root.appendNode("name", "XNAT DICOM Query-Retrieve Plugin")
+                root.appendNode("name", project.description)
                 root.appendNode("url", "https://bitbucket.org/xnatdev/dicom-query-retrieve")
                 root.appendNode("inceptionYear", "2019")
 
@@ -226,6 +289,16 @@ publishing {
                         appendNode("name", "Rick Herrick")
                         appendNode("email", "jrherrick@wustl.edu")
                     }
+                    appendNode("developer").with {
+                        appendNode("id", "hortonw")
+                        appendNode("name", "Will Horton")
+                        appendNode("email", "hortonw@wustl.edu")
+                    }
+                    appendNode("developer").with {
+                        appendNode("id", "moore.c")
+                        appendNode("name", "Charlie Moore")
+                        appendNode("email", "moore.c@wustl.edu")
+                    }
                 }
             }
         }
@@ -238,11 +311,7 @@ publishing {
                 username propertyWithDefault("repoUsername", "username")
                 password propertyWithDefault("repoPassword", "password")
             }
-            if (project.version.endsWith("-SNAPSHOT")) {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
-            } else {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
-            }
+            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}-local"
         }
     }
 }

@@ -9,13 +9,12 @@
 
 package org.nrg.xnatx.dqr.domain;
 
-import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xnatx.dqr.restlet.JsonViews;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
@@ -72,7 +71,7 @@ public class Patient implements DqrDomainObject, Serializable {
 
     private String sex;
 
-    @JsonView(JsonViews.PatientRootView.class)
+    @JsonBackReference
     @Singular
     private Collection<Study> studies;
 }

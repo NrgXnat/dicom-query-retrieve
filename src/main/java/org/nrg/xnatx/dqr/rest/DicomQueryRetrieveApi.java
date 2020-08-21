@@ -63,6 +63,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -113,8 +114,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/history/all/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public Integer queryHistoryCountGet() {
-        return _executedRequestService.getAll().size();
+    public long queryHistoryCountGet() {
+        return _executedRequestService.getCount();
     }
 
     @ApiOperation(value = "Get DICOM query request history entries for the current user.", notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.", response = ExecutedPacsRequest.class, responseContainer = "List")
@@ -139,8 +140,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public Integer userQueryHistoryCountGet() {
-        return _executedRequestService.getAllForUser(getSessionUser()).size();
+    public long userQueryHistoryCountGet() {
+        return _executedRequestService.getAllForUserCount(getSessionUser());
     }
 
     @ApiOperation(
@@ -245,8 +246,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of queued DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public Integer queryQueueCountGet() {
-        return _queuedRequestService.getAll().size();
+    public long queryQueueCountGet() {
+        return _queuedRequestService.getCount();
     }
 
     @ApiOperation(value = "Get list of queued DICOM query requests for the current user.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system for the current user with brief information about each.", response = QueuedPacsRequest.class, responseContainer = "List")
@@ -267,8 +268,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public Integer queryUserQueueCountGet() {
-        return _queuedRequestService.getAllForUser(getSessionUser()).size();
+    public long queryUserQueueCountGet() {
+        return _queuedRequestService.getAllForUserCount(getSessionUser());
     }
 
     @ApiOperation(value = "Get list of queued DICOM query requests with order information for all users.", notes = "The DICOM query queue function returns a list of all DICOM queries that are currently queued on the XNAT system with brief information about each (including order information).", response = QueuedPacsRequest.class, responseContainer = "List")
@@ -1003,24 +1004,25 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     private <T> List<T> getRangedList(final List<T> list, final int rangeStart, final int rangeEnd, final String sortOrder) {
-        final int start = Math.max(1, rangeStart);
-        final int end   = Math.min(rangeEnd, list.size());
-        if (!sortOrder.equalsIgnoreCase("asc")) {
-            Collections.reverse(list);
-        }
-        return list.subList(start - 1, end);
+        return getSortedSubList(list, Math.max(1, rangeStart) - 1, Math.min(rangeEnd, list.size()), sortOrder);
     }
 
     private <T> List<T> getPagedList(final List<T> list, final int pageIndex, final int pageSize, final String sortOrder) throws NoContentException {
         final int start = pageIndex * pageSize;
-        if (start >= list.size()) {
+        final int size  = list.size();
+        if (start >= size) {
             throw new NoContentException("The requested start index is larger than the total number of available requests.");
         }
+        return getSortedSubList(list, start, Math.min((start + pageSize), size), sortOrder);
+    }
+
+    @Nonnull
+    private <T> List<T> getSortedSubList(final List<T> list, final int start, final int end, final String sortOrder) {
+        final List<T> subList = list.subList(start, end);
         if (!sortOrder.equalsIgnoreCase("asc")) {
             Collections.reverse(list);
         }
-        return list.subList(start, Math.min((start + pageSize), list.size()));
-
+        return subList;
     }
 
     private static final String QUERY_SUBMITTED    = "Query Submitted.";

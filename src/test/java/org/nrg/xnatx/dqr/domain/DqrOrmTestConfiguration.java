@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 import org.springframework.orm.hibernate4.HibernateTransactionManager;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.ResourceTransactionManager;
@@ -51,11 +52,6 @@ public class DqrOrmTestConfiguration {
         dataSource.setUrl("jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         dataSource.setUsername("sa");
         dataSource.setPassword("");
-        /*
-        dataSource.setUrl("jdbc:postgresql://localhost/xnat");
-        dataSource.setUsername("xnat");
-        dataSource.setPassword("xnat");
-        */
         return dataSource;
     }
 
@@ -69,8 +65,6 @@ public class DqrOrmTestConfiguration {
         final Properties properties = new Properties();
         properties.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
         properties.setProperty("hibernate.hbm2ddl.auto", "create-drop");
-        // properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQL9Dialect");
-        // properties.setProperty("hibernate.hbm2ddl.auto", "update");
         properties.setProperty("hibernate.show_sql", "true");
         properties.setProperty("hibernate.cache.use_second_level_cache", "true");
         properties.setProperty("hibernate.cache.use_query_cache", "true");

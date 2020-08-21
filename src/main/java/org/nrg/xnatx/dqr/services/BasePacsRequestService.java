@@ -15,6 +15,8 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 
 public interface BasePacsRequestService<R extends PacsRequest> extends BaseHibernateService<R> {
+    long getAllForUserCount(final UserI user);
+
     List<R> getAllForUser(final UserI user);
 
     R getByIdForUser(final long id, final UserI user);

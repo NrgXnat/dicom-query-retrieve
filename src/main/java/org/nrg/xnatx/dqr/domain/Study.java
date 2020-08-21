@@ -9,13 +9,12 @@
 
 package org.nrg.xnatx.dqr.domain;
 
-import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Singular;
 import org.apache.commons.lang3.StringUtils;
-import org.nrg.xnatx.dqr.restlet.JsonViews;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
@@ -78,7 +77,7 @@ public class Study implements DqrDomainObject, Serializable {
         return getStudyInstanceUid();
     }
 
-    @JsonView(JsonViews.StudyRootView.class)
+    @JsonManagedReference
     private Patient                patient;
     private String                 studyInstanceUid;
     private Date                   studyDate;
