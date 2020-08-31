@@ -9,10 +9,8 @@
 
 package org.nrg.xnatx.dqr.services;
 
-import java.io.File;
-import java.util.List;
-import java.util.Map;
 import org.nrg.config.exceptions.ConfigServiceException;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
@@ -20,6 +18,7 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
@@ -28,6 +27,11 @@ import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
 import org.nrg.xnatx.dqr.utils.StudyImportInformation;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
@@ -46,6 +50,16 @@ public interface PacsService {
     Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid) throws PacsNotQueryableException;
 
     PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException;
+
+    boolean getSearchStatus(final UUID requestId) throws NotFoundException;
+
+    PacsSearchRequest getSearchRequest(final UUID requestId) throws NotFoundException;
+
+    void updateSearchRequest(final UUID uuid, final String studyInstanceUid, final PacsSearchResults<Series> results) throws NotFoundException;
+
+    UUID getSeriesByStudyUids(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException;
+
+    Map<String, PacsSearchResults<Series>> getSeriesByStudyUids(final UUID requestId) throws NotFoundException;
 
     void importSeries(UserI user, final Pacs pacs, final Study study, final Series series, final String ae);
 

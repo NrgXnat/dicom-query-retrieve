@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.mail.services.MailService;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
@@ -48,6 +47,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.*;
@@ -67,10 +67,11 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Created by mike on 1/19/18.
@@ -82,9 +83,9 @@ import java.util.stream.Collectors;
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @Autowired
-    public DicomQueryRetrieveApi(final DqrPreferences prefs, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final PacsPingService pacsPingService, final ProjectIrbInfoEntityService projectIrbInfoEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final PacsPingService pacsPingService, final ProjectIrbInfoEntityService projectIrbInfoEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
         super(userManagementService, roleHolder);
-        _preferences = prefs;
+        _preferences = preferences;
         _executedRequestService = requestService;
         _queuedRequestService = queuedRequestService;
         _pacsService = pacsService;
@@ -964,32 +965,42 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
-                                                            @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException {
-        final String[] studyInstanceUids = StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
-        if (studyInstanceUids == null) {
+    public ResponseEntity<UUID> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
+                                          @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException, URISyntaxException {
+        final List<String> studyInstanceUids = Arrays.asList(StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*"));
+        if (studyInstanceUids.isEmpty()) {
             throw new NoContentException("No study instance UIDs specified for query on PACS " + pacsId);
         }
 
         final UserI user = getSessionUser();
         final Pacs  pacs = _pacsEntityService.retrieve(pacsId);
-        if (!pacs.isQueryable()) {
+
+        try {
+            final UUID uuid = _pacsService.getSeriesByStudyUids(user, pacs, studyInstanceUids);
+            return ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/seriesInfo/pacs/" + pacsId + "/studies/" + uuid)).body(uuid);
+        } catch (PacsNotQueryableException e) {
             throw new NoContentException("The PACS " + pacs.getId() + " is not queryable");
         }
-
-        return Arrays.stream(studyInstanceUids).parallel()
-                     .map(studyUid -> Pair.of(studyUid, getSeriesByStudyUid(user, pacs, studyUid)))
-                     .filter(pair -> pair.getValue() != null)
-                     .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
     }
 
-    private PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
-        try {
-            return _pacsService.getSeriesByStudyUid(user, pacs, studyUid);
-        } catch (PacsNotQueryableException e) {
-            log.info("User {} requested series for study {} on PACS {}, but that PACS is not queryable, returning null", user.getUsername(), studyUid, pacs.getLabel());
-            return null;
+    @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
+    @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the series."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies/{searchId}", produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
+    public ResponseEntity<Map<String, PacsSearchResults<Series>>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
+                                                                            @ApiParam(value = "ID of the search request", required = true) @PathVariable final UUID searchId) throws NotFoundException, URISyntaxException {
+        if (!_pacsService.getSearchStatus(searchId)) {
+            final PacsSearchRequest request = _pacsService.getSearchRequest(searchId);
+            if (request.getPacsId() != pacsId) {
+                throw new NotFoundException("There is no request ID " + searchId + " associated with the specified PACS instance " + pacsId);
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/seriesInfo/pacs/" + pacsId + "/studies/" + searchId)).build();
         }
+
+        return ResponseEntity.ok(_pacsService.getSeriesByStudyUids(searchId));
     }
 
     private void notifyAdminOfCompleteIrbInfo(final String projectId, final ProjectIrbInfo info, final UserI user) {

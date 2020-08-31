@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.services.impl.mock;
 
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.*;
@@ -16,6 +17,8 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
+import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
+import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
@@ -24,10 +27,7 @@ import org.nrg.xnatx.dqr.utils.StudyImportInformation;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @SuppressWarnings("unused")
 public class MockPacsService implements PacsService {
@@ -90,6 +90,31 @@ public class MockPacsService implements PacsService {
 
     @Override
     public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public boolean getSearchStatus(final UUID requestId) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public PacsSearchRequest getSearchRequest(final UUID requestId) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public void updateSearchRequest(final UUID uuid, final String studyInstanceUid, final PacsSearchResults<Series> results) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public UUID getSeriesByStudyUids(final UserI user, final Pacs pacs, final List<String> studyUids) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUids(final UUID requestId) {
         throw new RuntimeException("method not implemented");
     }
 

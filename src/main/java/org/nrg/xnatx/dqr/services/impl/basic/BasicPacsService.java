@@ -12,11 +12,13 @@ package org.nrg.xnatx.dqr.services.impl.basic;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.nrg.config.services.ConfigService;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.framework.constants.Scope;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
@@ -40,21 +42,20 @@ import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
-import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
-import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
-import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
 import org.nrg.xnatx.dqr.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
@@ -67,16 +68,19 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BasicPacsService implements PacsService {
     @Autowired
-    public BasicPacsService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsEntityService pacsEntityService, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    public BasicPacsService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsEntityService pacsEntityService, final JmsTemplate jmsTemplate, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
         _preferences = preferences;
         _dicomSCPManager = dicomSCPManager;
         _queuedPacsRequestService = queuedPacsRequestService;
         _configService = configService;
         _studyRoutingService = studyRoutingService;
         _pacsEntityService = pacsEntityService;
+        _jmsTemplate = jmsTemplate;
         _archiveProcessorInstanceService = archiveProcessorInstanceService;
         _xnatUserProvider = primaryAdminUserProvider;
         _ormStrategies = ormStrategies;
+        _searchCache = new HashMap<>();
     }
 
     @Override
@@ -112,6 +116,58 @@ public class BasicPacsService implements PacsService {
     @Override
     public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesByStudyUid(studyUid);
+    }
+
+    @Override
+    public boolean getSearchStatus(final UUID requestId) throws NotFoundException {
+        if (!_searchCache.containsKey(requestId)) {
+            throw new NotFoundException("No search request found for UUID " + requestId);
+        }
+
+        final Pair<PacsSearchRequest, Map<String, PacsSearchResults<Series>>> entry = _searchCache.get(requestId);
+
+        final PacsSearchRequest                      request = entry.getKey();
+        final Map<String, PacsSearchResults<Series>> results = entry.getValue();
+        return request.getStudyInstanceUids().size() > results.size();
+    }
+
+    @Override
+    public PacsSearchRequest getSearchRequest(final UUID requestId) throws NotFoundException {
+        if (!_searchCache.containsKey(requestId)) {
+            throw new NotFoundException("No search request found for UUID " + requestId);
+        }
+
+        return _searchCache.get(requestId).getKey();
+    }
+
+    @Override
+    public void updateSearchRequest(final UUID requestId, final String studyInstanceUid, final PacsSearchResults<Series> results) throws NotFoundException {
+        if (!_searchCache.containsKey(requestId)) {
+            throw new NotFoundException("No search request found for UUID " + requestId);
+        }
+        final Map<String, PacsSearchResults<Series>> aggregate = _searchCache.get(requestId).getValue();
+        aggregate.put(studyInstanceUid, results);
+    }
+
+    @Override
+    public UUID getSeriesByStudyUids(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException {
+        if (!pacs.isQueryable()) {
+            throw new PacsNotQueryableException(pacs.getId());
+        }
+
+        final PacsSearchRequest request  = PacsSearchRequest.builder().username(user.getUsername()).pacsId(pacs.getId()).studyInstanceUids(studyUids).build();
+        final UUID              searchId = request.getSearchId();
+        _searchCache.put(searchId, Pair.of(request, new HashMap<>()));
+        sendPacsSearchRequest(request);
+        return searchId;
+    }
+
+    @Override
+    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUids(final UUID requestId) throws NotFoundException {
+        if (!getSearchStatus(requestId)) {
+            return null;
+        }
+        return _searchCache.remove(requestId).getValue();
     }
 
     @Override
@@ -728,6 +784,10 @@ public class BasicPacsService implements PacsService {
         }
     }
 
+    private void sendPacsSearchRequest(final PacsSearchRequest pacsSearchRequest) {
+        _jmsTemplate.convertAndSend("pacsSearchRequest", pacsSearchRequest);
+    }
+
     private OrmStrategy getOrmStrategy(final Pacs pacs) {
         final String beanId = pacs.getOrmStrategySpringBeanId();
         if (!_ormStrategies.containsKey(beanId)) {
@@ -793,13 +853,15 @@ public class BasicPacsService implements PacsService {
     private static final String              CLEAR_SIGNIFIER   = "\"\"";
     private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
 
-    private final DqrPreferences                  _preferences;
-    private final DicomSCPManager                 _dicomSCPManager;
-    private final QueuedPacsRequestService        _queuedPacsRequestService;
-    private final ConfigService                   _configService;
-    private final StudyRoutingService             _studyRoutingService;
-    private final PacsEntityService               _pacsEntityService;
-    private final ArchiveProcessorInstanceService _archiveProcessorInstanceService;
-    private final XnatUserProvider                _xnatUserProvider;
-    private final Map<String, OrmStrategy>        _ormStrategies;
+    private final DqrPreferences                                                             _preferences;
+    private final DicomSCPManager                                                            _dicomSCPManager;
+    private final QueuedPacsRequestService                                                   _queuedPacsRequestService;
+    private final ConfigService                                                              _configService;
+    private final StudyRoutingService                                                        _studyRoutingService;
+    private final PacsEntityService                                                          _pacsEntityService;
+    private final JmsTemplate                                                                _jmsTemplate;
+    private final ArchiveProcessorInstanceService                                            _archiveProcessorInstanceService;
+    private final XnatUserProvider                                                           _xnatUserProvider;
+    private final Map<String, OrmStrategy>                                                   _ormStrategies;
+    private final Map<UUID, Pair<PacsSearchRequest, Map<String, PacsSearchResults<Series>>>> _searchCache;
 }
