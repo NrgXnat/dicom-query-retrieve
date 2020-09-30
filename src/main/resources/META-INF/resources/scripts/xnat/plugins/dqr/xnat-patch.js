@@ -45,6 +45,9 @@
         // the container is NOT hidden
         $container.hidden(false, 200);
         window.location.hash = XNAT.url.updateHashQuery(window.location.hash, 'tab', XNAT.tab.active, /\*#\/*|#+/);
+
+        // trigger event for scrollable tables now visible
+        $container.find(tabSelector).find('table.scrollable-table').trigger('nowVisible');
     };
 
 })(this, getObject(XNAT || {}));
