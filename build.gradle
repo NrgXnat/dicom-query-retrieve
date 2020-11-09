@@ -1,41 +1,34 @@
 /*
- * build.gradle
+ * dicom-query-retrieve: build.gradle
  * XNAT http://www.xnat.org
- * Copyright (c) 2016, Washington University School of Medicine
+ * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
  */
 
-def pluginVersion = "1.0.0-PRERELEASE"
-def vXnat = "1.7.6"
-
-apply plugin: "java"
-apply plugin: "jacoco"
-apply plugin: "maven-publish"
-apply plugin: "idea"
-apply plugin: "eclipse"
-apply plugin: "io.franzbecker.gradle-lombok"
-apply plugin: "io.spring.dependency-management"
-
 buildscript {
-    repositories {
-        mavenLocal()
-        jcenter()
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
-        maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
-    }
-    dependencies {
-        classpath "io.franzbecker:gradle-lombok:3.3.0"
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.9.RELEASE"
-        classpath "org.nrg.xnat.build:xnat-data-builder:1.7.6"
+    ext {
+        vXnat = "1.8.0-SNAPSHOT"
     }
 }
 
-group "org.nrg.xnat"
-version pluginVersion
+plugins {
+    id "java"
+    id "jacoco"
+    id "maven-publish"
+    id "idea"
+    id "eclipse"
+    id "com.dorongold.task-tree" version "1.5"
+    id "com.palantir.git-version" version "0.12.3"
+    id "io.franzbecker.gradle-lombok" version "4.0.0"
+    id "io.spring.dependency-management" version "1.0.9.RELEASE"
+    id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
+}
+
+group "org.nrg.xnatx.plugins"
+version "1.0.0-SNAPSHOT"
+description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
     mavenLocal()
@@ -44,27 +37,11 @@ repositories {
     mavenCentral()
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
+    maven { url "https://jitpack.io" }
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
-
-if (hasProperty("rt.17.jar")) {
-    // Solution for bootstrap classpath warning and possible issues with compatibility with 1.7 libraries
-    // was taken from this post on discuss.gradle.org: http://bit.ly/24xD9j0
-    String rt17jar = getProperty("rt.17.jar")
-    logger.info "Using ${rt17jar} as the bootstrap class path jar."
-    gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.fork = true
-            options.compilerArgs << "-XDignore.symbol.file"
-            options.bootstrapClasspath = files(rt17jar as String)
-        }
-    }
-} else {
-    logger.warn "No value was set for the rt.17.jar build property, using the default bootstrap class path. You should consider setting rt.17.jar to indicate a jar file containing the Java 1.7 run-time library:\n"
-    logger.warn "  ./gradlew -Prt.17.jar=rt-1.7.0_45.jar war\n"
-}
+sourceCompatibility = 8
+targetCompatibility = 8
 
 compileJava {
     options.fork = false
@@ -73,11 +50,9 @@ compileJava {
 sourceSets {
     main {
         java {
-            srcDir "src/main/java"
             srcDir "build/xnat-generated/src/main/java"
         }
         resources {
-            srcDir "src/main/resources"
             srcDir "build/xnat-generated/src/main/resources"
         }
     }
@@ -92,16 +67,12 @@ configurations {
         exclude module: "pipelineCNDAXNAT"
         exclude module: "xnat-pipeline"
         exclude group: "jamon"
+        exclude group: "org.codehaus.jackson"
+        exclude group: "junit"
+        exclude group: "org.slf4j", module: "slf4j-log4j12"
+        exclude group: "ch.qos.logback"
     }
     implementation.extendsFrom(implementAndInclude)
-}
-
-dependencyManagement.imports {
-    mavenBom "org.nrg:parent:${vXnat}"
-}
-
-jacoco {
-    toolVersion = dependencyManagement.importedProperties["jacoco.version"]
 }
 
 jacocoTestReport {
@@ -113,34 +84,160 @@ jacocoTestReport {
     }
 }
 
-lombok {
-    version = dependencyManagement.importedProperties["lombok.version"] as String
-    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
+test {
+    useJUnitPlatform {
+        includeEngines "junit-jupiter"
+        excludeEngines "junit-vintage"
+    }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.nrg:parent:${vXnat}"
+    }
+    generatedPomCustomization {
+        enabled = false
+    }
+}
+
+def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
+def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
+
 dependencies {
+    implementation enforcedPlatform("org.nrg:parent:${vXnat}")
+
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
     implementation "org.nrg.dicom:dicom-edit6"
+    implementation "org.nrg:dicom-xnat-util"
     implementation "org.nrg:dicom-xnat-mx"
+    implementation "org.springframework:spring-web"
+    implementation "org.springframework:spring-tx"
+    implementation "org.springframework:spring-jms"
+    implementation "org.springframework:spring-jdbc"
+    implementation "org.springframework:spring-context"
     implementation "io.springfox:springfox-swagger2"
-    implementation "javax.validation:validation-api:2.0.1.Final"
-
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho") {
+    implementation "dcm4che:dcm4che-core"
+    implementation "dcm4che:dcm4che-net"
+    implementation "org.hibernate:hibernate-core"
+    implementation "org.hibernate:hibernate-envers"
+    implementation "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
+    implementation "com.fasterxml.jackson.core:jackson-core"
+    implementation "com.fasterxml.jackson.core:jackson-annotations"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "org.apache.commons:commons-lang3"
+    implementation "org.aspectj:aspectjweaver"
+    implementation "javax.validation:validation-api"
+    implementation "org.restlet:org.restlet"
+    implementation("turbine:turbine") {
         transitive = false
     }
-    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr") {
+
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmecho:${vDcm4che}") {
+        transitive = false
+    }
+    implementAndInclude("dcm4che.tool:dcm4che-tool-dcmqr:${vDcm4che}") {
+        transitive = false
+    }
+    implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
         transitive = false
     }
 
-    testImplementation "junit:junit"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
-    testImplementation "log4j:log4j"
+    testImplementation "com.github.sbrannen:spring-test-junit5"
+    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.assertj:assertj-core"
+    testImplementation "com.h2database:h2"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+}
+
+// Pulls in the Jenkins BUILD_NUMBER environment variable if available.
+def buildDate = new Date()
+def buildNumber = System.getenv().BUILD_NUMBER?.toInteger() ?: "Manual"
+def isDirty, branchName, gitHash, gitHashFull, commitDistance, lastTag, isCleanTag
+
+try {
+    def gitDetails = versionDetails()
+    isDirty = gitVersion().endsWith ".dirty"
+    branchName = gitDetails.branchName ?: "Unknown"
+    gitHash = gitDetails.gitHash
+    gitHashFull = gitDetails.gitHashFull
+    commitDistance = gitDetails.commitDistance
+    lastTag = gitDetails.lastTag
+    isCleanTag = gitDetails.isCleanTag
+} catch (IllegalArgumentException e) {
+    logger.info "Got an error trying to read VCS metadata from git. It's possible this project is not under VCS control. Using placeholder values for manifest entries."
+    isDirty = true
+    branchName = "Unknown"
+    gitHash = "None"
+    gitHashFull = "None"
+    commitDistance = 0
+    lastTag = "None"
+    isCleanTag = false
+}
+
+ext.gitManifest = manifest {
+    attributes "Application-Name": project.description,
+            "Build-Date": buildDate,
+            "Build-Number": buildNumber,
+            "Implementation-Version": project.version,
+            "Implementation-Sha": gitHash,
+            "Implementation-Sha-Full": gitHashFull,
+            "Implementation-Commit": commitDistance,
+            "Implementation-LastTag": lastTag,
+            "Implementation-Branch": branchName,
+            "Implementation-CleanTag": isCleanTag,
+            "Implementation-Dirty": isDirty
+}
+
+logger.info """
+Building artifacts with manifest attributes:
+
+ * Build-Date:              ${buildDate}
+ * Build-Number:            ${buildNumber}
+ * Implementation-Version:  ${version}
+ * Implementation-Sha-Full: ${gitHashFull}
+ * Implementation-Sha:      ${gitHash}
+ * Implementation-Commit:   ${commitDistance}
+ * Implementation-LastTag:  ${lastTag}
+ * Implementation-Branch:   ${branchName}
+ * Implementation-CleanTag: ${isCleanTag}
+ * Implementation-Dirty:    ${isDirty}
+"""
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    classifier "sources"
+    manifest {
+        from gitManifest
+    }
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier "javadoc"
+    manifest {
+        from gitManifest
+    }
+    from javadoc.destinationDir
+}
+
+jar {
+    dependsOn test, sourceJar, javadocJar
+    enabled = true
+    manifest {
+        from gitManifest
+    }
 }
 
 task xnatPluginJar(type: Jar) {
+    dependsOn test, sourceJar, javadocJar
     zip64 true
     archiveClassifier.set "xpl"
+    manifest {
+        from gitManifest
+    }
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
@@ -155,21 +252,9 @@ task xnatPluginJar(type: Jar) {
     with jar
 }
 
-task sourceJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar) {
-    classifier "javadoc"
-    from javadoc.destinationDir
-}
-
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
-
             artifacts {
                 artifact sourceJar
                 artifact javadocJar
@@ -178,12 +263,12 @@ publishing {
 
             pom.withXml {
                 def root = asNode()
-                root.appendNode("name", "XNAT DICOM Query-Retrieve Plugin")
+                root.appendNode("name", project.description)
                 root.appendNode("url", "https://bitbucket.org/xnatdev/dicom-query-retrieve")
                 root.appendNode("inceptionYear", "2019")
 
                 root.appendNode("scm").with {
-                    appendNode("url", "https://bitbucket.org/xnatx/xnatx-ollection-plugin")
+                    appendNode("url", "https://bitbucket.org/xnatdev/dicom-query-retrieve")
                     appendNode("connection", "scm:https://bitbucket.org/xnatdev/dicom-query-retrieve")
                     appendNode("developerConnection", "scm:git@bitbucket.org:xnatdev/dicom-query-retrieve.git")
                 }
@@ -205,6 +290,16 @@ publishing {
                         appendNode("name", "Rick Herrick")
                         appendNode("email", "jrherrick@wustl.edu")
                     }
+                    appendNode("developer").with {
+                        appendNode("id", "hortonw")
+                        appendNode("name", "Will Horton")
+                        appendNode("email", "hortonw@wustl.edu")
+                    }
+                    appendNode("developer").with {
+                        appendNode("id", "moore.c")
+                        appendNode("name", "Charlie Moore")
+                        appendNode("email", "moore.c@wustl.edu")
+                    }
                 }
             }
         }
@@ -217,11 +312,7 @@ publishing {
                 username propertyWithDefault("repoUsername", "username")
                 password propertyWithDefault("repoPassword", "password")
             }
-            if (project.version.endsWith("-SNAPSHOT")) {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
-            } else {
-                url "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
-            }
+            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}-local"
         }
     }
 }
@@ -229,3 +320,4 @@ publishing {
 def propertyWithDefault(String name, Object value) {
     hasProperty(name) ? property(name) : value
 }
+

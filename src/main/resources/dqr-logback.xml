@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  ~ dicom-query-retrieve: dqr-logback.xml
+  ~ XNAT http://www.xnat.org
+  ~ Copyright (c) 2005-2020, Washington University School of Medicine
+  ~ All Rights Reserved
+  ~
+  ~ Released under the Simplified BSD.
+  -->
+
+<configuration>
+    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="dqr">
+        <append>false</append>
+        <file>${xnat.home}/logs/dqr.log</file>
+        <encoder>
+            <pattern>%d [%t] %-5p %c - %m%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${xnat.home}/logs/dqr.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+    <logger additivity="false" level="DEBUG" name="org.nrg.xnat.plugin">
+        <appender-ref ref="dqr"/>
+    </logger>
+    <logger additivity="false" level="DEBUG" name="org.nrg.dqr.preferences">
+        <appender-ref ref="dqr"/>
+    </logger>
+    <logger additivity="false" level="DEBUG" name="org.nrg.xapi.authorization">
+        <appender-ref ref="dqr"/>
+    </logger>
+</configuration>

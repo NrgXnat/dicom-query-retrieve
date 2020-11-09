@@ -11,7 +11,6 @@ package org.nrg.xnat.configuration;
 
 import com.google.common.collect.ImmutableList;
 import org.dcm4che2.data.Tag;
-import org.nrg.dcm.ContainedAssignmentExtractor;
 import org.nrg.dcm.DicomFileNamer;
 import org.nrg.dcm.Extractor;
 import org.nrg.dcm.TextExtractor;
@@ -36,49 +35,40 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 
 @Configuration
 @ComponentScan({"org.nrg.dcm.scp", "org.nrg.dcm.edit.mizer", "org.nrg.dicom.dicomedit.mizer", "org.nrg.dicom.mizer.service.impl", "org.nrg.xnat.services.messaging.archive"})
 public class DicomImportConfig {
-
-    private static final ImmutableList<Extractor> dqrSubjectExtractors   = new ImmutableList.Builder<Extractor>()
-            .add(new TextExtractor(Tag.PatientName))
-            .build();
-
     @Autowired
     @Bean
-    public RoutedStudyDicomProjectIdentifier dqrProjectIdent(final StudyRoutingService service) throws Exception {
+    public RoutedStudyDicomProjectIdentifier dqrProjectIdent(final StudyRoutingService service) {
         return new RoutedStudyDicomProjectIdentifier(service);
     }
 
-    @Autowired
     @Bean
-    public List<Extractor> dqrBaseSubjectIdent(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
+    public List<Extractor> dqrBaseSubjectIdent() {
         return dqrSubjectExtractors;
     }
 
     @Bean
-    public List<Extractor> dqrSessionIdent() throws Exception {
+    public List<Extractor> dqrSessionIdent() {
         return StudyIdDicomSessionIdentifier.getSessionExtractors();
     }
 
-    @Autowired
     @Bean
-    public List<Extractor> dqrBaseAAIdent(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
+    public List<Extractor> dqrBaseAAIdent() {
         return ClassicDicomObjectIdentifier.getAAExtractors();
     }
 
     @Bean
-    public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService service, final MessageSource messageSource, final XnatUserProvider receivedFileUserProvider, final UserProjectCache userProjectCache) throws Exception {
+    public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService service) {
         final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(service, messageSource, receivedFileUserProvider, userProjectCache), dqrSessionIdent(), dqrBaseAAIdent(service, messageSource, receivedFileUserProvider, userProjectCache));
+        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(), dqrSessionIdent(), dqrBaseAAIdent());
     }
 
     @Primary
@@ -94,7 +84,7 @@ public class DicomImportConfig {
     }
 
     @Bean
-    public ExecutorService dicomSCPExecutor() throws Exception {
+    public ExecutorService dicomSCPExecutor() {
         return Executors.newCachedThreadPool();
     }
 
@@ -107,4 +97,6 @@ public class DicomImportConfig {
     public List<String> excludedDicomImportFields() {
         return Arrays.asList("SOURCE", "separatePetMr", "prearchivePath");
     }
+
+    private static final ImmutableList<Extractor> dqrSubjectExtractors = new ImmutableList.Builder<Extractor>().add(new TextExtractor(Tag.PatientName)).build();
 }
