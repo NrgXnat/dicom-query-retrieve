@@ -19,23 +19,15 @@ import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.restlet.InvalidStudyDateRangeException;
 import org.nrg.dqr.restlet.JsonViews;
 import org.nrg.dqr.restlet.RequestUtils;
-import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.security.helpers.Groups;
-import org.nrg.xdat.security.helpers.Permissions;
-import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
-import org.restlet.data.Status;
 import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 @XnatRestlet("/services/pacs/{PACS_ID}/search/studies")
 public class PacsStudyListResource extends PacsServiceResource {
-
     public PacsStudyListResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
     }
@@ -47,25 +39,25 @@ public class PacsStudyListResource extends PacsServiceResource {
     }
 
     @Override
-    public Representation represent(final Variant variant) throws ResourceException {
+    public boolean allowPost() {
+        return true;
+    }
+
+    @Override
+    public void handlePost() {
+        returnDefaultRepresentation();
+    }
+
+    @Override
+    protected Representation representImpl(final Variant variant) {
         try {
-            if(getUser().isGuest()){
-                respondWithNeedToBeLoggedIn();
-                return null;
-            }
-            else if(!Roles.checkRole(getUser(),"Administrator") && !Roles.checkRole(getUser(),"Dqr") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
-                getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to search the PACS.");
-                return null;
-            }
-            final PacsSearchCriteria searchCriteria = RequestUtils.buildSearchCriteriaFromRequest(getRequest());
-            final PacsSearchResults<String, Study> studies = getPacsService().getStudiesByExample(
-                    XDAT.getUserDetails(), getPacs(), searchCriteria);
-            if (0 == studies.getResults().size()) {
+            final PacsSearchCriteria               searchCriteria = RequestUtils.buildSearchCriteriaFromRequest(getRequest());
+            final PacsSearchResults<String, Study> studies        = getPacsService().getStudiesByExample(getUser(), getPacs(), searchCriteria);
+            if (studies.getResults().isEmpty()) {
                 respondWithNotFound();
                 return null;
-            } else {
-                return jsonRepresentation(studies, JsonViews.StudyRootView.class);
             }
+            return jsonRepresentation(studies, JsonViews.StudyRootView.class);
         } catch (final PacsNotFoundException e) {
             respondWithPacsNotFound();
             return null;
@@ -76,15 +68,5 @@ public class PacsStudyListResource extends PacsServiceResource {
             respondWithBadRequest("Please specify at least one of the patient search criteria.");
             return null;
         }
-    }
-
-    @Override
-    public boolean allowPost() {
-        return true;
-    }
-
-    @Override
-    public void handlePost() {
-        returnDefaultRepresentation();
     }
 }

@@ -18,8 +18,6 @@ import org.nrg.prefs.annotations.NrgPreferenceBean;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xdat.preferences.EventTriggeringAbstractPreferenceBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @NrgPreferenceBean(toolId = DqrPreferences.DQR_TOOL_ID,
@@ -32,7 +30,6 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
         super(preferenceService, eventService, configPaths, initPrefs);
-        log.info("I'm now creating the DqrPreferences object");
     }
 
     @NrgPreference(defaultValue = "XNAT")
@@ -44,7 +41,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             set(dqrCallingAe, "dqrCallingAe");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name dqrCallingAe: something is very wrong here.", e);
+            log.error("Invalid preference name dqrCallingAe: something is very wrong here.", e);
         }
     }
 
@@ -58,7 +55,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             set(pacsAvailabilityCheckFrequency, "pacsAvailabilityCheckFrequency");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'pacsAvailabilityCheckFrequency': something is very wrong here.", e);
+            log.error("Invalid preference name 'pacsAvailabilityCheckFrequency': something is very wrong here.", e);
         }
     }
 
@@ -71,7 +68,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             setBooleanValue(notifyAdminOnImport, "notifyAdminOnImport");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'notifyAdminOnImport': something is very wrong here.", e);
+            log.error("Invalid preference name 'notifyAdminOnImport': something is very wrong here.", e);
         }
     }
 
@@ -84,7 +81,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             set(assumeSameSessionIfArrivedWithin, "assumeSameSessionIfArrivedWithin");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'assumeSameSessionIfArrivedWithin': something is very wrong here.", e);
+            log.error("Invalid preference name 'assumeSameSessionIfArrivedWithin': something is very wrong here.", e);
         }
     }
 
@@ -97,7 +94,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             setBooleanValue(allowAllUsersToUseDqr, "allowAllUsersToUseDqr");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'allowAllUsersToUseDqr': something is very wrong here.", e);
+            log.error("Invalid preference name 'allowAllUsersToUseDqr': something is very wrong here.", e);
         }
     }
 
@@ -110,9 +107,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         try {
             setBooleanValue(allowAllProjectsToUseDqr, "allowAllProjectsToUseDqr");
         } catch (InvalidPreferenceName e) {
-            _log.error("Invalid preference name 'allowAllProjectsToUseDqr': something is very wrong here.", e);
+            log.error("Invalid preference name 'allowAllProjectsToUseDqr': something is very wrong here.", e);
         }
     }
-
-    private static final Logger _log = LoggerFactory.getLogger(DqrPreferences.class);
 }

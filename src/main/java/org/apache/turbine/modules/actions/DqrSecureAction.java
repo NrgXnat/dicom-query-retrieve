@@ -12,36 +12,44 @@
 
 package org.apache.turbine.modules.actions;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.apache.turbine.util.RunData;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.preferences.DqrPreferences;
+import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.dqr.services.PacsService;
+import org.nrg.mail.services.MailService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.turbine.modules.actions.SecureAction;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 
+@Getter(AccessLevel.PROTECTED)
+@Accessors(prefix = "_")
 public abstract class DqrSecureAction extends SecureAction {
+    public final static String PACS_SESSION_KEY  = "pacs";
+    public final static String STUDY_SESSION_KEY = "study";
 
-    private final static String PACS_SESSION_KEY = "pacs";
-    private final static String STUDY_SESSION_KEY = "study";
-
-    public Pacs getPassedPacs(final RunData data) throws PacsNotFoundException {
-        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        Pacs pacs = pacsEntityService.retrieve(getPassedPacsId(data));
-        if (null == pacs) {
-            throw new PacsNotFoundException();
-        } else {
-            return pacs;
-        }
+    protected DqrSecureAction() {
+        _pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        _pacsService = XDAT.getContextService().getBean(PacsService.class);
+        _dqrPreferences = XDAT.getContextService().getBean(DqrPreferences.class);
+        _siteConfigPreferences = XDAT.getContextService().getBean(SiteConfigPreferences.class);
+        _dqrAdminSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class);
+        _mailService = XDAT.getContextService().getBean(MailService.class);
     }
 
-    private Long getPassedPacsId(final RunData data) throws PacsNotFoundException {
-        try {
-            return Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
-        } catch (NumberFormatException e) {
+    public Pacs getPassedPacs(final RunData data) throws PacsNotFoundException {
+        final Pacs pacs = getPacsEntityService().retrieve(getPassedPacsId(data));
+        if (null == pacs) {
             throw new PacsNotFoundException();
         }
+        return pacs;
     }
 
     public Pacs getPacsFromSession(final RunData data) {
@@ -61,4 +69,19 @@ public abstract class DqrSecureAction extends SecureAction {
         data.getSession().removeAttribute(PACS_SESSION_KEY);
         data.getSession().removeAttribute(STUDY_SESSION_KEY);
     }
+
+    private Long getPassedPacsId(final RunData data) throws PacsNotFoundException {
+        try {
+            return Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
+        } catch (NumberFormatException e) {
+            throw new PacsNotFoundException();
+        }
+    }
+
+    private final PacsEntityService                 _pacsEntityService;
+    private final PacsService                       _pacsService;
+    private final DqrPreferences                    _dqrPreferences;
+    private final SiteConfigPreferences             _siteConfigPreferences;
+    private final DqrAdminSettingsForProjectService _dqrAdminSettings;
+    private final MailService                       _mailService;
 }

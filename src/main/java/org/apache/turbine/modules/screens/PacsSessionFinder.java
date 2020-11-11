@@ -12,36 +12,29 @@
 
 package org.apache.turbine.modules.screens;
 
-import java.util.List;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.modules.actions.DqrSecureAction;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.model.XnatProjectdataI;
 import org.nrg.xdat.om.XnatProjectdata;
-import org.nrg.xdat.turbine.modules.screens.SecureScreen;
+import org.nrg.xdat.turbine.utils.TurbineUtils;
 
-public class PacsSessionFinder extends SecureScreen {
+import java.util.List;
 
+@SuppressWarnings("unused")
+public class PacsSessionFinder extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) throws Exception {
-        // no-op so that SecureScreen.doBuildTemplate fires...
-        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        List<Pacs> pacsList = pacsEntityService.findAllQueryable();
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        final List<Pacs> pacsList = getPacsEntityService().findAllQueryable();
         if (pacsList.isEmpty()) {
             data.setScreenTemplate("PacsSessionFinderNoPacsFound.vm");
         } else {
             context.put("pacsList", pacsList);
         }
         DqrSecureAction.removeDqrSessionVariables(data);
-
-        String p = ((String)org.nrg.xdat.turbine.utils.TurbineUtils.GetPassedParameter("project",data));
-        XnatProjectdataI project = XnatProjectdata.getXnatProjectdatasById(p, null, false);
-
-        context.put("projectId", project);
-
+        context.put("project", XnatProjectdata.getXnatProjectdatasById(TurbineUtils.GetPassedParameter("project", data), null, false));
+        //noinspection InstantiationOfUtilityClass
+        context.put("stringUtils", new StringUtils());
     }
 }

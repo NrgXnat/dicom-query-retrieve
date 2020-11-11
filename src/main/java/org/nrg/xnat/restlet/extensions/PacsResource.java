@@ -12,7 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import org.apache.log4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xdat.security.helpers.Roles;
@@ -24,21 +24,19 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
 @XnatRestlet("/pacs/{PACS_ID}")
+@Slf4j
 public class PacsResource extends PacsAdminResource {
-    static Logger logger = Logger.getLogger(PacsResource.class);
-
     public PacsResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
     }
 
     @Override
-    public Representation represent(final Variant variant) throws ResourceException {
+    public Representation represent(final Variant variant) {
         try {
             final Pacs pacs = retrievePacs();
             return jsonRepresentation(pacs);
@@ -71,10 +69,9 @@ public class PacsResource extends PacsAdminResource {
             } catch (final DataIntegrityViolationException e) {
                 respondWithDataIntegrityError(e);
             }
-        }
-        else{
+        } else {
             final String message = String.format("User %s is not an administrator and can't edit or create PACs configurations.", user.getUsername());
-            logger.info(message);
+            log.info(message);
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
@@ -96,17 +93,16 @@ public class PacsResource extends PacsAdminResource {
             } catch (final PacsNotFoundException e) {
                 respondWithPacsNotFound();
             }
-        }
-        else{
+        } else {
             final String message = String.format("User %s is not an administrator and can't delete PACs configurations.", user.getUsername());
-            logger.info(message);
+            log.info(message);
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
 
     private Pacs retrievePacs() throws PacsNotFoundException {
         try {
-            final Pacs pacs = getPacsEntityService().retrieve(Long.valueOf(getPacsId()));
+            final Pacs pacs = getPacsEntityService().retrieve(Long.parseLong(getPacsId()));
             if (null == pacs) {
                 throw new PacsNotFoundException();
             }
@@ -117,15 +113,11 @@ public class PacsResource extends PacsAdminResource {
     }
 
     private Representation jsonRepresentation(final Pacs pacs) {
-        Representation r;
         try {
-            r = new StringRepresentation("{\"ResultSet\":{\"Result\":" + getObjectMapper().writeValueAsString(pacs)
-                    + "}}");
+            return new StringRepresentation(String.format(FORMAT, writeValue(pacs)), MediaType.APPLICATION_JSON);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-        r.setMediaType(MediaType.APPLICATION_JSON);
-        return r;
     }
 
     private void respondWithPacsNotFound() {
@@ -135,4 +127,6 @@ public class PacsResource extends PacsAdminResource {
     private void respondWithSuccessNoContent() {
         getResponse().setStatus(Status.SUCCESS_NO_CONTENT, "The operation was successful.");
     }
+
+    private static final String FORMAT = "{\"ResultSet\":{\"Result\": %s}}";
 }

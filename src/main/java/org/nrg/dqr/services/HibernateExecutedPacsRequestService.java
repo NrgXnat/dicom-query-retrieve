@@ -1,7 +1,6 @@
 package org.nrg.dqr.services;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.daos.ExecutedPacsRequestDAO;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
@@ -9,60 +8,39 @@ import org.nrg.xft.security.UserI;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
 import java.util.List;
 
 /**
  * Created by mike on 1/19/18.
  */
 @Service
+@Slf4j
 public class HibernateExecutedPacsRequestService extends AbstractHibernateEntityService<ExecutedPacsRequest, ExecutedPacsRequestDAO> implements ExecutedPacsRequestService {
-
-    private static final Log _log = LogFactory.getLog(HibernateExecutedPacsRequestService.class);
-
     @Override
     @Transactional
-    public List<ExecutedPacsRequest> getAllForUser(UserI user){
-        return _dao.findAllForUser(user);
+    public List<ExecutedPacsRequest> getAllForUser(UserI user) {
+        return getDao().findAllForUser(user);
     }
 
     @Override
     @Transactional
-    public ExecutedPacsRequest getByIdForUser(Long id, UserI user){
-        List<ExecutedPacsRequest> list = _dao.findByIdForUser(id, user);
-        if(list==null || list.size()==0){
-            return null;
-        }
-        else{
-            return list.get(0);
-        }
+    public ExecutedPacsRequest getByIdForUser(Long id, UserI user) {
+        return getTopItemSafely(getDao().findByIdForUser(id, user));
     }
 
     @Override
     @Transactional
-    public ExecutedPacsRequest getMostRecentForPacs(Long pacsId){
-        List<ExecutedPacsRequest> list = _dao.findByPacsidOrderedByMostRecent(pacsId);
-        if(list==null || list.size()==0){
-            return null;
-        }
-        else{
-            return list.get(0);
-        }
+    public ExecutedPacsRequest getMostRecentForPacs(Long pacsId) {
+        return getTopItemSafely(getDao().findByPacsidOrderedByMostRecent(pacsId));
     }
 
     @Override
     @Transactional
-    public ExecutedPacsRequest getMostRecentForStudyInstanceUid(String studyInstanceUid){
-        List<ExecutedPacsRequest> list = _dao.findByStudyInstanceUidOrderedByMostRecent(studyInstanceUid);
-        if(list==null || list.size()==0){
-            return null;
-        }
-        else{
-            return list.get(0);
-        }
+    public ExecutedPacsRequest getMostRecentForStudyInstanceUid(String studyInstanceUid) {
+        return getTopItemSafely(getDao().findByStudyInstanceUidOrderedByMostRecent(studyInstanceUid));
     }
 
-    @Inject
-    private ExecutedPacsRequestDAO _dao;
-
+    private ExecutedPacsRequest getTopItemSafely(final List<ExecutedPacsRequest> items) {
+        return items == null || items.isEmpty() ? null : items.get(0);
+    }
 }

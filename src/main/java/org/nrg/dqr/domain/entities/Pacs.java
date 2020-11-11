@@ -12,7 +12,12 @@
 
 package org.nrg.dqr.domain.entities;
 
-import java.io.Serializable;
+import lombok.NoArgsConstructor;
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -21,39 +26,14 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+import java.io.Serializable;
 
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aeTitle"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @PortNotNullIfDefaultPacs
+@NoArgsConstructor
 public class Pacs extends AbstractHibernateEntity implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private String _aeTitle;
-    private String _host;
-    private String _label;
-
-    private Boolean _queryable;
-    private Boolean _defaultStoragePacs;
-
-    private Boolean _storable;
-    private Integer _queryRetrievePort;
-    private Boolean _defaultQueryRetrievePacs;
-    private String _ormStrategySpringBeanId;
-    private boolean _supportsExtendedNegotiations;
-
-    // for Hibernate
-    public Pacs() {
-    }
-
     @NotBlank
     @Size(max = 100)
     public String getAeTitle() {
@@ -93,6 +73,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     public void setStorable(final boolean storable) {
         _storable = storable;
     }
+
     @NotNull
     public Boolean isDefaultStoragePacs() {
         return _defaultStoragePacs;
@@ -155,7 +136,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(137, 479).append(_aeTitle).append(_host)
-                .append(_label).append(_storable).append(_defaultStoragePacs).append(_queryable).toHashCode();
+                                            .append(_label).append(_storable).append(_defaultStoragePacs).append(_queryable).toHashCode();
     }
 
     @Override
@@ -171,25 +152,28 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         }
         final Pacs other = (Pacs) obj;
         return new EqualsBuilder().append(_aeTitle, other._aeTitle).append(_host, other._host)
-                .append(_label, other._label).append(_storable, other._storable)
-                .append(_queryable, other._queryable).append(_queryRetrievePort, other._queryRetrievePort)
-                .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
-                .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
-                .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId).isEquals();
+                                  .append(_label, other._label).append(_storable, other._storable)
+                                  .append(_queryable, other._queryable).append(_queryRetrievePort, other._queryRetrievePort)
+                                  .append(_defaultQueryRetrievePacs, other._defaultQueryRetrievePacs)
+                                  .append(_supportsExtendedNegotiations, other._supportsExtendedNegotiations)
+                                  .append(_ormStrategySpringBeanId, other._ormStrategySpringBeanId).isEquals();
     }
 
     @Override
     public String toString() {
-        final StringBuilder buffer = new StringBuilder("{ ");
-        buffer.append("aeTitle: ").append(_aeTitle).append(", ");
-        buffer.append("host: ").append(_host).append(", ");
-        buffer.append("label: ").append(_label).append(", ");
-        buffer.append("queryable: ").append(_queryable).append(", ");
-        buffer.append("queryRetrievePort: ").append(_queryRetrievePort).append(", ");
-        buffer.append("isDefaultQueryRetrievePacs: ").append(_defaultQueryRetrievePacs).append(", ");
-        buffer.append("storable: ").append(_storable).append(", ");
-        buffer.append("isDefaultStoragePacs: ").append(_defaultStoragePacs).append(", ");
-        buffer.append("supportsExtendedNegotiations: ").append(_supportsExtendedNegotiations).append(" }");
-        return buffer.toString();
+        return String.format(FORMAT, _aeTitle, _host, _label, _queryable, _queryRetrievePort, _defaultQueryRetrievePacs, _storable, _defaultStoragePacs, _supportsExtendedNegotiations);
     }
+
+    private static final String FORMAT = "{ aeTitle: %s, host: %s, label: %s, queryable: %b, queryRetrievePort: %d, isDefaultQueryRetrievePacs: %b, storable: %b, isDefaultStoragePacs: %b, supportsExtendedNegotiations: %b }";
+
+    private String  _aeTitle;
+    private String  _host;
+    private String  _label;
+    private Boolean _queryable;
+    private Boolean _defaultStoragePacs;
+    private Boolean _storable;
+    private Integer _queryRetrievePort;
+    private Boolean _defaultQueryRetrievePacs;
+    private String  _ormStrategySpringBeanId;
+    private boolean _supportsExtendedNegotiations;
 }

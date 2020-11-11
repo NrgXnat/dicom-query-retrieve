@@ -21,7 +21,9 @@ import org.nrg.dcm.id.TemplatizedDicomFileNamer;
 import org.nrg.dcm.xnat.AttributeMapXnatImagesessiondataBeanFactory;
 import org.nrg.dcm.xnat.ModalityMapXnatImagesessiondataBeanFactory;
 import org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory;
-import org.nrg.dqr.dicom.id.StudyIdDicomSessionIdentifier;
+import org.nrg.dqr.dicom.id.OverrideStudyIdExtractor;
+import org.nrg.dqr.preferences.DqrPreferences;
+import org.nrg.dqr.services.StudyIdStudyInstanceUidMappingService;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.user.XnatUserProvider;
@@ -36,6 +38,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -56,8 +59,8 @@ public class DicomImportConfig {
     }
 
     @Bean
-    public List<Extractor> dqrSessionIdent() {
-        return StudyIdDicomSessionIdentifier.getSessionExtractors();
+    public List<Extractor> dqrSessionIdent(final DqrPreferences preferences, final StudyIdStudyInstanceUidMappingService service) {
+        return Collections.singletonList(new OverrideStudyIdExtractor(preferences, service));
     }
 
     @Bean
@@ -66,9 +69,8 @@ public class DicomImportConfig {
     }
 
     @Bean
-    public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService service) {
-        final RoutedStudyDicomProjectIdentifier routedStudyDicomProjectIdentifier = new RoutedStudyDicomProjectIdentifier(service);
-        return new CompositeDicomObjectIdentifier(routedStudyDicomProjectIdentifier, dqrBaseSubjectIdent(), dqrSessionIdent(), dqrBaseAAIdent());
+    public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService service, final DqrPreferences preferences, final StudyIdStudyInstanceUidMappingService idToUidMappingService) {
+        return new CompositeDicomObjectIdentifier(new RoutedStudyDicomProjectIdentifier(service), dqrBaseSubjectIdent(), dqrSessionIdent(preferences, idToUidMappingService), dqrBaseAAIdent());
     }
 
     @Primary

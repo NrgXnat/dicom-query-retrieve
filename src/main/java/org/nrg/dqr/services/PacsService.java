@@ -12,18 +12,16 @@
 
 package org.nrg.dqr.services;
 
-import org.apache.commons.lang.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dqr.domain.Patient;
 import org.nrg.dqr.domain.Series;
 import org.nrg.dqr.domain.Study;
-import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.PacsSearchResults;
 import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.FindRow;
-import org.nrg.dqr.util.ImportRow;
 import org.nrg.dqr.util.StudyImportInformation;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
@@ -38,18 +36,17 @@ import java.util.Map;
 public interface PacsService {
     boolean canConnect(UserI user, final Pacs pacs);
 
-    PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs,
-                                                            final PacsSearchCriteria searchCriteria);
+    PacsSearchResults<String, Patient> getPatientsByExample(UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria);
 
     Patient getPatientById(UserI user, final Pacs pacs, String patientId);
 
-    PacsSearchResults<String, Study> getStudiesByExample(UserI user, final Pacs pacs,
-                                                         final PacsSearchCriteria searchCriteria);
+    PacsSearchResults<String, Study> getStudiesByExample(UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria);
 
     Study getStudyById(UserI user, final Pacs pacs, final String studyInstanceUid);
 
     PacsSearchResults<String, Series> getSeriesByStudy(UserI user, final Pacs pacs, final Study study);
 
+    @SuppressWarnings("unused")
     Series getSeriesById(UserI user, final Pacs pacs, final String seriesInstanceUid);
 
     PacsSearchResults<String, Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid);

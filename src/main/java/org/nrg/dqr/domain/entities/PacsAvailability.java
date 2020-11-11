@@ -12,40 +12,30 @@
 
 package org.nrg.dqr.domain.entities;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.nrg.dqr.domain.entities.PortNotNullIfDefaultPacs;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
+import java.util.Objects;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"pacsId","dayOfWeek","availabilityStart"}))
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"pacsId", "dayOfWeek", "availabilityStart"}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Accessors(prefix = "_")
 public class PacsAvailability extends AbstractHibernateEntity implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private Long _pacsId;
-    private int _dayOfWeek;
-    private String _availabilityStart;
-    private String _availabilityEnd;
-    private int _threads;
-    private int _utilizationPercent;
-
-    // for Hibernate
-    public PacsAvailability() {
-    }
-
     public Long getPacsId() {
         return _pacsId;
     }
@@ -100,20 +90,34 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         PacsAvailability that = (PacsAvailability) o;
 
-        if (_pacsId != null ? !_pacsId.equals(that._pacsId) : that._pacsId != null) return false;
-        if (_dayOfWeek != that._dayOfWeek) return false;
-        if (_availabilityStart != null ? !_availabilityStart.equals(that._availabilityStart) : that._availabilityStart != null)
+        if (!Objects.equals(_pacsId, that._pacsId)) {
             return false;
-        if (_availabilityEnd != null ? !_availabilityEnd.equals(that._availabilityEnd) : that._availabilityEnd != null)
+        }
+        if (_dayOfWeek != that._dayOfWeek) {
             return false;
-        if (_threads != that._threads) return false;
-        return _utilizationPercent==that._utilizationPercent;
+        }
+        if (!Objects.equals(_availabilityStart, that._availabilityStart)) {
+            return false;
+        }
+        if (!Objects.equals(_availabilityEnd, that._availabilityEnd)) {
+            return false;
+        }
+        if (_threads != that._threads) {
+            return false;
+        }
+        return _utilizationPercent == that._utilizationPercent;
     }
 
     @Override
@@ -131,12 +135,19 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
     @Override
     public String toString() {
         return "PacsAvailability{" +
-                "pacsId=" + _pacsId +
-                ", dayOfWeek='" + _dayOfWeek + '\'' +
-                ", availabilityStart='" + _availabilityStart + '\'' +
-                ", availabilityEnd='" + _availabilityEnd + '\'' +
-                ", threads='" + _threads + '\'' +
-                ", utilizationPercent=" + _utilizationPercent +
-                '}';
+               "pacsId=" + _pacsId +
+               ", dayOfWeek='" + _dayOfWeek + '\'' +
+               ", availabilityStart='" + _availabilityStart + '\'' +
+               ", availabilityEnd='" + _availabilityEnd + '\'' +
+               ", threads='" + _threads + '\'' +
+               ", utilizationPercent=" + _utilizationPercent +
+               '}';
     }
+
+    private Long   _pacsId;
+    private int    _dayOfWeek;
+    private String _availabilityStart;
+    private String _availabilityEnd;
+    private int    _threads;
+    private int    _utilizationPercent;
 }

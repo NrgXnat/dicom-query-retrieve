@@ -21,13 +21,10 @@
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
     </appender>
-    <logger additivity="false" level="DEBUG" name="org.nrg.xnat.plugin">
+    <logger additivity="false" level="INFO" name="org.nrg.dqr">
         <appender-ref ref="dqr"/>
     </logger>
-    <logger additivity="false" level="DEBUG" name="org.nrg.dqr.preferences">
-        <appender-ref ref="dqr"/>
-    </logger>
-    <logger additivity="false" level="DEBUG" name="org.nrg.xapi.authorization">
+    <logger additivity="false" level="INFO" name="org.nrg.xnat.restlet.extensions">
         <appender-ref ref="dqr"/>
     </logger>
 </configuration>

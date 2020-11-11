@@ -12,46 +12,69 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.DqrDomainObject;
+import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.dto.PacsSearchResults;
-import org.nrg.dqr.restlet.NullValueSerializer;
+import org.nrg.dqr.preferences.DqrPreferences;
+import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
+import org.nrg.dqr.services.QueuedPacsRequestService;
+import org.nrg.mail.services.MailService;
 import org.nrg.xdat.XDAT;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xnat.restlet.resources.SecureResource;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public abstract class PacsServiceResource extends SecureResource {
-
+@Getter(AccessLevel.PROTECTED)
+@Accessors(prefix = "_")
+@Slf4j
+public abstract class PacsServiceResource extends PacsSerializingResource {
     public PacsServiceResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
-        this.getVariants().add(new Variant(MediaType.ALL));
-        pacsService = initPacsService();
-        spaService = XDAT.getContextService().getBean(StudyRoutingService.class);
+
+        getVariants().add(new Variant(MediaType.ALL));
+
+        _pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        _pacsService = XDAT.getContextService().getBean(PacsService.class);
+        _studyRoutingService = XDAT.getContextService().getBean(StudyRoutingService.class);
+        _dqrPreferences = XDAT.getContextService().getBean(DqrPreferences.class);
+        _dqrAdminSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class);
+        _queuedPacsRequestService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
+        _siteConfigPreferences = XDAT.getSiteConfigPreferences();
+        _mailService = XDAT.getMailService();
     }
 
-    public PacsService getPacsService() {
-        return pacsService;
+    protected abstract Representation representImpl(final Variant variant) throws ResourceException;
+
+    @Override
+    public Representation represent(final Variant variant) throws ResourceException {
+        if (getUser().isGuest()) {
+            respondWithNeedToBeLoggedIn();
+            return null;
+        }
+        if (!Roles.checkRole(getUser(), "Administrator") && !Roles.checkRole(getUser(), "Dqr") && !getDqrPreferences().getAllowAllUsersToUseDqr()) {
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You don't have permission to search the PACS.");
+            return null;
+        }
+        return representImpl(variant);
     }
 
     public void respondWithNotFound() {
@@ -76,11 +99,7 @@ public abstract class PacsServiceResource extends SecureResource {
 
     protected Representation jsonRepresentation(final DqrDomainObject result, final Class<?> serializationView) {
         try {
-            Representation r = new StringRepresentation("{\"ResultSet\":{\"Result\":"
-                    + getObjectMapper().writerWithView(serializationView).writeValueAsString(result) + ", \"limited\": \""
-                    + false + "\"}}");
-            r.setMediaType(MediaType.APPLICATION_JSON);
-            return r;
+            return new StringRepresentation(String.format(DOMAIN_OBJECT_FORMAT, writeValue(result, serializationView)), MediaType.APPLICATION_JSON);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -88,14 +107,12 @@ public abstract class PacsServiceResource extends SecureResource {
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid) {
         if (!StringUtils.isBlank(projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
-            }
-            spaService.assign(studyInstanceUid, projectId, getUser().getLogin());
+            log.debug("Assigning study instance UID {} to project {}", studyInstanceUid, projectId);
+            _studyRoutingService.assign(studyInstanceUid, projectId, getUser().getLogin());
             return new Study(projectId, studyInstanceUid);
         } else {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
+            if (log.isDebugEnabled()) {
+                log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
             }
             return new Study(studyInstanceUid);
         }
@@ -103,56 +120,36 @@ public abstract class PacsServiceResource extends SecureResource {
 
     protected Representation jsonRepresentation(final PacsSearchResults<?, ?> results, final Class<?> serializationView) {
         try {
-            Representation r = new StringRepresentation("{\"ResultSet\":{\"Result\":"
-                    + getObjectMapper().writerWithView(serializationView).writeValueAsString(results.getResults())
-                    + ", \"resultSetSize\":\""
-                    + results.getResultSize()
-                    + "\""
-                    + ", \"limitedResultSetSize\":"
-                    + results.hasLimitedResultSetSize()
-                    + ", \"studyDateRangeLimitResults\":"
-                    + getObjectMapper().writerWithView(serializationView).writeValueAsString(
-                    results.getStudyDateRangeLimitResults()) + "}}");
-            r.setMediaType(MediaType.APPLICATION_JSON);
-            return r;
+            return new StringRepresentation(String.format(SEARCH_RESULTS_FORMAT, writeValue(results.getResults(), serializationView), results.getResultSize(), results.hasLimitedResultSetSize(), writeValue(results.getStudyDateRangeLimitResults(), serializationView)), MediaType.APPLICATION_JSON);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    @SuppressWarnings("unused")
     protected void sendNotification(final PacsServiceResourceContext context, final String subject, final String template) throws Exception {
-        final String adminEmail = XDAT.getSiteConfigPreferences().getAdminEmail();
+        final String adminEmail = _siteConfigPreferences.getAdminEmail();
         context.put("pacs", getPacs());
         context.put("adminEmail", adminEmail);
         TurbineUtils.GetFullServerPath(getHttpServletRequest());
         final String body = AdminUtils.populateVmTemplate(context, "/screens/dqr/email/" + template + ".vm");
-        XDAT.getMailService().sendHtmlMessage(adminEmail, getUser().getEmail(), "[" + TurbineUtils.GetSystemName()+"] " + subject, body);
+        _mailService.sendHtmlMessage(adminEmail, getUser().getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
     }
 
     protected Pacs getPacs() throws PacsNotFoundException {
         return getPacsHelper(getRequest());
     }
 
-    protected ObjectMapper getObjectMapper() {
-        return MAPPER;
-    }
-
-    static PacsService initPacsService() {
-        return XDAT.getContextService().getBean(PacsService.class);
-    }
-
-    static Pacs getPacs(final Request request) throws PacsNotFoundException {
+    protected Pacs getPacs(final Request request) throws PacsNotFoundException {
         return getPacsHelper(request);
     }
 
-    private static Pacs getPacsHelper(final Request request) throws PacsNotFoundException {
-        PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        Pacs pacs = pacsEntityService.retrieve(getPacsId(request));
+    private Pacs getPacsHelper(final Request request) throws PacsNotFoundException {
+        final Pacs pacs = _pacsEntityService.retrieve(getPacsId(request));
         if (null == pacs) {
             throw new PacsNotFoundException();
-        } else {
-            return pacs;
         }
+        return pacs;
     }
 
     protected static Long getPacsId(final Request request) throws PacsNotFoundException {
@@ -163,16 +160,15 @@ public abstract class PacsServiceResource extends SecureResource {
         }
     }
 
-    private final static Logger _log = LoggerFactory.getLogger(PacsServiceResource.class);
+    private static final String SEARCH_RESULTS_FORMAT = "{\"ResultSet\": {\"Result\": %s, \"resultSetSize\": \"%s\", \"limitedResultSetSize\": %b, \"studyDateRangeLimitResults\": %s}}";
+    private static final String DOMAIN_OBJECT_FORMAT  = "{\"ResultSet\":{\"Result\": %s, \"limited\": \"false\"}}";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    static {
-        final DefaultSerializerProvider provider = new DefaultSerializerProvider.Impl();
-        provider.setNullValueSerializer(new NullValueSerializer());
-        MAPPER.setSerializerProvider(provider);
-    }
-
-    private final PacsService pacsService;
-    private final StudyRoutingService spaService;
+    private final PacsEntityService                 _pacsEntityService;
+    private final PacsService                       _pacsService;
+    private final StudyRoutingService               _studyRoutingService;
+    private final DqrPreferences                    _dqrPreferences;
+    private final DqrAdminSettingsForProjectService _dqrAdminSettings;
+    private final QueuedPacsRequestService          _queuedPacsRequestService;
+    private final SiteConfigPreferences             _siteConfigPreferences;
+    private final MailService                       _mailService;
 }

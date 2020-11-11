@@ -1,5 +1,10 @@
-#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
+#* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="pacs" type="org.nrg.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="pacsList" type="java.util.List" *#
+#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable name="stringUtils" type="org.apache.commons.lang3.StringUtils" *#
 <!-- BEGIN templates/screens/PacsSessionFinder.vm -->
 
 <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
@@ -22,7 +27,7 @@
     }
 
     jq(document).ready(function () {
-        if (window.pacsSessionFinder == undefined) {
+        if (window.pacsSessionFinder === undefined) {
             window.pacsSessionFinder = new PacsSessionFinder(
                 "sessionSearchForm", "sessionSelectionForm", "studyInstanceUid", "hiddenPacsId", "pacsSessionFinderDiv", terms);
         }
@@ -37,12 +42,12 @@
 
         jq("#sessionSearchForm input[type=text],select").keydown(function (event) {
             var enterKeyCode = 13;
-            if (event.keyCode == enterKeyCode) {
+            if (event.keyCode === enterKeyCode) {
                 jq("#searchButton").click();
             }
         });
 
-        if (window.studyDatePicker == undefined) {
+        if (window.studyDatePicker === undefined) {
             window.studyDatePicker = new StudyDatePicker("studyDateFrom", "studyDateTo", "studyDateIsToday");
         }
 
@@ -88,7 +93,7 @@
                 <select id="pacsId" name="pacsId">
                     <option VALUE="">(SELECT)</option>
                     #foreach($pacs in $pacsList)
-                        <option VALUE="$pacs.getId()" #if($pacs.isDefaultQueryRetrievePacs()) selected="true" #end>#if( ! $pacs.getLabel() )$pacs.getAeTitle() #else $pacs.getLabel() #end</option>
+                        <option VALUE="$pacs.id" #if($pacs.isDefaultQueryRetrievePacs()) selected="selected" #end>$stringUtils.defaultIfBlank($pacs.label, $pacs.aeTitle)</option>
                     #end
                 </select>
             </p>
@@ -130,8 +135,8 @@
 </form>
 
 
-<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${projectId.id})" style="display:none;">
-    <input type="hidden" name="project" id="project" value="${projectId.id}" />
+<form id="sessionSelectionForm" method="post" action="$link.setAction("ChoosePacsSession").addPathInfo("project",${project.id})" style="display:none;">
+    <input type="hidden" name="project" id="project" value="${project.id}" />
     <input type="hidden" id="studyInstanceUid" name="studyInstanceUid"/>
     <input type="hidden" id="hiddenPacsId" name="pacsId"/>
 </form>

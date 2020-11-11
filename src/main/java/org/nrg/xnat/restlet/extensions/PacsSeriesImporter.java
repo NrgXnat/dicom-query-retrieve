@@ -12,48 +12,36 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.HttpHead;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.dqr.domain.entities.*;
-import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
-import org.nrg.dqr.services.ExecutedPacsRequestService;
-import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.dqr.services.QueuedPacsRequestService;
-import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.dqr.domain.entities.PacsRequest;
+import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
-import org.nrg.xdat.turbine.utils.AdminUtils;
-import org.nrg.xft.event.EventDetails;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnat.restlet.XnatRestlet;
 import org.restlet.Context;
 import org.restlet.data.Form;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.util.Series;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.restlet.resource.Representation;
+import org.restlet.resource.Variant;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 // NOTE: Removed this URL in favor of requiring all data in body "/services/pacs/{PACS_ID}/import/study/{STUDY_ID}/series/{SERIES_ID}"
 @Deprecated
 @XnatRestlet("/services/pacs/{PACS_ID}/import/series")
+@Slf4j
 public class PacsSeriesImporter extends PacsServiceResource {
-
     public PacsSeriesImporter(final Context context, final Request request, final Response response) {
         super(context, request, response);
         _studyInstanceUid = getBodyVariable("STUDY_ID");
@@ -61,38 +49,34 @@ public class PacsSeriesImporter extends PacsServiceResource {
             response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, new RuntimeException("For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series."), "For the best level of compatibility across PACS, you should always specify the study instance UID for the DICOM study that contains the desired DICOM series.");
         }
         final String seriesId = (String) getParameter(getRequest(), "SERIES_ID");
+        final List<String> seriesIds1 = new ArrayList<>();
         if (!StringUtils.isBlank(seriesId)) {
-            _seriesIds.add(seriesId);
+            seriesIds1.add(seriesId);
         }
         final String seriesIds = getBodyVariable("SERIES_IDS");
         if (!StringUtils.isBlank(seriesIds)) {
-            _seriesIds.addAll(Arrays.asList(seriesIds.split("\\s*,\\s*")));
+            seriesIds1.addAll(Arrays.asList(seriesIds.split("\\s*,\\s*")));
         }
         _ae = getBodyVariable("AE");
         _projectId = getBodyVariable("PROJECT");
         if (StringUtils.isBlank(_projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project ID set for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
-            }
-        } else if (_log.isDebugEnabled()) {
-            _log.debug("The project " + _projectId + " will be set as the destination for study instance UID: " + _studyInstanceUid + ", series " + Joiner.on(", ").join(_seriesIds));
+            log.debug("No project ID set for study instance UID: {}, series {}", _studyInstanceUid, String.join(", ", seriesIds1));
+        } else {
+            log.debug("The project {} will be set as the destination for study instance UID: {}, series {}", _projectId, _studyInstanceUid, String.join(", ", seriesIds1));
         }
     }
 
     @Override
     public void handlePut() {
         UserI user = getUser();
-        if(user.isGuest()){
+        if (user.isGuest()) {
             respondWithNeedToBeLoggedIn();
-        }
-        else if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
+        } else if (!Roles.checkRole(user, "Dqr") && !Roles.checkRole(user, "Administrator") && !getDqrPreferences().getAllowAllUsersToUseDqr()) {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You do not have access to DQR functionality.");
-        }
-        else if(!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user,"Administrator") && !Groups.hasAllDataAccess(user)){
+        } else if (!Permissions.canEditProject(user, _projectId) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "Your user does not have permission to import.");
-        }
-        else {
-            if (!XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllProjectsToUseDqr() && !XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(_projectId)) {
+        } else {
+            if (!getDqrPreferences().getAllowAllProjectsToUseDqr() && !getDqrAdminSettings().isDqrEnabledForProject(_projectId)) {
                 //You cannot import into a project that does not have DQR enabled.
                 getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You cannot import into a project that does not have DQR enabled.");
             } else {
@@ -102,30 +86,30 @@ public class PacsSeriesImporter extends PacsServiceResource {
                     destinationAeTitle = parts[0];
                 }
                 try {
-                        QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                        pacsReq.setPacsId(getPacsId(getRequest()));
-                        pacsReq.setUsername(getUser().getUsername());
-                        pacsReq.setXnatProject(_projectId);
-                        pacsReq.setStudyInstanceUid(_studyInstanceUid);
-                        pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
-                        pacsReq.setDestinationAeTitle(destinationAeTitle);
-                        pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
-                        pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
-                        pacsReq.setQueuedTime(new Date());
+                    final QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                    pacsReq.setPacsId(getPacsId(getRequest()));
+                    pacsReq.setUsername(getUser().getUsername());
+                    pacsReq.setXnatProject(_projectId);
+                    pacsReq.setStudyInstanceUid(_studyInstanceUid);
+                    pacsReq.setSeriesIds(getBodyVariable("SERIES_IDS"));
+                    pacsReq.setDestinationAeTitle(destinationAeTitle);
+                    pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
+                    pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
+                    pacsReq.setQueuedTime(new Date());
 
-                        XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                        getResponse().setStatus(Status.SUCCESS_OK);
+                    getQueuedPacsRequestService().create(pacsReq);
+                    getResponse().setStatus(Status.SUCCESS_OK);
 
-                        Form responseHeaders = new Form();
-                        getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
-                        responseHeaders.add(HttpHeaders.WARNING, "Your request is queued and will be serviced when the PACS is available.");
+                    final Form responseHeaders = new Form();
+                    getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
+                    responseHeaders.add(HttpHeaders.WARNING, "Your request is queued and will be serviced when the PACS is available.");
                 } catch (Exception e) {
                     final Throwable cause = e.getCause();
-                    if (cause == null || !(cause instanceof Exception)) {
+                    if (!(cause instanceof Exception)) {
                         respondToException(e, Status.SERVER_ERROR_INTERNAL);
                     } else if (cause instanceof CMoveFailureException) {
                         final CMoveFailureException failure = (CMoveFailureException) cause;
-                        _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
+                        log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                         getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, failure.getMessage());
                     } else if (cause instanceof CMoveTargetNotFoundException) {
                         respondToException((CMoveTargetNotFoundException) cause, Status.SERVER_ERROR_INTERNAL);
@@ -147,10 +131,13 @@ public class PacsSeriesImporter extends PacsServiceResource {
         return true;
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(PacsSeriesImporter.class);
+    @Override
+    protected Representation representImpl(final Variant variant) {
+        log.debug("This should never be called.");
+        return null;
+    }
 
-    private final String _projectId;
-    private final String _studyInstanceUid;
-    private final String _ae;
-    private final List<String> _seriesIds = new ArrayList<>();
+    private final String       _projectId;
+    private final String       _studyInstanceUid;
+    private final String       _ae;
 }

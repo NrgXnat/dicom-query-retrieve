@@ -14,38 +14,20 @@ package org.nrg.dqr.messaging;
 
 import java.io.Serializable;
 
+import lombok.Builder;
+import lombok.Getter;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.Series;
 
+@Getter
+@Builder
 public class PacsSeriesImportRequest implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private Series _series;
-    private Study _study;
-
-    public Series getSeries() {
-        return _series;
-    }
-
-    public void setSeries(final Series series) {
-        _series = series;
-    }
-
-    public Study getStudy() {
-        return _study;
-    }
-
-    public void setStudy(final Study study) {
-        _study = study;
-    }
-
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(97, 503).append(_series).toHashCode();
+        return new HashCodeBuilder(97, 503).append(series).toHashCode();
     }
 
     @Override
@@ -60,11 +42,14 @@ public class PacsSeriesImportRequest implements Serializable {
             return false;
         }
         final PacsSeriesImportRequest other = (PacsSeriesImportRequest) obj;
-        return new EqualsBuilder().append(_series, other._series).isEquals();
+        return new EqualsBuilder().append(series, other.series).isEquals();
     }
 
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
     }
+
+    private final Series series;
+    private final Study  study;
 }

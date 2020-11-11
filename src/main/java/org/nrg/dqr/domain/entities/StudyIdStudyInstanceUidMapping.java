@@ -1,15 +1,17 @@
 package org.nrg.dqr.domain.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.MappedSuperclass;
 import javax.persistence.Table;
 import java.io.Serializable;
-import java.util.Date;
+import java.util.Objects;
 
 /**
  * Created by mike on 1/23/18.
@@ -17,42 +19,45 @@ import java.util.Date;
 @Entity
 @Table
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Accessors(prefix = "_")
 public class StudyIdStudyInstanceUidMapping extends AbstractHibernateEntity implements Serializable {
-    protected static final long serialVersionUID = 1L;
-
-    private String _studyId;
-    private String _studyInstanceUid;
-
-    // for Hibernate
-    public StudyIdStudyInstanceUidMapping() {
-    }
-
     public String getStudyId() {
         return _studyId;
     }
 
-    public void setStudyId(String _studyId) {
-        this._studyId = _studyId;
+    public void setStudyId(final String studyId) {
+        _studyId = studyId;
     }
 
     public String getStudyInstanceUid() {
         return _studyInstanceUid;
     }
 
-    public void setStudyInstanceUid(String _studyInstanceUid) {
-        this._studyInstanceUid = _studyInstanceUid;
+    public void setStudyInstanceUid(final String studyInstanceUid) {
+        _studyInstanceUid = studyInstanceUid;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+    public boolean equals(final Object object) {
+        if (this == object) {
+            return true;
+        }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+        if (!super.equals(object)) {
+            return false;
+        }
 
-        StudyIdStudyInstanceUidMapping that = (StudyIdStudyInstanceUidMapping) o;
+        final StudyIdStudyInstanceUidMapping that = (StudyIdStudyInstanceUidMapping) object;
 
-        if (_studyId != null ? !_studyId.equals(that._studyId) : that._studyId != null) return false;
-        return _studyInstanceUid != null ? _studyInstanceUid.equals(that._studyInstanceUid) : that._studyInstanceUid == null;
+        if (!Objects.equals(_studyId, that._studyId)) {
+            return false;
+        }
+        return Objects.equals(_studyInstanceUid, that._studyInstanceUid);
     }
 
     @Override
@@ -66,8 +71,11 @@ public class StudyIdStudyInstanceUidMapping extends AbstractHibernateEntity impl
     @Override
     public String toString() {
         return "StudyIdStudyInstanceUidMapping{" +
-                "_studyId='" + _studyId + '\'' +
-                ", _studyInstanceUid='" + _studyInstanceUid + '\'' +
-                '}';
+               "_studyId='" + _studyId + '\'' +
+               ", _studyInstanceUid='" + _studyInstanceUid + '\'' +
+               '}';
     }
+
+    private String _studyId;
+    private String _studyInstanceUid;
 }

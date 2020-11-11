@@ -16,25 +16,20 @@ import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xdat.XDAT;
-import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
-import java.util.*;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class PacsAdministration extends SecureScreen {
-
-    @Override
-    protected void doBuildTemplate(RunData data, Context context) throws Exception {
-//        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-//          Map<OrmStrategy, String> strategies = new TreeMap<OrmStrategy, String>();
-//        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
-//            strategies.put(strategy.getValue(), strategy.getKey());
-//        }
-        Map<String, OrmStrategy> strategyMap = XDAT.getContextService().getBeansOfType(OrmStrategy.class);
-        Map<OrmStrategy, String> strategies = new TreeMap<>();
-        for (Map.Entry<String, OrmStrategy> strategy : strategyMap.entrySet()) {
-            strategies.put(strategy.getValue(), strategy.getKey());
-        }
-        context.put("strategies", strategies);
+@SuppressWarnings("unused")
+public class PacsAdministration extends DqrSecureScreen {
+    public PacsAdministration() {
+        _strategies = XDAT.getContextService().getBeansOfType(OrmStrategy.class).entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 
+    @Override
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        context.put("strategies", _strategies);
+    }
+
+    private final Map<OrmStrategy, String> _strategies;
 }

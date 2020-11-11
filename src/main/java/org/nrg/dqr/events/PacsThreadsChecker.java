@@ -1,67 +1,54 @@
 package org.nrg.dqr.events;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.nrg.dqr.domain.entities.*;
-import org.nrg.dqr.preferences.DqrPreferences;
+import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsAvailability;
+import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.dqr.services.*;
-import org.nrg.framework.constants.Scope;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.security.XDATUser;
-import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xdat.turbine.utils.AdminUtils;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xft.event.EventDetails;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
-import org.nrg.xnat.helpers.editscript.DicomEdit;
-import org.nrg.xnat.restlet.extensions.*;
-import org.restlet.data.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.nrg.xnat.task.*;
+import org.nrg.xnat.task.AbstractXnatRunnable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by mike on 1/23/18.
  */
+@Slf4j
 public class PacsThreadsChecker extends AbstractXnatRunnable {
-    public PacsThreadsChecker(){
-        if (_log.isDebugEnabled()) {
-            _log.debug("Initializing the PACS threads checker job");
-        }
+    public PacsThreadsChecker(final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final QueuedPacsRequestService queueService, final ExecutedPacsRequestService executedService) {
+        log.trace("Initializing the PACS threads checker job");
+        _pacsEntityService = pacsEntityService;
+        _pacsService = pacsService;
+        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
+        _queueService = queueService;
+        _executedService = executedService;
     }
 
     @Override
     public void runTask() {
+        log.debug("Executing PACS threads checker function");
         try {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Executing PACS threads checker function");
-            }
-            Map<Long,Integer> currentThreadsPerPacs = PacsDequeueThread.currentThreadsPerPacs;
-            PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-            PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-            PacsAvailabilityEntityService pacsAvailabilityEntityService = XDAT.getContextService().getBean(PacsAvailabilityEntityService.class);
-            QueuedPacsRequestService queueService = XDAT.getContextService().getBean(QueuedPacsRequestService.class);
-            ExecutedPacsRequestService executedService = XDAT.getContextService().getBean(ExecutedPacsRequestService.class);
-            List<QueuedPacsRequest> requestsToDequeue = new ArrayList<>();
+            Map<Long, Integer>      currentThreadsPerPacs = PacsDequeueThread.currentThreadsPerPacs;
+            List<QueuedPacsRequest> requestsToDequeue     = new ArrayList<>();
 
-            List<Pacs> pacsList = pacsEntityService.findAllQueryable();
-            if(pacsList!=null) {
+            List<Pacs> pacsList = _pacsEntityService.findAllQueryable();
+            if (pacsList != null) {
                 for (Pacs currPacs : pacsList) {
                     try {
-                        Long pacsId = currPacs.getId();
-                        Calendar currentCal = Calendar.getInstance();
-                        int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
-                        List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacsByDay(pacsId,currentDayOfWeek);
-                        int utilizationPercent = 0;
-                        int threads = 0;
+                        Long                   pacsId             = currPacs.getId();
+                        Calendar               currentCal         = Calendar.getInstance();
+                        int                    currentDayOfWeek   = currentCal.get(Calendar.DAY_OF_WEEK);
+                        List<PacsAvailability> availabilityList   = _pacsAvailabilityEntityService.findSettingsByPacsByDay(pacsId, currentDayOfWeek);
+                        int                    utilizationPercent = 0;
+                        int                    threads            = 0;
                         for (PacsAvailability availability : availabilityList) {
                             String availabilityStartTimeString = availability.getAvailabilityStart();
-                            String availabilityEndTimeString = availability.getAvailabilityEnd();
-                            int availabilityDay = availability.getDayOfWeek();
+                            String availabilityEndTimeString   = availability.getAvailabilityEnd();
+                            int    availabilityDay             = availability.getDayOfWeek();
 
                             //If hour is one digit, pad with a zero.
                             if (availabilityStartTimeString.charAt(1) == ':') {
@@ -74,11 +61,11 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                             long currMillis = currentCal.getTimeInMillis();
 
                             long startMillis = 0L;
-                            long endMillis = 0L;
+                            long endMillis   = 0L;
 
                             if (StringUtils.isNotBlank(availabilityStartTimeString)) {
                                 try {
-                                    Calendar startCal = (Calendar) currentCal.clone();
+                                    Calendar startCal  = (Calendar) currentCal.clone();
                                     String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
                                     startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
                                     startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
@@ -89,7 +76,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                             }
                             if (StringUtils.isNotBlank(availabilityEndTimeString)) {
                                 try {
-                                    Calendar endCal = (Calendar) currentCal.clone();
+                                    Calendar endCal  = (Calendar) currentCal.clone();
                                     String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
                                     endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
                                     endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
@@ -117,15 +104,15 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                                 break;
                             }
                         }
-                        if (utilizationPercent >0 && threads>0) {
-                            List<QueuedPacsRequest> reqs = queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
-                            boolean canConnect = pacsService.canConnect(AdminUtils.getAdminUser(), pacsEntityService.retrieve(pacsId));
+                        if (utilizationPercent > 0 && threads > 0) {
+                            List<QueuedPacsRequest> reqs       = _queueService.getAllForPacsOrderedByPriorityAndDate(pacsId);
+                            boolean                 canConnect = _pacsService.canConnect(AdminUtils.getAdminUser(), _pacsEntityService.retrieve(pacsId));
                             if (canConnect) {
-                                int added = 0;
-                                int currentThreadsForThisPacs = currentThreadsPerPacs.get(pacsId)==null?0:currentThreadsPerPacs.get(pacsId);
-                                long newThreadsAllowed = threads-currentThreadsForThisPacs;
+                                int  added                     = 0;
+                                int  currentThreadsForThisPacs = currentThreadsPerPacs.get(pacsId) == null ? 0 : currentThreadsPerPacs.get(pacsId);
+                                long newThreadsAllowed         = threads - currentThreadsForThisPacs;
                                 for (QueuedPacsRequest req : reqs) {
-                                    Thread thread = new Thread(new PacsDequeueThread(req.getPacsId(), pacsAvailabilityEntityService, queueService, pacsService, pacsEntityService, executedService));
+                                    Thread thread = new Thread(new PacsDequeueThread(req.getPacsId(), _pacsAvailabilityEntityService, _queueService, _pacsService, _pacsEntityService, _executedService));
                                     thread.start();
                                     added++;
                                     if (added >= newThreadsAllowed) {
@@ -135,16 +122,19 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                             }
 
                         }
-                    }
-                    catch(Exception e){
-                        _log.error("Error getting requests to dequeue for PACS "+currPacs.getId()+".",e);
+                    } catch (Exception e) {
+                        log.error("Error getting requests to dequeue for PACS " + currPacs.getId() + ".", e);
                     }
                 }
             }
         } catch (Throwable exception) {
-            _log.error("Error executing a PACS request from the queue.", exception);
+            log.error("Error executing a PACS request from the queue.", exception);
         }
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(PacsThreadsChecker.class);
+    private final PacsEntityService             _pacsEntityService;
+    private final PacsService                   _pacsService;
+    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
+    private final QueuedPacsRequestService      _queueService;
+    private final ExecutedPacsRequestService    _executedService;
 }

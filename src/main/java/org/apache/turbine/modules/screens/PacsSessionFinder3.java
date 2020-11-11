@@ -12,14 +12,16 @@
 
 package org.apache.turbine.modules.screens;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
-public class PacsSessionFinder3 extends SecureScreen {
-
+@Slf4j
+@SuppressWarnings("unused")
+public class PacsSessionFinder3 extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(RunData arg0, Context arg1) throws Exception {
-        // no-op so that SecureScreen.doBuildTemplate fires...
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        log.info("Now in PacsSessionFinder3.doBuildTemplate()");
     }
 }

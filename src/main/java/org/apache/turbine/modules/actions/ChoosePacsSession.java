@@ -17,23 +17,23 @@ import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.services.PacsService;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 
+@SuppressWarnings("unused")
 public class ChoosePacsSession extends DqrSecureAction {
+    public ChoosePacsSession() {
+        super();
+    }
 
     @Override
     public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
-
         final String studyInstanceUid = ((String) TurbineUtils.GetPassedParameter("studyInstanceUid", data));
-        final PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-        final Pacs pacs = getPassedPacs(data);
-        final Study study = pacsService.getStudyById(XDAT.getUserDetails(), pacs, studyInstanceUid);
+        final Pacs   pacs             = getPassedPacs(data);
+        final Study  study            = getPacsService().getStudyById(getUser(), pacs, studyInstanceUid);
         setDqrSessionVariables(data, pacs, study);
-        context.put("study", study);
-        context.put("pacs", pacs);
+        context.put(STUDY_SESSION_KEY, study);
+        context.put(PACS_SESSION_KEY, pacs);
         data.setScreenTemplate("PacsSessionFinder2.vm");
     }
 }

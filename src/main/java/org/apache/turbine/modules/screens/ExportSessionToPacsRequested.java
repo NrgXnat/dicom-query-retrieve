@@ -12,14 +12,15 @@
 
 package org.apache.turbine.modules.screens;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
-import org.nrg.xdat.turbine.modules.screens.SecureScreen;
 
-public class ExportSessionToPacsRequested extends SecureScreen {
-
+@Slf4j
+@SuppressWarnings("unused")
+public class ExportSessionToPacsRequested extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(RunData arg0, Context arg1) throws Exception {
-        // no-op so that SecureScreen.doBuildTemplate fires...
+    protected void doBuildTemplate(final RunData data, final Context context) {
+        log.info("There was a request to export a session to a PACS apparently.");
     }
 }

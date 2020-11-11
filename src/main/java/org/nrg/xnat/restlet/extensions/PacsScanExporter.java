@@ -12,17 +12,17 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
-import org.nrg.dqr.services.PacsService;
 import org.nrg.dqr.preferences.DqrPreferences;
+import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
+import org.nrg.dqr.services.PacsEntityService;
+import org.nrg.dqr.services.PacsService;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
-import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
@@ -33,84 +33,80 @@ import org.restlet.Context;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @XnatRestlet("/services/pacs/{PACS_ID}/export/experiments/{ASSESSED_ID}/scans/{SCAN_ID}")
+@Slf4j
 public class PacsScanExporter extends ScanResource {
-
     public PacsScanExporter(final Context context, final Request request, final Response response) {
         super(context, request, response);
-        pacsService = PacsServiceResource.initPacsService();
+        _pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+        _pacsService = XDAT.getContextService().getBean(PacsService.class);
+        _preferences = XDAT.getContextService().getBean(DqrPreferences.class);
+        _adminSettings = XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class);
     }
 
     @Override
     public void handlePut() {
-        UserI user = getUser();
+        final UserI user = getUser();
         if (user.isGuest()) {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
+            return;
         }
-        else {
-            searchForScan();
-            XnatImagescandata scan = getScan();
-            if (scan != null) {
-                try {
-                    if (!Permissions.canRead(user, scan)) {
-                        throw new RuntimeException("You do not have access to this session.");
-                    }
-                }
-                catch(Exception e){
-                    throw new RuntimeException("Error checking permissions for session.");
-                }
-                if(!Roles.checkRole(user,"Dqr") && !Roles.checkRole(user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
-                    throw new RuntimeException("You do not have access to DQR functionality.");
-                }
-                else {
-                    if (!XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllProjectsToUseDqr() && !XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(scan.getProject())) {
-                        //You cannot import into a project that does not have DQR enabled.
-                        throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
-                    }
-                }
 
-                try {
-                    Pacs pacsToExportTo = PacsServiceResource.getPacs(getRequest());
-                    if (pacsToExportTo.isStorable()) {
-                        pacsService.exportSeries(XDAT.getUserDetails(), pacsToExportTo, getScan());
-                    } else {
-                        throw new PacsNotStorableException();
-                    }
-                    final String projectId;
-                    if (proj != null) {
-                        projectId = proj.getId();
-                    } else {
-                        projectId = "Unknown";
-                    }
-                    final String studyId = getScan().getImageSessionId();
-
-                    final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                    eventDetails.setComment("Series: " + getScan().getId());
-                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyId, projectId, eventDetails);
-                    assert wrk != null;
-                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                } catch (final PacsNotFoundException e) {
-                    getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified PACS.");
-                } catch (final PacsNotStorableException e) {
-                    getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
-                } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
-                    _log.warn("Error creating new workflow event", e);
-                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
-                } catch (PersistentWorkflowUtils.IDAbsent e) {
-                    _log.warn("ID absent when creating new workflow event", e);
-                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
-                } catch (PersistentWorkflowUtils.JustificationAbsent e) {
-                    _log.warn("Justification absent but required when creating new workflow event", e);
-                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
-                } catch (Exception e) {
-                    respondToException(e, Status.SERVER_ERROR_INTERNAL);
-                }
-            } else {
-                getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified scan.");
+        searchForScan();
+        final XnatImagescandata scan = getScan();
+        if (scan == null) {
+            getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified scan.");
+            return;
+        }
+        try {
+            if (!Permissions.canRead(user, scan)) {
+                throw new RuntimeException("You do not have access to this session.");
             }
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking permissions for session.");
+        }
+        if (!Roles.checkRole(user, "Dqr") && !Roles.checkRole(user, "Administrator") && !_preferences.getAllowAllUsersToUseDqr()) {
+            getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You do not have access to DQR functionality.");
+            return;
+        }
+        if (!_preferences.getAllowAllProjectsToUseDqr() && !_adminSettings.isDqrEnabledForProject(scan.getProject())) {
+            //You cannot import into a project that does not have DQR enabled.
+            throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
+        }
+
+        try {
+            final Pacs pacsToExportTo = _pacsEntityService.retrieve(PacsServiceResource.getPacsId(getRequest()));
+            if (pacsToExportTo == null) {
+                throw new PacsNotFoundException();
+            }
+            if (!pacsToExportTo.isStorable()) {
+                throw new PacsNotStorableException();
+            }
+
+            _pacsService.exportSeries(getUser(), pacsToExportTo, getScan());
+
+            final String projectId = proj != null ? proj.getId() : "Unknown";
+            final String studyId   = getScan().getImageSessionId();
+
+            final PersistentWorkflowI workflow = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyId, projectId, EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST", null, "Series: " + getScan().getId()));
+            assert workflow != null;
+            PersistentWorkflowUtils.complete(workflow, workflow.buildEvent());
+        } catch (final PacsNotFoundException e) {
+            getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "Unable to find the specified PACS.");
+        } catch (final PacsNotStorableException e) {
+            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Requested PACS is not a PACS that can have data sent to it.");
+        } catch (PersistentWorkflowUtils.ActionNameAbsent e) {
+            log.warn("Error creating new workflow event", e);
+            respondToException(e, Status.SERVER_ERROR_INTERNAL);
+        } catch (PersistentWorkflowUtils.IDAbsent e) {
+            log.warn("ID absent when creating new workflow event", e);
+            respondToException(e, Status.SERVER_ERROR_INTERNAL);
+        } catch (PersistentWorkflowUtils.JustificationAbsent e) {
+            log.warn("Justification absent but required when creating new workflow event", e);
+            respondToException(e, Status.SERVER_ERROR_INTERNAL);
+        } catch (Exception e) {
+            respondToException(e, Status.SERVER_ERROR_INTERNAL);
         }
     }
 
@@ -124,7 +120,8 @@ public class PacsScanExporter extends ScanResource {
         return true;
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(PacsSeriesImporter.class);
-
-    private final PacsService pacsService;
+    private final PacsEntityService                 _pacsEntityService;
+    private final PacsService                       _pacsService;
+    private final DqrPreferences                    _preferences;
+    private final DqrAdminSettingsForProjectService _adminSettings;
 }

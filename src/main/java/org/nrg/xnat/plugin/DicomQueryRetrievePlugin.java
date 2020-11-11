@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
             logConfigurationFile = "dqr-logback.xml")
 @ComponentScan({"org.nrg.dcm.edit.mizer", "org.nrg.dcm.scp", "org.nrg.dicom.dicomedit.mizer",
                 "org.nrg.dicom.mizer.service.impl", "org.nrg.dqr.daos", "org.nrg.dqr.events", "org.nrg.dqr.preferences",
-                "org.nrg.dqr.processors", "org.nrg.dqr.services", "org.nrg.xapi.authorization"})
+                "org.nrg.dqr.processors", "org.nrg.dqr.services", "org.nrg.xapi.authorization", "org.nrg.dqr.dicom.id"})
 @Import({DicomImportConfig.class, DqrConfig.class})
 @Slf4j
 public class DicomQueryRetrievePlugin {

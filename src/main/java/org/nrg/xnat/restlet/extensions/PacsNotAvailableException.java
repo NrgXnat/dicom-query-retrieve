@@ -13,7 +13,4 @@
 package org.nrg.xnat.restlet.extensions;
 
 public class PacsNotAvailableException extends Exception {
-
-    private static final long serialVersionUID = 1L;
-
 }

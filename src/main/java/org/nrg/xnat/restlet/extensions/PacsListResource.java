@@ -12,9 +12,7 @@
 
 package org.nrg.xnat.restlet.extensions;
 
-import java.util.List;
-
-import org.apache.log4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsAvailability;
@@ -27,49 +25,33 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
-@XnatRestlet("/pacs")
-public class PacsListResource extends PacsAdminResource {
-    static Logger logger = Logger.getLogger(PacsListResource.class);
+import java.util.List;
+import java.util.stream.IntStream;
 
+@XnatRestlet("/pacs")
+@Slf4j
+public class PacsListResource extends PacsAdminResource {
     public PacsListResource(final Context context, final Request request, final Response response) {
         super(context, request, response);
     }
 
     @Override
-    public Representation represent(final Variant variant) throws ResourceException {
-        if(getUser().isGuest()){
+    public Representation represent(final Variant variant) {
+        if (getUser().isGuest()) {
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, "You must be logged in to query a PACS.");
             return null;
         }
-        boolean checkStorable = this.getQueryVariable("storable")!=null;
-        boolean checkQueryable = this.getQueryVariable("queryable")!=null;
 
-        if(checkQueryable) {
-            if(checkStorable) {
-                final List<Pacs> allPacs = getPacsEntityService().findAllQueryableAndStorable();
-                return jsonRepresentation(allPacs);
-            }
-            else {
-                final List<Pacs> allPacs = getPacsEntityService().findAllQueryable();
-                return jsonRepresentation(allPacs);
-            }
+        final boolean checkStorable  = getQueryVariable("storable") != null;
+        final boolean checkQueryable = getQueryVariable("queryable") != null;
 
-        }
-        else {
-            if (checkStorable) {
-                final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
-                return jsonRepresentation(allPacs);
-            } else {
-                final List<Pacs> allPacs = getPacsEntityService().getAll();
-                return jsonRepresentation(allPacs);
-            }
-        }
-
+        final List<Pacs> allPacs = checkQueryable ? (checkStorable ? getPacsEntityService().findAllQueryableAndStorable() : getPacsEntityService().findAllQueryable()) : (checkStorable ? getPacsEntityService().findAllStorable() : getPacsEntityService().getAll());
+        log.debug("Got {} for queryable and {} for storable, found {} PACS for those properties", checkQueryable, checkStorable, allPacs.size());
+        return jsonRepresentation(allPacs);
     }
 
     @Override
@@ -82,20 +64,11 @@ public class PacsListResource extends PacsAdminResource {
         final UserI user = getUser();
         if (Roles.isSiteAdmin(user)) {
             try {
-                final Pacs pacs = buildPacsFromRequest(null);
+                final Pacs pacs   = buildPacsFromRequest(null);
+                final long pacsId = pacs.getId();
                 getPacsEntityService().create(pacs);
-                for(int day=1; day<=7; day++) {
-                    PacsAvailability fullAvailabilityForDay = new PacsAvailability();
-                    fullAvailabilityForDay.setDayOfWeek(day);
-                    fullAvailabilityForDay.setPacsId(pacs.getId());
-                    fullAvailabilityForDay.setThreads(1);
-                    fullAvailabilityForDay.setUtilizationPercent(100);
-                    fullAvailabilityForDay.setAvailabilityStart("0:00");
-                    fullAvailabilityForDay.setAvailabilityEnd("24:00");
-
-                    getPacsAvailabilityEntityService().create(fullAvailabilityForDay);
-                }
-                getResponse().setLocationRef("pacs/" + String.valueOf(pacs.getId()));
+                IntStream.range(1, 8).mapToObj(day -> PacsAvailability.builder().dayOfWeek(day).pacsId(pacsId).threads(1).utilizationPercent(100).availabilityStart("0:00").availabilityEnd("24:00").build()).forEach(availability -> getPacsAvailabilityEntityService().create(availability));
+                getResponse().setLocationRef("pacs/" + pacs.getId());
                 respondWithSuccessCreated();
             } catch (final InvalidRequestBodyException e) {
                 respondWithInvalidRequestBody();
@@ -104,28 +77,24 @@ public class PacsListResource extends PacsAdminResource {
             } catch (final ConstraintViolationException e) {
                 respondWithDuplicateAeError(e);
             }
-        }
-        else{
+        } else {
             final String message = String.format("User %s is not an administrator and can't create PACs configurations.", user.getUsername());
-            logger.info(message);
+            log.info(message);
             getResponse().setStatus(Status.CLIENT_ERROR_FORBIDDEN, message);
         }
     }
 
     private Representation jsonRepresentation(final List<Pacs> results) {
-        Representation r;
         try {
-            r = new StringRepresentation("{\"ResultSet\":{\"Result\":" + getObjectMapper().writeValueAsString(results)
-                    + ", \"resultSetSize\":" + getObjectMapper().writeValueAsString(results.size()) + "}}");
+            return new StringRepresentation(String.format(FORMAT, writeValue(results), writeValue(results.size())), MediaType.APPLICATION_JSON);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
-        r.setMediaType(MediaType.APPLICATION_JSON);
-        return r;
     }
 
     private void respondWithSuccessCreated() {
-        getResponse().setStatus(Status.SUCCESS_CREATED,
-                "The location header contains the URI of the newly created PACS.");
+        getResponse().setStatus(Status.SUCCESS_CREATED, "The location header contains the URI of the newly created PACS.");
     }
+
+    private static final String FORMAT = "{\"ResultSet\":{\"Result\": %s, \"resultSetSize\": %s}}";
 }

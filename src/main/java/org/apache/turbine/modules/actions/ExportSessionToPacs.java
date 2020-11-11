@@ -12,155 +12,119 @@
 
 package org.apache.turbine.modules.actions;
 
-import com.google.common.base.Joiner;
-import org.apache.commons.fileupload.FileItem;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.turbine.util.RunData;
-import org.apache.turbine.util.parser.ParameterParser;
 import org.apache.velocity.context.Context;
-import org.nrg.dqr.domain.entities.DqrAdminSettingsForProject;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.preferences.DqrPreferences;
-import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
-import org.nrg.dqr.services.PacsEntityService;
-import org.nrg.dqr.services.PacsService;
-import org.nrg.xdat.XDAT;
+import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
 import org.nrg.xdat.om.XnatExperimentdata;
-import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
-import org.restlet.data.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+
+@Slf4j
 public class ExportSessionToPacs extends DqrSecureAction {
-
-    private static final Logger _log = LoggerFactory.getLogger(ExportSessionToPacs.class);
-
-    private PacsService _service;
-    private Pacs _pacs;
-    private XnatImagesessiondata _session;
-    private String[] _scanIds;
-    private UserI _user;
+    public ExportSessionToPacs() {
+    }
 
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
-
-        _user = TurbineUtils.getUser(data);
-
-        ParameterParser params = data.getParameters();
-        FileItem fi = params.getFileItem("csv_to_store");
-
+    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, InsufficientPrivilegesException {
+        final UserI  user    = getUser();
         final String project = (String) TurbineUtils.GetPassedParameter("project", data);
-        final String ae = (String) TurbineUtils.GetPassedParameter("ae", data);
-        final long pacsId = Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
-        _pacs = getPacsEntityService().retrieve(pacsId);
-        if (_pacs == null) {
+        final long   pacsId  = Long.parseLong((String) TurbineUtils.GetPassedParameter("pacsId", data));
+        final Pacs   pacs    = getPacsEntityService().retrieve(pacsId);
+        if (pacs == null) {
             throw new PacsNotFoundException();
         }
-        _service = XDAT.getContextService().getBean(PacsService.class);
 
-        final String session = (String) TurbineUtils.GetPassedParameter("session", data);
-        if (StringUtils.isBlank(session)) {
+        final String sessionId = (String) TurbineUtils.GetPassedParameter("session", data);
+        if (StringUtils.isBlank(sessionId)) {
             throw new RuntimeException("You must specify a session ID for this operation.");
         }
-        XnatExperimentdata temp = XnatExperimentdata.getXnatExperimentdatasById(session,_user,false);
-        if(temp instanceof  XnatImagesessiondata) {
-            _session = (XnatImagesessiondata) temp;
+
+        final XnatExperimentdata temp = XnatExperimentdata.getXnatExperimentdatasById(sessionId, user, false);
+        if (!(temp instanceof XnatImagesessiondata)) {
+            throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + sessionId);
         }
-        if (_session == null) {
-            throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
-        }
+
+        final XnatImagesessiondata session = (XnatImagesessiondata) temp;
         try {
-            if (!Permissions.canRead(_user, _session)) {
-                throw new RuntimeException("You do not have access to this session.");
+            if (!Permissions.canRead(user, session)) {
+                throw new InsufficientPrivilegesException("You do not have access to this session.");
             }
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             throw new RuntimeException("Error checking permissions for session.");
         }
-        if(!Roles.checkRole(_user,"Dqr") && !Roles.checkRole(_user,"Administrator") && !XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllUsersToUseDqr()){
-            throw new RuntimeException("You do not have access to DQR functionality.");
+        if (!Roles.checkRole(user, "Dqr") && !Roles.checkRole(user, "Administrator") && !getDqrPreferences().getAllowAllUsersToUseDqr()) {
+            throw new InsufficientPrivilegesException("You do not have access to DQR functionality.");
         }
-        else {
-            if (!XDAT.getContextService().getBean(DqrPreferences.class).getAllowAllProjectsToUseDqr() && !XDAT.getContextService().getBean(DqrAdminSettingsForProjectService.class).isDqrEnabledForProject(project)) {
-                //You cannot import into a project that does not have DQR enabled.
-                throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
-            }
+        if (!getDqrPreferences().getAllowAllProjectsToUseDqr() && !getDqrAdminSettings().isDqrEnabledForProject(project)) {
+            //You cannot import into a project that does not have DQR enabled.
+            throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
         }
-        try {
-            _scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
-            if (_scanIds == null) {
-                _log.debug("No scan IDs found to export, returning.");
-                context.put("numberOfProcessedScans", 0);
-                context.put("sessionId", _session.getId());
-            } else {
-                exportOnDemand();
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                eventDetails.setComment("Pacs: " + _pacs.getId());
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, _session.getId(), project, eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                context.put("numberOfProcessedScans", _scanIds.length);
-                context.put("sessionId", _session.getId());
-                context.put("_user", _user);
-                context.put("StringUtils", new StringUtils());
-                if (_log.isDebugEnabled()) {
-                    _log.debug("User {} exported {} scans from session {}", _user.getLogin(), _scanIds.length, _session.getId());
-                }
-                XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), _user.getEmail(),
-                        "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request Complete",
-                        "The session you requested has been successfully exported to the PACS.");
-            }
-
-            data.setScreenTemplate("ExportSessionToPacsRequested.vm");
-        } catch (Exception exception) {
-            context.put("sessionId", _session.getId());
-            context.put("scanIds", Joiner.on(", ").join(_scanIds));
-            context.put("host", _pacs.getHost());
-            context.put("aeTitle", _pacs.getAeTitle());
+        final String[] scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
+        if (scanIds == null) {
+            log.debug("No scan IDs found to export, returning.");
+            context.put("numberOfProcessedScans", 0);
+            context.put("sessionId", session.getId());
+        } else {
             try {
-                context.put("qrPort", _pacs.getQueryRetrievePort() == null ? "N/A" : _pacs.getQueryRetrievePort().toString());
-            } catch (Exception e1) {
-                context.put("qrPort", "N/A");
+                final int                 exported = exportOnDemand(user, pacs, session, scanIds);
+                final PersistentWorkflowI workflow = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session.getId(), project, EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST", null, String.format(FORMAT, exported, sessionId, pacs.getId(), pacs.getHost(), pacs.getQueryRetrievePort(), pacs.getAeTitle())));
+                assert workflow != null;
+                PersistentWorkflowUtils.complete(workflow, workflow.buildEvent());
+
+                context.put("numberOfProcessedScans", scanIds.length);
+                context.put("sessionId", session.getId());
+                context.put("_user", user);
+                //noinspection InstantiationOfUtilityClass
+                context.put("StringUtils", new StringUtils());
+
+                log.debug("User {} exported {} scans from session {}", user.getUsername(), scanIds.length, session.getId());
+                getMailService().sendMessage(getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
+                                             "[" + TurbineUtils.GetSystemName() + "] PACS Session Export Request Complete",
+                                             "The session you requested has been successfully exported to the PACS.");
+            } catch (Exception exception) {
+                context.put("sessionId", session.getId());
+                context.put("scanIds", StringUtils.join(scanIds, ", "));
+                context.put("host", pacs.getHost());
+                context.put("aeTitle", pacs.getAeTitle());
+                context.put("qrPort", pacs.getQueryRetrievePort() == null ? "N/A" : pacs.getQueryRetrievePort().toString());
+                context.put("user", user);
+                //noinspection InstantiationOfUtilityClass
+                context.put("StringUtils", new StringUtils());
+                context.put("error", exception);
+                data.setScreenTemplate("ExportSessionToPacsError.vm");
             }
-            context.put("user", _user);
-            context.put("StringUtils", new StringUtils());
-            context.put("error", exception);
-            data.setScreenTemplate("ExportSessionToPacsError.vm");
         }
+
+        data.setScreenTemplate("ExportSessionToPacsRequested.vm");
     }
 
-    private void exportOnDemand() throws PacsNotStorableException {
-        if(_pacs.isStorable()) {
-            for (String scanId : _scanIds) {
-                XnatImagescandata scan = _session.getScanById(scanId);
-                _service.exportSeries(_user, _pacs, scan);
-                if (_log.isInfoEnabled()) {
-                    _log.info("Exported series " + scanId + " from session " + _session.getId());
-                }
-            }
-        }
-        else{
+    private int exportOnDemand(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final String[] scanIds) throws PacsNotStorableException {
+        if (!pacs.isStorable()) {
             throw new PacsNotStorableException();
         }
+        final AtomicInteger count = new AtomicInteger();
+        Arrays.stream(scanIds).map(session::getScanById).forEach(scan -> {
+            getPacsService().exportSeries(user, pacs, scan);
+            log.info("Exported series {} from session {}", scan.getId(), session.getId());
+            count.incrementAndGet();
+        });
+        return count.get();
     }
 
-    private PacsEntityService getPacsEntityService() {
-        return XDAT.getContextService().getBean(PacsEntityService.class);
-    }
-
+    private static final String FORMAT = "Exported %d scans from session %s to PACS %d: %s:%d AE %s";
 }

@@ -1,22 +1,15 @@
 package org.nrg.dqr.services;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.nrg.dqr.daos.ExecutedPacsRequestDAO;
 import org.nrg.dqr.daos.QueuedPacsRequestDAO;
-import org.nrg.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xft.security.UserI;
+import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.inject.Inject;
-import java.net.URLEncoder;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,70 +18,55 @@ import java.util.Map;
  */
 @Service
 public class HibernateQueuedPacsRequestService extends AbstractHibernateEntityService<QueuedPacsRequest, QueuedPacsRequestDAO> implements QueuedPacsRequestService {
-
-    private static final Log _log = LogFactory.getLog(HibernateQueuedPacsRequestService.class);
-
-    @Inject
-    private QueuedPacsRequestDAO _dao;
-
-    @Inject
-    private NamedParameterJdbcTemplate _parameterized;
+    public HibernateQueuedPacsRequestService(final NamedParameterJdbcTemplate template) {
+        _template = template;
+    }
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getAllOrderedByDate(){
+    public List<QueuedPacsRequest> getAllOrderedByDate() {
         return getDao().findAllOrderedByDate();
     }
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getAllForUser(UserI user){
-        return _dao.findAllForUser(user);
+    public List<QueuedPacsRequest> getAllForUser(final UserI user) {
+        return getDao().findAllForUser(user);
     }
 
     @Override
     @Transactional
-    public List<Map<String, Object>> getAllWithOrder(){
-        final MapSqlParameterSource parameters = new MapSqlParameterSource();
-        Map<Long, QueuedPacsRequest> queueMap = new HashMap<>();
-        final List<Map<String, Object>> results = _parameterized.queryForList(QUERY_QUEUE_WITH_LOCATION, parameters);
-        return results;
+    public List<Map<String, Object>> getAllWithOrder() {
+        return _template.queryForList(QUERY_QUEUE_WITH_LOCATION, EmptySqlParameterSource.INSTANCE);
     }
 
     @Override
     @Transactional
-    public List<Map<String, Object>> getAllWithOrderForUser(UserI user){
-        final MapSqlParameterSource parameters = new MapSqlParameterSource();
-        parameters.addValue("user", user.getUsername());
-        Map<Long, QueuedPacsRequest> queueMap = new HashMap<>();
-        final List<Map<String, Object>> results = _parameterized.queryForList(QUERY_QUEUE_WITH_LOCATION_FOR_USER, parameters);
-        return results;
+    public List<Map<String, Object>> getAllWithOrderForUser(UserI user) {
+        return _template.queryForList(QUERY_QUEUE_WITH_LOCATION_FOR_USER, new MapSqlParameterSource("user", user.getUsername()));
     }
 
     @Override
     @Transactional
-    public QueuedPacsRequest getByIdForUser(Long id, UserI user){
-        List<QueuedPacsRequest> list = _dao.findByIdForUser(id, user);
-        if(list==null || list.size()==0){
-            return null;
-        }
-        else{
-            return list.get(0);
-        }
+    public QueuedPacsRequest getByIdForUser(Long id, UserI user) {
+        final List<QueuedPacsRequest> list = getDao().findByIdForUser(id, user);
+        return list == null || list.isEmpty() ? null : list.get(0);
     }
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(Long pacsId){
-        return _dao.findAllForPacsOrderedByPriorityAndDate(pacsId);
+    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(Long pacsId) {
+        return getDao().findAllForPacsOrderedByPriorityAndDate(pacsId);
     }
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(Long pacsId){
-        return _dao.findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId);
+    public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(Long pacsId) {
+        return getDao().findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId);
     }
 
-    private static final String QUERY_QUEUE_WITH_LOCATION = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue;";
+    private static final String QUERY_QUEUE_WITH_LOCATION          = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue;";
     private static final String QUERY_QUEUE_WITH_LOCATION_FOR_USER = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue WHERE username=:user;";
+
+    private final NamedParameterJdbcTemplate _template;
 }
