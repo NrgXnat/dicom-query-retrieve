@@ -308,9 +308,9 @@ public class BasicPacsService implements PacsService {
             destinationAe = parts[0];
         }
         if (!pacs.isQueryable()) {
-            throw new PacsNotQueryableException();
+            throw new PacsNotQueryableException(pacs.getId());
         } else if (!aeIsStorable(destinationAeAndPort)) {
-            throw new PacsNotStorableException();
+            throw new PacsNotStorableException(pacs.getId());
         } else {
             try {
 
@@ -370,7 +370,7 @@ public class BasicPacsService implements PacsService {
 
     private CFindSCU buildCFindSCU(final Pacs pacs) throws PacsNotQueryableException {
         if (!pacs.isQueryable()) {
-            throw new PacsNotQueryableException();
+            throw new PacsNotQueryableException(pacs.getId());
         }
         return new Dcm4cheToolCFindSCU(_preferences, buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
     }

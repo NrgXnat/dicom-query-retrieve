@@ -115,7 +115,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
 
     private int exportOnDemand(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final String[] scanIds) throws PacsNotStorableException {
         if (!pacs.isStorable()) {
-            throw new PacsNotStorableException();
+            throw new PacsNotStorableException(pacs.getId());
         }
         final AtomicInteger count = new AtomicInteger();
         Arrays.stream(scanIds).map(session::getScanById).forEach(scan -> {

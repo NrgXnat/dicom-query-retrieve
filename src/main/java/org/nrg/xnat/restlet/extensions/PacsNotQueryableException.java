@@ -12,5 +12,17 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.UNAUTHORIZED)
+@Getter
 public class PacsNotQueryableException extends Exception {
+    public PacsNotQueryableException(final long pacsId) {
+        super("PACS " + pacsId + " does not allow C-FIND operations");
+        _pacsId = pacsId;
+    }
+
+    private final long _pacsId;
 }

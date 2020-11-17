@@ -12,5 +12,17 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.UNAUTHORIZED)
+@Getter
 public class PacsNotStorableException extends Exception {
+    public PacsNotStorableException(final long pacsId) {
+        super("PACS " + pacsId + " does not allow C-STORE operations");
+        _pacsId = pacsId;
+    }
+
+    private final long _pacsId;
 }

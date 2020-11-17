@@ -55,9 +55,8 @@ public class PacsSessionExportRequestListener {
                 PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, pacsSessionExportRequest.getSession().getId(), pacsSessionExportRequest.getSession().getProject(), eventDetails);
                 assert wrk != null;
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-            }
-            else{
-                throw new PacsNotStorableException();
+            } else{
+                throw new PacsNotStorableException(pacsToExportTo.getId());
             }
         } catch (final Exception e) {
             // If errors are not logged before they're rethrown, they do not show up in any of the files

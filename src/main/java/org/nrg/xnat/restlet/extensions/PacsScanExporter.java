@@ -81,7 +81,7 @@ public class PacsScanExporter extends ScanResource {
                 throw new PacsNotFoundException();
             }
             if (!pacsToExportTo.isStorable()) {
-                throw new PacsNotStorableException();
+                throw new PacsNotStorableException(pacsToExportTo.getId());
             }
 
             _pacsService.exportSeries(getUser(), pacsToExportTo, getScan());
