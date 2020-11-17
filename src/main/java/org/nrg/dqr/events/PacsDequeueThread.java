@@ -1,6 +1,6 @@
 package org.nrg.dqr.events;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.domain.entities.*;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;

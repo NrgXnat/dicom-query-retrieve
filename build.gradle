@@ -60,6 +60,7 @@ sourceSets {
 
 configurations {
     all {
+        exclude group: "commons-lang"
         exclude group: "edu.ucar", module: "netcdf"
         exclude group: "jakarta-regexp"
         exclude group: "net.sf.saxon", module: "Saxon-B"

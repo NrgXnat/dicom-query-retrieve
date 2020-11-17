@@ -15,7 +15,7 @@ package org.nrg.dqr.dicom.strategy.orm;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.domain.PatientName;

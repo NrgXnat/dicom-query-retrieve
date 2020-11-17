@@ -15,7 +15,7 @@ package org.nrg.dqr.dicom.strategy.orm;
 import java.util.Calendar;
 import java.util.Date;
 
-import org.apache.commons.lang.time.DateUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnat.utils.DateRange;

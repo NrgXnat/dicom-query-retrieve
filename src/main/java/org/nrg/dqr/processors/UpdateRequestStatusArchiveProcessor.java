@@ -1,7 +1,7 @@
 package org.nrg.dqr.processors;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.nrg.action.ServerException;

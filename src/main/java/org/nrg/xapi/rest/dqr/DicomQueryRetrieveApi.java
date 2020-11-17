@@ -1332,7 +1332,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                                                   @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) {
         Map<String,PacsSearchResults<String, Series>> seriesMap = new HashMap<>();
         final UserI user = getSessionUser();
-        final String[] studiesArray = org.apache.commons.lang.StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
+        final String[] studiesArray = StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
         if(studiesArray!=null && pacsId!=null){
             final Long pacsIdLong = Long.valueOf(pacsId);
             final Pacs pacs       = _pacsEntityService.retrieve(pacsIdLong);

@@ -12,7 +12,7 @@
 
 package org.nrg.dqr.services;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.daos.ProjectIrbInfoDAO;
 import org.nrg.dqr.domain.entities.ProjectIrbInfo;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;

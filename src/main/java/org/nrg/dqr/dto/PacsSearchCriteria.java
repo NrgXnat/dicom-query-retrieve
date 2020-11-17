@@ -12,8 +12,8 @@
 
 package org.nrg.dqr.dto;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.nrg.xnat.utils.DateRange;
 import org.nrg.xnat.utils.DqrDateRange;
 

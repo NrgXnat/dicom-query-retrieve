@@ -12,7 +12,7 @@
 
 package org.nrg.dqr.dicom.strategy.orm;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.PersonName;
 import org.nrg.dqr.domain.PatientName;
 import org.nrg.dqr.dto.PacsSearchCriteria;

@@ -12,7 +12,7 @@
 
 package org.nrg.dqr.dicom.command.cfind.dcm4che.tool;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.dto.PacsSearchCriteria;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;

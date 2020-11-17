@@ -13,7 +13,7 @@
 package org.nrg.xnat.restlet.extensions;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.nrg.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.dqr.dicom.command.cmove.CMoveTargetNotFoundException;

@@ -1,7 +1,7 @@
 package org.nrg.dqr.events;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;

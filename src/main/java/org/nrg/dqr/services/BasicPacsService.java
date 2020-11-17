@@ -15,7 +15,7 @@ package org.nrg.dqr.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;

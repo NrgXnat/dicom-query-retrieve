@@ -15,7 +15,7 @@ package org.nrg.xnat.restlet.extensions;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.Accessors;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsAvailabilityEntityService;

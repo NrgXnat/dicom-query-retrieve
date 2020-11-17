@@ -16,7 +16,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.nrg.dqr.domain.DqrDomainObject;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
