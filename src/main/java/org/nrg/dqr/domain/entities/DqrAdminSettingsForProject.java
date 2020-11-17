@@ -1,17 +1,15 @@
 package org.nrg.dqr.domain.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
-import javax.persistence.*;
-import java.io.Serializable;
-import java.util.Date;
-import java.util.Set;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 
 /**
  * Created by mike on 1/23/18.
@@ -21,24 +19,16 @@ import java.util.Set;
 @Table
 @Audited
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
-public class DqrAdminSettingsForProject extends AbstractHibernateEntity implements Serializable {
-    public DqrAdminSettingsForProject(){
-
-    }
-
-    public DqrAdminSettingsForProject(String _projectId) {
-        this._projectId = _projectId;
-    }
-
+@AllArgsConstructor
+@NoArgsConstructor
+public class DqrAdminSettingsForProject extends AbstractHibernateEntity {
     public String getProjectId() {
         return _projectId;
     }
 
-    public void setProjectId(String _projectId) {
-        this._projectId = _projectId;
+    public void setProjectId(final String projectId) {
+        _projectId = projectId;
     }
 
-    protected static final long serialVersionUID = 1L;
-
-    protected String _projectId;
+    private String _projectId;
 }

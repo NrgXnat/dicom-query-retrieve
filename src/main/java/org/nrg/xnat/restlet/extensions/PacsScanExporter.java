@@ -76,9 +76,10 @@ public class PacsScanExporter extends ScanResource {
         }
 
         try {
-            final Pacs pacsToExportTo = _pacsEntityService.retrieve(PacsServiceResource.getPacsId(getRequest()));
+            final long pacsId         = PacsServiceResource.getPacsId(getRequest());
+            final Pacs pacsToExportTo = _pacsEntityService.retrieve(pacsId);
             if (pacsToExportTo == null) {
-                throw new PacsNotFoundException();
+                throw new PacsNotFoundException(pacsId);
             }
             if (!pacsToExportTo.isStorable()) {
                 throw new PacsNotStorableException(pacsToExportTo.getId());

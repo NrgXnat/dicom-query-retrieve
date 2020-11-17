@@ -730,7 +730,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         final Pacs        _pacs             = pacsEntityService.retrieve(pacsId);
 
         if (_pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
 
         if (StringUtils.isBlank(session)) {

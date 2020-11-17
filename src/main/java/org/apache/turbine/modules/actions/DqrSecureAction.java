@@ -23,6 +23,7 @@ import org.nrg.dqr.services.DqrAdminSettingsForProjectService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.dqr.services.PacsService;
 import org.nrg.mail.services.MailService;
+import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.turbine.modules.actions.SecureAction;
@@ -44,10 +45,11 @@ public abstract class DqrSecureAction extends SecureAction {
         _mailService = XDAT.getContextService().getBean(MailService.class);
     }
 
-    public Pacs getPassedPacs(final RunData data) throws PacsNotFoundException {
-        final Pacs pacs = getPacsEntityService().retrieve(getPassedPacsId(data));
+    public Pacs getPassedPacs(final RunData data) throws PacsNotFoundException, DataFormatException {
+        final long pacsId = getPassedPacsId(data);
+        final Pacs pacs   = getPacsEntityService().retrieve(pacsId);
         if (null == pacs) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         return pacs;
     }
@@ -70,11 +72,12 @@ public abstract class DqrSecureAction extends SecureAction {
         data.getSession().removeAttribute(STUDY_SESSION_KEY);
     }
 
-    private Long getPassedPacsId(final RunData data) throws PacsNotFoundException {
+    private Long getPassedPacsId(final RunData data) throws DataFormatException {
+        final String pacsId = (String) TurbineUtils.GetPassedParameter("pacsId", data);
         try {
-            return Long.valueOf((String) TurbineUtils.GetPassedParameter("pacsId", data));
+            return Long.valueOf(pacsId);
         } catch (NumberFormatException e) {
-            throw new PacsNotFoundException();
+            throw new DataFormatException(pacsId);
         }
     }
 

@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
-import org.jetbrains.annotations.Nullable;
 import org.nrg.dcm.Extractor;
 import org.nrg.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
 import org.nrg.dqr.preferences.DqrPreferences;
@@ -17,6 +16,7 @@ import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 @Component

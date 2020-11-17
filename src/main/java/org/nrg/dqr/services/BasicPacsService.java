@@ -485,9 +485,9 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         ArrayList<CsvRow> resultRows = new ArrayList<>();
 
@@ -610,9 +610,9 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         ArrayList<FindRow> resultRows = new ArrayList<>();
 
@@ -726,9 +726,9 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         String aeTitle = ae;
         String port    = "";
@@ -920,9 +920,9 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         String aeTitle = ae;
         String port    = "";
@@ -1038,9 +1038,9 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
-        Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
         if (pacs == null) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         //ArrayList<Study> studiesList = new ArrayList<>();
         Map<Study, String> studiesListMappedToAnonScript = new HashMap<>();

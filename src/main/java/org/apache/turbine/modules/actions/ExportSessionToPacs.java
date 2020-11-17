@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
 import org.nrg.xdat.om.XnatExperimentdata;
 import org.nrg.xdat.om.XnatImagesessiondata;
@@ -40,15 +41,10 @@ public class ExportSessionToPacs extends DqrSecureAction {
     }
 
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, InsufficientPrivilegesException {
-        final UserI  user    = getUser();
-        final String project = (String) TurbineUtils.GetPassedParameter("project", data);
-        final long   pacsId  = Long.parseLong((String) TurbineUtils.GetPassedParameter("pacsId", data));
-        final Pacs   pacs    = getPacsEntityService().retrieve(pacsId);
-        if (pacs == null) {
-            throw new PacsNotFoundException();
-        }
-
+    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, InsufficientPrivilegesException, DataFormatException {
+        final UserI  user      = getUser();
+        final String project   = (String) TurbineUtils.GetPassedParameter("project", data);
+        final Pacs   pacs      = getPassedPacs(data);
         final String sessionId = (String) TurbineUtils.GetPassedParameter("session", data);
         if (StringUtils.isBlank(sessionId)) {
             throw new RuntimeException("You must specify a session ID for this operation.");

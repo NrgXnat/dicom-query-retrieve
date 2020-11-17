@@ -17,6 +17,7 @@ import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
 import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnat.restlet.extensions.PacsNotFoundException;
 
@@ -27,7 +28,7 @@ public class ChoosePacsSession extends DqrSecureAction {
     }
 
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException {
+    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, DataFormatException {
         final String studyInstanceUid = ((String) TurbineUtils.GetPassedParameter("studyInstanceUid", data));
         final Pacs   pacs             = getPassedPacs(data);
         final Study  study            = getPacsService().getStudyById(getUser(), pacs, studyInstanceUid);

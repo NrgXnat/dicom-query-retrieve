@@ -43,6 +43,8 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
+import java.util.zip.DataFormatException;
+
 @Getter(AccessLevel.PROTECTED)
 @Accessors(prefix = "_")
 @Slf4j
@@ -83,6 +85,10 @@ public abstract class PacsServiceResource extends PacsSerializingResource {
 
     public void respondWithPacsNotFound() {
         respondWithNotFound("No PACS were found that match this request");
+    }
+
+    protected void respondWithInvalidPacsId(final String pacsId) {
+        getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "The PACS ID submitted is invalid: " + pacsId);
     }
 
     public void respondWithNotFound(final String message) {
@@ -136,27 +142,29 @@ public abstract class PacsServiceResource extends PacsSerializingResource {
         _mailService.sendHtmlMessage(adminEmail, getUser().getEmail(), "[" + TurbineUtils.GetSystemName() + "] " + subject, body);
     }
 
-    protected Pacs getPacs() throws PacsNotFoundException {
+    protected Pacs getPacs() throws PacsNotFoundException, DataFormatException {
         return getPacsHelper(getRequest());
     }
 
-    protected Pacs getPacs(final Request request) throws PacsNotFoundException {
+    protected Pacs getPacs(final Request request) throws PacsNotFoundException, DataFormatException {
         return getPacsHelper(request);
     }
 
-    private Pacs getPacsHelper(final Request request) throws PacsNotFoundException {
-        final Pacs pacs = _pacsEntityService.retrieve(getPacsId(request));
+    private Pacs getPacsHelper(final Request request) throws DataFormatException, PacsNotFoundException {
+        final long pacsId = getPacsId(request);
+        final Pacs pacs   = _pacsEntityService.retrieve(pacsId);
         if (null == pacs) {
-            throw new PacsNotFoundException();
+            throw new PacsNotFoundException(pacsId);
         }
         return pacs;
     }
 
-    protected static Long getPacsId(final Request request) throws PacsNotFoundException {
+    protected static Long getPacsId(final Request request) throws DataFormatException {
+        final String pacsId = getParameter(request, "PACS_ID").toString();
         try {
-            return Long.valueOf(getParameter(request, "PACS_ID").toString());
+            return Long.valueOf(pacsId);
         } catch (NumberFormatException e) {
-            throw new PacsNotFoundException();
+            throw new DataFormatException(pacsId);
         }
     }
 

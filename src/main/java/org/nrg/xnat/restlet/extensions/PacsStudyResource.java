@@ -22,6 +22,8 @@ import org.restlet.data.Response;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Variant;
 
+import java.util.zip.DataFormatException;
+
 @XnatRestlet("/services/pacs/{PACS_ID}/search/studies/{STUDY_ID}")
 public class PacsStudyResource extends PacsServiceResource {
     public PacsStudyResource(final Context context, final Request request, final Response response) {
@@ -39,8 +41,10 @@ public class PacsStudyResource extends PacsServiceResource {
             return jsonRepresentation(study, JsonViews.StudyRootView.class);
         } catch (final PacsNotFoundException e) {
             respondWithPacsNotFound();
-            return null;
+        } catch (DataFormatException e) {
+            respondWithInvalidPacsId(e.getMessage());
         }
+        return null;
     }
 
     private String getStudyId() {

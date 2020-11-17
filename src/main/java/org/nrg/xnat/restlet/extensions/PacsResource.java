@@ -28,6 +28,8 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.util.zip.DataFormatException;
+
 @XnatRestlet("/pacs/{PACS_ID}")
 @Slf4j
 public class PacsResource extends PacsAdminResource {
@@ -42,8 +44,10 @@ public class PacsResource extends PacsAdminResource {
             return jsonRepresentation(pacs);
         } catch (final PacsNotFoundException e) {
             respondWithPacsNotFound();
-            return null;
+        } catch (DataFormatException e) {
+            respondWithInvalidPacsId(e.getMessage());
         }
+        return null;
     }
 
     @Override
@@ -68,6 +72,8 @@ public class PacsResource extends PacsAdminResource {
                 respondWithDuplicateAeError(e);
             } catch (final DataIntegrityViolationException e) {
                 respondWithDataIntegrityError(e);
+            } catch (DataFormatException e) {
+                e.printStackTrace();
             }
         } else {
             final String message = String.format("User %s is not an administrator and can't edit or create PACs configurations.", user.getUsername());
@@ -92,6 +98,8 @@ public class PacsResource extends PacsAdminResource {
                 respondWithSuccessNoContent();
             } catch (final PacsNotFoundException e) {
                 respondWithPacsNotFound();
+            } catch (DataFormatException e) {
+                respondWithInvalidPacsId(e.getMessage());
             }
         } else {
             final String message = String.format("User %s is not an administrator and can't delete PACs configurations.", user.getUsername());
@@ -100,15 +108,17 @@ public class PacsResource extends PacsAdminResource {
         }
     }
 
-    private Pacs retrievePacs() throws PacsNotFoundException {
+    private Pacs retrievePacs() throws PacsNotFoundException, DataFormatException {
+        final String pacsId = getPacsId();
         try {
-            final Pacs pacs = getPacsEntityService().retrieve(Long.parseLong(getPacsId()));
+            final long parsed   = Long.parseLong(pacsId);
+            final Pacs pacs = getPacsEntityService().retrieve(parsed);
             if (null == pacs) {
-                throw new PacsNotFoundException();
+                throw new PacsNotFoundException(parsed);
             }
             return pacs;
         } catch (final NumberFormatException e) {
-            throw new PacsNotFoundException();
+            throw new DataFormatException(pacsId);
         }
     }
 
@@ -122,6 +132,10 @@ public class PacsResource extends PacsAdminResource {
 
     private void respondWithPacsNotFound() {
         getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "No PACS were found that match this request.");
+    }
+
+    private void respondWithInvalidPacsId(final String pacsId) {
+        getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "The PACS ID submitted is invalid: " + pacsId);
     }
 
     private void respondWithSuccessNoContent() {

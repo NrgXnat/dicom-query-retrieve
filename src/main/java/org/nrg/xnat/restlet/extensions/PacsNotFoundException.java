@@ -12,8 +12,12 @@
 
 package org.nrg.xnat.restlet.extensions;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
 public class PacsNotFoundException extends Exception {
-    public PacsNotFoundException() {
-        super("Specified PACS not found.");
+    public PacsNotFoundException(final long pacsId) {
+        super("Specified PACS " + pacsId + " not found.");
     }
 }

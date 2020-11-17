@@ -26,6 +26,8 @@ import org.restlet.data.Response;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Variant;
 
+import java.util.zip.DataFormatException;
+
 @XnatRestlet("/services/pacs/{PACS_ID}/search/studies")
 public class PacsStudyListResource extends PacsServiceResource {
     public PacsStudyListResource(final Context context, final Request request, final Response response) {
@@ -60,13 +62,13 @@ public class PacsStudyListResource extends PacsServiceResource {
             return jsonRepresentation(studies, JsonViews.StudyRootView.class);
         } catch (final PacsNotFoundException e) {
             respondWithPacsNotFound();
-            return null;
         } catch (final InvalidStudyDateRangeException e) {
             respondWithBadRequest(e.getMessage());
-            return null;
         } catch (final SearchCriteriaTooVagueException e) {
             respondWithBadRequest("Please specify at least one of the patient search criteria.");
-            return null;
+        } catch (DataFormatException e) {
+            respondWithInvalidPacsId(e.getMessage());
         }
+        return null;
     }
 }

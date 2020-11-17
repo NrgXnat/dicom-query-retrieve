@@ -1,6 +1,7 @@
 package org.nrg.dqr.services;
 
 import org.nrg.dqr.daos.QueuedPacsRequestDAO;
+import org.nrg.dqr.domain.entities.PaginatedPacsRequest;
 import org.nrg.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xft.security.UserI;
@@ -25,13 +26,23 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernateEntitySe
     @Override
     @Transactional
     public List<QueuedPacsRequest> getAllOrderedByDate() {
+        return getAllOrderedByDate(null);
+    }
+
+    @Override
+    public List<QueuedPacsRequest> getAllOrderedByDate(final PaginatedPacsRequest request) {
         return getDao().findAllOrderedByDate();
     }
 
     @Override
     @Transactional
     public List<QueuedPacsRequest> getAllForUser(final UserI user) {
-        return getDao().findAllForUser(user);
+        return getDao().findAllByUser(user);
+    }
+
+    @Override
+    public List<QueuedPacsRequest> getAllForUser(final UserI user, final PaginatedPacsRequest request) {
+        return getDao().findAllByUser(user, request);
     }
 
     @Override
@@ -41,28 +52,48 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernateEntitySe
     }
 
     @Override
+    public List<Map<String, Object>> getAllWithOrder(final PaginatedPacsRequest request) {
+        return null;
+    }
+
+    @Override
     @Transactional
     public List<Map<String, Object>> getAllWithOrderForUser(UserI user) {
         return _template.queryForList(QUERY_QUEUE_WITH_LOCATION_FOR_USER, new MapSqlParameterSource("user", user.getUsername()));
     }
 
     @Override
+    public List<Map<String, Object>> getAllWithOrderForUser(final UserI user, final PaginatedPacsRequest request) {
+        return null;
+    }
+
+    @Override
     @Transactional
-    public QueuedPacsRequest getByIdForUser(Long id, UserI user) {
-        final List<QueuedPacsRequest> list = getDao().findByIdForUser(id, user);
+    public QueuedPacsRequest getByIdForUser(final long id, UserI user) {
+        final List<QueuedPacsRequest> list = getDao().findByPacsIdForUser(id, user);
         return list == null || list.isEmpty() ? null : list.get(0);
     }
 
     @Override
     @Transactional
-    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(Long pacsId) {
+    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(long pacsId) {
         return getDao().findAllForPacsOrderedByPriorityAndDate(pacsId);
     }
 
     @Override
+    public List<QueuedPacsRequest> getAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
+        return null;
+    }
+
+    @Override
     @Transactional
-    public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(Long pacsId) {
+    public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(long pacsId) {
         return getDao().findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId);
+    }
+
+    @Override
+    public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
+        return null;
     }
 
     private static final String QUERY_QUEUE_WITH_LOCATION          = "SELECT * FROM (SELECT row_number() over(partition by pacs_id ORDER BY priority, queued_time) AS queue_location, * FROM xhbm_queued_pacs_request ORDER BY priority, queued_time) AS queue;";

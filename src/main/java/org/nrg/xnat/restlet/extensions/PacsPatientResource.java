@@ -22,6 +22,8 @@ import org.restlet.data.Response;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Variant;
 
+import java.util.zip.DataFormatException;
+
 @XnatRestlet("/services/pacs/{PACS_ID}/search/patients/{PATIENT_ID}")
 public class PacsPatientResource extends PacsServiceResource {
     public PacsPatientResource(final Context context, final Request request, final Response response) {
@@ -40,8 +42,10 @@ public class PacsPatientResource extends PacsServiceResource {
             }
         } catch (final PacsNotFoundException e) {
             respondWithPacsNotFound();
-            return null;
+        } catch (DataFormatException e) {
+            respondWithInvalidPacsId(e.getMessage());
         }
+        return null;
     }
 
     private String getPatientId() {
