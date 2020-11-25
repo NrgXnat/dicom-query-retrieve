@@ -12,7 +12,10 @@
 
 package org.nrg.dqr.domain.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.hibernate.annotations.Cache;
@@ -26,24 +29,16 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.io.Serializable;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"aeTitle"}))
+@Table(uniqueConstraints = {@UniqueConstraint(columnNames = "label"), @UniqueConstraint(columnNames = {"host", "queryRetrievePort", "aeTitle"})})
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @PortNotNullIfDefaultPacs
+@AllArgsConstructor
 @NoArgsConstructor
-public class Pacs extends AbstractHibernateEntity implements Serializable {
-    @NotBlank
-    @Size(max = 100)
-    public String getAeTitle() {
-        return _aeTitle;
-    }
-
-    public void setAeTitle(final String aeTitle) {
-        _aeTitle = aeTitle;
-    }
-
+@Builder
+@Accessors(prefix = "_")
+public class Pacs extends AbstractHibernateEntity {
     @NotBlank
     @Size(max = 100)
     public String getHost() {
@@ -54,6 +49,23 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _host = host;
     }
 
+    @NotBlank
+    @Size(max = 100)
+    public String getAeTitle() {
+        return _aeTitle;
+    }
+
+    public void setAeTitle(final String aeTitle) {
+        _aeTitle = aeTitle;
+    }
+
+    public Integer getQueryRetrievePort() {
+        return _queryRetrievePort;
+    }
+
+    public void setQueryRetrievePort(final Integer queryRetrievePort) {
+        _queryRetrievePort = queryRetrievePort;
+    }
 
     @Size(max = 100)
     public String getLabel() {
@@ -79,7 +91,10 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         return _defaultStoragePacs;
     }
 
-    public void setDefaultStoragePacs(final Boolean defaultStoragePacs) {
+    public void setDefaultStoragePacs(final boolean defaultStoragePacs) {
+        if (defaultStoragePacs) {
+            setStorable(true);
+        }
         _defaultStoragePacs = defaultStoragePacs;
     }
 
@@ -93,20 +108,15 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _queryable = queryable;
     }
 
-    public Integer getQueryRetrievePort() {
-        return _queryRetrievePort;
-    }
-
-    public void setQueryRetrievePort(final Integer queryRetrievePort) {
-        _queryRetrievePort = queryRetrievePort;
-    }
-
     @NotNull
     public Boolean isDefaultQueryRetrievePacs() {
         return _defaultQueryRetrievePacs;
     }
 
-    public void setDefaultQueryRetrievePacs(final Boolean defaultQueryRetrievePacs) {
+    public void setDefaultQueryRetrievePacs(final boolean defaultQueryRetrievePacs) {
+        if (defaultQueryRetrievePacs) {
+            setQueryable(true);
+        }
         _defaultQueryRetrievePacs = defaultQueryRetrievePacs;
     }
 

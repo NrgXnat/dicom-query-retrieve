@@ -1,7 +1,7 @@
 /*!
  * DQR Utilization Schedule
  */
-
+console.log('Now loading schedule.js');
 (function(factory){
     if (typeof define === 'function' && define.amd) {
         define(factory);
@@ -41,7 +41,16 @@
         getQueryStringValue('label') ||
         getUrlHashValue('#label=');
 
-    var daysConfig = [
+    const daysIndices = {
+        'SUNDAY': 1,
+        'MONDAY': 2,
+        'TUESDAY': 3,
+        'WEDNESDAY': 4,
+        'THURSDAY': 5,
+        'FRIDAY': 6,
+        'SATURDAY': 7
+    };
+    const daysConfig = [
         ['', ''],  // placeholder for index 0
         ['Sun', 'sunday-schedule', 'Sunday'],
         ['Mon', 'monday-schedule', 'Monday'],
@@ -66,6 +75,18 @@
 
     })(24);
 
+    // var data = ['MONDAY', 'WEDNESDAY', 'SATURDAY', 'TUESDAY', 'THURSDAY', 'SUNDAY', 'FRIDAY'],
+    // const daysOfWeekOrder = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const daysOfWeek = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'].reduce(function (r, a, i) {
+        r[a] = ('000' + i).slice(-4);
+        return r;
+    }, {});
+
+    const zeroHour = /^0{1,2}:00$/;
+
+    function daysOfWeekSorter(a, b) {
+        return (daysOfWeek[a] || a).localeCompare(daysOfWeek[b] || b);
+    }
 
     // create array of possible time values
     function intervalTimes(){
@@ -123,16 +144,19 @@
         var obj = extend({
             id: '',
             pacsId: window.pacsId,
-            dayOfWeek: 1,
-            availabilityStart: '0:00',
+            dayOfWeek: 'SUNDAY',
+            availabilityStart: '00:00',
             availabilityEnd: '24:00',
             utilizationPercent: 0,
             threads: 0
         }, data);
+        if (zeroHour.test(obj.availabilityEnd)) {
+            obj.availabilityEnd = '24:00'
+        }
 
         // aliases and calculated values
 
-        obj.dayIndex = +obj.dayOfWeek;
+        obj.dayIndex = Number.isInteger(obj.dayOfWeek) ? obj.dayOfWeek : daysIndices[obj.dayOfWeek];
 
         obj.dayLabel = daysConfig[obj.dayIndex][0];
         obj.dayClass = daysConfig[obj.dayIndex][1];
@@ -177,7 +201,7 @@
         // console.log('edit interval');
 
         var id      = data.id;
-        var day     = data.dayOfWeek;
+        var day     = daysIndices[data.dayOfWeek];
         var start   = data.availabilityStart;
         var end     = data.availabilityEnd;
         var threads = data.threads;
@@ -472,10 +496,8 @@
             // console.log(data);
 
             // iterate returned data (by day)
-            Object.keys(data).sort().forEach(function(dayKey, i){
-
-                var dayIndex = +dayKey;
-
+            Object.keys(data).sort(daysOfWeekSorter).forEach(function(dayKey, i){
+                var dayIndex = daysIndices[dayKey];
                 var dayLabel = daysConfig[dayIndex][0];
                 var dayClass = daysConfig[dayIndex][1];
 
@@ -528,13 +550,13 @@
                         var filler = {};
 
                         // always create a '0' block - it can be overwritten
-                        // if there's a block defined that starts at '0:00'
+                        // if there's a block defined that starts at '00:00'
                         if (i === 0) {
                             blocks['0000'] = timeBlockData({
-                                availabilityStart: '0:00',
+                                availabilityStart: '00:00',
                                 availabilityEnd: block.startValue > 0 ? block.startTime : block.endTime,
                                 // id: '',
-                                dayOfWeek: dayIndex
+                                dayOfWeek: dayKey
                             });
                         }
 
@@ -548,7 +570,7 @@
                                 availabilityStart: prevBlock.availabilityEnd,
                                 availabilityEnd: block.availabilityStart,
                                 // id: '',
-                                dayOfWeek: dayIndex
+                                dayOfWeek: dayKey
                             });
 
                             blocks[filler.startKey] = filler;
@@ -563,7 +585,7 @@
                         if (dayData.length === i + 1 && block.endValue < 2400) {
 
                             filler = timeBlockData({
-                                dayOfWeek: dayIndex,
+                                dayOfWeek: dayKey,
                                 availabilityStart: block.endTime,
                                 availabilityEnd: '24:00'
                             });
@@ -579,7 +601,7 @@
                 else {
                     // set whole day to 0 utilization if there is nothing configured
                     blocks['0000'] = timeBlockData({
-                        dayOfWeek: dayIndex,
+                        dayOfWeek: dayKey,
                         id: '',
                         utilizationPercent: 0,
                         threads: 0
@@ -632,7 +654,7 @@
                     }, [
                         block.id ? ['input|type=hidden|name=id', { value: block.id }] : '',
                         ['input|type=hidden|name=pacsId', { value: block.pacsId }],
-                        ['input|type=hidden|name=dayOfWeek', { value: dayIndex }],
+                        ['input|type=hidden|name=dayOfWeek', { value: dayKey }],
                         ['input|type=hidden|name=availabilityStart', { value: block.startTime }],
                         ['input|type=hidden|name=availabilityEnd', { value: block.endTime }],
                         ['input|type=hidden|name=threads', { value: block.threads }],
@@ -657,7 +679,7 @@
                             intervalDialog({
                                 id: '',
                                 pacsId: window.pacsId,
-                                dayOfWeek: dayIndex,
+                                dayOfWeek: dayKey,
                                 availabilityStart: '!',
                                 availabilityEnd: '!',
                                 threads: 1,
@@ -688,7 +710,7 @@
         'availabilityEnd': 'string',
         'availabilityStart': 'string',
         // "created": "2019-02-28T19:25:24.888Z",
-        'dayOfWeek': 0,
+        'dayOfWeek': 'SUNDAY',
         'utilizationPercent': 0,
         // "disabled": "2019-02-28T19:25:24.888Z",
         // "enabled": true,

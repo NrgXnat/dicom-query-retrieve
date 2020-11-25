@@ -12,21 +12,16 @@
 
 package org.nrg.dqr.services;
 
-import org.apache.commons.lang3.StringUtils;
-import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.dqr.daos.PacsDAO;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Time;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 public class HibernatePacsEntityService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsEntityService {
-
     @Override
     @Transactional
     public Pacs create(final Pacs entity) {

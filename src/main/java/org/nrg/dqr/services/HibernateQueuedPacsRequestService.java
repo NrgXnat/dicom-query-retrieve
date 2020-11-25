@@ -69,7 +69,7 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernateEntitySe
 
     @Override
     @Transactional
-    public QueuedPacsRequest getByIdForUser(final long id, UserI user) {
+    public QueuedPacsRequest getByIdAndUser(final long id, UserI user) {
         final List<QueuedPacsRequest> list = getDao().findByPacsIdForUser(id, user);
         return list == null || list.isEmpty() ? null : list.get(0);
     }

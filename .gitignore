@@ -5,3 +5,5 @@ dep*.txt
 out/
 .idea
 *.iml
+*.diff
+*.patch

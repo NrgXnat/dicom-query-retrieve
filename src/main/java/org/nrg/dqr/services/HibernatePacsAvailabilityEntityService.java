@@ -12,197 +12,97 @@
 
 package org.nrg.dqr.services;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.nrg.dqr.daos.PacsAvailabilityDAO;
-import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
-import org.nrg.xdat.XDAT;
+import org.nrg.xnat.utils.DqrDateRange;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Calendar;
-import java.util.HashMap;
+import java.time.DayOfWeek;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
+@Transactional
 public class HibernatePacsAvailabilityEntityService extends AbstractHibernateEntityService<PacsAvailability, PacsAvailabilityDAO> implements PacsAvailabilityEntityService {
-
     @Override
-    @Transactional
     public PacsAvailability create(final PacsAvailability entity) {
         return super.create(entity);
     }
 
     @Override
-    @Transactional
     public void update(final PacsAvailability entity) {
         super.update(entity);
     }
 
     @Override
-    @Transactional
-    public List<PacsAvailability> findSettingsByPacs(Long pacsId){
-        return getDao().findSettingsByPacs(pacsId);
+    public List<PacsAvailability> findAllByPacsId(final long pacsId) {
+        return getDao().findAllByPacsId(pacsId);
+    }
+
+    @Override
+    public List<PacsAvailability> findAllByPacsIdAndDayOfWeek(final long pacsId, final DayOfWeek day) {
+        return getDao().findAllByPacsIdAndDayOfWeek(pacsId, day);
+    }
+
+    @Override
+    public Map<DayOfWeek, List<PacsAvailability>> findAllByPacsIdGroupedByDayOfWeek(final long pacsId) {
+        return Arrays.stream(DayOfWeek.values()).collect(Collectors.toMap(Function.identity(), dayOfWeek -> getDao().findAllByPacsIdAndDayOfWeek(pacsId, dayOfWeek)));
     }
 
     @Override
     @Transactional
-    public List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day){
-        return getDao().findSettingsByPacsByDay(pacsId,day);
-    }
-
-    @Override
-    @Transactional
-    public Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId){
-        Map<Integer, List<PacsAvailability>> availabilityByDay = new HashMap<>();
-        for(int day=1;day<=7;day++) {
-            availabilityByDay.put(day,getDao().findSettingsByPacsByDay(pacsId, day));
-        }
-        return availabilityByDay;
-    }
-
-    @Override
-    @Transactional
-    public Boolean checkOverlap(PacsAvailability availabilityToCheck, boolean removeOverlap){
+    public boolean checkOverlap(PacsAvailability availabilityToCheck, boolean removeOverlap) {
         return checkOverlap(availabilityToCheck, removeOverlap, -1);
     }
 
     @Override
-    @Transactional
-    public Boolean checkOverlap(PacsAvailability availabilityToCheck, boolean removeOverlap, long existingIntervalId){
-        Long pacsId = availabilityToCheck.getPacsId();
-        int day = availabilityToCheck.getDayOfWeek();
-        String startTimeString = availabilityToCheck.getAvailabilityStart();
-        String endTimeString = availabilityToCheck.getAvailabilityEnd();
-        List<PacsAvailability> intervals = getDao().findSettingsByPacsByDay(pacsId, day);
-        long newStartMillis = 0L;
-        long newEndMillis = 0L;
+    public boolean checkOverlap(final PacsAvailability reference, final boolean removeOverlap, final long existingIntervalId) {
+        final long      pacsId = reference.getPacsId();
+        final DayOfWeek day    = reference.getDayOfWeek();
 
-        Calendar currentCal = Calendar.getInstance();
-        if (StringUtils.isNotBlank(startTimeString)) {
-            try {
-                Calendar startCal = (Calendar) currentCal.clone();
-                String[] startTime = StringUtils.split(startTimeString, ":");
-                startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
-                startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
-                newStartMillis = startCal.getTimeInMillis();
-            } catch (Exception e) {
+        final Map<DqrDateRange.Relative, List<PacsAvailability>> segregated = getDao().findAllByPacsIdAndDayOfWeek(pacsId, day).stream().filter(availability -> availability.getId() != reference.getId()).collect(Collectors.groupingBy(reference::relative));
 
-            }
-        }
-        if (StringUtils.isNotBlank(endTimeString)) {
-            try {
-                Calendar endCal = (Calendar) currentCal.clone();
-                String[] endTime = StringUtils.split(endTimeString, ":");
-                endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
-                endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
-                newEndMillis = endCal.getTimeInMillis();
-            } catch (Exception e) {
-
-            }
+        final boolean hasOverlap = !Collections.disjoint(segregated.keySet(), OVERLAPS);
+        if (!hasOverlap || !removeOverlap) {
+            return hasOverlap;
         }
 
-        boolean hasOverlap = false;
-        for (PacsAvailability availability : intervals) {
-            long currAvailabilityId = availability.getId();
-            String availabilityStartTimeString = availability.getAvailabilityStart();
-            String availabilityEndTimeString = availability.getAvailabilityEnd();
+        // Delete all existing availabilities that are identical to or included by the reference availability.
+        final List<PacsAvailability> identical     = ObjectUtils.defaultIfNull(segregated.get(DqrDateRange.Relative.Identical), Collections.emptyList());
+        final List<PacsAvailability> includes      = ObjectUtils.defaultIfNull(segregated.get(DqrDateRange.Relative.Includes), Collections.emptyList());
+        final List<PacsAvailability> included      = ObjectUtils.defaultIfNull(segregated.get(DqrDateRange.Relative.Included), Collections.emptyList());
+        final List<PacsAvailability> beforeOverlap = ObjectUtils.defaultIfNull(segregated.get(DqrDateRange.Relative.BeforeOverlap), Collections.emptyList());
+        final List<PacsAvailability> afterOverlap  = ObjectUtils.defaultIfNull(segregated.get(DqrDateRange.Relative.AfterOverlap), Collections.emptyList());
+        Stream.concat(identical.stream(), includes.stream()).filter(availability -> availability.getId() != existingIntervalId).forEach(this::delete);
+        included.stream().filter(availability -> availability.getId() != existingIntervalId).forEach(availability -> {
+            create(PacsAvailability.builder().pacsId(pacsId).threads(availability.getThreads()).utilizationPercent(availability.getUtilizationPercent()).dayOfWeek(day).availabilityStart(reference.getAvailabilityEnd()).availabilityEnd(availability.getAvailabilityEnd()).build());
+            availability.setAvailabilityEnd(reference.getAvailabilityStart());
+            update(availability);
+        });
+        beforeOverlap.stream().filter(availability -> availability.getId() != existingIntervalId).forEach(availability -> {
+            availability.setAvailabilityStart(reference.getAvailabilityEnd());
+            update(availability);
+        });
+        afterOverlap.stream().filter(availability -> availability.getId() != existingIntervalId).forEach(availability -> {
+            availability.setAvailabilityEnd(reference.getAvailabilityStart());
+            update(availability);
+        });
 
-            //If hour is one digit, pad with a zero.
-            if (availabilityStartTimeString.charAt(1) == ':') {
-                availabilityStartTimeString = "0" + availabilityStartTimeString;
-            }
-            if (availabilityEndTimeString.charAt(1) == ':') {
-                availabilityEndTimeString = "0" + availabilityEndTimeString;
-            }
-
-            long oldStartMillis = 0L;
-            long oldEndMillis = 0L;
-
-            if (StringUtils.isNotBlank(availabilityStartTimeString)) {
-                try {
-                    Calendar startCal = (Calendar) currentCal.clone();
-                    String[] startTime = StringUtils.split(availabilityStartTimeString, ":");
-                    startCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(startTime[0]));
-                    startCal.set(Calendar.MINUTE, Integer.parseInt(startTime[1]));
-                    oldStartMillis = startCal.getTimeInMillis();
-                } catch (Exception e) {
-
-                }
-            }
-            if (StringUtils.isNotBlank(availabilityEndTimeString)) {
-                try {
-                    Calendar endCal = (Calendar) currentCal.clone();
-                    String[] endTime = StringUtils.split(availabilityEndTimeString, ":");
-                    endCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(endTime[0]));
-                    endCal.set(Calendar.MINUTE, Integer.parseInt(endTime[1]));
-                    oldEndMillis = endCal.getTimeInMillis();
-                } catch (Exception e) {
-
-                }
-            }
-
-            if(newStartMillis<=oldStartMillis && oldStartMillis<newEndMillis){
-                hasOverlap = true;
-                if(!removeOverlap) {
-                    break;
-                }
-                else if(existingIntervalId!=currAvailabilityId){
-                    if(newEndMillis>=oldEndMillis){
-                        //case 4
-                        delete(currAvailabilityId);
-                    }
-                    else{
-                        //case 1
-                        availability.setAvailabilityStart(endTimeString);
-                        update(availability);
-                    }
-                }
-            }
-            else if(newStartMillis>oldStartMillis && oldEndMillis>newEndMillis){
-                hasOverlap = true;
-                if(!removeOverlap) {
-                    break;
-                }
-                else if(existingIntervalId!=currAvailabilityId){
-                    //case 2
-                    PacsAvailability newSecondHalfOfExisting = new PacsAvailability();
-                    newSecondHalfOfExisting.setDayOfWeek(availability.getDayOfWeek());
-                    newSecondHalfOfExisting.setPacsId(availability.getPacsId());
-                    newSecondHalfOfExisting.setThreads(availability.getThreads());
-                    newSecondHalfOfExisting.setUtilizationPercent(availability.getUtilizationPercent());
-                    newSecondHalfOfExisting.setAvailabilityStart(endTimeString);
-                    newSecondHalfOfExisting.setAvailabilityEnd(availability.getAvailabilityEnd());
-                    create(newSecondHalfOfExisting);
-
-                    availability.setAvailabilityEnd(startTimeString);
-                    update(availability);
-                }
-            }
-            else if(newStartMillis<oldEndMillis && oldEndMillis<=newEndMillis){
-                hasOverlap = true;
-                if(!removeOverlap) {
-                    break;
-                }
-                else if(existingIntervalId!=currAvailabilityId){
-                    //case 3
-                    availability.setAvailabilityEnd(startTimeString);
-                    update(availability);
-                }
-            }
-        }
-        return hasOverlap;
+        return true;
     }
 
     @Override
-    @Transactional
-    public void deleteAllForPacs(Long pacsId){
-        final List<PacsAvailability> pacsAvailabilities = getDao().findSettingsByPacs(pacsId);
-        for (final PacsAvailability p : pacsAvailabilities) {
-            delete(p);
-        }
+    public void deleteAllByPacsId(final long pacsId) {
+        getDao().findAllByPacsId(pacsId).forEach(this::delete);
     }
 
+    private static final List<DqrDateRange.Relative> OVERLAPS = Arrays.asList(DqrDateRange.Relative.Identical, DqrDateRange.Relative.Included, DqrDateRange.Relative.Includes, DqrDateRange.Relative.BeforeOverlap, DqrDateRange.Relative.AfterOverlap);
 }

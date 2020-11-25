@@ -29,7 +29,7 @@ public class HibernateExecutedPacsRequestService extends AbstractHibernateEntity
     }
 
     @Override
-    public ExecutedPacsRequest getByIdForUser(final long id, final UserI user) {
+    public ExecutedPacsRequest getByIdAndUser(final long id, final UserI user) {
         return getTopItemSafely(getDao().findAllByIdAndUser(id, user));
     }
 

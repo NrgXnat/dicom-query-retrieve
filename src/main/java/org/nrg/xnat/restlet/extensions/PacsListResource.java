@@ -29,6 +29,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -64,11 +65,9 @@ public class PacsListResource extends PacsAdminResource {
         final UserI user = getUser();
         if (Roles.isSiteAdmin(user)) {
             try {
-                final Pacs pacs   = buildPacsFromRequest(null);
-                final long pacsId = pacs.getId();
-                getPacsEntityService().create(pacs);
-                IntStream.range(1, 8).mapToObj(day -> PacsAvailability.builder().dayOfWeek(day).pacsId(pacsId).threads(1).utilizationPercent(100).availabilityStart("0:00").availabilityEnd("24:00").build()).forEach(availability -> getPacsAvailabilityEntityService().create(availability));
-                getResponse().setLocationRef("pacs/" + pacs.getId());
+                final long pacsId = getPacsEntityService().create(buildPacsFromRequest(null)).getId();
+                IntStream.range(1, 8).mapToObj(day -> PacsAvailability.builder().dayOfWeek(DayOfWeek.of(day)).pacsId(pacsId).threads(1).utilizationPercent(100).availabilityStart("00:00").availabilityEnd("00:00").build()).forEach(availability -> getPacsAvailabilityEntityService().create(availability));
+                getResponse().setLocationRef("pacs/" + pacsId);
                 respondWithSuccessCreated();
             } catch (final InvalidRequestBodyException e) {
                 respondWithInvalidRequestBody();

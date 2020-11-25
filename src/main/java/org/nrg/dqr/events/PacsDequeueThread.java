@@ -21,6 +21,7 @@ import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -69,13 +70,13 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             while(continueThread) {
                 Calendar currentCal = Calendar.getInstance();
                 int currentDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK);
-                List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findSettingsByPacsByDay(pacsId, currentDayOfWeek);
+                List<PacsAvailability> availabilityList = pacsAvailabilityEntityService.findAllByPacsIdAndDayOfWeek(pacsId, DayOfWeek.of(currentDayOfWeek));
                 int utilizationPercent = 0;
                 int threads = 0;
                 for (PacsAvailability availability : availabilityList) {
                     String availabilityStartTimeString = availability.getAvailabilityStart();
                     String availabilityEndTimeString = availability.getAvailabilityEnd();
-                    int availabilityDay = availability.getDayOfWeek();
+                    int availabilityDay = availability.getDayOfWeek().getValue();
 
                     //If hour is one digit, pad with a zero.
                     if (availabilityStartTimeString.charAt(1) == ':') {

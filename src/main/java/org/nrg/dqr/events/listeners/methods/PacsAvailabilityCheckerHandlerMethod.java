@@ -9,9 +9,14 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.config.services.ConfigService;
 import org.nrg.dqr.events.PacsThreadsChecker;
 import org.nrg.dqr.preferences.DqrPreferences;
 import org.nrg.dqr.services.*;
+import org.nrg.mail.services.MailService;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xdat.security.user.XnatUserProvider;
+import org.nrg.xdat.services.StudyRoutingService;
 import org.nrg.xnat.event.listeners.methods.AbstractScheduledXnatPreferenceHandlerMethod;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,21 +35,28 @@ import org.springframework.stereotype.Component;
 @Accessors(prefix = "_")
 public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatPreferenceHandlerMethod {
     @Autowired
-    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final QueuedPacsRequestService queueService, final ExecutedPacsRequestService executedService) {
+    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         super(scheduler, AVAILABILITY_CHECK_FREQUENCY);
 
         _pacsEntityService = pacsEntityService;
         _pacsService = pacsService;
         _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
-        _queueService = queueService;
-        _executedService = executedService;
+        _queuedPacsRequestService = queuedPacsRequestService;
+        _executedPacsRequestService = executedPacsRequestService;
+        _studyRoutingService = studyRoutingService;
+        _dqrPreferences = dqrPreferences;
+        _siteConfigPreferences = siteConfigPreferences;
+        _configService = configService;
+        _mailService = mailService;
+        _primaryAdminUserProvider = primaryAdminUserProvider;
 
         setPacsAvailabilityCheckFrequency(StringUtils.defaultIfBlank(preferences.getPacsAvailabilityCheckFrequency(), DEFAULT_CHECK_FREQUENCY));
     }
 
     @Override
     protected AbstractXnatRunnable getTask() {
-        return new PacsThreadsChecker(_pacsEntityService, _pacsService, _pacsAvailabilityEntityService, _queueService, _executedService);
+        // return new PacsThreadsChecker(_pacsService, _pacsEntityService, _pacsAvailabilityEntityService, _queuedPacsRequestService, _executedPacsRequestService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider);
+        return new PacsThreadsChecker(_pacsEntityService, _pacsService, _pacsAvailabilityEntityService, _queuedPacsRequestService, _executedPacsRequestService);
     }
 
     @Override
@@ -72,8 +84,14 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
     private final PacsEntityService             _pacsEntityService;
     private final PacsService                   _pacsService;
     private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
-    private final QueuedPacsRequestService      _queueService;
-    private final ExecutedPacsRequestService    _executedService;
+    private final QueuedPacsRequestService      _queuedPacsRequestService;
+    private final ExecutedPacsRequestService    _executedPacsRequestService;
+    private final StudyRoutingService           _studyRoutingService;
+    private final DqrPreferences                _dqrPreferences;
+    private final SiteConfigPreferences         _siteConfigPreferences;
+    private final ConfigService                 _configService;
+    private final MailService                   _mailService;
+    private final XnatUserProvider              _primaryAdminUserProvider;
 
     private String _pacsAvailabilityCheckFrequency;
 }

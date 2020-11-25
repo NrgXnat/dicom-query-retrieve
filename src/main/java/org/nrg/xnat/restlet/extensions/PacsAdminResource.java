@@ -45,13 +45,11 @@ public abstract class PacsAdminResource extends PacsSerializingResource {
             pacs.setHost(requestForm.getFirstValue("host"));
             pacs.setLabel(requestForm.getFirstValue("label"));
             pacs.setStorable(Boolean.parseBoolean(convertCheckboxToBoolean(requestForm.getFirstValue("storable"))));
-            pacs.setDefaultStoragePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("defaultStoragePacs"))));
+            pacs.setDefaultStoragePacs(Boolean.parseBoolean(convertCheckboxToBoolean(requestForm.getFirstValue("defaultStoragePacs"))));
             pacs.setQueryable(Boolean.parseBoolean(convertCheckboxToBoolean(requestForm.getFirstValue("queryable"))));
-            pacs.setQueryRetrievePort(null);
-            if (!StringUtils.isBlank(requestForm.getFirstValue("queryRetrievePort"))) {
-                pacs.setQueryRetrievePort(Integer.valueOf(requestForm.getFirstValue("queryRetrievePort")));
-            }
-            pacs.setDefaultQueryRetrievePacs(Boolean.valueOf(convertCheckboxToBoolean(requestForm.getFirstValue("defaultQueryRetrievePacs"))));
+            final String queryRetrievePort = requestForm.getFirstValue("queryRetrievePort");
+            pacs.setQueryRetrievePort(!StringUtils.isBlank(queryRetrievePort) ? Integer.valueOf(queryRetrievePort) : null);
+            pacs.setDefaultQueryRetrievePacs(Boolean.parseBoolean(convertCheckboxToBoolean(requestForm.getFirstValue("defaultQueryRetrievePacs"))));
             pacs.setSupportsExtendedNegotiations(Boolean.parseBoolean(convertCheckboxToBoolean(requestForm.getFirstValue("extendedNegotiations"))));
             pacs.setOrmStrategySpringBeanId(requestForm.getFirstValue("ormStrategySpringBeanId"));
             return pacs;

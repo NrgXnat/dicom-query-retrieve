@@ -15,14 +15,20 @@ package org.nrg.dqr.services;
 import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 
+import java.time.DayOfWeek;
 import java.util.List;
 import java.util.Map;
 
 public interface PacsAvailabilityEntityService extends BaseHibernateService<PacsAvailability> {
-    List<PacsAvailability> findSettingsByPacs(Long pacsId);
-    List<PacsAvailability> findSettingsByPacsByDay(Long pacsId, int day);
-    Map<Integer, List<PacsAvailability>> findSettingsByPacsGroupedByDay(Long pacsId);
-    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap);
-    Boolean checkOverlap(PacsAvailability availability, boolean removeOverlap, long existingIntervalId);
-    void deleteAllForPacs(Long pacsId);
+    List<PacsAvailability> findAllByPacsId(long pacsId);
+
+    List<PacsAvailability> findAllByPacsIdAndDayOfWeek(long pacsId, DayOfWeek day);
+
+    Map<DayOfWeek, List<PacsAvailability>> findAllByPacsIdGroupedByDayOfWeek(long pacsId);
+
+    boolean checkOverlap(PacsAvailability availability, boolean removeOverlap);
+
+    boolean checkOverlap(PacsAvailability availability, boolean removeOverlap, final long existing);
+
+    void deleteAllByPacsId(long pacsId);
 }

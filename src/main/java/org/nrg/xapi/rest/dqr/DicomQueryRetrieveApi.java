@@ -16,9 +16,9 @@ import org.nrg.dqr.util.CsvRow;
 import org.nrg.dqr.util.FindRow;
 import org.nrg.dqr.util.StudyImportInformation;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
 import org.nrg.xapi.authorization.DqrUserXapiAuthorization;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.rest.AbstractXapiRestController;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Project;
@@ -52,15 +52,18 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.URLConnection;
+import java.time.DayOfWeek;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Created by mike on 1/19/18.
  */
-@Api(description = "Dicom Query Retrieve API")
+@Api("DICOM Query Retrieve API")
 @XapiRestController
 @Slf4j
-@RequestMapping(value = "/dqr")
+@RequestMapping("/dqr")
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @Autowired
     protected DicomQueryRetrieveApi(DqrPreferences prefs, UserManagementServiceI userManagementService, RoleHolder roleHolder, ExecutedPacsRequestService requestService, QueuedPacsRequestService queuedRequestService, PacsService pacsService, PacsEntityService pacsEntityService, PacsPingService pacsPingService, ProjectIrbInfoEntityService projectIrbInfoEntityService, DqrAdminSettingsForProjectService adminSettingsForProjectService, PacsAvailabilityEntityService pacsAvailabilityEntityService) {
@@ -106,12 +109,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGet(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder
-                                                                        ) {
+    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGet(@ApiParam("Sort order") @RequestParam(defaultValue = "desc") final String sort) {
         final UserI               user        = getSessionUser();
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
-        if (!sortOrder.equalsIgnoreCase("asc")) {
+        if (!sort.equalsIgnoreCase("asc")) {
             Collections.reverse(allRequests);
         }
         return new ResponseEntity<>(allRequests, HttpStatus.OK);
@@ -144,22 +145,22 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/history/all/range", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGetRange(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
-            @ApiParam("Range start") @RequestParam(name = "start", defaultValue = "1") final int rangeStart,
-            @ApiParam("Range end") @RequestParam(name = "end", defaultValue = "100") final int rangeEnd) {
+            @ApiParam("Sort order") @RequestParam(defaultValue = "desc") final String sort,
+            @ApiParam("Range start") @RequestParam(defaultValue = "1") final int start,
+            @ApiParam("Range end") @RequestParam(defaultValue = "100") final int end) {
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAll();
-        int                       start       = Math.max(1, rangeStart);
-        int                       end         = Math.min(rangeEnd, allRequests.size());
+        int                       rangeStart       = Math.max(1, start);
+        int                       rangeEnd         = Math.min(end, allRequests.size());
         // if (start > end) {
         //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
-        if (start > allRequests.size()) {
+        if (rangeStart > allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        if (!sortOrder.equalsIgnoreCase("asc")) {
+        if (!sort.equalsIgnoreCase("asc")) {
             Collections.reverse(allRequests);
         }
-        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start - 1, end);
+        List<ExecutedPacsRequest> requestsPage = allRequests.subList(rangeStart - 1, rangeEnd);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
 
@@ -176,20 +177,19 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/history/all/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGetPaged(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+    public ResponseEntity<List<ExecutedPacsRequest>> queryHistoryGetPaged(@ApiParam("Sort order") @RequestParam(defaultValue = "desc") final String sort,
+                                                                          @ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+                                                                          @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAll();
-        int                       start       = pageIndex * pageSize;
-        int                       end         = Math.min((start + pageSize), allRequests.size());
+        int                       start       = page * size;
+        int                       end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        if (!sortOrder.equalsIgnoreCase("asc")) {
+        if (!sort.equalsIgnoreCase("asc")) {
             Collections.reverse(allRequests);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
@@ -210,24 +210,22 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user/range", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGetRange(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
-            @ApiParam("Range start") @RequestParam(name = "start", defaultValue = "1") final int rangeStart,
-            @ApiParam("Range end") @RequestParam(name = "end", defaultValue = "100") final int rangeEnd) {
-        final UserI               user        = getSessionUser();
-        List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
-        int                       start       = Math.max(1, rangeStart);
-        int                       end         = Math.min(rangeEnd, allRequests.size());
+    public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGetRange(@ApiParam("Sort order") @RequestParam(defaultValue = "desc") final String sort,
+                                                                              @ApiParam("Range start") @RequestParam(defaultValue = "1") final int start,
+                                                                              @ApiParam("Range end") @RequestParam(defaultValue = "100") final int end) {
+        List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(getSessionUser());
+        int                       rangeStart       = Math.max(1, start);
+        int                       rangeEnd         = Math.min(end, allRequests.size());
         // if (start > end) {
         //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
         // if (start > allRequests.size()) {
         //    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         // }
-        if (!sortOrder.equalsIgnoreCase("asc")) {
+        if (!sort.equalsIgnoreCase("asc")) {
             Collections.reverse(allRequests);
         }
-        List<ExecutedPacsRequest> requestsPage = allRequests.subList(start - 1, end);
+        List<ExecutedPacsRequest> requestsPage = allRequests.subList(rangeStart - 1, rangeEnd);
         return new ResponseEntity<>(requestsPage, HttpStatus.OK);
     }
 
@@ -242,20 +240,20 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/user/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<ExecutedPacsRequest>> userQueryHistoryGetPaged(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "desc") final String sortOrder,
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+            @ApiParam("Sort order") @RequestParam(defaultValue = "desc") final String sort,
+            @ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+            @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         final UserI               user        = getSessionUser();
         List<ExecutedPacsRequest> allRequests = _executedRequestService.getAllForUser(user);
-        int                       start       = pageIndex * pageSize;
-        int                       end         = Math.min((start + pageSize), allRequests.size());
+        int                       start       = page * size;
+        int                       end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        if (!sortOrder.equalsIgnoreCase("asc")) {
+        if (!sort.equalsIgnoreCase("asc")) {
             Collections.reverse(allRequests);
         }
         List<ExecutedPacsRequest> requestsPage = allRequests.subList(start, end);
@@ -270,16 +268,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/history/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<ExecutedPacsRequest> queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable("id") final String id) {
+    public ResponseEntity<ExecutedPacsRequest> queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
         try {
             final UserI user = getSessionUser();
-            if (Roles.isSiteAdmin(user)) {
-                return new ResponseEntity<>(_executedRequestService.get(Long.parseLong(id)), HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(_executedRequestService.getByIdForUser(Long.parseLong(id), user), HttpStatus.OK);
-            }
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(Roles.isSiteAdmin(user) ? _executedRequestService.get(id) : _executedRequestService.getByIdAndUser(id, user), HttpStatus.OK);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("pacs:executedRequest", id);
         }
     }
 
@@ -338,11 +332,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder
-                                                                           ) {
-        List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
-        if (sortOrder.equalsIgnoreCase("desc")) {
+    public ResponseEntity<List<Map<String, Object>>> queryQueueWithOrderGet(@ApiParam("Sort order") @RequestParam(defaultValue = "asc") final String sort) {
+        final List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
+        if (sort.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         return new ResponseEntity<>(allRequests, HttpStatus.OK);
@@ -356,12 +348,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/ordered", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder
-                                                                               ) {
+    public ResponseEntity<List<Map<String, Object>>> queryUserQueueWithOrderGet(@ApiParam("Sort order") @RequestParam(defaultValue = "asc") final String sort) {
         final UserI               user        = getSessionUser();
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
-        if (sortOrder.equalsIgnoreCase("desc")) {
+        if (sort.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         return new ResponseEntity<>(allRequests, HttpStatus.OK);
@@ -375,12 +365,11 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of queued DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<QueuedPacsRequest>> queryQueuePagedGet(
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+    public ResponseEntity<List<QueuedPacsRequest>> queryQueuePagedGet(@ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+                                                                      @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         List<QueuedPacsRequest> allRequests = _queuedRequestService.getAll();
-        int                     start       = pageIndex * pageSize;
-        int                     end         = Math.min((start + pageSize), allRequests.size());
+        int                     start       = page * size;
+        int                     end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         // }
@@ -402,12 +391,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     public ResponseEntity<List<QueuedPacsRequest>> queryUserQueuePagedGet(
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+            @ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+            @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         final UserI             user        = getSessionUser();
         List<QueuedPacsRequest> allRequests = _queuedRequestService.getAllForUser(user);
-        int                     start       = pageIndex * pageSize;
-        int                     end         = Math.min((start + pageSize), allRequests.size());
+        int                     start       = page * size;
+        int                     end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //    return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         // }
@@ -429,19 +418,19 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/queue/all/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     public ResponseEntity<List<Map<String, Object>>> queryQueueGetPagedWithOrder(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder,
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+            @ApiParam("Sort order") @RequestParam(defaultValue = "asc") final String sort,
+            @ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+            @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrder();
-        int                       start       = pageIndex * pageSize;
-        int                       end         = Math.min((start + pageSize), allRequests.size());
+        int                       start       = page * size;
+        int                       end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
         if (start > allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        if (sortOrder.equalsIgnoreCase("desc")) {
+        if (sort.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
@@ -458,21 +447,20 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/user/ordered/paged", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<List<Map<String, Object>>> queryUserQueueGetPagedWithOrder(
-            @ApiParam("Sort order") @RequestParam(name = "sort", defaultValue = "asc") final String sortOrder,
-            @ApiParam("Page index") @RequestParam(name = "page", defaultValue = "0") final int pageIndex,
-            @ApiParam("Page size") @RequestParam(name = "size", defaultValue = "100") final int pageSize) {
+    public ResponseEntity<List<Map<String, Object>>> queryUserQueueGetPagedWithOrder(@ApiParam("Sort order") @RequestParam(defaultValue = "asc") final String sort,
+                                                                                     @ApiParam("Page index") @RequestParam(defaultValue = "0") final int page,
+                                                                                     @ApiParam("Page size") @RequestParam(defaultValue = "100") final int size) {
         final UserI               user        = getSessionUser();
         List<Map<String, Object>> allRequests = _queuedRequestService.getAllWithOrderForUser(user);
-        int                       start       = pageIndex * pageSize;
-        int                       end         = Math.min((start + pageSize), allRequests.size());
+        int                       start       = page * size;
+        int                       end         = Math.min((start + size), allRequests.size());
         // if (start > end) {
         //     return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         // }
         if (start >= allRequests.size()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        if (sortOrder.equalsIgnoreCase("desc")) {
+        if (sort.equalsIgnoreCase("desc")) {
             Collections.reverse(allRequests);
         }
         List<Map<String, Object>> requestsPage = allRequests.subList(start, end);
@@ -487,16 +475,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ResponseEntity<QueuedPacsRequest> queryQueueGet(@ApiParam(value = "ID of the queued query request to fetch", required = true) @PathVariable("id") final String id) {
+    public ResponseEntity<QueuedPacsRequest> queryQueueGet(@ApiParam(value = "ID of the queued query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
         try {
             final UserI user = getSessionUser();
-            if (Roles.isSiteAdmin(user)) {
-                return new ResponseEntity<>(_queuedRequestService.get(Long.parseLong(id)), HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(_queuedRequestService.getByIdForUser(Long.parseLong(id), user), HttpStatus.OK);
-            }
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(Roles.isSiteAdmin(user) ? _queuedRequestService.get(id) : _queuedRequestService.getByIdAndUser(id, user), HttpStatus.OK);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("pacs:queuedRequest", id);
         }
     }
 
@@ -508,26 +492,21 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/request/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authorizer)
-    public ResponseEntity<Boolean> queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable("id") final String id) {
+    public ResponseEntity<Boolean> queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable final long id) throws NotFoundException {
         try {
-            final UserI       user = getSessionUser();
-            QueuedPacsRequest req  = _queuedRequestService.get(Long.parseLong(id));
-            if (req == null) {
-                return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
-            }
+            final UserI             user    = getSessionUser();
+            final QueuedPacsRequest request = _queuedRequestService.get(id);
             if (Roles.isSiteAdmin(user)) {
-                _queuedRequestService.delete(Long.parseLong(id));
+                _queuedRequestService.delete(id);
+                return new ResponseEntity<>(true, HttpStatus.OK);
+            } else if (StringUtils.equals(request.getUsername(), user.getUsername())) {
+                _queuedRequestService.delete(id);
                 return new ResponseEntity<>(true, HttpStatus.OK);
             } else {
-                if (StringUtils.equals(req.getUsername(), user.getUsername())) {
-                    _queuedRequestService.delete(Long.parseLong(id));
-                    return new ResponseEntity<>(true, HttpStatus.OK);
-                } else {
-                    return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-                }
+                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             }
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("pacs:queuedRequest", id);
         }
     }
 
@@ -539,30 +518,23 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/queue/deleteRequests", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public ResponseEntity<Boolean> queryQueueDeleteMultiple(@RequestBody final String[] idsToDelete) {
-        try {
-            final UserI user = getSessionUser();
-            for (String idToDelete : idsToDelete) {
-                QueuedPacsRequest req = _queuedRequestService.get(Long.parseLong(idToDelete));
-                if (req == null) {
-                    return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
-                }
-                if (Roles.isSiteAdmin(user)) {
-                    _queuedRequestService.delete(Long.parseLong(idToDelete));
-                } else {
-                    if (StringUtils.equals(req.getUsername(), user.getUsername())) {
-                        _queuedRequestService.delete(Long.parseLong(idToDelete));
-                    } else {
-                        return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-                    }
-                }
-            }
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<Boolean> queryQueueDeleteMultiple(@RequestBody final List<Long> idsToDelete) throws NotFoundException {
+        final Map<Long, QueuedPacsRequest> requests   = idsToDelete.stream().collect(Collectors.toMap(Function.identity(), _queuedRequestService::retrieve));
+        final Set<Long>                    invalidIds = requests.entrySet().stream().filter(entry -> entry.getValue() == null).map(Map.Entry::getKey).collect(Collectors.toSet());
+        if (!invalidIds.isEmpty()) {
+            throw new NotFoundException("pacs:queuedRequest", invalidIds.stream().map(id -> Long.toString(id)).collect(Collectors.joining(", ")));
         }
+
+        final UserI  user     = getSessionUser();
+        final String username = user.getUsername();
+        if (!Roles.isSiteAdmin(user) && requests.values().stream().map(PacsRequest::getUsername).anyMatch(requestUsername -> !StringUtils.equalsIgnoreCase(username, requestUsername))) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        requests.values().forEach(_queuedRequestService::delete);
+
         return new ResponseEntity<>(true, HttpStatus.OK);
     }
-
 
     /**
      * @deprecated Use the csvimport/newUploadCsv REST call instead.
@@ -573,11 +545,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "csvimport/uploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     public ResponseEntity<List<CsvRow>> uploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") MultipartFile csv,
-                                                        @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-//        if (!csv.getContentType().contains("csv")) {
-//            throw new ServletRequestBindingException("Incorrect file format. Spreadsheet file must be of type: application/csv");
-//        }
-
+                                                        @ApiParam("Pacs to query.") @RequestParam final long pacsId,
+                                                        @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         final File temp = File.createTempFile("xnat", "csv");
         try (final FileOutputStream fos = new FileOutputStream(temp)) {
             fos.write(csv.getBytes());
@@ -608,7 +577,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "csvimport/newUploadCsv", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     public ResponseEntity<List<FindRow>> newUploadImportCsv(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") MultipartFile csv,
-                                                            @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+                                                            @ApiParam("Pacs to query.") @RequestParam final long pacsId,
+                                                            @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         final File temp = File.createTempFile("xnat", "csv");
         try (final FileOutputStream fos = new FileOutputStream(temp)) {
             fos.write(csv.getBytes());
@@ -618,7 +588,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         boolean anonScriptFound = false;
         for (FindRow row : rows) {
             Map<String, String> relabelMap = row.getRelabelMap();
-            if (row != null && relabelMap != null && relabelMap.size() > 0) {
+            if (relabelMap != null && relabelMap.size() > 0) {
                 anonScriptFound = true;
             }
         }
@@ -650,10 +620,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                         produces = MediaType.APPLICATION_JSON_VALUE,
                         restrictTo = Authorizer)
     public ResponseEntity<Boolean> importFromPacs(@RequestBody final CsvRow[] rows,
-                                                  @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
-                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
-                                                  @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
-                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
+                                                  @ApiParam("Pacs to query.") @RequestParam final long pacsId,
+                                                  @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam final String ae,
+                                                  @ApiParam("XNAT project to send to.") @RequestParam final String project,
+                                                  @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         UserI user = getSessionUser();
         if (!_preferences.getAllowAllProjectsToUseDqr() && !_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
@@ -685,10 +655,10 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                         produces = MediaType.APPLICATION_JSON_VALUE,
                         restrictTo = Authorizer)
     public ResponseEntity<Boolean> importFromPacsGeneral(@RequestBody final Map<String, StudyImportInformation> studiesToImport,
-                                                         @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId,
-                                                         @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam(name = "ae") final String ae,
-                                                         @ApiParam("XNAT project to send to.") @RequestParam(name = "project") final String project,
-                                                         @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(name = "importEvenIfCustomProcessingIsOff", required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
+                                                         @ApiParam("Pacs to query.") @RequestParam final long pacsId,
+                                                         @ApiParam("XNAT SCP receiver to send to (Must be formatted as AE_TITLE:PORT).") @RequestParam final String ae,
+                                                         @ApiParam("XNAT project to send to.") @RequestParam final String project,
+                                                         @ApiParam("Force the import to happen even if requested remapping won't take place.") @RequestParam(required = false) final boolean importEvenIfCustomProcessingIsOff) throws Exception {
         UserI user = getSessionUser();
         if (!_preferences.getAllowAllProjectsToUseDqr() && !_adminSettingsForProjectService.isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
@@ -719,13 +689,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                         consumes = MediaType.APPLICATION_JSON_VALUE,
                         produces = MediaType.APPLICATION_JSON_VALUE,
                         restrictTo = Authorizer)
-    public ResponseEntity<Map<String, Object>> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId") final String pacs,
-                                                          @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String session,
-                                                          @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport") final String[] scansToExport) throws Exception {
+    public ResponseEntity<Map<String, Object>> sendToPacs(@ApiParam("Id of PACS to send to.") @RequestParam final long pacsId,
+                                                          @ApiParam("XNAT session to send.") @RequestParam final String session,
+                                                          @ApiParam("Array of scans in the session to send.") @RequestParam final String[] scansToExport) throws Exception {
         final UserI         user       = getSessionUser();
         Map<String, Object> dataToSend = new HashMap<>();
 
-        final long        pacsId            = Long.valueOf(pacs);
         PacsEntityService pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
         final Pacs        _pacs             = pacsEntityService.retrieve(pacsId);
 
@@ -764,7 +733,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             }
             final EventDetails eventDetails;
             eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-            eventDetails.setComment("Pacs: " + pacs);
+            eventDetails.setComment("Pacs: " + pacsId);
             PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session, temp.getProject(), eventDetails);
             assert wrk != null;
             PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
@@ -784,10 +753,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to ping PACS."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to ping PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "pacsStatus/ping/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "pacsStatus/ping/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public ResponseEntity<PacsPing> pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable("id") final String id) {
-        final Long pacsId     = Long.valueOf(id);
+    public ResponseEntity<PacsPing> pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) {
         final Pacs pacs       = _pacsEntityService.retrieve(pacsId);
         Date       time       = new Date();
         boolean    canConnect = _pacsService.canConnect(getSessionUser(), pacs);
@@ -805,9 +773,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the PACS ping."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "pacsStatus/lastPing/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<PacsPing> lastPingForPacs(@ApiParam(value = "ID of the PACS", required = true) @PathVariable("id") final String id) {
-        final Long pacsId = Long.valueOf(id);
+    @XapiRequestMapping(value = "pacsStatus/lastPing/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<PacsPing> lastPingForPacs(@ApiParam(value = "ID of the PACS", required = true) @PathVariable final long pacsId) {
         return new ResponseEntity<>(_pacsPingService.getLatestPing(pacsId), HttpStatus.OK);
     }
 
@@ -817,9 +784,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the PACS pings."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "pacsStatus/allPings/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public ResponseEntity<List<PacsPing>> allPingsForPacs(@ApiParam(value = "ID of the PACS", required = true) @PathVariable("id") final String id) {
-        final Long pacsId = Long.valueOf(id);
+    @XapiRequestMapping(value = "pacsStatus/allPings/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public ResponseEntity<List<PacsPing>> allPingsForPacs(@ApiParam(value = "ID of the PACS", required = true) @PathVariable final long pacsId) {
         return new ResponseEntity<>(_pacsPingService.getPings(pacsId), HttpStatus.OK);
     }
 
@@ -881,7 +847,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to check whether the project is a Dqr project."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "isDqrProject/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
-    public ResponseEntity<Boolean> isDqrProject(@PathVariable("projectId") @Project final String projectId) {
+    public ResponseEntity<Boolean> isDqrProject(@PathVariable @Project final String projectId) {
         return new ResponseEntity<>(_preferences.getAllowAllProjectsToUseDqr() || _adminSettingsForProjectService.isDqrEnabledForProject(projectId), HttpStatus.OK);
     }
 
@@ -892,7 +858,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Delete)
-    public ResponseEntity<String> getIrbNumber(@PathVariable("projectId") @Project final String projectId) {
+    public ResponseEntity<String> getIrbNumber(@PathVariable @Project final String projectId) {
         return new ResponseEntity<>(_projectIrbInfoEntityService.findIrbNumberForProject(projectId), HttpStatus.OK);
     }
 
@@ -902,10 +868,11 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB file."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{passedFileName}", method = RequestMethod.GET, restrictTo = Delete)
+    @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile/{passedFilename}", method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable("projectId") @Project final String projectId) throws IOException {
+    public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable @Project final String projectId, @PathVariable final String passedFilename) throws IOException {
         //Filename is included in the URL to avoid confusing some browsers (even though it's unused).
+        log.debug("Getting IRB file for project {} with passed filename {}", projectId, passedFilename);
 
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
@@ -938,7 +905,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<String> getIrbFilename(@PathVariable("projectId") @Project final String projectId) {
+    public ResponseEntity<String> getIrbFilename(@PathVariable @Project final String projectId) {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             return new ResponseEntity<>("", HttpStatus.OK);
@@ -954,8 +921,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Delete)
-    public ResponseEntity<Boolean> putIrbNumber(@PathVariable("projectId") @Project final String projectId,
-                                                @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber") final String irbNumber) {
+    public ResponseEntity<Boolean> putIrbNumber(@PathVariable @Project final String projectId,
+                                                @ApiParam("IRB number for this project.") @RequestParam final String irbNumber) {
         ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info != null) {
             info.setIrbNumber(irbNumber);
@@ -980,8 +947,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB file."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.PUT, restrictTo = Delete)
-    public ResponseEntity<Boolean> putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "irbFile") MultipartFile irbFile,
-                                              @PathVariable("projectId") @Project final String projectId) {
+    public ResponseEntity<Boolean> putIrbFile(@ApiParam(value = "Multipart file object being uploaded") @RequestParam final MultipartFile irbFile,
+                                              @PathVariable @Project final String projectId) {
         try {
             String         fileName = irbFile.getOriginalFilename();
             byte[]         bytes    = irbFile.getBytes();
@@ -1017,7 +984,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "projectSettings/{projectId}/irbFile", method = RequestMethod.DELETE, restrictTo = Delete)
     @ResponseBody
-    public ResponseEntity<Boolean> deleteIrbFile(@PathVariable("projectId") @Project final String projectId) throws IOException {
+    public ResponseEntity<Boolean> deleteIrbFile(@PathVariable @Project final String projectId) {
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -1085,7 +1052,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "adminProjectSettings/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<Boolean> deleteDqrAdminSettingsForProject(@PathVariable("projectId") final String projectId) {
+    public ResponseEntity<Boolean> deleteDqrAdminSettingsForProject(@PathVariable final String projectId) {
         DqrAdminSettingsForProject existingSettings = _adminSettingsForProjectService.findSettingsByProject(projectId);
         if (existingSettings == null) {
             return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
@@ -1115,7 +1082,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "adminProjectSettings/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<DqrAdminSettingsForProject> getDqrAdminSettingForProject(@PathVariable("projectId") final String projectId) {
+    public ResponseEntity<DqrAdminSettingsForProject> getDqrAdminSettingForProject(@PathVariable final String projectId) {
         return new ResponseEntity<>(_adminSettingsForProjectService.findSettingsByProject(projectId), HttpStatus.OK);
     }
 
@@ -1127,8 +1094,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "pacsAvailability/window", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<PacsAvailability> createPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
-        if (settings.getDayOfWeek() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+    public ResponseEntity<PacsAvailability> createPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) {
+        if (settings.getDayOfWeek() == null || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             log.error("User {} tried to create a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -1149,8 +1116,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "pacsAvailability/conflictsExisting", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<Boolean> checkPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws Exception {
-        if (settings.getDayOfWeek() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+    public ResponseEntity<Boolean> checkPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) {
+        if (settings.getDayOfWeek() == null || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             log.error("User {} check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.", getSessionUser().getUsername());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -1166,15 +1133,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<PacsAvailability> updatePacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId, @RequestBody final PacsAvailability settings) throws Exception {
-        PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId));
+    public ResponseEntity<PacsAvailability> updatePacsAvailabilityInterval(@PathVariable final long pacsAvailabilityId, @RequestBody final PacsAvailability settings) throws Exception {
+        final PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(pacsAvailabilityId);
         if (existingSettings == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         boolean isDirty = false;
         // Only update fields that are actually included in the submitted data and differ from the original source.
-        if (settings.getDayOfWeek() != 0 && settings.getDayOfWeek() != existingSettings.getDayOfWeek()) {
+        if (settings.getDayOfWeek() != null && settings.getDayOfWeek() != existingSettings.getDayOfWeek()) {
             existingSettings.setDayOfWeek(settings.getDayOfWeek());
             isDirty = true;
         }
@@ -1198,7 +1165,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             existingSettings.setThreads(settings.getThreads());
             isDirty = true;
         }
-        if (settings.getPacsId() != existingSettings.getPacsId()) {
+        if (!Objects.equals(settings.getPacsId(), existingSettings.getPacsId())) {
             existingSettings.setPacsId(settings.getPacsId());
             isDirty = true;
         }
@@ -1221,8 +1188,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<Boolean> deletePacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId) throws Exception {
-        PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId));
+    public ResponseEntity<Boolean> deletePacsAvailabilityInterval(@PathVariable final long pacsAvailabilityId) throws Exception {
+        final PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(pacsAvailabilityId);
         if (existingSettings == null) {
             return new ResponseEntity<>(false, HttpStatus.NOT_FOUND);
         }
@@ -1241,8 +1208,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<PacsAvailability> getPacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final String pacsAvailabilityId) throws Exception {
-        return new ResponseEntity<>(_pacsAvailabilityEntityService.get(Long.parseLong(pacsAvailabilityId)), HttpStatus.OK);
+    public ResponseEntity<PacsAvailability> getPacsAvailabilityInterval(@PathVariable final long pacsAvailabilityId) throws Exception {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.get(pacsAvailabilityId), HttpStatus.OK);
     }
 
 
@@ -1251,8 +1218,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "pacsAvailability/windows/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<List<PacsAvailability>> getPacsAvailabilityIntervals(@PathVariable("pacsId") final String pacsId) {
-        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacs(Long.parseLong(pacsId)), HttpStatus.OK);
+    public ResponseEntity<List<PacsAvailability>> getPacsAvailabilityIntervals(@PathVariable final long pacsId) {
+        return new ResponseEntity<>(_pacsAvailabilityEntityService.findAllByPacsId(pacsId), HttpStatus.OK);
     }
 
 
@@ -1261,8 +1228,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "pacsAvailability/windowsByDay/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
-    public ResponseEntity<Map<Integer, List<PacsAvailability>>> getPacsAvailabilityIntervalsByDay(@PathVariable("pacsId") final String pacsId) {
-        return new ResponseEntity<>(_pacsAvailabilityEntityService.findSettingsByPacsGroupedByDay(Long.parseLong(pacsId)), HttpStatus.OK);
+    public Map<DayOfWeek, List<PacsAvailability>> getPacsAvailabilityIntervalsByDay(@PathVariable final long pacsId) {
+        return _pacsAvailabilityEntityService.findAllByPacsIdGroupedByDayOfWeek(pacsId); // .entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getValue() - 1, Map.Entry::getValue));
     }
 
 
@@ -1273,15 +1240,14 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public ResponseEntity<Map<String, PacsSearchResults<String, Series>>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable("pacsId") final String pacsId,
+    public ResponseEntity<Map<String, PacsSearchResults<String, Series>>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
                                                                                     @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) {
         Map<String, PacsSearchResults<String, Series>> seriesMap    = new HashMap<>();
         final UserI                                    user         = getSessionUser();
         final String[]                                 studiesArray = StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*");
-        if (studiesArray != null && pacsId != null) {
-            final Long pacsIdLong    = Long.valueOf(pacsId);
-            final Pacs pacs          = _pacsEntityService.retrieve(pacsIdLong);
-            String     studiesString = "";
+        if (studiesArray != null) {
+            final Pacs pacs = _pacsEntityService.retrieve(pacsId);
+            String     studiesString;
 //            for(String studyUid:studiesArray) {
 //                studiesString+="\\"+studyUid;
 //            }

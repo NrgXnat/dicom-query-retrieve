@@ -22,7 +22,7 @@ plugins {
     id "com.dorongold.task-tree" version "1.5"
     id "com.palantir.git-version" version "0.12.3"
     id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.9.RELEASE"
+    id "io.spring.dependency-management" version "1.0.10.RELEASE"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
@@ -81,7 +81,7 @@ jacocoTestReport {
     reports {
         xml.enabled = false
         csv.enabled = false
-        html.destination file("${buildDir}/jacocoHtml")
+        html.enabled = true
     }
 }
 
@@ -243,6 +243,9 @@ task xnatPluginJar(type: Jar) {
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
     exclude "**/resources/**/*--xx**"
+    if (project.hasProperty("dev")) {
+        exclude "**/resources/**/scripts/**/dqr/**/*"
+    }
     from {
         configurations.implementAndInclude.collect { it.isDirectory() ? it : zipTree(it) }
     } {

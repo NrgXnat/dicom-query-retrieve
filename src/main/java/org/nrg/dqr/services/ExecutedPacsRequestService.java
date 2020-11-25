@@ -15,7 +15,7 @@ public interface ExecutedPacsRequestService extends BaseHibernateService<Execute
 
     List<ExecutedPacsRequest> getAllForUser(UserI user, PaginatedPacsRequest request);
 
-    ExecutedPacsRequest getByIdForUser(long id, UserI user);
+    ExecutedPacsRequest getByIdAndUser(long id, UserI user);
 
     ExecutedPacsRequest getMostRecentForPacs(long pacsId);
 
