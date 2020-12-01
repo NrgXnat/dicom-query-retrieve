@@ -1,14 +1,9 @@
 package org.nrg.xnat.plugin;
 
-import com.fasterxml.jackson.databind.Module;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xnat.configuration.DicomImportConfig;
 import org.nrg.xnat.configuration.DqrConfig;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 
@@ -25,20 +20,5 @@ import org.springframework.context.annotation.Import;
 public class DicomQueryRetrievePlugin {
     public DicomQueryRetrievePlugin() {
         log.info("I'm now creating the DicomQueryRetrievePlugin object");
-    }
-
-    @Bean
-    public Module parameterNamesModule() {
-        return new ParameterNamesModule();
-    }
-
-    @Bean
-    public Module jdk8Module() {
-        return new Jdk8Module();
-    }
-
-    @Bean
-    public Module javaTimeModule() {
-        return new JavaTimeModule();
     }
 }

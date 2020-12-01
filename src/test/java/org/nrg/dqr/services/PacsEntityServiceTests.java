@@ -1,5 +1,5 @@
 /*
- * dicom-query-retrieve: org.nrg.dqr.services.PacsAvailabilityServiceTests
+ * dicom-query-retrieve: org.nrg.dqr.services.PacsEntityServiceTests
  * XNAT http://www.xnat.org
  * Copyright (c) 2005-2020, Washington University School of Medicine
  * All Rights Reserved

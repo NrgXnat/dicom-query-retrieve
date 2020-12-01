@@ -10,6 +10,7 @@
 package org.nrg.dqr.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.nrg.xnat.utils.DqrDateRange.HH_MM_FORMATTER;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,10 +25,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit.jupiter.SpringJUnitJupiterConfig;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
+import java.time.chrono.ChronoPeriod;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -70,6 +71,23 @@ public class PacsAvailabilityServiceTests {
                              .hasFieldOrPropertyWithValue("utilizationPercent", 100)
                              .hasFieldOrPropertyWithValue("availabilityStart", "00:00")
                              .hasFieldOrPropertyWithValue("availabilityEnd", "00:00");
+    }
+
+    @Test
+    public void testIsAvailableNow() {
+        final PacsAvailability availability = PacsAvailability.builder().pacsId(1L).dayOfWeek(DayOfWeek.MONDAY).threads(4).utilizationPercent(100).availabilityStart("00:00").availabilityEnd("00:00").build();
+        assertThat(availability).isNotNull().hasFieldOrPropertyWithValue("availableNow", true);
+        final LocalTime now = LocalTime.now();
+        final LocalTime start1 = now.minus(Duration.ofMinutes(1));
+        final LocalTime end1 = now.plus(Duration.ofMinutes(5));
+        availability.setAvailabilityStart(start1.format(HH_MM_FORMATTER));
+        availability.setAvailabilityEnd(end1.format(HH_MM_FORMATTER));
+        assertThat(availability).isNotNull().hasFieldOrPropertyWithValue("availableNow", true);
+        final LocalTime start2 = now.plus(Duration.ofMinutes(10));
+        final LocalTime end2 = now.plus(Duration.ofMinutes(15));
+        availability.setAvailabilityStart(start2.format(HH_MM_FORMATTER));
+        availability.setAvailabilityEnd(end2.format(HH_MM_FORMATTER));
+        assertThat(availability).isNotNull().hasFieldOrPropertyWithValue("availableNow", false);
     }
 
     @Test

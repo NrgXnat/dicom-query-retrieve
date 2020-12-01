@@ -101,7 +101,7 @@ public class PacsAvailability extends AbstractHibernateEntity {
     @Transient
     public boolean isAvailableAtTime(final LocalTime time) {
         final LocalTime start = LocalTime.parse(getAvailabilityStart());
-        final LocalTime end   = LocalTime.parse(getAvailabilityEnd());
+        final LocalTime end   = StringUtils.equals(getAvailabilityEnd(), "00:00") ? LocalTime.MAX : LocalTime.parse(getAvailabilityEnd());
         return start.isBefore(end) ? time.isAfter(start) && time.isBefore(end) : time.isAfter(end) && time.isBefore(start);
     }
 

@@ -14,19 +14,30 @@ package org.nrg.dqr.services;
 
 import org.nrg.dqr.daos.PacsDAO;
 import org.nrg.dqr.domain.entities.Pacs;
+import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Service
 public class HibernatePacsEntityService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsEntityService {
+    @Autowired
+    public HibernatePacsEntityService(final PacsAvailabilityEntityService availabilityEntityService) {
+        _availabilityEntityService = availabilityEntityService;
+    }
+
     @Override
     @Transactional
     public Pacs create(final Pacs entity) {
         clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
-        return super.create(entity);
+        final Pacs pacs = super.create(entity);
+        IntStream.range(1, 8).mapToObj(day -> PacsAvailability.builder().dayOfWeek(DayOfWeek.of(day)).pacsId(pacs.getId()).threads(1).utilizationPercent(100).availabilityStart("00:00").availabilityEnd("00:00").build()).forEach(_availabilityEntityService::create);
+        return pacs;
     }
 
     @Override
@@ -57,20 +68,21 @@ public class HibernatePacsEntityService extends AbstractHibernateEntityService<P
 
     @Override
     @Transactional
-    public List<Pacs> findAllQueryableAndStorable(){
+    public List<Pacs> findAllQueryableAndStorable() {
         return getDao().findAllQueryableAndStorable();
     }
 
     @Override
     @Transactional
-    public List<Pacs> findAllStorable(){
+    public List<Pacs> findAllStorable() {
         return getDao().findAllStorable();
     }
 
     @Override
     @Transactional
-    public List<Pacs> findAllQueryable(){
+    public List<Pacs> findAllQueryable() {
         return getDao().findAllQueryable();
     }
 
+    private final PacsAvailabilityEntityService _availabilityEntityService;
 }

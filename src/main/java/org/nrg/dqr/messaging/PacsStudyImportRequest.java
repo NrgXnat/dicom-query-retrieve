@@ -12,11 +12,6 @@
 
 package org.nrg.dqr.messaging;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -24,10 +19,12 @@ import org.nrg.dqr.domain.Study;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.xft.security.UserI;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 public class PacsStudyImportRequest implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
     private Pacs pacs;
 
     private Study study;
@@ -90,7 +87,7 @@ public class PacsStudyImportRequest implements Serializable {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(89, 167).append(pacs).append(study).append(dateRequested).append(requestingUser)
-                .append(series).toHashCode();
+                                           .append(series).toHashCode();
     }
 
     @Override
@@ -106,8 +103,8 @@ public class PacsStudyImportRequest implements Serializable {
         }
         PacsStudyImportRequest other = (PacsStudyImportRequest) obj;
         return new EqualsBuilder().append(pacs, other.pacs).append(study, other.study)
-                .append(dateRequested, other.dateRequested).append(requestingUser, other.requestingUser)
-                .append(series, other.series).isEquals();
+                                  .append(dateRequested, other.dateRequested).append(requestingUser, other.requestingUser)
+                                  .append(series, other.series).isEquals();
     }
 
     @Override

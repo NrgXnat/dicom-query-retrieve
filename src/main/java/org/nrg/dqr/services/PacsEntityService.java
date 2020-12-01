@@ -18,9 +18,9 @@ import org.nrg.dqr.domain.entities.Pacs;
 import java.util.List;
 
 public interface PacsEntityService extends BaseHibernateService<Pacs> {
-    public List<Pacs> findAllQueryableAndStorable();
+    List<Pacs> findAllQueryableAndStorable();
 
-    public List<Pacs> findAllStorable();
+    List<Pacs> findAllStorable();
 
-    public List<Pacs> findAllQueryable();
+    List<Pacs> findAllQueryable();
 }

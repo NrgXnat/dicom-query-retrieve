@@ -12,83 +12,64 @@
 
 package org.nrg.dqr.domain.entities;
 
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 import java.util.Date;
 
 @Entity
 @Table
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@NoArgsConstructor
 public class ExecutedPacsRequest extends PacsRequest {
-
-    protected Date _executedTime;
-
-    // for Hibernate
-    public ExecutedPacsRequest() {
-    }
-
+    @Temporal(TemporalType.TIMESTAMP)
     public Date getExecutedTime() {
         return _executedTime;
     }
 
-    public void setExecutedTime(Date _executedTime) {
-        this._executedTime = _executedTime;
+    public void setExecutedTime(final Date executedTime) {
+        _executedTime = executedTime;
     }
 
+    @Override
+    public boolean equals(final Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+
+        final ExecutedPacsRequest request = (ExecutedPacsRequest) other;
+
+        return new EqualsBuilder()
+                .appendSuper(super.equals(other))
+                .append(getExecutedTime(), request.getExecutedTime())
+                .isEquals();
+    }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(137, 479).append(_username).append(_pacsId)
-                .append(_xnatProject).append(_studyInstanceUid).append(_seriesIds).append(_remappingScript).append(_destinationAeTitle).append(_status)
-                .append(_queuedTime).append(_executedTime).append(_priority).append(_studyDate).append(_studyId)
-                .append(_accessionNumber).append(_patientId).append(_patientName).toHashCode();
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-        final ExecutedPacsRequest other = (ExecutedPacsRequest) obj;
-        return new EqualsBuilder().append(_username, other._username).append(_pacsId, other._pacsId)
-                .append(_xnatProject, other._xnatProject).append(_studyInstanceUid, other._studyInstanceUid)
-                .append(_seriesIds, other._seriesIds).append(_remappingScript, other._remappingScript)
-                .append(_destinationAeTitle, other._destinationAeTitle).append(_status, other._status)
-                .append(_queuedTime, other._queuedTime).append(_executedTime, other._executedTime)
-                .append(_priority, other._priority).append(_studyDate, other._studyDate)
-                .append(_studyId, other._studyId).append(_accessionNumber, other._accessionNumber)
-                .append(_patientId, other._patientId).append(_patientName, other._patientName).isEquals();
+        return new HashCodeBuilder(17, 37)
+                .appendSuper(super.hashCode())
+                .append(getExecutedTime())
+                .toHashCode();
     }
 
     @Override
     public String toString() {
-        final StringBuilder buffer = new StringBuilder("{ ");
-        buffer.append("username: ").append(_username).append(", ");
-        buffer.append("pacsId: ").append(_pacsId).append(", ");
-        buffer.append("xnatProject: ").append(_xnatProject).append(", ");
-        buffer.append("studyInstanceUid: ").append(_studyInstanceUid).append(", ");
-        buffer.append("seriesIds: ").append(_seriesIds).append(", ");
-        buffer.append("remappingScript: ").append(_remappingScript).append(", ");
-        buffer.append("destinationAeTitle: ").append(_destinationAeTitle).append(", ");
-        buffer.append("status: ").append(_status).append(", ");
-        buffer.append("queuedTime: ").append(_queuedTime).append(", ");
-        buffer.append("executedTime: ").append(_executedTime).append(", ");
-        buffer.append("priority: ").append(_priority).append(", ");
-        buffer.append("studyDate: ").append(_studyDate).append(", ");
-        buffer.append("studyId: ").append(_studyId).append(", ");
-        buffer.append("accessionNumber: ").append(_accessionNumber).append(", ");
-        buffer.append("patientId: ").append(_patientId).append(", ");
-        buffer.append("patientName: ").append(_patientName).append(", ");
-        return buffer.toString();
+        return String.format(FORMAT, getClass().getName(), getUsername(), getPacsId(), getXnatProject(), getStudyInstanceUid(), getSeriesIds(), getRemappingScript(), getDestinationAeTitle(), getStatus(), getQueuedTime(), getExecutedTime(), getPriority(), getStudyDate(), getStudyId(), getAccessionNumber(), getPatientId(), getPatientName());
     }
+
+    private static final String FORMAT = "{ \"type\": \"%s\", \"username\": \"%s\", \"pacsId\": %d, \"xnatProject\": \"%s\", \"studyInstanceUid\": \"%s\", \"seriesIds\": \"%s\", \"remappingScript\": \"%s\", \"destinationAeTitle\": \"%s\", \"status\": \"%s\", \"queuedTime\": \"%s\", \"executedTime\": \"%s\", \"priority\": %d, \"studyDate\": \"%s\", \"studyId\": \"%s\", \"accessionNumber\": \"%s\", \"patientId\": \"%s\", \"patientName\": \"%s\": }";
+
+    protected Date _executedTime;
 }

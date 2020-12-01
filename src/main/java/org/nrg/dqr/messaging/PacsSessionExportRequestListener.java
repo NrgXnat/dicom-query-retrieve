@@ -12,83 +12,51 @@
 
 package org.nrg.dqr.messaging;
 
-import com.google.common.base.Joiner;
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.dqr.domain.entities.Pacs;
 import org.nrg.dqr.services.PacsService;
-import org.nrg.xdat.XDAT;
-import org.nrg.xdat.om.XnatMrsessiondata;
-import org.nrg.xdat.security.XDATUser;
-import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
-import org.nrg.xft.event.EventDetails;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
+import org.nrg.mail.services.MailService;
+import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
+import org.nrg.xdat.security.helpers.Users;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.Collectors;
 
-@SuppressWarnings("unused")
-public class PacsSessionExportRequestListener {
+@Component
+@Slf4j
+public class PacsSessionExportRequestListener extends PacsRequestListener {
+    @Autowired
+    public PacsSessionExportRequestListener(final PacsService pacsService, final SiteConfigPreferences preferences, final MailService mailService) {
+        super(pacsService, mailService, preferences, EXPORT_SUBJECT, EXPORT_MESSAGE, EXPORT_ACTION);
+    }
 
-    private final static Logger log = LoggerFactory.getLogger(PacsSessionExportRequestListener.class);
-
-    public void onPacsSessionExportRequest(final PacsSessionExportRequest pacsSessionExportRequest) throws Exception {
+    @JmsListener(id = "pacsStudyExportRequest", destination = "pacsStudyExportRequest")
+    public void onPacsSessionExportRequest(final PacsSessionExportRequest request) throws Exception {
         try {
-            final PacsService pacsService = XDAT.getContextService().getBean(PacsService.class);
-            log.info("Listener received session export request");
-
-            final Pacs pacsToExportTo = pacsSessionExportRequest.getPacs();
-            if(pacsToExportTo.isStorable()) {
-                for (final PacsScanExportRequest pacsScanExportRequest : pacsSessionExportRequest.getScans()) {
-                    pacsService.exportSeries(pacsSessionExportRequest.getRequestingUser(),
-                            pacsToExportTo, pacsScanExportRequest.getScan());
-                }
-                sendCompleteNotification(pacsSessionExportRequest);
-                log.info("Listener completed session export request");
-                final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                eventDetails.setComment("Pacs: " + pacsToExportTo.getId());
-                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, pacsSessionExportRequest.getSession().getId(), pacsSessionExportRequest.getSession().getProject(), eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-            } else{
+            log.info("Listener received session export request from user {} to retrieve the following scans from session {}: {}", request.getUsername(), request.getSessionId(), request.getScans().stream().map(PacsScanExportRequest::getScanId).collect(Collectors.joining(", ")));
+            final Pacs pacsToExportTo = request.getPacs();
+            if (pacsToExportTo.isStorable()) {
                 throw new PacsNotStorableException(pacsToExportTo.getId());
             }
+            final UserI                user    = Users.getUser(request.getUsername());
+            final XnatImagesessiondata session = XnatImagesessiondata.getXnatImagesessiondatasById(request.getSessionId(), user, false);
+            for (final PacsScanExportRequest pacsScanExportRequest : request.getScans()) {
+                getPacsService().exportSeries(user, pacsToExportTo, session.getScanById(pacsScanExportRequest.getScanId()));
+            }
+            sendCompleteNotification(user, request.getSessionId(), session.getProject(), "Pacs: " + pacsToExportTo.getId());
         } catch (final Exception e) {
             // If errors are not logged before they're rethrown, they do not show up in any of the files
-            log.error("Choked on request " + pacsSessionExportRequest + " with the following error:\n" + e);
+            log.error("Choked on request {} with the following error", request, e);
             throw e;
         }
     }
 
-    private void sendCompleteNotification(final PacsSessionExportRequest pacsSessionExportRequest) throws Exception {
-        // refresh the user, just in case their email has changed since they made the request
-        try {
-            final XDATUser user = new XDATUser(pacsSessionExportRequest.getRequestingUser().getLogin());
-            XDAT.getMailService().sendMessage(XDAT.getSiteConfigPreferences().getAdminEmail(), new String[] { user.getEmail() },
-                    "[" + TurbineUtils.GetSystemName()+"] PACS Session Export Request Complete",
-                    "The session you requested has been successfully exported to the PACS.");
-            final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_COMPLETE");
-            eventDetails.setComment("Series: " + Joiner.on(", ").join(getSeriesIds(pacsSessionExportRequest.getScans())));
-            PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, pacsSessionExportRequest.getSession().getId(), pacsSessionExportRequest.getSession().getProject(), eventDetails);
-            assert wrk != null;
-            PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-        } catch (final UserNotFoundException e) {
-            // not much to do here - was their account deleted since they made the request?
-            log.error(String.format("User %s queued up a PACS export request, but their user account cannot be found to send them a confirmation email.",
-                    pacsSessionExportRequest.getRequestingUser().getLogin()));
-        }
-    }
-
-    private List<String> getSeriesIds(final List<PacsScanExportRequest> scans) {
-        final List<String> seriesIds = new ArrayList<>();
-        for (final PacsScanExportRequest request : scans) {
-            seriesIds.add(request.getScan().getId());
-        }
-        return seriesIds;
-    }
+    private static final String EXPORT_SUBJECT = "[%s] PACS Study Import Request Complete";
+    private static final String EXPORT_ACTION  = "EXPORT_TO_PACS_COMPLETE";
+    private static final String EXPORT_MESSAGE = "The session you requested has been successfully exported to the PACS";
 }

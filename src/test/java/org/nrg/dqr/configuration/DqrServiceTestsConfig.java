@@ -9,9 +9,6 @@
 
 package org.nrg.dqr.configuration;
 
-import org.nrg.dqr.daos.PacsDAO;
-import org.nrg.dqr.services.HibernatePacsEntityService;
-import org.nrg.dqr.services.PacsEntityService;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
 import org.nrg.framework.test.OrmTestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -28,15 +25,5 @@ public class DqrServiceTestsConfig {
     @Bean
     public HibernateEntityPackageList dqrServiceEntities() {
         return new HibernateEntityPackageList("org.nrg.dqr.domain.entities");
-    }
-
-    @Bean
-    public PacsDAO pacsDAO() {
-        return new PacsDAO();
-    }
-
-    @Bean
-    public PacsEntityService pacsEntityService() {
-        return new HibernatePacsEntityService();
     }
 }

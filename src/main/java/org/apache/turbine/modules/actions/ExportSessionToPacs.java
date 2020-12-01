@@ -76,6 +76,8 @@ public class ExportSessionToPacs extends DqrSecureAction {
             context.put("numberOfProcessedScans", 0);
             context.put("sessionId", session.getId());
         } else {
+            // TODO: When queued operations are supported properly, use this instead of the synchronous code below.
+            // XDAT.sendJmsRequest(PacsSessionExportRequest.builder().username(user.getUsername()).pacs(pacs).sessionId(sessionId).scans(Arrays.stream(scanIds).map(PacsScanExportRequest::new).collect(Collectors.toList())).build());
             try {
                 final int                 exported = exportOnDemand(user, pacs, session, scanIds);
                 final PersistentWorkflowI workflow = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session.getId(), project, EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST", null, String.format(FORMAT, exported, sessionId, pacs.getId(), pacs.getHost(), pacs.getQueryRetrievePort(), pacs.getAeTitle())));

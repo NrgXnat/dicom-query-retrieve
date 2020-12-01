@@ -15,7 +15,6 @@ package org.nrg.xnat.restlet.extensions;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.nrg.dqr.domain.entities.Pacs;
-import org.nrg.dqr.domain.entities.PacsAvailability;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.restlet.XnatRestlet;
@@ -29,9 +28,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.time.DayOfWeek;
 import java.util.List;
-import java.util.stream.IntStream;
 
 @XnatRestlet("/pacs")
 @Slf4j
@@ -65,9 +62,7 @@ public class PacsListResource extends PacsAdminResource {
         final UserI user = getUser();
         if (Roles.isSiteAdmin(user)) {
             try {
-                final long pacsId = getPacsEntityService().create(buildPacsFromRequest(null)).getId();
-                IntStream.range(1, 8).mapToObj(day -> PacsAvailability.builder().dayOfWeek(DayOfWeek.of(day)).pacsId(pacsId).threads(1).utilizationPercent(100).availabilityStart("00:00").availabilityEnd("00:00").build()).forEach(availability -> getPacsAvailabilityEntityService().create(availability));
-                getResponse().setLocationRef("pacs/" + pacsId);
+                getResponse().setLocationRef("pacs/" + getPacsEntityService().create(buildPacsFromRequest(null)).getId());
                 respondWithSuccessCreated();
             } catch (final InvalidRequestBodyException e) {
                 respondWithInvalidRequestBody();

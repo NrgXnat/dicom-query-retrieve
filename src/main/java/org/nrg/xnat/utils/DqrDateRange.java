@@ -23,6 +23,8 @@ import java.util.Date;
 @Accessors(prefix = "_")
 @Builder
 public class DqrDateRange extends DateRange {
+    public static final DateTimeFormatter HH_MM_FORMATTER = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
+
     /**
      * Used by the {@link #relative(DqrDateRange)} method to indicate the relative position of the availability
      * window (that is, the time from {@link #getStartDate()} to {@link #getEndDate()}) of this object compared to
@@ -109,7 +111,7 @@ public class DqrDateRange extends DateRange {
     }
 
     public static String formatLocalTime(final LocalTime date) {
-        return FORMATTER.format(ObjectUtils.defaultIfNull(date, LocalDateTime.MIN));
+        return HH_MM_FORMATTER.format(ObjectUtils.defaultIfNull(date, LocalDateTime.MIN));
     }
 
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {
@@ -218,8 +220,6 @@ public class DqrDateRange extends DateRange {
     private static LocalDateTime convertDateToLocalDateTime(final String date) {
         return StringUtils.isBlank(date) ? null : LocalDateTime.of(LocalDate.now(), LocalTime.parse(date));
     }
-
-    private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
 
     private final LocalDateTime _startDate;
     private final LocalDateTime _endDate;

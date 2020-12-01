@@ -55,8 +55,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
 
     @Override
     protected AbstractXnatRunnable getTask() {
-        // return new PacsThreadsChecker(_pacsService, _pacsEntityService, _pacsAvailabilityEntityService, _queuedPacsRequestService, _executedPacsRequestService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider);
-        return new PacsThreadsChecker(_pacsEntityService, _pacsService, _pacsAvailabilityEntityService, _queuedPacsRequestService, _executedPacsRequestService);
+        return new PacsThreadsChecker(_pacsService, _pacsEntityService, _pacsAvailabilityEntityService, _queuedPacsRequestService, _executedPacsRequestService, _studyRoutingService, _siteConfigPreferences, _dqrPreferences, _configService, _mailService, _primaryAdminUserProvider);
     }
 
     @Override

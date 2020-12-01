@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.0-TIP-RC1"
+        vXnat = "1.8.0-TIP-RC2"
     }
 }
 
@@ -23,11 +23,11 @@ plugins {
     id "com.palantir.git-version" version "0.12.3"
     id "io.franzbecker.gradle-lombok" version "4.0.0"
     id "io.spring.dependency-management" version "1.0.10.RELEASE"
-    id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
+    id "org.nrg.xnat.build.xnat-data-builder" version "1.8.0-TIP-RC1"
 }
 
 group "org.nrg.xnatx.plugins"
-version "1.0.0-TIP-RC1"
+version "1.0.0-TIP-RC2"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
@@ -142,15 +142,6 @@ dependencies {
         transitive = false
     }
     implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
-        transitive = false
-    }
-    implementAndInclude("com.fasterxml.jackson.module:jackson-module-parameter-names:${vJackson}") {
-        transitive = false
-    }
-    implementAndInclude("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${vJackson}") {
-        transitive = false
-    }
-    implementAndInclude("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${vJackson}") {
         transitive = false
     }
 

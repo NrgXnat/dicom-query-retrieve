@@ -11,13 +11,14 @@ package org.nrg.dqr.configuration;
 
 import org.nrg.dqr.daos.PacsDAO;
 import org.nrg.dqr.services.HibernatePacsEntityService;
+import org.nrg.dqr.services.PacsAvailabilityEntityService;
 import org.nrg.dqr.services.PacsEntityService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import(DqrServiceTestsConfig.class)
+@Import(PacsAvailabilityServiceTestsConfig.class)
 public class PacsEntityServiceTestsConfig {
     @Bean
     public PacsDAO pacsDAO() {
@@ -25,7 +26,7 @@ public class PacsEntityServiceTestsConfig {
     }
 
     @Bean
-    public PacsEntityService pacsEntityService() {
-        return new HibernatePacsEntityService();
+    public PacsEntityService pacsEntityService(final PacsAvailabilityEntityService availabilityEntityService) {
+        return new HibernatePacsEntityService(availabilityEntityService);
     }
 }

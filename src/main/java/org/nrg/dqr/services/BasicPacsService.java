@@ -14,9 +14,11 @@ package org.nrg.dqr.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.nrg.config.exceptions.ConfigServiceException;
+import org.nrg.config.services.ConfigService;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dqr.dicom.command.cecho.CEchoSCU;
@@ -47,11 +49,11 @@ import org.nrg.dqr.util.DqrRuntimeException;
 import org.nrg.dqr.util.FindRow;
 import org.nrg.dqr.util.StudyImportInformation;
 import org.nrg.framework.constants.Scope;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
+import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
-import org.nrg.xdat.turbine.utils.AdminUtils;
 import org.nrg.xft.event.EventDetails;
 import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
@@ -66,8 +68,7 @@ import org.nrg.xnat.restlet.extensions.PacsNotStorableException;
 import org.nrg.xnat.utils.DqrDateRange;
 import org.nrg.xnat.utils.MethodName;
 import org.nrg.xnat.utils.WorkflowUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -76,68 +77,43 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
+@Slf4j
 public class BasicPacsService implements PacsService {
+    private final PacsEntityService               _pacsEntityService;
+    private final ArchiveProcessorInstanceService _archiveProcessorInstanceService;
+    private final SiteConfigPreferences           _siteConfigPreferences;
+    private final DicomSCPManager                 _dicomSCPManager;
+    private final Map<String, OrmStrategy>        _strategies;
+    private final QueuedPacsRequestService        _queuedPacsRequestService;
+    private final ConfigService                   _configService;
+    private final StudyRoutingService             _studyRoutingService;
+    private final XnatUserProvider                _userProvider;
 
-    private static final Logger _log            = LoggerFactory.getLogger(BasicPacsService.class);
-    //private static final String DELETE_SIGNIFIER = "DELETE";
-    private static final String CLEAR_SIGNIFIER = "\"\"";
-
-    private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
-
-    private final DqrPreferences _preferences;
-
-    public BasicPacsService(final DqrPreferences preferences) {
+    @Autowired
+    public BasicPacsService(final PacsEntityService pacsEntityService, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final QueuedPacsRequestService queuedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences preferences, final SiteConfigPreferences siteConfigPreferences, final DicomSCPManager dicomSCPManager, final ConfigService configService, final Map<String, OrmStrategy> strategies, final XnatUserProvider primaryAdminUserProvider) {
+        _pacsEntityService = pacsEntityService;
+        _archiveProcessorInstanceService = archiveProcessorInstanceService;
+        _queuedPacsRequestService = queuedPacsRequestService;
+        _studyRoutingService = studyRoutingService;
+        _configService = configService;
         _preferences = preferences;
-    }
-
-    private static Map<String, String> createHeaderToTagMap() {
-        return new HashMap<String, String>() {{
-            put("Relabel Accession Number", "(0008,0050)");
-            put("Relabel Study Date", "(0008,0020)");
-            put("Relabel Study ID", "(0020,0010)");
-            put("Relabel Patient ID", "(0010,0020)");
-            put("Relabel Patient Name", "(0010,0010)");
-            put("Relabel Patient Birth Date", "(0010,0030)");
-            put("Subject", "(0010,0010):(0010,0020)");
-            put("Session", "(0020,0010):(0008,0050)");
-        }};
-    }
-
-    private static String generateAnonScriptFromMap(Map<String, String> relabelMap) {
-        String currAnonScript = null;
-        if (relabelMap != null && relabelMap.size() > 0) {
-            currAnonScript = "version \"6.1\"" + System.lineSeparator();
-            for (Map.Entry<String, String> entry : relabelMap.entrySet()) {
-                String[] tags     = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
-                String   newValue = entry.getValue();
-                if (StringUtils.isNotBlank(newValue) && tags != null) {
-                    for (String tag : tags) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, newValue) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, newValue)) {
-                            currAnonScript += tag + " := \"\"" + System.lineSeparator();
-                        } else {
-                            currAnonScript += tag + " := \"" + newValue + "\"" + System.lineSeparator();
-                        }
-                    }
-                }
-            }
-        }
-        return currAnonScript;
+        _siteConfigPreferences = siteConfigPreferences;
+        _dicomSCPManager = dicomSCPManager;
+        _strategies = strategies;
+        _userProvider = primaryAdminUserProvider;
     }
 
     @Override
-    public boolean canConnect(UserI user, final Pacs pacs) {
+    public boolean canConnect(final UserI user, final Pacs pacs) {
         try {
-            if (buildCEchoSCU(pacs).canConnect()) {
-                return true;
-            }
-        } catch (Throwable e) {
+            return buildCEchoSCU(pacs).canConnect();
+        } catch (Throwable ignored) {
         }
         return false;
     }
 
     @Override
-    public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs,
-                                                                   final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<String, Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
         PersistentWorkflowI workflow = null;
         try {
             workflow = buildOpenWorkflow(user, "pacs:query", null, null, EventUtils.newEventInstance(
@@ -293,9 +269,8 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
-        PacsEntityService pacsEntityService    = getPacsEntityService();
-        Pacs              pacs                 = pacsEntityService.retrieve(request.getPacsId());
-        String            destinationAeAndPort = request.getDestinationAeTitle();
+        Pacs   pacs                 = _pacsEntityService.retrieve(request.getPacsId());
+        String destinationAeAndPort = request.getDestinationAeTitle();
 
         try {
             destinationAeAndPort = URLDecoder.decode(destinationAeAndPort, "UTF-8");
@@ -316,12 +291,9 @@ public class BasicPacsService implements PacsService {
 
                 final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
 
-                for (String seriesId : Arrays.asList(request.getSeriesIds().split(","))) {
-                    seriesId = seriesId.trim();
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("Requesting series " + seriesId + " for study instance UID " + request.getStudyInstanceUid());
-                    }
-                    Series series = new Series(seriesId);
+                for (final String seriesId : request.getSeriesIds().split("\\s*,\\s*")) {
+                    log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
+                    final Series series = new Series(seriesId);
 
                     PersistentWorkflowI workflow = null;
                     try {
@@ -340,7 +312,7 @@ public class BasicPacsService implements PacsService {
                     }
                 }
             } catch (final CMoveTargetNotFoundException exception) {
-                _log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
+                log.warn("C-MOVE target not found somehow: PACS [ aeTitle: " + pacs.getAeTitle() + ", ", exception);
             }
         }
     }
@@ -364,7 +336,7 @@ public class BasicPacsService implements PacsService {
         }
     }
 
-    private CEchoSCU buildCEchoSCU(final Pacs pacs) throws PacsNotQueryableException {
+    private CEchoSCU buildCEchoSCU(final Pacs pacs) {
         return new Dcm4cheToolCEchoSCU(_preferences, buildDicomConnectionProperties(pacs));
     }
 
@@ -390,10 +362,7 @@ public class BasicPacsService implements PacsService {
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {
         // At some point in the future caller will probably specify AE as well
         // For now, this is an ugly hack that just uses the first defined AE in the XNAT webapp
-        DicomSCPInstance firstXnatScp = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances()
-                                            .values().iterator().next();
-        final String localAETitle = firstXnatScp.getAeTitle();
-        return new DicomConnectionProperties(localAETitle, pacs);
+        return new DicomConnectionProperties(_dicomSCPManager.getDicomSCPInstances().values().iterator().next().getAeTitle(), pacs);
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs, final String receiverAETitle) {
@@ -405,12 +374,15 @@ public class BasicPacsService implements PacsService {
     }
 
     private OrmStrategy getOrmStrategy(final Pacs pacs) {
+        final String beanId = pacs.getOrmStrategySpringBeanId();
         try {
-            return XDAT.getContextService().getBean(pacs.getOrmStrategySpringBeanId(), OrmStrategy.class);
+            if (_strategies.containsKey(beanId)) {
+                return _strategies.get(beanId);
+            }
         } catch (final Exception e) {
-            throw new DqrRuntimeException(String.format("Failed to load the ORM strategy defined by bean '%s'",
-                                                        pacs.getOrmStrategySpringBeanId()), e);
+            throw new DqrRuntimeException(String.format("Failed to load the ORM strategy defined by bean '%s'", beanId), e);
         }
+        throw new DqrRuntimeException(String.format("Failed to load the ORM strategy defined by bean '%s'", beanId));
     }
 
     private PersistentWorkflowI buildOpenWorkflow(final UserI user, final String xsiType, final String ID,
@@ -447,11 +419,7 @@ public class BasicPacsService implements PacsService {
     }
 
     private boolean leaveAuditTrail() {
-        try {
-            return Boolean.valueOf(StringUtils.trimToEmpty(XDAT.getSiteConfigurationProperty("leavePacsAuditTrail")));
-        } catch (final ConfigServiceException e) {
-            throw new RuntimeException(e);
-        }
+        return ObjectUtils.defaultIfNull(_siteConfigPreferences.getBooleanValue("leavePacsAuditTrail"), false);
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -465,16 +433,14 @@ public class BasicPacsService implements PacsService {
     @Override
     public boolean aeIsStorable(final String ae) {
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
-        Collection<DicomSCPInstance> scps = XDAT.getContextService().getBean(DicomSCPManager.class).getDicomSCPInstances().values();
-
-        boolean hasPort = ae.contains(":");
-        for (DicomSCPInstance scp : scps) {
+        final boolean hasPort = ae.contains(":");
+        for (final DicomSCPInstance scp : _dicomSCPManager.getDicomSCPInstances().values()) {
             if (((hasPort && StringUtils.equals(scp.getAeTitle() + ":" + scp.getPort(), ae)) || (!hasPort && StringUtils.equals(scp.getAeTitle(), ae))) && scp.isEnabled()) {
                 return true;
             }
         }
 //
-//        final List<Pacs> allPacs = getPacsEntityService().findAllStorable();
+//        final List<Pacs> allPacs = _pacsEntityService.findAllStorable();
 //        for (Pacs pacsToCheck : allPacs){
 //            if(StringUtils.equals(pacsToCheck.getAeTitle(),ae)){
 //                return true;
@@ -485,7 +451,7 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -547,7 +513,7 @@ public class BasicPacsService implements PacsService {
                     areThereSearchCriteriaForThisRow = true;
                 } else {
                     String startDateString = studyDateCell.substring(0, dashIndex);
-                    String endDateString   = studyDateCell.substring(dashIndex + 1, studyDateCell.length());
+                    String endDateString   = studyDateCell.substring(dashIndex + 1);
                     if (StringUtils.isNotBlank(startDateString)) {
                         if (StringUtils.isNotBlank(endDateString)) {
                             searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
@@ -578,11 +544,10 @@ public class BasicPacsService implements PacsService {
                 throw new Exception("No search criteria found. Users must specify at least one valid search criteria.");
             }
 
-            final PacsSearchResults<String, Study> studies = getStudiesByExample(
-                    XDAT.getUserDetails(), pacs, searchCriteria);
+            final PacsSearchResults<String, Study> studies = getStudiesByExample(user, pacs, searchCriteria);
 
-            boolean anonymizeThisRow     = false;
-            String  anonScriptForThisRow = "version \"6.1\"" + System.lineSeparator();
+            boolean             anonymizeThisRow     = false;
+            final StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
             for (Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()) {
                 String stringToRemapTo = row.get(entry.getKey());
                 if (StringUtils.isNotBlank(stringToRemapTo)) {
@@ -591,26 +556,22 @@ public class BasicPacsService implements PacsService {
 //                            anonymizeThisRow = true;
 //                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
                     if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                        anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
+                        anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
                         anonymizeThisRow = true;
                     } else {
-                        anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
+                        anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
                         anonymizeThisRow = true;
                     }
                 }
             }
-            if (!anonymizeThisRow) {
-                anonScriptForThisRow = null;
-            }
-            CsvRow currResult = new CsvRow(searchCriteria, anonScriptForThisRow, new ArrayList<>(studies.getResults()));
-            resultRows.add(currResult);
+            resultRows.add(new CsvRow(searchCriteria, anonymizeThisRow ? anonScriptForThisRow.toString() : null, new ArrayList<>(studies.getResults())));
         }
         return resultRows;
     }
 
     @Override
     public List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -672,7 +633,7 @@ public class BasicPacsService implements PacsService {
                     areThereSearchCriteriaForThisRow = true;
                 } else {
                     String startDateString = studyDateCell.substring(0, dashIndex);
-                    String endDateString   = studyDateCell.substring(dashIndex + 1, studyDateCell.length());
+                    String endDateString   = studyDateCell.substring(dashIndex + 1);
                     if (StringUtils.isNotBlank(startDateString)) {
                         if (StringUtils.isNotBlank(endDateString)) {
                             searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
@@ -703,13 +664,11 @@ public class BasicPacsService implements PacsService {
                 throw new Exception("No search criteria found. Users must specify at least one valid search criteria.");
             }
 
-            final PacsSearchResults<String, Study> studies = getStudiesByExample(
-                    XDAT.getUserDetails(), pacs, searchCriteria);
+            final PacsSearchResults<String, Study> studies = getStudiesByExample(user, pacs, searchCriteria);
 
-            boolean             anonymizeThisRow  = false;
-            Map<String, String> anonMapForThisRow = new HashMap<>();
-            for (Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()) {
-                String stringToRemapTo = row.get(entry.getKey());
+            final Map<String, String> anonMapForThisRow = new HashMap<>();
+            for (final Map.Entry<Integer, String> entry : columnToColumnHeaderMap.entrySet()) {
+                final String stringToRemapTo = row.get(entry.getKey());
                 if (StringUtils.isNotBlank(stringToRemapTo)) {
                     if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
                         anonMapForThisRow.put(entry.getValue(), "\"\"");
@@ -718,15 +677,14 @@ public class BasicPacsService implements PacsService {
                     }
                 }
             }
-            FindRow currResult = new FindRow(searchCriteria, anonMapForThisRow, new ArrayList<>(studies.getResults()));
-            resultRows.add(currResult);
+            resultRows.add(new FindRow(searchCriteria, anonMapForThisRow, new ArrayList<>(studies.getResults())));
         }
         return resultRows;
     }
 
     @Override
     public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -740,70 +698,76 @@ public class BasicPacsService implements PacsService {
 
         boolean                                        valueToReturn = true;
         Set<Map.Entry<String, StudyImportInformation>> studiesSet    = studiesToImport.entrySet();
-        if (studiesSet != null) {
-            boolean multiStudy = studiesSet.size() > 1;
-            for (Map.Entry<String, StudyImportInformation> studyEntry : studiesSet) {
-                String                 currStudy = studyEntry.getKey();
-                StudyImportInformation studyInfo = studyEntry.getValue();
-                if (currStudy != null) {
-                    String       currStudyDate          = null;
-                    String       currStudyId            = null;
-                    String       currAccessionNumber    = null;
-                    String       currPatientId          = null;
-                    String       currPatientName        = null;
-                    boolean      extraStudyInfoSet      = false;
-                    String       currAnonScript         = studyInfo.getAnonScript();
-                    List<String> seriesDescriptionsList = studyInfo.getSeriesDescriptions();
-                    List<String> seriesInstanceUIDs     = studyInfo.getSeriesInstanceUIDs();
-                    if (StringUtils.isBlank(currAnonScript)) {
-                        Map<String, String> relabelMap = studyInfo.getRelabelMap();
-                        if (relabelMap != null && relabelMap.size() > 0) {
-                            currAnonScript = generateAnonScriptFromMap(relabelMap);
-                        }
+        boolean                                        multiStudy    = studiesSet.size() > 1;
+        for (Map.Entry<String, StudyImportInformation> studyEntry : studiesSet) {
+            String                 currStudy = studyEntry.getKey();
+            StudyImportInformation studyInfo = studyEntry.getValue();
+            if (currStudy != null) {
+                String       currStudyDate          = null;
+                String       currStudyId            = null;
+                String       currAccessionNumber    = null;
+                String       currPatientId          = null;
+                String       currPatientName        = null;
+                boolean      extraStudyInfoSet      = false;
+                final String currAnonScript         = getAnonScript(studyInfo);
+                List<String> seriesDescriptionsList = studyInfo.getSeriesDescriptions();
+                List<String> seriesInstanceUIDs     = studyInfo.getSeriesInstanceUIDs();
+                if (StringUtils.isNotBlank(currAnonScript) && !importEvenIfCustomProcessingIsOff) {
+                    DicomSCPInstance scpInstance = _dicomSCPManager.getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+                    if (scpInstance == null) {
+                        throw new Exception("Invalid DICOM SCP Receiver ID.");
                     }
-                    if (StringUtils.isNotBlank(currAnonScript) && !importEvenIfCustomProcessingIsOff) {
-                        DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
-                        if (scpInstance == null) {
-                            throw new Exception("Invalid DICOM SCP Receiver ID.");
+                    if (!scpInstance.isEnabled()) {
+                        throw new Exception("Invalid DICOM SCP Receiver ID.");
+                    }
+                    if (!scpInstance.isCustomProcessing()) {
+                        throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
+                    }
+                    List<ArchiveProcessorInstance> processorInstances = _archiveProcessorInstanceService.getAllEnabledSiteProcessorsForAe(ae);
+                    if (processorInstances.isEmpty()) {
+                        throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
+                    } else {
+                        boolean hasProcessorOtherThanSiteAnon = false;
+                        for (ArchiveProcessorInstance instance : processorInstances) {
+                            if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
+                                hasProcessorOtherThanSiteAnon = true;
+                            }
                         }
-                        if (!scpInstance.isEnabled()) {
-                            throw new Exception("Invalid DICOM SCP Receiver ID.");
-                        }
-                        if (!scpInstance.isCustomProcessing()) {
-                            throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
-                        }
-                        List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
-                        if (processorInstances.isEmpty()) {
+                        if (!hasProcessorOtherThanSiteAnon) {
                             throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                        } else {
-                            boolean hasProcessorOtherThanSiteAnon = false;
-                            for (ArchiveProcessorInstance instance : processorInstances) {
-                                if (!StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor")) {
-                                    hasProcessorOtherThanSiteAnon = true;
-                                }
-                            }
-                            if (!hasProcessorOtherThanSiteAnon) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                            }
                         }
                     }
+                }
 
-                    //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
-                    String       login = AdminUtils.getAdminUser().getLogin();
-                    final String path  = "/studies/" + currStudy;
-                    if (_log.isDebugEnabled()) {
-                        _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, currStudy);
-                    }
+                //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+                String       login = _userProvider.getLogin();
+                final String path  = "/studies/" + currStudy;
+                log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, currStudy);
 
-                    final PacsSearchResults<String, Series> series        = getSeriesByStudyUid(XDAT.getUserDetails(), pacs, currStudy);
-                    Collection<Series>                      seriesResults = series.getResults();
+                final PacsSearchResults<String, Series> series        = getSeriesByStudyUid(user, pacs, currStudy);
+                Collection<Series>                      seriesResults = series.getResults();
 
-                    List<String> seriesToImport = new ArrayList<>();
-                    if (CollectionUtils.isEmpty(seriesInstanceUIDs)) {
-                        if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
-                            //Import all the series in the study
-                            for (Series currSeries : seriesResults) {
-                                seriesToImport.add(currSeries.getSeriesInstanceUid());
+                List<String> seriesToImport = new ArrayList<>();
+                if (CollectionUtils.isEmpty(seriesInstanceUIDs)) {
+                    if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
+                        //Import all the series in the study
+                        for (Series currSeries : seriesResults) {
+                            seriesToImport.add(currSeries.getSeriesInstanceUid());
+                            if (!extraStudyInfoSet) {
+                                currStudyDate = currSeries.getStudyDate();
+                                currStudyId = currSeries.getStudyId();
+                                currAccessionNumber = currSeries.getAccessionNumber();
+                                currPatientId = currSeries.getPatientId();
+                                currPatientName = currSeries.getPatientName();
+                                extraStudyInfoSet = true;
+                            }
+                        }
+                    } else {
+                        //Import all the series in the study that have seriesDescription in the series description list
+                        for (Series currSeries : seriesResults) {
+                            String result = currSeries.getSeriesInstanceUid();
+                            if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
+                                seriesToImport.add(result);
                                 if (!extraStudyInfoSet) {
                                     currStudyDate = currSeries.getStudyDate();
                                     currStudyId = currSeries.getStudyId();
@@ -813,28 +777,30 @@ public class BasicPacsService implements PacsService {
                                     extraStudyInfoSet = true;
                                 }
                             }
-                        } else {
-                            //Import all the series in the study that have seriesDescription in the series description list
-                            for (Series currSeries : seriesResults) {
-                                String result = currSeries.getSeriesInstanceUid();
-                                if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
-                                    seriesToImport.add(result);
-                                    if (!extraStudyInfoSet) {
-                                        currStudyDate = currSeries.getStudyDate();
-                                        currStudyId = currSeries.getStudyId();
-                                        currAccessionNumber = currSeries.getAccessionNumber();
-                                        currPatientId = currSeries.getPatientId();
-                                        currPatientName = currSeries.getPatientName();
-                                        extraStudyInfoSet = true;
-                                    }
+                        }
+                    }
+                } else {
+                    if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
+                        //Import all the series in the study that are in the seriesUIDs list
+                        for (Series currSeries : seriesResults) {
+                            String result = currSeries.getSeriesInstanceUid();
+                            if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
+                                seriesToImport.add(result);
+                                if (!extraStudyInfoSet) {
+                                    currStudyDate = currSeries.getStudyDate();
+                                    currStudyId = currSeries.getStudyId();
+                                    currAccessionNumber = currSeries.getAccessionNumber();
+                                    currPatientId = currSeries.getPatientId();
+                                    currPatientName = currSeries.getPatientName();
+                                    extraStudyInfoSet = true;
                                 }
                             }
                         }
                     } else {
-                        if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
-                            //Import all the series in the study that are in the seriesUIDs list
-                            for (Series currSeries : seriesResults) {
-                                String result = currSeries.getSeriesInstanceUid();
+                        //Import all the series in the study that are in the seriesUIDs list and have seriesDescription in the series description list
+                        for (Series currSeries : seriesResults) {
+                            String result = currSeries.getSeriesInstanceUid();
+                            if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
                                 if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
                                     seriesToImport.add(result);
                                     if (!extraStudyInfoSet) {
@@ -847,69 +813,50 @@ public class BasicPacsService implements PacsService {
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                StringBuilder _seriesIdsString = new StringBuilder();
+
+                for (String currSeries : seriesToImport) {
+                    if (_seriesIdsString.length() != 0) {
+                        _seriesIdsString.append(",");
+                    }
+                    _seriesIdsString.append(currSeries);
+                }
+                if (StringUtils.isNotBlank(_seriesIdsString.toString())) {
+                    try {
+                        QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                        pacsReq.setPacsId(pacsId);
+                        pacsReq.setUsername(user.getUsername());
+                        pacsReq.setXnatProject(project);
+                        pacsReq.setStudyInstanceUid(currStudy);
+                        pacsReq.setSeriesIds(_seriesIdsString.toString());
+                        pacsReq.setDestinationAeTitle(aeTitle);
+                        pacsReq.setStudyDate(currStudyDate);
+                        pacsReq.setStudyId(currStudyId);
+                        pacsReq.setAccessionNumber(currAccessionNumber);
+                        pacsReq.setPatientId(currPatientId);
+                        pacsReq.setPatientName(currPatientName);
+                        if (currAnonScript != null) {
+                            pacsReq.setRemappingScript(currAnonScript);
+                        }
+                        if (multiStudy) {
+                            pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
                         } else {
-                            //Import all the series in the study that are in the seriesUIDs list and have seriesDescription in the series description list
-                            for (Series currSeries : seriesResults) {
-                                String result = currSeries.getSeriesInstanceUid();
-                                if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
-                                    if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
-                                        seriesToImport.add(result);
-                                        if (!extraStudyInfoSet) {
-                                            currStudyDate = currSeries.getStudyDate();
-                                            currStudyId = currSeries.getStudyId();
-                                            currAccessionNumber = currSeries.getAccessionNumber();
-                                            currPatientId = currSeries.getPatientId();
-                                            currPatientName = currSeries.getPatientName();
-                                            extraStudyInfoSet = true;
-                                        }
-                                    }
-                                }
-                            }
+                            pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
                         }
-                    }
+                        pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
+                        pacsReq.setQueuedTime(new Date());
 
-                    String _seriesIdsString = "";
-
-                    for (String currSeries : seriesToImport) {
-                        if (_seriesIdsString.length() != 0) {
-                            _seriesIdsString += ",";
-                        }
-                        _seriesIdsString += currSeries;
-                    }
-                    if (StringUtils.isNotBlank(_seriesIdsString)) {
-                        try {
-                            QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                            pacsReq.setPacsId(pacsId);
-                            pacsReq.setUsername(user.getUsername());
-                            pacsReq.setXnatProject(project);
-                            pacsReq.setStudyInstanceUid(currStudy);
-                            pacsReq.setSeriesIds(_seriesIdsString);
-                            pacsReq.setDestinationAeTitle(aeTitle);
-                            pacsReq.setStudyDate(currStudyDate);
-                            pacsReq.setStudyId(currStudyId);
-                            pacsReq.setAccessionNumber(currAccessionNumber);
-                            pacsReq.setPatientId(currPatientId);
-                            pacsReq.setPatientName(currPatientName);
-                            if (currAnonScript != null) {
-                                pacsReq.setRemappingScript(currAnonScript);
-                            }
-                            if (multiStudy) {
-                                pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
-                            } else {
-                                pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
-                            }
-                            pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
-                            pacsReq.setQueuedTime(new Date());
-
-                            XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                            valueToReturn = false;
-                        } catch (Exception e) {
-                            final Throwable cause = e.getCause();
-                            if (cause == null || !(cause instanceof Exception)) {
-                            } else if (cause instanceof CMoveFailureException) {
-                                final CMoveFailureException failure = (CMoveFailureException) cause;
-                                _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
-                            }
+                        _queuedPacsRequestService.create(pacsReq);
+                        valueToReturn = false;
+                    } catch (Exception e) {
+                        final Throwable cause = e.getCause();
+                        if (cause instanceof CMoveFailureException) {
+                            final CMoveFailureException failure = (CMoveFailureException) cause;
+                            log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                         }
                     }
                 }
@@ -920,7 +867,7 @@ public class BasicPacsService implements PacsService {
 
     @Override
     public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -940,7 +887,7 @@ public class BasicPacsService implements PacsService {
                         String anon = row.getAnonScript();
                         studiesListMappedToAnonScript.put(currStudy, anon);
                         if (StringUtils.isNotBlank(anon) && !importEvenIfCustomProcessingIsOff) {
-                            DicomSCPInstance scpInstance = getScpManager().getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+                            DicomSCPInstance scpInstance = _dicomSCPManager.getDicomSCPInstance(aeTitle, Integer.parseInt(port));
                             if (scpInstance == null) {
                                 throw new Exception("Invalid DICOM SCP Receiver ID.");
                             }
@@ -950,7 +897,7 @@ public class BasicPacsService implements PacsService {
                             if (!scpInstance.isCustomProcessing()) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
                             }
-                            List<ArchiveProcessorInstance> processorInstances = getProcessorService().getAllEnabledSiteProcessorsForAe(ae);
+                            List<ArchiveProcessorInstance> processorInstances = _archiveProcessorInstanceService.getAllEnabledSiteProcessorsForAe(ae);
                             if (processorInstances.isEmpty()) {
                                 throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
                             } else {
@@ -970,66 +917,63 @@ public class BasicPacsService implements PacsService {
             }
         }
         Set<Map.Entry<Study, String>> studiesSet = studiesListMappedToAnonScript.entrySet();
-        if (studiesSet != null) {
-            boolean multiStudy = studiesSet.size() > 1;
-            for (Map.Entry<Study, String> entry : studiesSet) {
-                Study  currStudy      = entry.getKey();
-                String currAnonScript = entry.getValue();
+        boolean                       multiStudy = studiesSet.size() > 1;
+        for (Map.Entry<Study, String> entry : studiesSet) {
+            Study  currStudy      = entry.getKey();
+            String currAnonScript = entry.getValue();
 
-                //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
-                //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
-                String       login   = AdminUtils.getAdminUser().getLogin();
-                String       studyId = currStudy.getStudyInstanceUid();
-                final String path    = "/studies/" + studyId;
-                if (_log.isDebugEnabled()) {
-                    _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+            //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+            //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
+            String       login   = _userProvider.getLogin();
+            String       studyId = currStudy.getStudyInstanceUid();
+            final String path    = "/studies/" + studyId;
+            if (log.isDebugEnabled()) {
+                log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+            }
+            if (studyId == null) {
+                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+            } else {
+                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+            }
+
+
+            final PacsSearchResults<String, Series> series           = getSeriesByStudy(user, pacs, currStudy);
+            StringBuilder                           _seriesIdsString = new StringBuilder();
+            ArrayList<String>                       seriesIdsList    = new ArrayList<>();
+            Object[]                                seriesResults    = series.getResults().toArray();
+            for (int index = 0; index < seriesResults.length; index++) {
+                if (index > 0) {
+                    _seriesIdsString.append(",");
                 }
-                if (studyId == null) {
-                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+                String result = ((Series) seriesResults[index]).getSeriesInstanceUid();
+                _seriesIdsString.append(result);
+                seriesIdsList.add(result);
+            }
+
+            try {
+                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                pacsReq.setPacsId(pacsId);
+                pacsReq.setUsername(user.getUsername());
+                pacsReq.setXnatProject(project);
+                pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                pacsReq.setSeriesIds(_seriesIdsString.toString());
+                pacsReq.setDestinationAeTitle(aeTitle);
+                if (multiStudy) {
+                    pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
                 } else {
-                    XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                    XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                    pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
                 }
+                pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
+                pacsReq.setQueuedTime(new Date());
 
-
-                final PacsSearchResults<String, Series> series           = getSeriesByStudy(XDAT.getUserDetails(), pacs, currStudy);
-                String                                  _seriesIdsString = "";
-                ArrayList<String>                       seriesIdsList    = new ArrayList<>();
-                Object[]                                seriesResults    = series.getResults().toArray();
-                for (int index = 0; index < seriesResults.length; index++) {
-                    if (index > 0) {
-                        _seriesIdsString += ",";
-                    }
-                    String result = ((Series) seriesResults[index]).getSeriesInstanceUid();
-                    _seriesIdsString += result;
-                    seriesIdsList.add(result);
-                }
-
-                try {
-                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                    pacsReq.setPacsId(pacsId);
-                    pacsReq.setUsername(user.getUsername());
-                    pacsReq.setXnatProject(project);
-                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
-                    pacsReq.setSeriesIds(_seriesIdsString);
-                    pacsReq.setDestinationAeTitle(aeTitle);
-                    if (multiStudy) {
-                        pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
-                    } else {
-                        pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
-                    }
-                    pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
-                    pacsReq.setQueuedTime(new Date());
-
-                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
-                    valueToReturn = false;
-                } catch (Exception e) {
-                    final Throwable cause = e.getCause();
-                    if (cause == null || !(cause instanceof Exception)) {
-                    } else if (cause instanceof CMoveFailureException) {
-                        final CMoveFailureException failure = (CMoveFailureException) cause;
-                        _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
-                    }
+                _queuedPacsRequestService.create(pacsReq);
+                valueToReturn = false;
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                 }
             }
         }
@@ -1037,8 +981,8 @@ public class BasicPacsService implements PacsService {
     }
 
     @Override
-    public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException, ConfigServiceException {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+    public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException {
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -1095,7 +1039,7 @@ public class BasicPacsService implements PacsService {
                         searchCriteria.setStudyDateRange(new DqrDateRange(dateObject, endOfDay));
                     } else {
                         String startDateString = studyDateCell.substring(0, dashIndex);
-                        String endDateString   = studyDateCell.substring(dashIndex + 1, studyDateCell.length());
+                        String endDateString   = studyDateCell.substring(dashIndex + 1);
                         if (StringUtils.isNotBlank(startDateString)) {
                             if (StringUtils.isNotBlank(endDateString)) {
                                 searchCriteria.setStudyDateRange(new DqrDateRange(formatter.parse(startDateString), formatter.parse(endDateString)));
@@ -1119,11 +1063,10 @@ public class BasicPacsService implements PacsService {
                 }
 
 
-                final PacsSearchResults<String, Study> studies = getStudiesByExample(
-                        XDAT.getUserDetails(), pacs, searchCriteria);
+                final PacsSearchResults<String, Study> studies = getStudiesByExample(user, pacs, searchCriteria);
 
-                boolean anonymizeThisRow     = false;
-                String  anonScriptForThisRow = "version \"6.1\"" + System.lineSeparator();
+                boolean       anonymizeThisRow     = false;
+                StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
                 for (Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()) {
                     String stringToRemapTo = row.get(entry.getKey());
                     if (StringUtils.isNotBlank(stringToRemapTo)) {
@@ -1132,10 +1075,10 @@ public class BasicPacsService implements PacsService {
 //                            anonymizeThisRow = true;
 //                        } else if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo)) {
                         if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                            anonScriptForThisRow += entry.getValue() + " := \"\"" + System.lineSeparator();
+                            anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
                             anonymizeThisRow = true;
                         } else {
-                            anonScriptForThisRow += entry.getValue() + " := \"" + stringToRemapTo + "\"" + System.lineSeparator();
+                            anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
                             anonymizeThisRow = true;
                         }
                     }
@@ -1144,7 +1087,7 @@ public class BasicPacsService implements PacsService {
                 for (Study currStudy : studies.getResults()) {
                     if (currStudy != null && !studiesListMappedToAnonScript.containsKey(currStudy)) {
                         if (anonymizeThisRow) {
-                            studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow);
+                            studiesListMappedToAnonScript.put(currStudy, anonScriptForThisRow.toString());
                         } else {
                             studiesListMappedToAnonScript.put(currStudy, null);
                         }
@@ -1152,62 +1095,59 @@ public class BasicPacsService implements PacsService {
                 }
             }
         } catch (final Throwable e) {
-            _log.error("Failed to get studies list from spreadsheet.", e);
+            log.error("Failed to get studies list from spreadsheet.", e);
         }
         Set<Map.Entry<Study, String>> studiesSet = studiesListMappedToAnonScript.entrySet();
-        if (studiesSet != null) {
-            boolean multiStudy = studiesSet.size() > 1;
-            for (Map.Entry<Study, String> entry : studiesSet) {
-                Study  currStudy      = entry.getKey();
-                String currAnonScript = entry.getValue();
+        boolean                       multiStudy = studiesSet.size() > 1;
+        for (Map.Entry<Study, String> entry : studiesSet) {
+            Study  currStudy      = entry.getKey();
+            String currAnonScript = entry.getValue();
 
 
-                //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
+            //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
 //            DefaultAnonUtils.setStudyScript(AdminUtils.getAdminUser().getLogin(), currAnonScript, currStudy.getStudyInstanceUid());
-                String login   = AdminUtils.getAdminUser().getLogin();
-                String studyId = currStudy.getStudyInstanceUid();
+//            String login   = AdminUtils.getAdminUser().getLogin();
+//            String studyId = currStudy.getStudyInstanceUid();
 //            final String path = "/studies/" + studyId;
-//            if (_log.isDebugEnabled()) {
-//                _log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-//            }
+//            log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
 //            if (studyId == null) {
-//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
+//                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript);
 //            } else {
-//                XDAT.getConfigService().replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-//                XDAT.getConfigService().enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+//                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+//                _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
 //            }
 
 
-                final PacsSearchResults<String, Series> series           = getSeriesByStudy(XDAT.getUserDetails(), pacs, currStudy);
-                String                                  _seriesIdsString = "";
-                ArrayList<String>                       seriesIdsList    = new ArrayList<>();
-                Object[]                                seriesResults    = series.getResults().toArray();
-                for (int index = 0; index < seriesResults.length; index++) {
-                    if (index > 0) {
-                        _seriesIdsString += ",";
-                    }
-                    String result = ((Series) seriesResults[index]).getSeriesInstanceUid();
-                    _seriesIdsString += result;
-                    seriesIdsList.add(result);
+            final PacsSearchResults<String, Series> series           = getSeriesByStudy(user, pacs, currStudy);
+            StringBuilder                           _seriesIdsString = new StringBuilder();
+            ArrayList<String>                       seriesIdsList    = new ArrayList<>();
+            Object[]                                seriesResults    = series.getResults().toArray();
+            for (int index = 0; index < seriesResults.length; index++) {
+                if (index > 0) {
+                    _seriesIdsString.append(",");
                 }
+                String result = ((Series) seriesResults[index]).getSeriesInstanceUid();
+                _seriesIdsString.append(result);
+                seriesIdsList.add(result);
+            }
 
-                try {
-                    QueuedPacsRequest pacsReq = new QueuedPacsRequest();
-                    pacsReq.setPacsId(pacsId);
-                    pacsReq.setUsername(user.getUsername());
-                    pacsReq.setXnatProject(project);
-                    pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
-                    pacsReq.setSeriesIds(_seriesIdsString);
-                    pacsReq.setDestinationAeTitle(ae);
-                    pacsReq.setRemappingScript(currAnonScript);
-                    if (multiStudy) {
-                        pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
-                    } else {
-                        pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
-                    }
-                    pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
-                    pacsReq.setQueuedTime(new Date());
-                    XDAT.getContextService().getBean(QueuedPacsRequestService.class).create(pacsReq);
+            try {
+                QueuedPacsRequest pacsReq = new QueuedPacsRequest();
+                pacsReq.setPacsId(pacsId);
+                pacsReq.setUsername(user.getUsername());
+                pacsReq.setXnatProject(project);
+                pacsReq.setStudyInstanceUid(currStudy.getStudyInstanceUid());
+                pacsReq.setSeriesIds(_seriesIdsString.toString());
+                pacsReq.setDestinationAeTitle(ae);
+                pacsReq.setRemappingScript(currAnonScript);
+                if (multiStudy) {
+                    pacsReq.setPriority(PacsRequest.STANDARD_PRIORITY);
+                } else {
+                    pacsReq.setPriority(PacsRequest.HIGH_PRIORITY);
+                }
+                pacsReq.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
+                pacsReq.setQueuedTime(new Date());
+                _queuedPacsRequestService.create(pacsReq);
 //                }
 //            } catch (final PacsNotFoundException exception) {
 //                _log.warn("PACS not found somehow", exception);
@@ -1223,13 +1163,11 @@ public class BasicPacsService implements PacsService {
 //                _log.warn("ID absent when creating new workflow event", e);
 //            } catch (PersistentWorkflowUtils.JustificationAbsent e) {
 //                _log.warn("Justification absent but required when creating new workflow event", e);
-                } catch (Exception e) {
-                    final Throwable cause = e.getCause();
-                    if (cause == null || !(cause instanceof Exception)) {
-                    } else if (cause instanceof CMoveFailureException) {
-                        final CMoveFailureException failure = (CMoveFailureException) cause;
-                        _log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
-                    }
+            } catch (Exception e) {
+                final Throwable cause = e.getCause();
+                if (cause instanceof CMoveFailureException) {
+                    final CMoveFailureException failure = (CMoveFailureException) cause;
+                    log.error("C-MOVE operation failed:\n" + failure.getMessage(), failure);
                 }
             }
         }
@@ -1237,30 +1175,26 @@ public class BasicPacsService implements PacsService {
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
         if (!StringUtils.isBlank(projectId)) {
-            if (_log.isDebugEnabled()) {
-                _log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
+            if (log.isDebugEnabled()) {
+                log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
             }
-            XDAT.getContextService().getBean(StudyRoutingService.class).assign(studyInstanceUid, projectId, username);
+            _studyRoutingService.assign(studyInstanceUid, projectId, username);
             return new Study(projectId, studyInstanceUid);
         } else {
-            if (_log.isDebugEnabled()) {
-                _log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
+            if (log.isDebugEnabled()) {
+                log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
             }
             return new Study(studyInstanceUid);
         }
     }
 
-
-    private static PacsEntityService getPacsEntityService() {
-        return XDAT.getContextService().getBean(PacsEntityService.class);
-    }
-
-    private static DicomSCPManager getScpManager() {
-        return XDAT.getContextService().getBean(DicomSCPManager.class);
-    }
-
-    private static ArchiveProcessorInstanceService getProcessorService() {
-        return XDAT.getContextService().getBean(ArchiveProcessorInstanceService.class);
+    private static String getAnonScript(final StudyImportInformation studyInfo) {
+        final String currAnonScript = studyInfo.getAnonScript();
+        if (StringUtils.isNotBlank(currAnonScript)) {
+            return currAnonScript;
+        }
+        final Map<String, String> relabelMap = studyInfo.getRelabelMap();
+        return relabelMap != null && !relabelMap.isEmpty() ? generateAnonScriptFromMap(relabelMap) : null;
     }
 
     private static String removeExtraQuotes(String inputString) {
@@ -1270,4 +1204,43 @@ public class BasicPacsService implements PacsService {
             return inputString;
         }
     }
+
+    private static Map<String, String> createHeaderToTagMap() {
+        return new HashMap<String, String>() {{
+            put("Relabel Accession Number", "(0008,0050)");
+            put("Relabel Study Date", "(0008,0020)");
+            put("Relabel Study ID", "(0020,0010)");
+            put("Relabel Patient ID", "(0010,0020)");
+            put("Relabel Patient Name", "(0010,0010)");
+            put("Relabel Patient Birth Date", "(0010,0030)");
+            put("Subject", "(0010,0010):(0010,0020)");
+            put("Session", "(0020,0010):(0008,0050)");
+        }};
+    }
+
+    private static String generateAnonScriptFromMap(final Map<String, String> relabelMap) {
+        if (relabelMap == null || relabelMap.isEmpty()) {
+            return null;
+        }
+        final StringBuilder currAnonScript = new StringBuilder("version \"6.1\"" + System.lineSeparator());
+        for (final Map.Entry<String, String> entry : relabelMap.entrySet()) {
+            final String[] tags     = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
+            final String   newValue = entry.getValue();
+            if (StringUtils.isNotBlank(newValue) && tags != null) {
+                for (String tag : tags) {
+                    if (StringUtils.equals(CLEAR_SIGNIFIER, newValue) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, newValue)) {
+                        currAnonScript.append(tag).append(" := \"\"").append(System.lineSeparator());
+                    } else {
+                        currAnonScript.append(tag).append(" := \"").append(newValue).append("\"").append(System.lineSeparator());
+                    }
+                }
+            }
+        }
+        return currAnonScript.toString();
+    }
+
+    private static final String              CLEAR_SIGNIFIER   = "\"\"";
+    private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
+
+    private final DqrPreferences _preferences;
 }

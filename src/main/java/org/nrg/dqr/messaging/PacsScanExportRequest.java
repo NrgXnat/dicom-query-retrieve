@@ -12,26 +12,21 @@
 
 package org.nrg.dqr.messaging;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.Serializable;
 
-import org.nrg.xdat.om.XnatImagescandata;
-
+@Getter
+@Builder
+@AllArgsConstructor
 public class PacsScanExportRequest implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
-    private XnatImagescandata scan;
-
-    public XnatImagescandata getScan() {
-        return scan;
-    }
-
-    public void setScan(final XnatImagescandata scan) {
-        this.scan = scan;
-    }
-
     @Override
     public String toString() {
-        return scan == null ? "null" : scan.getId();
+        return StringUtils.defaultIfBlank(scanId, "null");
     }
+
+    private final String scanId;
 }
