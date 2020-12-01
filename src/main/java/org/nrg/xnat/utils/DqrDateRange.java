@@ -3,7 +3,6 @@ package org.nrg.xnat.utils;
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -154,6 +153,7 @@ public class DqrDateRange extends DateRange {
         return includes(range._startDate) && includes(range._endDate);
     }
 
+    @SuppressWarnings("unused")
     public boolean overlaps(final DqrDateRange range) {
         return includes(range.getStartDate()) || includes(range.getEndDate());
     }
@@ -221,8 +221,6 @@ public class DqrDateRange extends DateRange {
 
     private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
 
-    @JsonSerialize(using = DateAsStringSerializer.class)
     private final LocalDateTime _startDate;
-    @JsonSerialize(using = DateAsStringSerializer.class)
     private final LocalDateTime _endDate;
 }

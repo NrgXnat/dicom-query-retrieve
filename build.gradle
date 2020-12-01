@@ -103,6 +103,7 @@ dependencyManagement {
 
 def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
 def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
+def vJackson = dependencyManagement.importedProperties["jackson.version"] as String
 
 dependencies {
     implementation enforcedPlatform("org.nrg:parent:${vXnat}")
@@ -141,6 +142,15 @@ dependencies {
         transitive = false
     }
     implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
+        transitive = false
+    }
+    implementAndInclude("com.fasterxml.jackson.module:jackson-module-parameter-names:${vJackson}") {
+        transitive = false
+    }
+    implementAndInclude("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${vJackson}") {
+        transitive = false
+    }
+    implementAndInclude("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${vJackson}") {
         transitive = false
     }
 

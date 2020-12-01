@@ -1,8 +1,3 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by Fernflower decompiler)
-//
-
 package org.nrg.xnat.utils;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -21,7 +16,7 @@ public class DateAsStringSerializer extends DateTimeSerializerBase<Date> {
     public static final DateAsStringSerializer instance = new DateAsStringSerializer();
 
     public DateAsStringSerializer() {
-        this((Boolean)null, (DateFormat)null);
+        this(null, null);
     }
 
     public DateAsStringSerializer(Boolean useTimestamp, DateFormat customFormat) {
@@ -33,22 +28,26 @@ public class DateAsStringSerializer extends DateTimeSerializerBase<Date> {
     }
 
     protected long _timestamp(Date value) {
-        return value == null?0L:value.getTime();
+        return value == null ? 0L : value.getTime();
     }
 
     public void serialize(Date value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-        DateFormat myDateFormat = new SimpleDateFormat("yyyyMMdd");
-        myDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 //        if(this._asTimestamp(provider)) {
 //            gen.writeString(""+this._timestamp(value));
 //        } else if(myDateFormat != null) {
 //            DateFormat var4 = myDateFormat;
-            synchronized(myDateFormat) {
-                gen.writeString(myDateFormat.format(value));
-            }
+        synchronized (DATE_FORMAT) {
+            gen.writeString(DATE_FORMAT.format(value));
+        }
 //        } else {
 //            provider.defaultSerializeDateValue(value, gen);
 //        }
 
+    }
+
+    private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
+
+    static {
+        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
     }
 }
