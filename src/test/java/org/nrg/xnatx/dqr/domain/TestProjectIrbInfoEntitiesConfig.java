@@ -16,7 +16,9 @@ import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
 import org.nrg.framework.test.OrmTestConfiguration;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xnat.preferences.FileStorePreferences;
+import org.nrg.xnat.services.archive.FileStore;
 import org.nrg.xnat.services.archive.impl.hibernate.FileStoreInfoDAO;
+import org.nrg.xnat.services.archive.impl.hibernate.HibernateFileStoreService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +30,7 @@ import java.nio.file.Path;
 
 @Configuration
 @Import(OrmTestConfiguration.class)
-@ComponentScan({"org.nrg.xnat.services.archive.impl.hibernate", "org.nrg.xnatx.dqr.domain.daos", "org.nrg.xnatx.dqr.services.impl.hibernate"})
+@ComponentScan({"org.nrg.xnatx.dqr.domain.daos", "org.nrg.xnatx.dqr.services.impl.hibernate"})
 public class TestProjectIrbInfoEntitiesConfig {
     @Bean
     public HibernateEntityPackageList dqrEntities() {
@@ -52,5 +54,10 @@ public class TestProjectIrbInfoEntitiesConfig {
         final FileStorePreferences preferences = Mockito.mock(FileStorePreferences.class);
         when(preferences.getFileStorePath()).thenReturn(temp.toString());
         return preferences;
+    }
+
+    @Bean
+    public FileStore fileStore() throws IOException {
+        return new HibernateFileStoreService(fileStorePreferences());
     }
 }

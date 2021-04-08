@@ -33,7 +33,7 @@ description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
     mavenLocal()
-    maven { url "https://maven.dcm4che.org" }
+    maven { url "https://www.dcm4che.org/maven2" }
     mavenCentral()
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
