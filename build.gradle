@@ -9,20 +9,21 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.0-SNAPSHOT"
+        vXnat = "1.8.1"
     }
 }
 
 plugins {
-    id "java"
-    id "jacoco"
-    id "maven-publish"
-    id "idea"
     id "eclipse"
+    id "idea"
+    id "jacoco"
+    id "java"
+    id "maven-publish"
     id "com.dorongold.task-tree" version "1.5"
-    id "com.palantir.git-version" version "0.12.3"
+    id "com.palantir.git-version" version "0.12.1"
     id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.9.RELEASE"
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
@@ -32,8 +33,7 @@ description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
     mavenLocal()
-    maven { url "https://maven.imagej.net/content/groups/public" }
-    jcenter()
+    maven { url "https://maven.dcm4che.org" }
     mavenCentral()
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
@@ -79,8 +79,8 @@ jacocoTestReport {
     dependsOn test
     reports {
         xml.enabled = false
-        csv.enabled = false
-        html.destination file("${buildDir}/jacocoHtml")
+        csv.enabled = true
+        html.enabled = true
     }
 }
 
@@ -306,17 +306,10 @@ publishing {
     }
     repositories {
         maven {
-            credentials {
-                // These properties must be set in the ~/.gradle/gradle.properties file or passed on the Gradle command
-                // line in the form -PrepoUsername=foo -PrepoPassword=bar.
-                username propertyWithDefault("repoUsername", "username")
-                password propertyWithDefault("repoPassword", "password")
-            }
-            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}-local"
+            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
+            // The value for name must match <id> in ~/.m2/settings.xml
+            name = "XNAT_Artifactory"
         }
     }
 }
 
-def propertyWithDefault(String name, Object value) {
-    hasProperty(name) ? property(name) : value
-}
