@@ -22,6 +22,8 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class DqrPersonName implements Serializable {
+    private static final long serialVersionUID = -4147009089575812390L;
+
     public DqrPersonName() {
         this(null, null, null, null, null);
     }

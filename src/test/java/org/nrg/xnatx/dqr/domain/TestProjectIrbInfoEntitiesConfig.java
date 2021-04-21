@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ import java.nio.file.Path;
 @Configuration
 @Import(OrmTestConfiguration.class)
 @ComponentScan({"org.nrg.xnatx.dqr.domain.daos", "org.nrg.xnatx.dqr.services.impl.hibernate"})
+@TestPropertySource(locations = "classpath:/test.properties")
 public class TestProjectIrbInfoEntitiesConfig {
     @Bean
     public HibernateEntityPackageList dqrEntities() {

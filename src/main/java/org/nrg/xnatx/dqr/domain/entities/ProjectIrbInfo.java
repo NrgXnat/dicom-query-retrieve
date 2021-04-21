@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 @Audited
 @NoArgsConstructor
 public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = -7219961069239647732L;
+
     @Builder
     public ProjectIrbInfo(final String projectId, final String irbNumber, final @Singular List<FileStoreInfo> projectIrbFiles) {
         _projectId = projectId;

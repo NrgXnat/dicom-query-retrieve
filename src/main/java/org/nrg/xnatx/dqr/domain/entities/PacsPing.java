@@ -9,21 +9,25 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import java.io.Serializable;
-import java.util.Date;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import java.io.Serializable;
+import java.util.Date;
+
 @Entity
 @Table
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class PacsPing extends AbstractHibernateEntity implements Serializable {
-    protected static final long serialVersionUID = 1L;
+    private static final long   serialVersionUID = 4404214285524614283L;
+    private static final String TO_STRING_FORMAT = "{\n  pacsId: %d,\n  successful: %b,\n  pingTime: %Tc\n}";
 
     protected Long    _pacsId;
     protected boolean _successful;
@@ -33,58 +37,28 @@ public class PacsPing extends AbstractHibernateEntity implements Serializable {
         return _pacsId;
     }
 
-    public void setPacsId(Long _pacsId) {
-        this._pacsId = _pacsId;
+    public void setPacsId(final Long pacsId) {
+        _pacsId = pacsId;
     }
 
     public boolean isSuccessful() {
         return _successful;
     }
 
-    public void setSuccessful(boolean _successful) {
-        this._successful = _successful;
+    public void setSuccessful(final boolean successful) {
+        _successful = successful;
     }
 
     public Date getPingTime() {
         return _pingTime;
     }
 
-    public void setPingTime(Date _pingTime) {
-        this._pingTime = _pingTime;
-    }
-
-    // for Hibernate
-    public PacsPing() {
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(137, 479).append(_pacsId).append(_successful)
-                                            .append(_pingTime).toHashCode();
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-        final PacsPing other = (PacsPing) obj;
-        return new EqualsBuilder().append(_pacsId, other._pacsId).append(_successful, other._successful)
-                                  .append(_pingTime, other._pingTime).isEquals();
+    public void setPingTime(final Date pingTime) {
+        _pingTime = pingTime;
     }
 
     @Override
     public String toString() {
-        final StringBuilder buffer = new StringBuilder("{ ");
-        buffer.append("pacsId: ").append(_pacsId).append(", ");
-        buffer.append("_successful: ").append(_successful).append(", ");
-        buffer.append("pingTime: ").append(_pingTime).append(", ");
-        return buffer.toString();
+        return String.format(TO_STRING_FORMAT, _pacsId, _successful, _pingTime);
     }
 }

@@ -23,6 +23,8 @@ import java.util.List;
  */
 @MappedSuperclass
 public class PacsRequest extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = -4904269689415210630L;
+
     public static final String QUEUED_STATUS_TEXT     = "QUEUED";
     public static final String PROCESSING_STATUS_TEXT = "PROCESSING";
     public static final String ISSUED_STATUS_TEXT     = "ISSUED";

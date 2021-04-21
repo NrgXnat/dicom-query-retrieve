@@ -28,6 +28,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Patient implements DqrDomainObject, Serializable {
+    private static final long serialVersionUID = -3085053888171875651L;
+
     public Patient(final DicomObject dicomObject, final OrmStrategy ormStrategy) {
         id = StringUtils.trim(dicomObject.getString(Tag.PatientID));
         name = ormStrategy.getPatientNameStrategy().dicomPatientNameToDqrPatientName(StringUtils.trim(dicomObject.getString(Tag.PatientName)));

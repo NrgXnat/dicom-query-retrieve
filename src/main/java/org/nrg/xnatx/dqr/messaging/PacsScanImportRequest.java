@@ -20,6 +20,8 @@ import org.nrg.xnatx.dqr.domain.Study;
 @Accessors(prefix = "_")
 @Builder
 public class PacsScanImportRequest implements Serializable {
+    private static final long serialVersionUID = -199459308378280991L;
+
     @Override
     public String toString() {
         return getStudy().getStudyInstanceUid() + ":" + getSeries().getSeriesInstanceUid();

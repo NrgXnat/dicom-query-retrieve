@@ -26,6 +26,8 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 public class Study implements DqrDomainObject, Serializable {
+    private static final long serialVersionUID = 8640039199226827418L;
+
     public Study() {
     }
 

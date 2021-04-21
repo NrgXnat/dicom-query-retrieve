@@ -37,6 +37,8 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StudyIdStudyInstanceUidMapping extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = -6524662779757237758L;
+
     @Override
     public boolean equals(final Object object) {
         if (!(object instanceof StudyIdStudyInstanceUidMapping) || !super.equals(object)) {

@@ -13,13 +13,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @Accessors(prefix = "_")
-public class PacsSearchRequest {
+public class PacsSearchRequest implements Serializable {
+    private static final long serialVersionUID = -1150137478832020599L;
+
     public enum Type {
         PatientsByExample,
         PatientById,

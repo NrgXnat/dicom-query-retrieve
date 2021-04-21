@@ -33,6 +33,8 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 public class Pacs extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = 3741269782521664702L;
+
     @Override
     public String toString() {
         return "{ aeTitle: \"" + aeTitle + "\", "

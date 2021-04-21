@@ -27,6 +27,8 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @Audited
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 public class DqrProjectSettings extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = -8377837327063450758L;
+
     public DqrProjectSettings() {
         //
     }

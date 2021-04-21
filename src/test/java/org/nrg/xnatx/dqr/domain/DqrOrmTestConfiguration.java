@@ -44,6 +44,7 @@ import java.util.Properties;
  */
 @Configuration
 @EnableTransactionManagement
+@TestPropertySource(locations = "classpath:/test.properties")
 public class DqrOrmTestConfiguration {
     @Bean
     public DataSource dataSource() {

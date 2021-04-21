@@ -19,6 +19,8 @@ import lombok.NonNull;
 @Builder
 @EqualsAndHashCode
 public class Series implements DqrDomainObject, Serializable {
+    private static final long serialVersionUID = 8880479205274075901L;
+
     @Override
     public String getUniqueIdentifier() {
         return getSeriesInstanceUid();

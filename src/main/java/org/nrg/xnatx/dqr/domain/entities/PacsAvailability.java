@@ -20,6 +20,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.Cache;
@@ -33,7 +34,10 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@EqualsAndHashCode(callSuper = true)
 public class PacsAvailability extends AbstractHibernateEntity implements Serializable {
+    private static final long serialVersionUID = 6611202513996472083L;
+
     public static long getAvailabilityTimeInMillis(final Calendar calendar, final String availabilityTime) {
         if (StringUtils.isNotBlank(availabilityTime)) {
             try {
@@ -53,7 +57,7 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         return _pacsId;
     }
 
-    public void setPacsId(Long pacsId) {
+    public void setPacsId(final Long pacsId) {
         _pacsId = pacsId;
     }
 
@@ -61,7 +65,7 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         return _dayOfWeek;
     }
 
-    public void setDayOfWeek(int dayOfWeek) {
+    public void setDayOfWeek(final int dayOfWeek) {
         _dayOfWeek = dayOfWeek;
     }
 
@@ -115,36 +119,6 @@ public class PacsAvailability extends AbstractHibernateEntity implements Seriali
         } else {
             return currentTime > startTime && currentTime < endTime && currentDayOfWeek == availabilityDay;
         }
-    }
-
-    @Override
-    public boolean equals(final Object object) {
-        if (this == object) {
-            return true;
-        }
-        if (!(object instanceof PacsAvailability) || !super.equals(object)) {
-            return false;
-        }
-
-        final PacsAvailability that = (PacsAvailability) object;
-        return Objects.equals(_pacsId, that._pacsId) &&
-               _dayOfWeek == that._dayOfWeek &&
-               StringUtils.equals(_availabilityStart, that._availabilityStart) &&
-               StringUtils.equals(_availabilityEnd, that._availabilityEnd) &&
-               that._threads == _threads &&
-               _utilizationPercent == that._utilizationPercent;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (_pacsId != null ? _pacsId.hashCode() : 0);
-        result = 31 * result + _dayOfWeek;
-        result = 31 * result + (_availabilityStart != null ? _availabilityStart.hashCode() : 0);
-        result = 31 * result + (_availabilityEnd != null ? _availabilityEnd.hashCode() : 0);
-        result = 31 * result + _threads;
-        result = 31 * result + _utilizationPercent;
-        return result;
     }
 
     @Override

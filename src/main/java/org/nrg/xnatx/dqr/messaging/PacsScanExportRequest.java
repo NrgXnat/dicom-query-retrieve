@@ -17,6 +17,8 @@ import org.nrg.xdat.om.XnatImagescandata;
 @Data
 @Accessors(prefix = "_")
 public class PacsScanExportRequest implements Serializable {
+    private static final long serialVersionUID = 7911307125500245254L;
+
     @Override
     public String toString() {
         return _scan == null ? "null" : _scan.getId();
