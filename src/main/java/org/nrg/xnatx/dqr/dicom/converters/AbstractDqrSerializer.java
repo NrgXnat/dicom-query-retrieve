@@ -47,7 +47,7 @@ public abstract class AbstractDqrSerializer<T> extends StdSerializer<T> {
 
     protected void writeNonNullDateField(final JsonGenerator generator, final String name, final Date value) throws IOException {
         if (value != null) {
-            generator.writeStringField(name, DqrDateRange.format(value));
+            generator.writeStringField(name, DqrDateRange.formatDate(value));
         }
     }
 

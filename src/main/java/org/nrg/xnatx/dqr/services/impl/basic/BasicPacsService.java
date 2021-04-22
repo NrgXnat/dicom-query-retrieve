@@ -42,7 +42,10 @@ import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
-import org.nrg.xnatx.dqr.domain.entities.*;
+import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
@@ -241,22 +244,10 @@ public class BasicPacsService implements PacsService {
     @Override
     public List<CsvRow> extractImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, false, (user1, pacs, columnMap, row, criteria) -> {
-            final AtomicBoolean anonymizeThisRow     = new AtomicBoolean();
-            final StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
-            for (final Map.Entry<Integer, String> entry : columnMap.entrySet()) {
-                final String stringToRemapTo = row.get(entry.getKey());
-                if (StringUtils.isNotBlank(stringToRemapTo)) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                        anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
-                    } else {
-                        anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
-                    }
-                    anonymizeThisRow.set(true);
-                }
-            }
+            final Optional<String> script = getAnonScript(columnMap, row);
             try {
                 final PacsSearchResults<Study> results = getStudiesByExample(user1, pacs, criteria);
-                return CsvRow.builder().criteria(criteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults()).build();
+                return CsvRow.builder().criteria(criteria).anonScript(script.orElse(null)).studies(results.getResults()).build();
             } catch (PacsNotQueryableException e) {
                 log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
                 return null;
@@ -548,25 +539,12 @@ public class BasicPacsService implements PacsService {
                     searchCriteriaBuilder.modality(row.get(modalityColumn));
                 }
 
-                final AtomicBoolean anonymizeThisRow     = new AtomicBoolean();
-                final StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
-                for (final Map.Entry<Integer, String> entry : columnToDicomTagMap.entrySet()) {
-                    final String stringToRemapTo = row.get(entry.getKey());
-                    if (StringUtils.isNotBlank(stringToRemapTo)) {
-                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                            anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
-                        } else {
-                            anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
-                        }
-                        anonymizeThisRow.set(true);
-                    }
-                }
-
+                final Optional<String> script = getAnonScript(columnToDicomTagMap, row);
                 try {
                     getStudiesByExample(user, pacs, searchCriteriaBuilder.build()).getResults().stream()
                                                                                   .filter(Objects::nonNull)
                                                                                   .filter(study -> !studiesListMappedToAnonScript.containsKey(study))
-                                                                                  .forEach(study -> studiesListMappedToAnonScript.put(study, anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null));
+                                                                                  .forEach(study -> studiesListMappedToAnonScript.put(study, script.orElse(null)));
                 } catch (PacsNotQueryableException e) {
                     log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
                 }
@@ -850,8 +828,21 @@ public class BasicPacsService implements PacsService {
         return StringUtils.isAllBlank(startDate, endDate) ? null : new DqrDateRange(startDate, endDate);
     }
 
-    private static final String              CLEAR_SIGNIFIER   = "\"\"";
-    private static final Map<String, String> HEADER_TO_TAG_MAP = createHeaderToTagMap();
+    private static Optional<String> getAnonScript(final Map<Integer, String> columns, final List<String> row) {
+        final String script = columns.entrySet().stream().filter(entry -> StringUtils.isNotBlank(entry.getValue())).map(entry -> {
+            final String mapped = row.get(entry.getKey());
+            if (StringUtils.equalsAny(mapped, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X)) {
+                return entry.getValue() + " := \"\"";
+            } else {
+                return entry.getValue() + " := \"" + mapped + "\"";
+            }
+        }).collect(Collectors.joining(System.lineSeparator()));
+        return StringUtils.isBlank(script) ? Optional.empty() : Optional.of("version \"6.1\"" + System.lineSeparator() + script);
+    }
+
+    private static final String              CLEAR_SIGNIFIER    = "\"\"";
+    private static final String              CLEAR_SIGNIFIER_3X = CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER;
+    private static final Map<String, String> HEADER_TO_TAG_MAP  = createHeaderToTagMap();
 
     private final DqrPreferences                                                             _preferences;
     private final DicomSCPManager                                                            _dicomSCPManager;

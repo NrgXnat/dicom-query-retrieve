@@ -839,7 +839,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/window", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
     public PacsAvailability createPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws DataFormatException {
-        if (settings.getDayOfWeek() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+        if (settings.getDayOfWeek().getValue() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to create a PACS availability interval but did not supply the day of week, start time, and end time.");
         }
         _pacsAvailabilityEntityService.checkOverlap(settings, true);
@@ -858,7 +858,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/conflictsExisting", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
     public boolean checkPacsAvailabilityInterval(@RequestBody final PacsAvailability settings) throws DataFormatException {
-        if (settings.getDayOfWeek() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
+        if (settings.getDayOfWeek().getValue() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.");
         }
         return _pacsAvailabilityEntityService.checkOverlap(settings, false);
@@ -880,7 +880,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
         boolean isDirty = false;
         // Only update fields that are actually included in the submitted data and differ from the original source.
-        if (settings.getDayOfWeek() != 0 && settings.getDayOfWeek() != existingSettings.getDayOfWeek()) {
+        if (settings.getDayOfWeek().getValue() != 0 && settings.getDayOfWeek() != existingSettings.getDayOfWeek()) {
             existingSettings.setDayOfWeek(settings.getDayOfWeek());
             isDirty = true;
         }
@@ -955,7 +955,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/windows/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public List<PacsAvailability> getPacsAvailabilityIntervals(@PathVariable final long pacsId) {
-        return _pacsAvailabilityEntityService.findSettingsByPacs(pacsId);
+        return _pacsAvailabilityEntityService.findAllByPacsId(pacsId);
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")

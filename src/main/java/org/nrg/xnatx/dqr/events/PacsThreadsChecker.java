@@ -9,8 +9,6 @@
 
 package org.nrg.xnatx.dqr.events;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.config.services.ConfigService;
 import org.nrg.mail.services.MailService;
@@ -22,11 +20,11 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
-import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsService;
-import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
+import org.nrg.xnatx.dqr.services.*;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by mike on 1/23/18.
@@ -57,22 +55,27 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
             if (pacsList != null) {
                 for (final Pacs pacs : pacsList) {
                     try {
-                        final long             pacsId       = pacs.getId();
-                        final PacsAvailability availability = _pacsAvailabilityEntityService.findAvailableNow(pacsId);
-                        if (availability != null && _threads.hasAvailable(pacsId, availability.getThreads())) {
-                            final List<QueuedPacsRequest> requests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacsId);
-                            if (requests.isEmpty()) {
-                                continue;
-                            }
-                            if (_pacsService.canConnect(_primaryAdminUserProvider.get(), pacs)) {
-                                final AtomicInteger added                     = new AtomicInteger();
-                                final int           currentThreadsForThisPacs = _threads.get(pacsId);
-                                final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
-                                for (final QueuedPacsRequest request : requests) {
-                                    new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityEntityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
-                                    if (added.incrementAndGet() >= newThreadsAllowed) {
-                                        break;
-                                    }
+                        final long                       pacsId          = pacs.getId();
+                        final Optional<PacsAvailability> getAvailability = _pacsAvailabilityEntityService.findAvailableNow(pacsId);
+                        if (!getAvailability.isPresent()) {
+                            continue;
+                        }
+                        final PacsAvailability availability = getAvailability.get();
+                        if (!_threads.hasAvailable(pacsId, availability.getThreads())) {
+                            continue;
+                        }
+                        final List<QueuedPacsRequest> requests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacsId);
+                        if (requests.isEmpty()) {
+                            continue;
+                        }
+                        if (_pacsService.canConnect(_primaryAdminUserProvider.get(), pacs)) {
+                            final AtomicInteger added                     = new AtomicInteger();
+                            final int           currentThreadsForThisPacs = _threads.get(pacsId);
+                            final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
+                            for (final QueuedPacsRequest request : requests) {
+                                new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityEntityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                if (added.incrementAndGet() >= newThreadsAllowed) {
+                                    break;
                                 }
                             }
                         }

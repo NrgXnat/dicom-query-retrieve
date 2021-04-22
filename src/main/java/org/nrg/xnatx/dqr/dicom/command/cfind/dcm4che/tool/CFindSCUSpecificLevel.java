@@ -145,10 +145,10 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     private String buildStudyDateCriterion(DqrDateRange studyDateRange) {
         String startDate = "", endDate = "";
         if (studyDateRange.isBoundedAtStart()) {
-            startDate = DqrDateRange.format(studyDateRange.getStart());
+            startDate = DqrDateRange.formatDate(studyDateRange.getStart());
         }
         if (studyDateRange.isBoundedAtEnd()) {
-            endDate = DqrDateRange.format(studyDateRange.getEnd());
+            endDate = DqrDateRange.formatDate(studyDateRange.getEnd());
         }
         return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
     }

@@ -10,17 +10,84 @@
 package org.nrg.xnatx.dqr.domain.daos;
 
 import java.util.List;
+
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.hibernate.Criteria;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
+import org.nrg.framework.ajax.PaginatedRequest;
+import org.nrg.framework.ajax.hibernate.HibernateFilter;
+import org.nrg.framework.generics.GenericUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 
-public abstract class AbstractPacsRequestDAO<R extends PacsRequest> extends AbstractHibernateDAO<R> {
-    public List<R> findAllForUser(final UserI user) {
-        return findByCriteria(Restrictions.eq("username", user.getUsername()));
+public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends AbstractHibernateDAO<E> {
+    public List<E> findAllOrderedByDate() {
+        return findAllOrderedByDate(new PaginatedPacsRequest());
     }
 
-    public R findByIdForUser(final long id, final UserI user) {
-        return instance(findByCriteria(Restrictions.eq("id", id), Restrictions.eq("username", user.getUsername())));
+    public List<E> findAllOrderedByDate(final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearSortBys()
+                                        .sortColumn("queuedTime")
+                                        .sortDir(PaginatedRequest.SortDir.ASC).build());
+    }
+
+    public List<E> findAllByUser(final UserI user) {
+        return findAllByUser(user, null);
+    }
+
+    public List<E> findAllByUser(final UserI user, final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap()
+                                        .filter("username", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(user.getUsername()).build())
+                                        .build());
+    }
+
+    public List<E> findAllByIdAndUser(final long id, final UserI user) {
+        return findAllByIdAndUser(id, user, null);
+    }
+
+    public List<E> findAllByIdAndUser(final long id, final UserI user, final PaginatedPacsRequest request) {
+        final PaginatedPacsRequest realized = ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest());
+        realized.getFiltersMap().put("id", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(id).build());
+        realized.getFiltersMap().put("username", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(user.getUsername()).build());
+        return findPaginated(realized);
+    }
+
+    public List<E> findByPacsIdOrderedByMostRecent(final long pacsId) {
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("pacsId", pacsId));
+        criteria.addOrder(Order.desc("executedTime"));
+        return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
+    }
+
+    public List<E> findByStudyInstanceUidOrderedByMostRecent(final String studyInstanceUid) {
+        final Criteria criteria = getSession().createCriteria(getParameterizedType());
+        criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
+        criteria.addOrder(Order.desc("executedTime"));
+        return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
+    }
+
+    public List<E> findByPacsIdForUser(final long pacsId, final UserI user) {
+        return findByPacsIdForUser(pacsId, user, new PaginatedPacsRequest());
+    }
+
+    public List<E> findByPacsIdForUser(final long pacsId, final UserI user, final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap()
+                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
+                                        .filter("username", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(user.getUsername()).build()).build());
+    }
+
+    public List<E> findAllForPacsOrderedByPriorityAndDate(final long pacsId) {
+        return findAllForPacsOrderedByPriorityAndDate(pacsId, new PaginatedPacsRequest());
+    }
+
+    public List<E> findAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
+                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
+                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
+                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
     }
 }

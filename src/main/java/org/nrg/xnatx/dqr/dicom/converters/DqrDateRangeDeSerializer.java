@@ -14,11 +14,15 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import java.io.IOException;
-import java.util.Date;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Date;
+
 public class DqrDateRangeDeSerializer extends StdDeserializer<DqrDateRange> {
+    private static final long serialVersionUID = -3302303326480231366L;
+
     public DqrDateRangeDeSerializer() {
         super(DqrDateRange.class);
     }
@@ -33,17 +37,17 @@ public class DqrDateRangeDeSerializer extends StdDeserializer<DqrDateRange> {
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             final String field = parser.getCurrentName();
             parser.nextToken();
-            final String text = parser.getText();
-            final Date   date = DqrDateRange.parse(text);
+            final String        text = parser.getText();
+            final LocalDateTime date = DqrDateRange.parse(text);
             if (date == null) {
                 throw new InvalidFormatException("Unable to parse value for \"" + field + "\"", text, Date.class);
             }
             switch (field) {
                 case "start":
-                    builder.start(date);
+                    builder.startDate(date);
                     break;
                 case "end":
-                    builder.end(date);
+                    builder.endDate(date);
                     break;
             }
         }

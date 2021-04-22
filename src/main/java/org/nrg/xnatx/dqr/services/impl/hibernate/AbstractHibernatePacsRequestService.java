@@ -27,11 +27,12 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
 
     @Override
     public List<R> getAllForUser(final UserI user) {
-        return getDao().findAllForUser(user);
+        return getDao().findAllByUser(user);
     }
 
+    // TODO: There's no findById() that considers the user security.
     @Override
     public R getByIdForUser(final long id, final UserI user) {
-        return getDao().findByIdForUser(id, user);
+        return getDao().findById(id);
     }
 }

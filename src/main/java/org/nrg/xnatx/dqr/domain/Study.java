@@ -60,7 +60,7 @@ public class Study implements DqrDomainObject, Serializable {
             properties.add("accessionNumber: " + accessionNumber);
         }
         if (studyDate != null) {
-            properties.add("studyDate: " + DqrDateRange.format(studyDate));
+            properties.add("studyDate: " + DqrDateRange.formatDate(studyDate));
         }
         if (patient != null) {
             properties.add("patient: " + patient);

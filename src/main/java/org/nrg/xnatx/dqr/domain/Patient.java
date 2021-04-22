@@ -49,7 +49,7 @@ public class Patient implements DqrDomainObject, Serializable {
             properties.add("name: " + name.getLastNameCommaFirstName());
         }
         if (birthDate != null) {
-            properties.add("birthDate: " + DqrDateRange.format(birthDate));
+            properties.add("birthDate: " + DqrDateRange.formatDate(birthDate));
         }
         if (StringUtils.isNotBlank(sex)) {
             properties.add("sex: " + sex);

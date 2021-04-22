@@ -35,7 +35,7 @@ public class DateAsStringSerializer extends DateTimeSerializerBase<Date> {
     }
 
     public void serialize(final Date value, final JsonGenerator generator, final SerializerProvider provider) throws IOException {
-        generator.writeString(DqrDateRange.format(value));
+        generator.writeString(DqrDateRange.formatDate(value));
     }
 
     @Override

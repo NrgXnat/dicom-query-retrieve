@@ -40,6 +40,7 @@ import org.nrg.xnatx.dqr.services.*;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -47,6 +48,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class PacsDequeueThread extends AbstractXnatRunnable {
+
+    private static final String PREARCHIVE_SCREEN = "app/template/XDATScreen_prearchives.vm";
+
     public PacsDequeueThread(final Long pacsId, final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         log.debug("Initializing the PACS dequeue thread job");
         _pacsId = pacsId;
@@ -67,133 +71,123 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     @Override
     public void runTask() {
         try {
-            log.debug("Executing PACS dequeue thread function");
-            boolean continueThread = true;
-            while (continueThread) {
-                final PacsAvailability availability = _pacsAvailabilityEntityService.findAvailableNow(_pacsId);
-                if (availability != null && _threads.hasAvailable(_pacsId, availability.getThreads())) {
-                    final int         utilizationPercent = availability.getUtilizationPercent();
-                    QueuedPacsRequest requestToDequeue   = null;
-                    final UserI       admin              = _primaryAdminUserProvider.get();
-                    boolean           canConnect         = _pacsService.canConnect(admin, _pacsEntityService.retrieve(_pacsId));
-
-                    if (canConnect) {
-                        synchronized (QUEUE_LOCK) {
-                            List<QueuedPacsRequest> reqs = _queuedPacsRequestService.getQueuedOrFailedForPacsOrderedByPriorityAndDate(_pacsId);
-                            if (reqs.isEmpty()) {
-                                continueThread = false;//If there are no more requests for this PACS, close the thread
-                            } else {
-                                requestToDequeue = reqs.get(0);
-                                requestToDequeue.setStatus(PacsRequest.PROCESSING_STATUS_TEXT);
-                                _queuedPacsRequestService.update(requestToDequeue);
-                            }
-                        }
-
-                        if (requestToDequeue != null) {
-                            long                      requestTimeInMilliseconds = 0L;
-                            final String              studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
-                            final List<String>        seriesIds                 = requestToDequeue.getSeriesIds();
-                            final String              projectId                 = requestToDequeue.getXnatProject();
-                            final String              username                  = requestToDequeue.getUsername();
-                            final UserI               user                      = Users.getUser(username);
-                            final ExecutedPacsRequest pacsRequest               = new ExecutedPacsRequest();
-                            try {
-                                String       adminUsername  = admin.getUsername();
-                                String       studyId        = requestToDequeue.getStudyInstanceUid();
-                                String       currAnonScript = requestToDequeue.getRemappingScript();
-                                final String path           = "/studies/" + studyId;
-                                log.debug("User {} is setting {} script for project {}", adminUsername, DicomEdit.ToolName, studyId);
-                                if (currAnonScript != null) {
-                                    if (studyId == null) {
-                                        _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript);
-                                    } else {
-                                        _studyRoutingService.close(studyId);
-                                        _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
-                                        _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-                                    }
-                                }
-                                pacsRequest.setPacsId(_pacsId);
-                                pacsRequest.setUsername(username);
-                                pacsRequest.setXnatProject(projectId);
-                                pacsRequest.setStudyInstanceUid(studyInstanceUid);
-                                pacsRequest.setSeriesIds(seriesIds);
-                                pacsRequest.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
-                                pacsRequest.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
-                                pacsRequest.setExecutedTime(new Date());
-                                pacsRequest.setQueuedTime(requestToDequeue.getQueuedTime());
-                                pacsRequest.setStudyDate(requestToDequeue.getStudyDate());
-                                pacsRequest.setStudyId(requestToDequeue.getStudyId());
-                                pacsRequest.setAccessionNumber(requestToDequeue.getAccessionNumber());
-                                pacsRequest.setPacsId(requestToDequeue.getPacsId());
-                                pacsRequest.setPatientName(requestToDequeue.getPatientName());
-
-                                _executedPacsRequestService.create(pacsRequest);
-
-                                long startTime = Calendar.getInstance().getTimeInMillis();
-                                _pacsService.importFromPacsRequest(pacsRequest);
-                                long endTime = Calendar.getInstance().getTimeInMillis();
-                                requestTimeInMilliseconds = endTime - startTime;
-
-                                requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
-                                _queuedPacsRequestService.update(requestToDequeue);
-                            } catch (Exception e) {
-                                requestToDequeue.setStatus(PacsRequest.FAILED_STATUS_TEXT);
-                                _queuedPacsRequestService.update(requestToDequeue);
-
-                                pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
-                                _executedPacsRequestService.update(pacsRequest);
-                                log.error("Error executing PACS import request.", e);
-                            } finally {
-                                try {
-                                    _queuedPacsRequestService.delete(requestToDequeue.getId());
-                                } catch (Exception e) {
-                                    log.error("Error removing PACS import request from queue.", e);
-                                }
-                            }
-
-                            final String        siteUrl    = _siteConfigPreferences.getSiteUrl();
-                            final StringBuilder prearchive = new StringBuilder(siteUrl);
-                            if (!siteUrl.endsWith("/")) {
-                                prearchive.append("/");
-                            }
-                            prearchive.append("app/template/XDATScreen_prearchives.vm");
-
-                            final Context context = new VelocityContext();
-                            context.put("prearchive", prearchive.toString());
-                            context.put("seriesIds", seriesIds);
-
-                            try {
-                                log.debug("Completed DICOM request for study {} {}", studyInstanceUid, StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId);
-                                final String adminEmail = _siteConfigPreferences.getAdminEmail();
-                                context.put("adminEmail", adminEmail);
-                                context.put("pacs", _pacsEntityService.retrieve(_pacsId));
-                                if (_dqrPreferences.getNotifyAdminOnImport()) {
-                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
-                                } else {
-                                    _mailService.sendHtmlMessage(adminEmail, user.getEmail(), String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
-                                }
-                            } catch (Exception exception) {
-                                log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", username, exception);
-                            }
-
-                            final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-                            eventDetails.setComment("Series: " + seriesIds);
-                            PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
-                            assert wrk != null;
-                            PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                            TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) utilizationPercent) - 1) * requestTimeInMilliseconds * 1000));
-                        }
-                    } else {
-                        continueThread = false;
-                    }
-
-                    //sync number of thread checks so we dont close too many
-                    //check current threads for pacs and if there aren't too many running, pull another study from pacs
-                    //make syncing pacs specific instead of over all pacs
-                    //...
-                } else {
-                    continueThread = false;
+            log.debug("Executing PACS dequeue thread function for PACS {}", _pacsId);
+            while (true) {
+                final Optional<PacsAvailability> getAvailability = _pacsAvailabilityEntityService.findAvailableNow(_pacsId);
+                if (!getAvailability.isPresent()) {
+                    break;
                 }
+                final PacsAvailability availability = getAvailability.get();
+                if (!_threads.hasAvailable(_pacsId, availability.getThreads())) {
+                    break;
+                }
+                final UserI       admin              = _primaryAdminUserProvider.get();
+                boolean           canConnect         = _pacsService.canConnect(admin, _pacsEntityService.retrieve(_pacsId));
+                if (!canConnect) {
+                    break;
+                }
+
+                final QueuedPacsRequest requestToDequeue;
+                synchronized (QUEUE_LOCK) {
+                    final List<QueuedPacsRequest> requests = _queuedPacsRequestService.getQueuedOrFailedForPacsOrderedByPriorityAndDate(_pacsId);
+                    if (requests.isEmpty()) {
+                        break;
+                    }
+                    requestToDequeue = requests.get(0);
+                    requestToDequeue.setStatus(PacsRequest.PROCESSING_STATUS_TEXT);
+                    _queuedPacsRequestService.update(requestToDequeue);
+                }
+
+                long                      requestTimeInMilliseconds = 0L;
+                final String              studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
+                final List<String>        seriesIds                 = requestToDequeue.getSeriesIds();
+                final String              projectId                 = requestToDequeue.getXnatProject();
+                final String              username                  = requestToDequeue.getUsername();
+                final UserI               user                      = Users.getUser(username);
+                final ExecutedPacsRequest pacsRequest               = new ExecutedPacsRequest();
+                try {
+                    String       adminUsername  = admin.getUsername();
+                    String       studyId        = requestToDequeue.getStudyInstanceUid();
+                    String       currAnonScript = requestToDequeue.getRemappingScript();
+                    final String path           = "/studies/" + studyId;
+                    log.debug("User {} is setting {} script for project {}", adminUsername, DicomEdit.ToolName, studyId);
+                    if (currAnonScript != null) {
+                        if (studyId == null) {
+                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript);
+                        } else {
+                            _studyRoutingService.close(studyId);
+                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                            _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+                        }
+                    }
+                    pacsRequest.setPacsId(_pacsId);
+                    pacsRequest.setUsername(username);
+                    pacsRequest.setXnatProject(projectId);
+                    pacsRequest.setStudyInstanceUid(studyInstanceUid);
+                    pacsRequest.setSeriesIds(seriesIds);
+                    pacsRequest.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
+                    pacsRequest.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
+                    pacsRequest.setExecutedTime(new Date());
+                    pacsRequest.setQueuedTime(requestToDequeue.getQueuedTime());
+                    pacsRequest.setStudyDate(requestToDequeue.getStudyDate());
+                    pacsRequest.setStudyId(requestToDequeue.getStudyId());
+                    pacsRequest.setAccessionNumber(requestToDequeue.getAccessionNumber());
+                    pacsRequest.setPacsId(requestToDequeue.getPacsId());
+                    pacsRequest.setPatientName(requestToDequeue.getPatientName());
+
+                    _executedPacsRequestService.create(pacsRequest);
+
+                    long startTime = Calendar.getInstance().getTimeInMillis();
+                    _pacsService.importFromPacsRequest(pacsRequest);
+                    long endTime = Calendar.getInstance().getTimeInMillis();
+                    requestTimeInMilliseconds = endTime - startTime;
+
+                    requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
+                    _queuedPacsRequestService.update(requestToDequeue);
+                } catch (Exception e) {
+                    requestToDequeue.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                    _queuedPacsRequestService.update(requestToDequeue);
+
+                    pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                    _executedPacsRequestService.update(pacsRequest);
+                    log.error("Error executing PACS import request.", e);
+                } finally {
+                    try {
+                        _queuedPacsRequestService.delete(requestToDequeue.getId());
+                    } catch (Exception e) {
+                        log.error("Error removing PACS import request from queue.", e);
+                    }
+                }
+
+                final Context context = new VelocityContext();
+                context.put("prearchive", StringUtils.appendIfMissing(_siteConfigPreferences.getSiteUrl(), "/") + PREARCHIVE_SCREEN);
+                context.put("seriesIds", seriesIds);
+
+                try {
+                    log.debug("Completed DICOM request for study {} {}", studyInstanceUid, StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId);
+                    final String adminEmail = _siteConfigPreferences.getAdminEmail();
+                    context.put("adminEmail", adminEmail);
+                    context.put("pacs", _pacsEntityService.retrieve(_pacsId));
+                    if (_dqrPreferences.getNotifyAdminOnImport()) {
+                        _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
+                    } else {
+                        _mailService.sendHtmlMessage(adminEmail, user.getEmail(), String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
+                    }
+                } catch (Exception exception) {
+                    log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", username, exception);
+                }
+
+                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
+                eventDetails.setComment("Series: " + seriesIds);
+                PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
+                assert wrk != null;
+                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+                TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeInMilliseconds * 1000));
+
+                //sync number of thread checks so we dont close too many
+                //check current threads for pacs and if there aren't too many running, pull another study from pacs
+                //make syncing pacs specific instead of over all pacs
+                //...
             }
         } catch (Throwable exception) {
             log.error("Error executing a PACS request from the queue.", exception);

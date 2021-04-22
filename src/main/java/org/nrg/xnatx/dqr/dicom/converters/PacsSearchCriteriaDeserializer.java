@@ -14,13 +14,17 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import java.io.IOException;
-import java.util.Date;
 import org.apache.commons.lang3.ObjectUtils;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Date;
+
 public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCriteria> {
+    private static final long serialVersionUID = 3526449322405862791L;
+
     public PacsSearchCriteriaDeserializer() {
         super(PacsSearchCriteria.class);
     }
@@ -32,8 +36,8 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
         }
 
         final PacsSearchCriteria.PacsSearchCriteriaBuilder builder    = PacsSearchCriteria.builder();
-        Date                                               startRange = null;
-        Date                                               endRange   = null;
+        LocalDateTime                                      startRange = null;
+        LocalDateTime                                      endRange   = null;
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             final String field = parser.getCurrentName();
             parser.nextToken();
@@ -66,7 +70,7 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
                     if (ObjectUtils.anyNotNull(startRange, endRange)) {
                         throw new InvalidFormatException("Value specified for \"studyDateIsToday\" but either \"studyDateFrom\", \"studyDateTo\", or both were also specified.", "studyDateIsToday", Date.class);
                     }
-                    final Date now = new Date();
+                    final LocalDateTime now = LocalDateTime.now();
                     startRange = now;
                     endRange = now;
                     break;
@@ -89,10 +93,10 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
         if (ObjectUtils.anyNotNull(startRange, endRange)) {
             final DqrDateRange.DqrDateRangeBuilder dateRange = DqrDateRange.builder();
             if (startRange != null) {
-                dateRange.start(startRange);
+                dateRange.startDate(startRange);
             }
             if (endRange != null) {
-                dateRange.end(endRange);
+                dateRange.endDate(endRange);
             }
             builder.studyDateRange(dateRange.build());
         }

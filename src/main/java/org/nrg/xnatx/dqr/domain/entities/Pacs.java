@@ -9,9 +9,11 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
@@ -26,62 +28,142 @@ import javax.validation.constraints.Size;
 import java.io.Serializable;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"host", "aeTitle", "queryRetrievePort"}))
+@Table(uniqueConstraints = {@UniqueConstraint(columnNames = "label"), @UniqueConstraint(columnNames = {"host", "queryRetrievePort", "aeTitle"})})
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @PortNotNullIfDefaultPacs
-@Data
 @EqualsAndHashCode(callSuper = false)
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
+@Accessors(prefix = "_")
 public class Pacs extends AbstractHibernateEntity implements Serializable {
     private static final long serialVersionUID = 3741269782521664702L;
 
+    private String  _aeTitle;
+    private String  _host;
+    private String  _label;
+    @Builder.Default
+    private boolean _queryable = true;
+    private Integer _queryRetrievePort;
+    private boolean _defaultStoragePacs;
+    private boolean _storable;
+    private boolean _defaultQueryRetrievePacs;
+    private String  _ormStrategySpringBeanId;
+    private boolean _supportsExtendedNegotiations;
+
     @Override
     public String toString() {
-        return "{ aeTitle: \"" + aeTitle + "\", "
-               + "host: \"" + host + "\", "
-               + "label: \"" + label + "\", "
-               + "queryable: " + queryable + ", "
-               + "queryRetrievePort: " + queryRetrievePort + ", "
-               + "isDefaultQueryRetrievePacs: " + defaultQueryRetrievePacs + ", "
-               + "storable: " + storable + ", "
-               + "isDefaultStoragePacs: " + defaultStoragePacs + ", "
-               + "supportsExtendedNegotiations: " + supportsExtendedNegotiations + " }";
+        return "{ aeTitle: \"" + _aeTitle + "\", "
+               + "host: \"" + _host + "\", "
+               + "label: \"" + _label + "\", "
+               + "queryable: " + _queryable + ", "
+               + "queryRetrievePort: " + _queryRetrievePort + ", "
+               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+               + "storable: " + _storable + ", "
+               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
     }
 
     @NotBlank
     @Size(max = 100)
-    private String aeTitle;
+    public String getAeTitle() {
+        return _aeTitle;
+    }
+
+    public void setAeTitle(final String aeTitle) {
+        _aeTitle = aeTitle;
+    }
 
     @NotBlank
     @Size(max = 100)
-    private String host;
+    public String getHost() {
+        return _host;
+    }
+
+    public void setHost(final String host) {
+        _host = host;
+    }
 
     @Size(max = 100)
-    private String label;
+    public String getLabel() {
+        return _label;
+    }
+
+    public void setLabel(final String label) {
+        _label = label;
+    }
 
     @NotNull
     @Column(columnDefinition = "boolean default true")
-    private boolean queryable = true;
+    public boolean isQueryable() {
+        return _queryable;
+    }
 
-    private Integer queryRetrievePort;
+    public void setQueryable(final boolean queryable) {
+        _queryable = queryable;
+    }
+
+    public Integer getQueryRetrievePort() {
+        return _queryRetrievePort;
+    }
+
+    public void setQueryRetrievePort(final Integer queryRetrievePort) {
+        _queryRetrievePort = queryRetrievePort;
+    }
 
     @NotNull
     @Column(columnDefinition = "boolean default false")
-    private boolean defaultStoragePacs;
+    public boolean isDefaultStoragePacs() {
+        return _defaultStoragePacs;
+    }
+
+    public void setDefaultStoragePacs(final boolean defaultStoragePacs) {
+        if (defaultStoragePacs) {
+            setStorable(true);
+        }
+        _defaultStoragePacs = defaultStoragePacs;
+    }
 
     @NotNull
     @Column(columnDefinition = "boolean default false")
-    private boolean storable;
+    public boolean isStorable() {
+        return _storable;
+    }
+
+    public void setStorable(final boolean storable) {
+        _storable = storable;
+    }
 
     @NotNull
     @Column(columnDefinition = "boolean default false")
-    private boolean defaultQueryRetrievePacs;
+    public boolean isDefaultQueryRetrievePacs() {
+        return _defaultQueryRetrievePacs;
+    }
+
+    public void setDefaultQueryRetrievePacs(final boolean defaultQueryRetrievePacs) {
+        if (defaultQueryRetrievePacs) {
+            setQueryable(true);
+        }
+        _defaultQueryRetrievePacs = defaultQueryRetrievePacs;
+    }
 
     @NotBlank
     @Size(max = 100)
-    private String ormStrategySpringBeanId;
+    public String getOrmStrategySpringBeanId() {
+        return _ormStrategySpringBeanId;
+    }
+
+    public void setOrmStrategySpringBeanId(final String ormStrategySpringBeanId) {
+        _ormStrategySpringBeanId = ormStrategySpringBeanId;
+    }
 
     @NotNull
     @Column(columnDefinition = "boolean default false")
-    private boolean supportsExtendedNegotiations;
+    public boolean isSupportsExtendedNegotiations() {
+        return _supportsExtendedNegotiations;
+    }
+
+    public void setSupportsExtendedNegotiations(final boolean supportsExtendedNegotiations) {
+        _supportsExtendedNegotiations = supportsExtendedNegotiations;
+    }
 }

@@ -9,14 +9,18 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import java.util.List;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Order;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.criterion.Restrictions;
+import org.nrg.framework.ajax.PaginatedRequest;
+import org.nrg.framework.ajax.hibernate.HibernateFilter;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * Created by mike on 1/19/18.
@@ -28,19 +32,27 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
     }
 
     public List<QueuedPacsRequest> findAllForPacsOrderedByPriorityAndDate(final long pacsId) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("pacsId", pacsId));
-        criteria.addOrder(Order.asc("priority"));
-        criteria.addOrder(Order.asc("queuedTime"));
-        return checked(criteria.list());
+        return findAllForPacsOrderedByPriorityAndDate(pacsId, new PaginatedPacsRequest());
+    }
+
+    public List<QueuedPacsRequest> findAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
+                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
+                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
+                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
     }
 
     public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("pacsId", pacsId));
-        criteria.add(Restrictions.in("status", new String[]{PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT}));
-        criteria.addOrder(Order.asc("priority"));
-        criteria.addOrder(Order.asc("queuedTime"));
-        return checked(criteria.list());
+        return findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId, null);
     }
+
+    public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
+        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
+                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
+                                        .filter("status", HibernateFilter.builder().operator(HibernateFilter.Operator.IN).values(FAILED_OR_QUEUED).build())
+                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
+                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
+    }
+
+    private static final String[] FAILED_OR_QUEUED = {PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT};
 }

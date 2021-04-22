@@ -1,12 +1,3 @@
-/*
- * dicom-query-retrieve: org.nrg.xnatx.dqr.events.listeners.methods.PacsAvailabilityCheckerHandlerMethod
- * XNAT http://www.xnat.org
- * Copyright (c) 2005-2020, Washington University School of Medicine
- * All Rights Reserved
- *
- * Released under the Simplified BSD.
- */
-
 package org.nrg.xnatx.dqr.events.listeners.methods;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -28,11 +19,7 @@ import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.events.PacsThreads;
 import org.nrg.xnatx.dqr.events.PacsThreadsChecker;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
-import org.nrg.xnatx.dqr.services.PacsAvailabilityEntityService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsService;
-import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
+import org.nrg.xnatx.dqr.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -49,28 +36,23 @@ import org.springframework.stereotype.Component;
 @Accessors(prefix = "_")
 public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatPreferenceHandlerMethod {
     @Autowired
-    public PacsAvailabilityCheckerHandlerMethod(final ThreadPoolTaskScheduler scheduler, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsThreads threads, final QueuedPacsRequestService queuedPacsRequestService, final StudyRoutingService studyRoutingService, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final PacsThreads threads, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         super(scheduler, AVAILABILITY_CHECK_FREQUENCY);
-        final String checkFrequency = dqrPreferences.getPacsAvailabilityCheckFrequency();
-        if (StringUtils.isNotBlank(checkFrequency)) {
-            setPacsAvailabilityCheckFrequency(checkFrequency);
-        } else {
-            setPacsAvailabilityCheckFrequency(DEFAULT_CHECK_FREQUENCY);
-        }
 
-        _scheduler = scheduler;
-        _dqrPreferences = dqrPreferences;
-        _siteConfigPreferences = siteConfigPreferences;
-        _executedPacsRequestService = executedPacsRequestService;
-        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
         _pacsEntityService = pacsEntityService;
         _pacsService = pacsService;
-        _threads = threads;
+        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
         _queuedPacsRequestService = queuedPacsRequestService;
+        _executedPacsRequestService = executedPacsRequestService;
         _studyRoutingService = studyRoutingService;
+        _dqrPreferences = dqrPreferences;
+        _threads = threads;
+        _siteConfigPreferences = siteConfigPreferences;
         _configService = configService;
         _mailService = mailService;
         _primaryAdminUserProvider = primaryAdminUserProvider;
+
+        setPacsAvailabilityCheckFrequency(StringUtils.defaultIfBlank(preferences.getPacsAvailabilityCheckFrequency(), DEFAULT_CHECK_FREQUENCY));
     }
 
     @Override
@@ -80,7 +62,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
 
     @Override
     protected Trigger getTrigger() {
-        return new PeriodicTrigger(1000 * convertPGIntervalToIntSeconds(getPacsAvailabilityCheckFrequency()));
+        return new PeriodicTrigger(1000L * convertPGIntervalToIntSeconds(getPacsAvailabilityCheckFrequency()));
     }
 
     /**
@@ -92,22 +74,23 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
     @Override
     protected void handlePreferenceImpl(final String preference, final String value) {
         log.debug("Found preference {} that this handler can handle, setting value to {}", preference, value);
-        setPacsAvailabilityCheckFrequency(value);
+        if (AVAILABILITY_CHECK_FREQUENCY.equals(preference)) {
+            setPacsAvailabilityCheckFrequency(value);
+        }
     }
 
     private static final String DEFAULT_CHECK_FREQUENCY      = "1 minute";
     private static final String AVAILABILITY_CHECK_FREQUENCY = "pacsAvailabilityCheckFrequency";
 
-    private final ThreadPoolTaskScheduler       _scheduler;
-    private final DqrPreferences                _dqrPreferences;
-    private final SiteConfigPreferences         _siteConfigPreferences;
-    private final ExecutedPacsRequestService    _executedPacsRequestService;
-    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
     private final PacsEntityService             _pacsEntityService;
     private final PacsService                   _pacsService;
-    private final PacsThreads                   _threads;
+    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
     private final QueuedPacsRequestService      _queuedPacsRequestService;
+    private final ExecutedPacsRequestService    _executedPacsRequestService;
     private final StudyRoutingService           _studyRoutingService;
+    private final DqrPreferences                _dqrPreferences;
+    private final PacsThreads                   _threads;
+    private final SiteConfigPreferences         _siteConfigPreferences;
     private final ConfigService                 _configService;
     private final MailService                   _mailService;
     private final XnatUserProvider              _primaryAdminUserProvider;
