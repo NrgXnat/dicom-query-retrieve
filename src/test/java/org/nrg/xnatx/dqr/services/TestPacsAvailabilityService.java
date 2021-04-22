@@ -17,6 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.nrg.xnatx.dqr.domain.DqrOrmTestConfiguration;
+import org.nrg.xnatx.dqr.domain.TestPacsAvailabilityServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,13 +36,12 @@ import java.util.stream.LongStream;
 
 @ExtendWith(SpringExtension.class)
 @SpringJUnitJupiterConfig(TestPacsAvailabilityService.class)
-@ContextConfiguration(classes = DqrOrmTestConfiguration.class)
+@ContextConfiguration(classes = TestPacsAvailabilityServiceConfig.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Slf4j
 public class TestPacsAvailabilityService {
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
-    public TestPacsAvailabilityService(final PacsAvailabilityEntityService service) {
+    public TestPacsAvailabilityService(final PacsAvailabilityService service) {
         _service = service;
     }
 
@@ -146,5 +146,5 @@ public class TestPacsAvailabilityService {
         assertThat(availability2.isAvailableAtTime(LocalTime.of(20, 0))).isTrue();
     }
 
-    private final PacsAvailabilityEntityService _service;
+    private final PacsAvailabilityService _service;
 }

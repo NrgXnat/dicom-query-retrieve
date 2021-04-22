@@ -25,13 +25,15 @@ import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 
 public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends AbstractHibernateDAO<E> {
+    protected abstract String getTimeSortProperty();
+
     public List<E> findAllOrderedByDate() {
         return findAllOrderedByDate(new PaginatedPacsRequest());
     }
 
     public List<E> findAllOrderedByDate(final PaginatedPacsRequest request) {
         return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearSortBys()
-                                        .sortColumn("queuedTime")
+                                        .sortColumn(getTimeSortProperty())
                                         .sortDir(PaginatedRequest.SortDir.ASC).build());
     }
 
@@ -59,14 +61,14 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     public List<E> findByPacsIdOrderedByMostRecent(final long pacsId) {
         final Criteria criteria = getSession().createCriteria(getParameterizedType());
         criteria.add(Restrictions.eq("pacsId", pacsId));
-        criteria.addOrder(Order.desc("executedTime"));
+        criteria.addOrder(Order.desc(getTimeSortProperty()));
         return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
     }
 
     public List<E> findByStudyInstanceUidOrderedByMostRecent(final String studyInstanceUid) {
         final Criteria criteria = getSession().createCriteria(getParameterizedType());
         criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
-        criteria.addOrder(Order.desc("executedTime"));
+        criteria.addOrder(Order.desc(getTimeSortProperty()));
         return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
     }
 
@@ -88,6 +90,6 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
         return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
                                         .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
                                         .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
+                                        .sortBy(Pair.of(getTimeSortProperty(), PaginatedRequest.SortDir.ASC)).build());
     }
 }

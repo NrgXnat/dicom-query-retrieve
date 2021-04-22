@@ -83,7 +83,7 @@ import java.util.*;
 public class DicomQueryRetrieveApi extends AbstractXapiRestController {
 
     @Autowired
-    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final PacsPingService pacsPingService, final ProjectIrbInfoEntityService projectIrbInfoEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final PacsPingService pacsPingService, final ProjectIrbInfoEntityService projectIrbInfoEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final PacsAvailabilityService pacsAvailabilityService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
         super(userManagementService, roleHolder);
         _preferences = preferences;
         _executedRequestService = requestService;
@@ -93,7 +93,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         _pacsPingService = pacsPingService;
         _projectIrbInfoEntityService = projectIrbInfoEntityService;
         _dqrProjectSettingsService = dqrProjectSettingsService;
-        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
+        _pacsAvailabilityService = pacsAvailabilityService;
         _ormStrategies = ormStrategies;
         _siteConfigPreferences = siteConfigPreferences;
         _mailService = mailService;
@@ -842,12 +842,12 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (settings.getDayOfWeek().getValue() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to create a PACS availability interval but did not supply the day of week, start time, and end time.");
         }
-        _pacsAvailabilityEntityService.checkOverlap(settings, true);
+        _pacsAvailabilityService.checkOverlap(settings, true);
         if (settings.getUtilizationPercent() == 0 || settings.getThreads() == 0) {
             settings.setUtilizationPercent(0);
             settings.setThreads(0);
         }
-        return _pacsAvailabilityEntityService.create(settings);
+        return _pacsAvailabilityService.create(settings);
     }
 
     @ApiOperation(value = "Checks whether a new PACS availability interval would overlap with any existing intervals.", notes = "Returns whether the posted PACS availability interval would overlap with any existing intervals.", response = Boolean.class)
@@ -861,7 +861,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (settings.getDayOfWeek().getValue() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.");
         }
-        return _pacsAvailabilityEntityService.checkOverlap(settings, false);
+        return _pacsAvailabilityService.checkOverlap(settings, false);
     }
 
     @ApiOperation(value = "Updates the requested PACS availability interval using the submitted attributes.", notes = "Returns the updated PACS availability interval.", response = PacsAvailability.class)
@@ -873,7 +873,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/window/{pacsAvailabilityId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     @ResponseBody
     public PacsAvailability updatePacsAvailabilityInterval(@PathVariable final long pacsAvailabilityId, @RequestBody final PacsAvailability settings) throws Exception {
-        final PacsAvailability existingSettings = _pacsAvailabilityEntityService.get(pacsAvailabilityId);
+        final PacsAvailability existingSettings = _pacsAvailabilityService.get(pacsAvailabilityId);
         if (existingSettings == null) {
             throw new NotFoundException("No PACS availability entry exists for ID " + pacsAvailabilityId);
         }
@@ -912,8 +912,8 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         if (!isDirty) {
             throw new NotModifiedException("No changes were made to the PACS availability settings " + pacsAvailabilityId);
         }
-        _pacsAvailabilityEntityService.checkOverlap(settings, true, existingSettings.getId());
-        _pacsAvailabilityEntityService.update(existingSettings);
+        _pacsAvailabilityService.checkOverlap(settings, true, existingSettings.getId());
+        _pacsAvailabilityService.update(existingSettings);
         return existingSettings;
     }
 
@@ -928,11 +928,11 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     public boolean deletePacsAvailabilityInterval(@PathVariable("pacsAvailabilityId") final long pacsAvailabilityId) throws NotFoundException {
         final PacsAvailability existingSettings;
         try {
-            existingSettings = _pacsAvailabilityEntityService.get(pacsAvailabilityId);
+            existingSettings = _pacsAvailabilityService.get(pacsAvailabilityId);
         } catch (org.nrg.framework.exceptions.NotFoundException e) {
             throw new NotFoundException("No PACS availability entry exists for ID " + pacsAvailabilityId);
         }
-        _pacsAvailabilityEntityService.delete(existingSettings.getId());
+        _pacsAvailabilityService.delete(existingSettings.getId());
         return true;
     }
 
@@ -943,7 +943,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @ResponseBody
     public PacsAvailability getPacsAvailabilityInterval(@PathVariable final long pacsAvailabilityId) throws NotFoundException {
         try {
-            return _pacsAvailabilityEntityService.get(pacsAvailabilityId);
+            return _pacsAvailabilityService.get(pacsAvailabilityId);
         } catch (org.nrg.framework.exceptions.NotFoundException e) {
             throw new NotFoundException("No PACS availability entry exists for ID " + pacsAvailabilityId);
         }
@@ -955,7 +955,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     @XapiRequestMapping(value = "pacsAvailability/windows/{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public List<PacsAvailability> getPacsAvailabilityIntervals(@PathVariable final long pacsId) {
-        return _pacsAvailabilityEntityService.findAllByPacsId(pacsId);
+        return _pacsAvailabilityService.findAllByPacsId(pacsId);
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
@@ -1046,9 +1046,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     private final ExecutedPacsRequestService    _executedRequestService;
     private final QueuedPacsRequestService      _queuedRequestService;
     private final DqrProjectSettingsService     _dqrProjectSettingsService;
-    private final DqrPreferences                _preferences;
-    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
-    private final Map<String, OrmStrategy>      _ormStrategies;
+    private final DqrPreferences           _preferences;
+    private final PacsAvailabilityService  _pacsAvailabilityService;
+    private final Map<String, OrmStrategy> _ormStrategies;
     private final SiteConfigPreferences         _siteConfigPreferences;
     private final MailService                   _mailService;
 }

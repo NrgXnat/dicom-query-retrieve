@@ -9,15 +9,39 @@
 
 package org.nrg.xnatx.dqr.services;
 
-import java.util.List;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
+
+import java.util.List;
+import java.util.Map;
 
 public interface BasePacsRequestService<R extends PacsRequest> extends BaseHibernateService<R> {
     long getAllForUserCount(final UserI user);
 
     List<R> getAllForUser(final UserI user);
 
+    List<R> getAllForUser(final UserI user, final PaginatedPacsRequest request);
+
     R getByIdForUser(final long id, final UserI user);
+
+    List<R> getAllOrderedByDate();
+
+    List<R> getAllOrderedByDate(final PaginatedPacsRequest request);
+
+    R getMostRecentForPacs(final long pacsId);
+
+    R getMostRecentForStudyInstanceUid(final String studyInstanceUid);
+
+    // TODO: What is this Object nonsense here?
+    List<Map<String, Object>> getAllWithOrder();
+
+    // TODO: What is this Object nonsense here?
+    List<Map<String, Object>> getAllWithOrderForUser(final UserI user);
+
+    List<R> getAllForPacsOrderedByPriorityAndDate(final long pacsId);
+
+    List<R> getAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request);
 }

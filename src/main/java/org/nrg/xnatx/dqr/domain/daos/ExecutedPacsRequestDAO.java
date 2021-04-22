@@ -21,4 +21,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class ExecutedPacsRequestDAO extends AbstractPacsRequestDAO<ExecutedPacsRequest> {
+    @Override
+    protected String getTimeSortProperty() {
+        return "executedTime";
+    }
 }

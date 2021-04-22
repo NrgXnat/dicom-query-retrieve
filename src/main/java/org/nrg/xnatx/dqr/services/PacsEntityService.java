@@ -13,6 +13,7 @@ import java.util.List;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 
+// TODO: Combine with PacsService
 public interface PacsEntityService extends BaseHibernateService<Pacs> {
     /**
      * Finds all PACS that support both query and store operations.

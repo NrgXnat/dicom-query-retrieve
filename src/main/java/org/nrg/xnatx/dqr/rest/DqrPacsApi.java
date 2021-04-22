@@ -113,6 +113,66 @@ public class DqrPacsApi extends AbstractXapiRestController {
         return getPacs(id);
     }
 
+    @ApiOperation(value = "Imports the specified DICOM series from a single study from the specified PACS.")
+    @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to import data from the specified PACS."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    public ResponseEntity<QueuedPacsRequest> importFromPacs(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsImportRequest request) throws DataFormatException, NotFoundException, InsufficientPrivilegesException {
+        if (StringUtils.isBlank(request.getStudyInstanceUid())) {
+            throw new DataFormatException("The study instance UID for the source DICOM study that contains the desired DICOM series must be specified.");
+        }
+        final String  projectId    = request.getProject();
+        final boolean hasProjectId = StringUtils.isNotBlank(projectId);
+        if (!_preferences.getAllowAllProjectsToUseDqr() && !_projectSettings.isDqrEnabledForProject(projectId)) {
+            if (!hasProjectId) {
+                throw new InsufficientPrivilegesException(getSessionUser().getUsername(), request.getStudyInstanceUid(), "DQR is not enabled for all projects on this system, so you must specify a specific project for the import operation.");
+            } else {
+                throw new InsufficientPrivilegesException(getSessionUser().getUsername(), projectId, "DQR is not enabled for the specified project.");
+            }
+        }
+        try {
+            final QueuedPacsRequest queuedPacsRequest = new QueuedPacsRequest();
+            queuedPacsRequest.setPacsId(id);
+            queuedPacsRequest.setUsername(getSessionUser().getUsername());
+            if (hasProjectId) {
+                queuedPacsRequest.setXnatProject(projectId);
+            }
+            queuedPacsRequest.setStudyInstanceUid(request.getStudyInstanceUid());
+            queuedPacsRequest.setSeriesIds(request.getSeriesIds());
+            if (StringUtils.isNotBlank(request.getAe())) {
+                queuedPacsRequest.setDestinationAeTitle(StringUtils.substringBefore(request.getAe(), ":"));
+            }
+            queuedPacsRequest.setPriority(PacsRequest.HIGH_PRIORITY);
+            queuedPacsRequest.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
+            queuedPacsRequest.setQueuedTime(new Date());
+
+            final QueuedPacsRequest persisted = _queuedPacsRequestService.create(queuedPacsRequest);
+            return ResponseEntity.ok().header(HttpHeaders.WARNING, "Your request is queued and will be serviced when the PACS is available.").body(persisted);
+        } catch (Exception e) {
+            final Throwable cause = e.getCause();
+            final String    message;
+            final Throwable error;
+            if (cause instanceof CMoveFailureException) {
+                message = "C-MOVE operation failed: " + cause.getMessage();
+                error = cause;
+            } else if (cause instanceof CMoveTargetNotFoundException) {
+                message = "C-MOVE operation target not found: " + cause.getMessage();
+                error = cause;
+            } else if (cause != null) {
+                message = "Unknown error: " + cause.getMessage();
+                error = cause;
+            } else {
+                message = "Unknown error: " + e.getMessage();
+                error = e;
+            }
+            log.error(message, error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header(HttpHeaders.WARNING, message).build();
+        }
+    }
+
     @ApiOperation(value = "Updates an existing PACS entry.")
     @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully updated."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -173,66 +233,6 @@ public class DqrPacsApi extends AbstractXapiRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     public void exportToPacs(final @ApiParam("ID of the PACS entry to which data should be exported.") @PathVariable long id, final @ApiParam("ID of the experiment to be exported.") @PathVariable @Experiment String experimentId, final @ApiParam("ID of the scan to be exported.") @PathVariable String scanId) throws NotFoundException, PacsNotStorableException, PacsNotFoundException {
         _pacsService.exportSeries(getSessionUser(), getStorablePacs(id), XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(validate(experimentId, scanId), getSessionUser(), false));
-    }
-
-    @ApiOperation(value = "Imports the specified DICOM series from a single study from the specified PACS.")
-    @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to import data from the specified PACS."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    public ResponseEntity<QueuedPacsRequest> importFromPacs(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsImportRequest request) throws DataFormatException, NotFoundException, InsufficientPrivilegesException {
-        if (StringUtils.isBlank(request.getStudyInstanceUid())) {
-            throw new DataFormatException("The study instance UID for the source DICOM study that contains the desired DICOM series must be specified.");
-        }
-        final String  projectId    = request.getProject();
-        final boolean hasProjectId = StringUtils.isNotBlank(projectId);
-        if (!_preferences.getAllowAllProjectsToUseDqr() && !_projectSettings.isDqrEnabledForProject(projectId)) {
-            if (!hasProjectId) {
-                throw new InsufficientPrivilegesException(getSessionUser().getUsername(), request.getStudyInstanceUid(), "DQR is not enabled for all projects on this system, so you must specify a specific project for the import operation.");
-            } else {
-                throw new InsufficientPrivilegesException(getSessionUser().getUsername(), projectId, "DQR is not enabled for the specified project.");
-            }
-        }
-        try {
-            final QueuedPacsRequest queuedPacsRequest = new QueuedPacsRequest();
-            queuedPacsRequest.setPacsId(id);
-            queuedPacsRequest.setUsername(getSessionUser().getUsername());
-            if (hasProjectId) {
-                queuedPacsRequest.setXnatProject(projectId);
-            }
-            queuedPacsRequest.setStudyInstanceUid(request.getStudyInstanceUid());
-            queuedPacsRequest.setSeriesIds(request.getSeriesIds());
-            if (StringUtils.isNotBlank(request.getAe())) {
-                queuedPacsRequest.setDestinationAeTitle(StringUtils.substringBefore(request.getAe(), ":"));
-            }
-            queuedPacsRequest.setPriority(PacsRequest.HIGH_PRIORITY);
-            queuedPacsRequest.setStatus(PacsRequest.QUEUED_STATUS_TEXT);
-            queuedPacsRequest.setQueuedTime(new Date());
-
-            final QueuedPacsRequest persisted = _queuedPacsRequestService.create(queuedPacsRequest);
-            return ResponseEntity.ok().header(HttpHeaders.WARNING, "Your request is queued and will be serviced when the PACS is available.").body(persisted);
-        } catch (Exception e) {
-            final Throwable cause = e.getCause();
-            final String    message;
-            final Throwable error;
-            if (cause instanceof CMoveFailureException) {
-                message = "C-MOVE operation failed: " + cause.getMessage();
-                error = cause;
-            } else if (cause instanceof CMoveTargetNotFoundException) {
-                message = "C-MOVE operation target not found: " + cause.getMessage();
-                error = cause;
-            } else if (cause != null) {
-                message = "Unknown error: " + cause.getMessage();
-                error = cause;
-            } else {
-                message = "Unknown error: " + e.getMessage();
-                error = e;
-            }
-            log.error(message, error);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).header(HttpHeaders.WARNING, message).build();
-        }
     }
 
     @ApiOperation(value = "Searches for patients on the specified PACS.")

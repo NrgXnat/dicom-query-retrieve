@@ -12,6 +12,8 @@ package org.nrg.xnatx.dqr.services.impl.hibernate;
 import org.nrg.xnatx.dqr.domain.daos.ExecutedPacsRequestDAO;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class HibernateExecutedPacsRequestService extends AbstractHibernatePacsRequestService<ExecutedPacsRequest, ExecutedPacsRequestDAO> implements ExecutedPacsRequestService {
-    @Override
-    public ExecutedPacsRequest getMostRecentForPacs(final long pacsId) {
-        return instance(getDao().findByPacsIdOrderedByMostRecent(pacsId));
-    }
-
-    @Override
-    public ExecutedPacsRequest getMostRecentForStudyInstanceUid(String studyInstanceUid) {
-        return instance(getDao().findByStudyInstanceUidOrderedByMostRecent(studyInstanceUid));
+    @Autowired
+    public HibernateExecutedPacsRequestService(final NamedParameterJdbcTemplate template) {
+        super(template);
     }
 }

@@ -31,14 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 public class PacsThreadsChecker extends AbstractXnatRunnable {
-    public PacsThreadsChecker(final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsThreadsChecker(final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         log.debug("Initializing the PACS threads checker job");
         _threads = threads;
         _pacsService = pacsService;
         _pacsEntityService = pacsEntityService;
         _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
-        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
+        _pacsAvailabilityService = pacsAvailabilityService;
         _studyRoutingService = studyRoutingService;
         _dqrPreferences = dqrPreferences;
         _siteConfigPreferences = siteConfigPreferences;
@@ -56,7 +56,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                 for (final Pacs pacs : pacsList) {
                     try {
                         final long                       pacsId          = pacs.getId();
-                        final Optional<PacsAvailability> getAvailability = _pacsAvailabilityEntityService.findAvailableNow(pacsId);
+                        final Optional<PacsAvailability> getAvailability = _pacsAvailabilityService.findAvailableNow(pacsId);
                         if (!getAvailability.isPresent()) {
                             continue;
                         }
@@ -73,7 +73,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                             final int           currentThreadsForThisPacs = _threads.get(pacsId);
                             final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
                             for (final QueuedPacsRequest request : requests) {
-                                new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityEntityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
                                 if (added.incrementAndGet() >= newThreadsAllowed) {
                                     break;
                                 }
@@ -93,9 +93,9 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
     private final PacsService                   _pacsService;
     private final PacsEntityService             _pacsEntityService;
     private final QueuedPacsRequestService      _queuedPacsRequestService;
-    private final ExecutedPacsRequestService    _executedPacsRequestService;
-    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
-    private final StudyRoutingService           _studyRoutingService;
+    private final ExecutedPacsRequestService _executedPacsRequestService;
+    private final PacsAvailabilityService    _pacsAvailabilityService;
+    private final StudyRoutingService        _studyRoutingService;
     private final DqrPreferences                _dqrPreferences;
     private final SiteConfigPreferences         _siteConfigPreferences;
     private final ConfigService                 _configService;

@@ -27,19 +27,13 @@ import java.util.List;
  */
 @Repository
 public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsRequest> {
+    @Override
+    protected String getTimeSortProperty() {
+        return "queuedTime";
+    }
+
     public List<QueuedPacsRequest> findAllForUser(final UserI user) {
         return findByCriteria(Restrictions.eq("username", user.getUsername()));
-    }
-
-    public List<QueuedPacsRequest> findAllForPacsOrderedByPriorityAndDate(final long pacsId) {
-        return findAllForPacsOrderedByPriorityAndDate(pacsId, new PaginatedPacsRequest());
-    }
-
-    public List<QueuedPacsRequest> findAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
-        return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
-                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
-                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
     }
 
     public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId) {

@@ -16,7 +16,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.nrg.xnatx.dqr.domain.DqrOrmTestConfiguration;
+import org.nrg.xnatx.dqr.domain.TestPacsEntityServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
@@ -26,7 +26,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitJupiterConfig;
 
 @ExtendWith(SpringExtension.class)
 @SpringJUnitJupiterConfig(TestPacsEntityService.class)
-@ContextConfiguration(classes = DqrOrmTestConfiguration.class)
+@ContextConfiguration(classes = TestPacsEntityServiceConfig.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Slf4j
 public class TestPacsEntityService {

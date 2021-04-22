@@ -51,7 +51,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
     private static final String PREARCHIVE_SCREEN = "app/template/XDATScreen_prearchives.vm";
 
-    public PacsDequeueThread(final Long pacsId, final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityEntityService pacsAvailabilityEntityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsDequeueThread(final Long pacsId, final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         log.debug("Initializing the PACS dequeue thread job");
         _pacsId = pacsId;
         _threads = threads;
@@ -59,7 +59,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         _pacsEntityService = pacsEntityService;
         _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
-        _pacsAvailabilityEntityService = pacsAvailabilityEntityService;
+        _pacsAvailabilityService = pacsAvailabilityService;
         _studyRoutingService = studyRoutingService;
         _dqrPreferences = dqrPreferences;
         _siteConfigPreferences = siteConfigPreferences;
@@ -73,7 +73,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         try {
             log.debug("Executing PACS dequeue thread function for PACS {}", _pacsId);
             while (true) {
-                final Optional<PacsAvailability> getAvailability = _pacsAvailabilityEntityService.findAvailableNow(_pacsId);
+                final Optional<PacsAvailability> getAvailability = _pacsAvailabilityService.findAvailableNow(_pacsId);
                 if (!getAvailability.isPresent()) {
                     break;
                 }
@@ -204,9 +204,9 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     private final PacsService                   _pacsService;
     private final PacsEntityService             _pacsEntityService;
     private final QueuedPacsRequestService      _queuedPacsRequestService;
-    private final ExecutedPacsRequestService    _executedPacsRequestService;
-    private final PacsAvailabilityEntityService _pacsAvailabilityEntityService;
-    private final StudyRoutingService           _studyRoutingService;
+    private final ExecutedPacsRequestService _executedPacsRequestService;
+    private final PacsAvailabilityService    _pacsAvailabilityService;
+    private final StudyRoutingService        _studyRoutingService;
     private final DqrPreferences                _dqrPreferences;
     private final SiteConfigPreferences         _siteConfigPreferences;
     private final ConfigService                 _configService;
