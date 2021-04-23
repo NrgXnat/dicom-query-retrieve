@@ -9,16 +9,17 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
+import java.util.Date;
+import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import java.util.Date;
-import java.util.List;
 
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
@@ -26,6 +27,7 @@ import java.util.List;
 public class ExecutedPacsRequest extends PacsRequest {
     private static final long serialVersionUID = -2942642818163500573L;
 
+    @Builder
     public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
         super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName);
         _executedTime = executedTime;
@@ -38,6 +40,7 @@ public class ExecutedPacsRequest extends PacsRequest {
     public void setExecutedTime(final Date executedTime) {
         _executedTime = executedTime;
     }
+
     @Override
     public String toString() {
         return "{ username: " + getUsername() + ", "

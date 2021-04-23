@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.nrg.xnatx.dqr.domain.DqrOrmTestConfiguration;
 import org.nrg.xnatx.dqr.domain.TestPacsAvailabilityServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
@@ -116,6 +115,9 @@ public class TestPacsAvailabilityService {
         assertThat(pacs1MondayAvailabilities).isNotNull().isNotEmpty().hasSize(1);
         final Map<DayOfWeek, List<PacsAvailability>> pacs1GroupedAvailabilities = _service.findAllByPacsIdGroupedByDayOfWeek(1);
         assertThat(pacs1GroupedAvailabilities).isNotNull().isNotEmpty().hasSize(7).containsOnlyKeys(DayOfWeek.values()).allSatisfy((dayOfWeek, pacsAvailabilities) -> assertThat(pacsAvailabilities).hasSize(1));
+        _service.deleteAllByPacsId(1);
+        final List<PacsAvailability> pacs1PostDelete = _service.findAllByPacsId(1);
+        assertThat(pacs1PostDelete).isNotNull().isEmpty();
     }
 
     @Test

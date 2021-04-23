@@ -51,19 +51,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private String  _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
 
-    @Override
-    public String toString() {
-        return "{ aeTitle: \"" + _aeTitle + "\", "
-               + "host: \"" + _host + "\", "
-               + "label: \"" + _label + "\", "
-               + "queryable: " + _queryable + ", "
-               + "queryRetrievePort: " + _queryRetrievePort + ", "
-               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
-               + "storable: " + _storable + ", "
-               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
-               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
-    }
-
     @NotBlank
     @Size(max = 100)
     public String getAeTitle() {
@@ -165,5 +152,18 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
 
     public void setSupportsExtendedNegotiations(final boolean supportsExtendedNegotiations) {
         _supportsExtendedNegotiations = supportsExtendedNegotiations;
+    }
+
+    @Override
+    public String toString() {
+        return "{ aeTitle: \"" + _aeTitle + "\", "
+               + "host: \"" + _host + "\", "
+               + "label: \"" + _label + "\", "
+               + "queryable: " + _queryable + ", "
+               + "queryRetrievePort: " + _queryRetrievePort + ", "
+               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+               + "storable: " + _storable + ", "
+               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
     }
 }

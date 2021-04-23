@@ -64,34 +64,35 @@ public class ExportSessionToPacs extends DqrSecureAction {
         }
         final String[] scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
         try {
+            data.setScreenTemplate("ExportSessionToPacsRequested.vm");
             if (scanIds == null || scanIds.length == 0) {
                 log.debug("No scan IDs found to export, returning.");
                 context.put("numberOfProcessedScans", 0);
                 context.put("sessionId", session.getId());
-            } else {
-                if (!getPacs().isStorable()) {
-                    throw new PacsNotStorableException(getPacsId());
-                }
-                for (final String scanId : scanIds) {
-                    getPacsService().exportSeries(user, getPacs(), session.getScanById(scanId));
-                    log.info("Exported series {} from session {}", scanId, session.getId());
-                }
-
-                final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                eventDetails.setComment("Pacs: " + getPacs().getId());
-                final PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session.getId(), project, eventDetails);
-                assert wrk != null;
-                PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                context.put("numberOfProcessedScans", scanIds.length);
-                context.put("sessionId", session.getId());
-                context.put("_user", user);
-                log.debug("User {} exported {} scans from session {}", user.getLogin(), scanIds.length, session.getId());
-                getMailService().sendMessage(getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
-                                             "[" + TurbineUtils.GetSystemName() + "] PACS Session Export Request Complete",
-                                             "The session you requested has been successfully exported to the PACS.");
+                return;
+            }                if (!getPacs().isStorable()) {
+                throw new PacsNotStorableException(getPacsId());
+            }
+            for (final String scanId : scanIds) {
+                getPacsService().exportSeries(user, getPacs(), session.getScanById(scanId));
+                log.info("Exported series {} from session {}", scanId, session.getId());
             }
 
-            data.setScreenTemplate("ExportSessionToPacsRequested.vm");
+            // TODO: When queued operations are supported properly, use this instead of the synchronous code below.
+            // XDAT.sendJmsRequest(PacsSessionExportRequest.builder().username(user.getUsername()).pacs(pacs).sessionId(sessionId).scans(Arrays.stream(scanIds).map(PacsScanExportRequest::new).collect(Collectors.toList())).build());
+
+            final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
+            eventDetails.setComment("Pacs: " + getPacs().getId());
+            final PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(getUser(), XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session.getId(), project, eventDetails);
+            assert wrk != null;
+            PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
+            context.put("numberOfProcessedScans", scanIds.length);
+            context.put("sessionId", session.getId());
+            context.put("_user", user);
+            log.debug("User {} exported {} scans from session {}", user.getLogin(), scanIds.length, session.getId());
+            getMailService().sendMessage(getSiteConfigPreferences().getAdminEmail(), user.getEmail(),
+                                         "[" + TurbineUtils.GetSystemName() + "] PACS Session Export Request Complete",
+                                         "The session you requested has been successfully exported to the PACS.");
         } catch (Exception exception) {
             context.put("sessionId", session.getId());
             context.put("scanIds", StringUtils.join(scanIds, ", "));

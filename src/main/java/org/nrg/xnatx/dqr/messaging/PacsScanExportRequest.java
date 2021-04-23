@@ -9,20 +9,22 @@
 
 package org.nrg.xnatx.dqr.messaging;
 
-import java.io.Serializable;
+import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.nrg.xdat.om.XnatImagescandata;
+
+import java.io.Serializable;
 
 @Data
 @Accessors(prefix = "_")
+@Builder
 public class PacsScanExportRequest implements Serializable {
     private static final long serialVersionUID = 7911307125500245254L;
 
     @Override
     public String toString() {
-        return _scan == null ? "null" : _scan.getId();
+        return Integer.toString(_imageScanDataId);
     }
 
-    private final XnatImagescandata _scan;
+    private final int _imageScanDataId;
 }

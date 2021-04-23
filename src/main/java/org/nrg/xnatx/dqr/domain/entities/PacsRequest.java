@@ -11,12 +11,12 @@ package org.nrg.xnatx.dqr.domain.entities;
 
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
-import javax.persistence.*;
 import java.io.Serializable;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.persistence.*;
 
 /**
  * Created by mike on 1/23/18.

@@ -81,8 +81,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                 if (!_threads.hasAvailable(_pacsId, availability.getThreads())) {
                     break;
                 }
-                final UserI       admin              = _primaryAdminUserProvider.get();
-                boolean           canConnect         = _pacsService.canConnect(admin, _pacsEntityService.retrieve(_pacsId));
+                final UserI admin      = _primaryAdminUserProvider.get();
+                boolean     canConnect = _pacsService.canConnect(admin, _pacsEntityService.retrieve(_pacsId));
                 if (!canConnect) {
                     break;
                 }
@@ -98,13 +98,29 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     _queuedPacsRequestService.update(requestToDequeue);
                 }
 
-                long                      requestTimeInMilliseconds = 0L;
-                final String              studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
-                final List<String>        seriesIds                 = requestToDequeue.getSeriesIds();
-                final String              projectId                 = requestToDequeue.getXnatProject();
-                final String              username                  = requestToDequeue.getUsername();
-                final UserI               user                      = Users.getUser(username);
-                final ExecutedPacsRequest pacsRequest               = new ExecutedPacsRequest();
+                long               requestTimeInMilliseconds = 0L;
+                final String       studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
+                final List<String> seriesIds                 = requestToDequeue.getSeriesIds();
+                final String       projectId                 = requestToDequeue.getXnatProject();
+                final String       username                  = requestToDequeue.getUsername();
+                final UserI        user                      = Users.getUser(username);
+
+                final ExecutedPacsRequest pacsRequest = ExecutedPacsRequest.builder()
+                                                                           .pacsId(_pacsId)
+                                                                           .username(username)
+                                                                           .xnatProject(projectId)
+                                                                           .studyInstanceUid(studyInstanceUid)
+                                                                           .seriesIds(seriesIds)
+                                                                           .destinationAeTitle(requestToDequeue.getDestinationAeTitle())
+                                                                           .status(PacsRequest.ISSUED_STATUS_TEXT)
+                                                                           .executedTime(new Date())
+                                                                           .queuedTime(requestToDequeue.getQueuedTime())
+                                                                           .studyDate(requestToDequeue.getStudyDate())
+                                                                           .studyId(requestToDequeue.getStudyId())
+                                                                           .accessionNumber(requestToDequeue.getAccessionNumber())
+                                                                           .pacsId(requestToDequeue.getPacsId())
+                                                                           .patientName(requestToDequeue.getPatientName())
+                                                                           .build();
                 try {
                     String       adminUsername  = admin.getUsername();
                     String       studyId        = requestToDequeue.getStudyInstanceUid();
@@ -120,20 +136,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                             _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
                         }
                     }
-                    pacsRequest.setPacsId(_pacsId);
-                    pacsRequest.setUsername(username);
-                    pacsRequest.setXnatProject(projectId);
-                    pacsRequest.setStudyInstanceUid(studyInstanceUid);
-                    pacsRequest.setSeriesIds(seriesIds);
-                    pacsRequest.setDestinationAeTitle(requestToDequeue.getDestinationAeTitle());
-                    pacsRequest.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
-                    pacsRequest.setExecutedTime(new Date());
-                    pacsRequest.setQueuedTime(requestToDequeue.getQueuedTime());
-                    pacsRequest.setStudyDate(requestToDequeue.getStudyDate());
-                    pacsRequest.setStudyId(requestToDequeue.getStudyId());
-                    pacsRequest.setAccessionNumber(requestToDequeue.getAccessionNumber());
-                    pacsRequest.setPacsId(requestToDequeue.getPacsId());
-                    pacsRequest.setPatientName(requestToDequeue.getPatientName());
 
                     _executedPacsRequestService.create(pacsRequest);
 
@@ -199,17 +201,17 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     private final static Object QUEUE_LOCK     = new Object();
     private final static String SUBJECT_FORMAT = "[" + TurbineUtils.GetSystemName() + "] %d selected DICOM series requested";
 
-    private final Long                          _pacsId;
-    private final PacsThreads                   _threads;
-    private final PacsService                   _pacsService;
-    private final PacsEntityService             _pacsEntityService;
-    private final QueuedPacsRequestService      _queuedPacsRequestService;
+    private final Long                       _pacsId;
+    private final PacsThreads                _threads;
+    private final PacsService                _pacsService;
+    private final PacsEntityService          _pacsEntityService;
+    private final QueuedPacsRequestService   _queuedPacsRequestService;
     private final ExecutedPacsRequestService _executedPacsRequestService;
     private final PacsAvailabilityService    _pacsAvailabilityService;
     private final StudyRoutingService        _studyRoutingService;
-    private final DqrPreferences                _dqrPreferences;
-    private final SiteConfigPreferences         _siteConfigPreferences;
-    private final ConfigService                 _configService;
-    private final MailService                   _mailService;
-    private final XnatUserProvider              _primaryAdminUserProvider;
+    private final DqrPreferences             _dqrPreferences;
+    private final SiteConfigPreferences      _siteConfigPreferences;
+    private final ConfigService              _configService;
+    private final MailService                _mailService;
+    private final XnatUserProvider           _primaryAdminUserProvider;
 }

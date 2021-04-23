@@ -11,6 +11,7 @@ package org.nrg.xnatx.dqr.messaging;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.mail.services.MailService;
+import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
@@ -41,8 +42,8 @@ public class PacsSessionExportRequestListener extends AbstractPacsRequestListene
             }
 
             final XDATUser user = new XDATUser(request.getRequestingUser());
-            for (final PacsScanExportRequest pacsScanExportRequest : request.getScans()) {
-                getPacsService().exportSeries(user, pacsToExportTo, pacsScanExportRequest.getScan());
+            for (final PacsScanExportRequest scan : request.getScans()) {
+                getPacsService().exportSeries(user, pacsToExportTo, XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(scan.getImageScanDataId(), user, false));
             }
 
             // Send complete notification
