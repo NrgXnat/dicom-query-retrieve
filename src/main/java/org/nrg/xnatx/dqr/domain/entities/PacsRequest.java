@@ -97,7 +97,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _studyInstanceUid = studyInstanceUid;
     }
 
-    @ElementCollection(targetClass = String.class)
+    @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
     public List<String> getSeriesIds() {
         return _seriesIds;
     }

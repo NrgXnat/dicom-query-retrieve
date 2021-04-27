@@ -11,6 +11,7 @@ package org.nrg.xnatx.dqr.events;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.StopWatch;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.context.Context;
 import org.nrg.config.services.ConfigService;
@@ -37,11 +38,11 @@ import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.*;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by mike on 1/23/18.
@@ -87,22 +88,22 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     break;
                 }
 
-                final QueuedPacsRequest requestToDequeue;
+                final QueuedPacsRequest request;
                 synchronized (QUEUE_LOCK) {
                     final List<QueuedPacsRequest> requests = _queuedPacsRequestService.getQueuedOrFailedForPacsOrderedByPriorityAndDate(_pacsId);
                     if (requests.isEmpty()) {
                         break;
                     }
-                    requestToDequeue = requests.get(0);
-                    requestToDequeue.setStatus(PacsRequest.PROCESSING_STATUS_TEXT);
-                    _queuedPacsRequestService.update(requestToDequeue);
+                    request = requests.get(0);
+                    request.setStatus(PacsRequest.PROCESSING_STATUS_TEXT);
+                    _queuedPacsRequestService.update(request);
                 }
 
-                long               requestTimeInMilliseconds = 0L;
-                final String       studyInstanceUid          = requestToDequeue.getStudyInstanceUid();
-                final List<String> seriesIds                 = requestToDequeue.getSeriesIds();
-                final String       projectId                 = requestToDequeue.getXnatProject();
-                final String       username                  = requestToDequeue.getUsername();
+                final AtomicLong   requestTimeInMilliseconds = new AtomicLong();
+                final String       studyInstanceUid          = request.getStudyInstanceUid();
+                final List<String> seriesIds                 = request.getSeriesIds();
+                final String       projectId                 = request.getXnatProject();
+                final String       username                  = request.getUsername();
                 final UserI        user                      = Users.getUser(username);
 
                 final ExecutedPacsRequest pacsRequest = ExecutedPacsRequest.builder()
@@ -111,51 +112,51 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .xnatProject(projectId)
                                                                            .studyInstanceUid(studyInstanceUid)
                                                                            .seriesIds(seriesIds)
-                                                                           .destinationAeTitle(requestToDequeue.getDestinationAeTitle())
+                                                                           .destinationAeTitle(request.getDestinationAeTitle())
                                                                            .status(PacsRequest.ISSUED_STATUS_TEXT)
                                                                            .executedTime(new Date())
-                                                                           .queuedTime(requestToDequeue.getQueuedTime())
-                                                                           .studyDate(requestToDequeue.getStudyDate())
-                                                                           .studyId(requestToDequeue.getStudyId())
-                                                                           .accessionNumber(requestToDequeue.getAccessionNumber())
-                                                                           .pacsId(requestToDequeue.getPacsId())
-                                                                           .patientName(requestToDequeue.getPatientName())
+                                                                           .queuedTime(request.getQueuedTime())
+                                                                           .studyDate(request.getStudyDate())
+                                                                           .studyId(request.getStudyId())
+                                                                           .accessionNumber(request.getAccessionNumber())
+                                                                           .pacsId(request.getPacsId())
+                                                                           .patientName(request.getPatientName())
                                                                            .build();
                 try {
-                    String       adminUsername  = admin.getUsername();
-                    String       studyId        = requestToDequeue.getStudyInstanceUid();
-                    String       currAnonScript = requestToDequeue.getRemappingScript();
-                    final String path           = "/studies/" + studyId;
+                    final String adminUsername = admin.getUsername();
+                    final String studyId       = request.getStudyInstanceUid();
+                    final String anonScript    = request.getRemappingScript();
+                    final String path          = "/studies/" + studyId;
                     log.debug("User {} is setting {} script for project {}", adminUsername, DicomEdit.ToolName, studyId);
-                    if (currAnonScript != null) {
+                    if (anonScript != null) {
                         if (studyId == null) {
-                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript);
+                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript);
                         } else {
                             _studyRoutingService.close(studyId);
-                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, currAnonScript, Scope.Site, studyId);
+                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript, Scope.Site, studyId);
                             _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
                         }
                     }
 
                     _executedPacsRequestService.create(pacsRequest);
 
-                    long startTime = Calendar.getInstance().getTimeInMillis();
+                    final StopWatch stopWatch = StopWatch.createStarted();
                     _pacsService.importFromPacsRequest(pacsRequest);
-                    long endTime = Calendar.getInstance().getTimeInMillis();
-                    requestTimeInMilliseconds = endTime - startTime;
+                    stopWatch.stop();
+                    requestTimeInMilliseconds.set(stopWatch.getTime());
 
-                    requestToDequeue.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
-                    _queuedPacsRequestService.update(requestToDequeue);
+                    request.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
+                    _queuedPacsRequestService.update(request);
                 } catch (Exception e) {
-                    requestToDequeue.setStatus(PacsRequest.FAILED_STATUS_TEXT);
-                    _queuedPacsRequestService.update(requestToDequeue);
+                    request.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                    _queuedPacsRequestService.update(request);
 
                     pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
                     _executedPacsRequestService.update(pacsRequest);
                     log.error("Error executing PACS import request.", e);
                 } finally {
                     try {
-                        _queuedPacsRequestService.delete(requestToDequeue.getId());
+                        _queuedPacsRequestService.delete(request.getId());
                     } catch (Exception e) {
                         log.error("Error removing PACS import request from queue.", e);
                     }
@@ -184,7 +185,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                 PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
                 assert wrk != null;
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeInMilliseconds * 1000));
+                TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeInMilliseconds.get() * 1000));
 
                 //sync number of thread checks so we dont close too many
                 //check current threads for pacs and if there aren't too many running, pull another study from pacs
