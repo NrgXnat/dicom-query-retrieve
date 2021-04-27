@@ -9,20 +9,21 @@
 
 package org.nrg.xnatx.dqr.exceptions;
 
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import lombok.experimental.Accessors;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-@Getter
+@Value
 @Accessors(prefix = "_")
+@EqualsAndHashCode(callSuper = false)
+@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "The specified PACS system was not found")
 public class PacsNotFoundException extends Exception {
-    public PacsNotFoundException(final long id) {
-        this(id, "The specified PACS system \"" + id + "\" was not found");
-    }
+    long _pacsId;
 
-    private PacsNotFoundException(final long id, final String message) {
-        super(message);
-        _id = id;
+    public PacsNotFoundException(final long pacsId) {
+        super("The specified PACS system \"" + pacsId + "\" was not found");
+        _pacsId = pacsId;
     }
-
-    private final long _id;
 }

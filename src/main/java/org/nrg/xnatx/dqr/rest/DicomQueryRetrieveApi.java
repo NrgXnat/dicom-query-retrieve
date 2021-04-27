@@ -15,6 +15,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.nrg.framework.annotations.XapiRestController;
@@ -63,7 +64,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -71,7 +71,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLConnection;
 import java.nio.file.Paths;
+import java.time.DayOfWeek;
 import java.util.*;
+import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 /**
  * Created by mike on 1/19/18.
@@ -146,9 +149,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-            value = "Get list of DICOM query request history entries for all users within a specified range.",
-            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
-            response = ExecutedPacsRequest.class, responseContainer = "List"
+        value = "Get list of DICOM query request history entries for all users within a specified range.",
+        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+        response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid range."),
@@ -164,9 +167,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-            value = "Get paged list of DICOM query request history entries for all users.",
-            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
-            response = ExecutedPacsRequest.class, responseContainer = "List"
+        value = "Get paged list of DICOM query request history entries for all users.",
+        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system with brief information about each.",
+        response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid page range."),
@@ -182,9 +185,9 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
     }
 
     @ApiOperation(
-            value = "Get list of DICOM query request history entries for the current user within a specified range.",
-            notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.",
-            response = ExecutedPacsRequest.class, responseContainer = "List"
+        value = "Get list of DICOM query request history entries for the current user within a specified range.",
+        notes = "The DICOM query history function returns a list of all DICOM queries that have ever been made on the XNAT system for the current user with brief information about each.",
+        response = ExecutedPacsRequest.class, responseContainer = "List"
     )
     @ApiResponses({@ApiResponse(code = 200, message = "A list of DICOM query requests."),
                    @ApiResponse(code = 204, message = "No results. Invalid range."),
@@ -958,6 +961,15 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return _pacsAvailabilityService.findAllByPacsId(pacsId);
     }
 
+    @ApiOperation(value = "Get PACS availability intervals by day for the specified PACS.", notes = "The get PACS availability intervals by day function returns the PACS availability intervals for the specified PACS.", response = PacsAvailability.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns PACS availability intervals by day for the PACS."),
+                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "pacsAvailability/windows/{pacsId}/byDay", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @ResponseBody
+    public Map<DayOfWeek, List<PacsAvailability>> getPacsAvailabilityIntervalsByDay(@PathVariable final long pacsId) {
+        return _pacsAvailabilityService.findAllByPacsIdGroupedByDayOfWeek(pacsId);
+    }
+
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
     @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -965,22 +977,31 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "seriesInfo/pacs/{pacsId}/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public ResponseEntity<UUID> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
-                                          @ApiParam("List of studies to get series for.") @RequestBody final String studyUids) throws NoContentException, URISyntaxException {
-        final List<String> studyInstanceUids = Arrays.asList(StringUtils.trimToEmpty(studyUids).split("\\s*,\\s*"));
-        if (studyInstanceUids.isEmpty()) {
+    public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam(value = "ID of the pacs to query", required = true) @PathVariable final long pacsId,
+                                                            @ApiParam("List of studies to get series for.") @RequestBody final String ids) throws NoContentException, PacsNotQueryableException {
+        if (StringUtils.isBlank(ids)) {
             throw new NoContentException("No study instance UIDs specified for query on PACS " + pacsId);
         }
 
-        final UserI user = getSessionUser();
-        final Pacs  pacs = _pacsEntityService.retrieve(pacsId);
-
+        final UserI        user              = getSessionUser();
+        final Pacs         pacs              = _pacsEntityService.retrieve(pacsId);
+        final List<String> studyInstanceUids = Arrays.asList(StringUtils.split(RegExUtils.removeAll(ids, "\n[\\[\\]\"' ]").trim(), ","));
+        try {
+            return _pacsService.getSeriesByStudyUid(user, pacs, studyInstanceUids);
+        } catch (PacsNotQueryableException e) {
+            log.error("An error occurred trying to retrieve series for user {} from PACS {} for study instance UIDs {}", user.getUsername(), pacsId, String.join(", ", studyInstanceUids), e);
+            throw e;
+        }
+        /*
+        TODO: get queuing and polling working so that this search can be run asynchronously and pushed when completed.
+        TODO: This method should return ResponseEntity<UUID> from the following code:
         try {
             final UUID uuid = _pacsService.getSeriesByStudyUids(user, pacs, studyInstanceUids);
             return ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/seriesInfo/pacs/" + pacsId + "/studies/" + uuid)).body(uuid);
         } catch (PacsNotQueryableException e) {
             throw new NoContentException("The PACS " + pacs.getId() + " is not queryable");
         }
+        */
     }
 
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
@@ -1000,7 +1021,7 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
             return ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/seriesInfo/pacs/" + pacsId + "/studies/" + searchId)).build();
         }
 
-        return ResponseEntity.ok(_pacsService.getSeriesByStudyUids(searchId));
+        return ResponseEntity.ok(_pacsService.getSearchResults(searchId));
     }
 
     private void notifyAdminOfCompleteIrbInfo(final String projectId, final ProjectIrbInfo info, final UserI user) {
@@ -1036,19 +1057,20 @@ public class DicomQueryRetrieveApi extends AbstractXapiRestController {
         return subList;
     }
 
-    private static final String QUERY_SUBMITTED    = "Query Submitted.";
-    private static final String PACS_NOT_AVAILABLE = "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.";
+    private static final String  QUERY_SUBMITTED    = "Query Submitted.";
+    private static final String  PACS_NOT_AVAILABLE = "This PACS is not currently available, but your request is queued and will be serviced when the PACS is available.";
+    private static final Pattern STRIP_JSON         = Pattern.compile("^\\s*\\[?\\s*(?<body>.*)\\s*]?\\s*$");
 
-    private final PacsService                   _pacsService;
-    private final PacsEntityService             _pacsEntityService;
-    private final ProjectIrbInfoEntityService   _projectIrbInfoEntityService;
-    private final PacsPingService               _pacsPingService;
-    private final ExecutedPacsRequestService    _executedRequestService;
-    private final QueuedPacsRequestService      _queuedRequestService;
-    private final DqrProjectSettingsService     _dqrProjectSettingsService;
-    private final DqrPreferences           _preferences;
-    private final PacsAvailabilityService  _pacsAvailabilityService;
-    private final Map<String, OrmStrategy> _ormStrategies;
-    private final SiteConfigPreferences         _siteConfigPreferences;
-    private final MailService                   _mailService;
+    private final PacsService                 _pacsService;
+    private final PacsEntityService           _pacsEntityService;
+    private final ProjectIrbInfoEntityService _projectIrbInfoEntityService;
+    private final PacsPingService             _pacsPingService;
+    private final ExecutedPacsRequestService  _executedRequestService;
+    private final QueuedPacsRequestService    _queuedRequestService;
+    private final DqrProjectSettingsService   _dqrProjectSettingsService;
+    private final DqrPreferences              _preferences;
+    private final PacsAvailabilityService     _pacsAvailabilityService;
+    private final Map<String, OrmStrategy>    _ormStrategies;
+    private final SiteConfigPreferences       _siteConfigPreferences;
+    private final MailService                 _mailService;
 }

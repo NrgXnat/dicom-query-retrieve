@@ -259,12 +259,8 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/patients/{patientId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Patient searchForPatient(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String patientId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final Patient patient = _pacsService.getPatientById(getSessionUser(), getPacs(id), patientId);
-        if (patient == null) {
-            throw new NoContentException("No patient was found with the ID " + patientId + " on the PACS " + id);
-        }
-        return patient;
+    public Patient searchForPatient(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String patientId) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
+        return _pacsService.getPatientById(getSessionUser(), getPacs(id), patientId).orElseThrow(() -> new NotFoundException("No patient was found with the ID " + patientId + " on the PACS " + id));
     }
 
     @ApiOperation(value = "Searches for studies on the specified PACS.")
@@ -289,12 +285,8 @@ public class DqrPacsApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{id}/studies/{studyId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Study searchForStudy(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final Study study = _pacsService.getStudyById(getSessionUser(), getQueryablePacs(id), studyId);
-        if (study == null) {
-            throw new NoContentException("No study was found with the ID " + studyId + " on the PACS " + id);
-        }
-        return study;
+    public Study searchForStudy(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
+        return _pacsService.getStudyById(getSessionUser(), getQueryablePacs(id), studyId).orElseThrow(() -> new NotFoundException("No study was found with the ID " + studyId + " on the PACS " + id));
     }
 
     @ApiOperation(value = "Searches for a particular study on the specified PACS.", response = Series.class, responseContainer = "List")

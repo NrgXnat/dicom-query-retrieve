@@ -11,10 +11,13 @@ package org.nrg.xnatx.dqr.events;
 
 import lombok.extern.slf4j.Slf4j;
 import org.nrg.config.services.ConfigService;
+import org.nrg.framework.exceptions.NrgServiceError;
+import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
@@ -68,15 +71,24 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         if (requests.isEmpty()) {
                             continue;
                         }
-                        if (_pacsService.canConnect(_primaryAdminUserProvider.get(), pacs)) {
-                            final AtomicInteger added                     = new AtomicInteger();
-                            final int           currentThreadsForThisPacs = _threads.get(pacsId);
-                            final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
-                            for (final QueuedPacsRequest request : requests) {
-                                new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
-                                if (added.incrementAndGet() >= newThreadsAllowed) {
-                                    break;
+                        try {
+                            final UserI admin = _primaryAdminUserProvider.get();
+                            if (_pacsService.canConnect(admin, pacs)) {
+                                final AtomicInteger added                     = new AtomicInteger();
+                                final int           currentThreadsForThisPacs = _threads.get(pacsId);
+                                final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
+                                for (final QueuedPacsRequest request : requests) {
+                                    new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                    if (added.incrementAndGet() >= newThreadsAllowed) {
+                                        break;
+                                    }
                                 }
+                            }
+                        } catch (NrgServiceRuntimeException e) {
+                            if (e.getServiceError() == NrgServiceError.UserServiceError) {
+                                log.info("Got a user service error trying to retrieve admin user, which usually means we're starting up.");
+                            } else {
+                                log.error("Got a service runtime exception", e);
                             }
                         }
                     } catch (Exception e) {

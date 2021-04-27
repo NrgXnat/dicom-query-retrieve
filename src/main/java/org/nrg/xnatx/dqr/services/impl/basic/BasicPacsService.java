@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.nrg.config.services.ConfigService;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
+import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
@@ -48,9 +49,7 @@ import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
-import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.exceptions.*;
 import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
@@ -61,10 +60,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,54 +85,86 @@ public class BasicPacsService implements PacsService {
         _searchCache = new HashMap<>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean canConnect(final UserI user, final Pacs pacs) {
         return buildCEchoSCU(pacs).canConnect();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
-        return buildCFindSCU(pacs).cfindPatientsByExample(searchCriteria);
+    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) throws PacsNotQueryableException {
+        return buildCFindSCU(pacs).cfindPatientsByExample(criteria);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Patient getPatientById(final UserI user, final Pacs pacs, final String patientId) throws PacsNotQueryableException {
+    public Optional<Patient> getPatientById(final UserI user, final Pacs pacs, final String patientId) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindPatientById(patientId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) throws PacsNotQueryableException {
-        return buildCFindSCU(pacs).cfindStudiesByExample(searchCriteria);
+    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) throws PacsNotQueryableException {
+        return buildCFindSCU(pacs).cfindStudiesByExample(criteria);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Study getStudyById(final UserI user, final Pacs pacs, final String studyInstanceUid) throws PacsNotQueryableException {
+    public Optional<Study> getStudyById(final UserI user, final Pacs pacs, final String studyInstanceUid) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindStudyById(studyInstanceUid);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PacsSearchResults<Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesByStudy(study);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesByStudyUid(studyUid);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException {
+        final CFindSCU findSCU = buildCFindSCU(pacs);
+        return studyUids.stream().collect(Collectors.toMap(Function.identity(), findSCU::cfindSeriesByStudyUid));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean getSearchStatus(final UUID requestId) throws NotFoundException {
         if (!_searchCache.containsKey(requestId)) {
             throw new NotFoundException("No search request found for UUID " + requestId);
         }
-
         final Pair<PacsSearchRequest, Map<String, PacsSearchResults<Series>>> entry = _searchCache.get(requestId);
-
-        final PacsSearchRequest                      request = entry.getKey();
-        final Map<String, PacsSearchResults<Series>> results = entry.getValue();
-        return request.getStudyInstanceUids().size() > results.size();
+        return entry.getKey().getStudyInstanceUids().size() > entry.getValue().size();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PacsSearchRequest getSearchRequest(final UUID requestId) throws NotFoundException {
         if (!_searchCache.containsKey(requestId)) {
@@ -143,8 +174,11 @@ public class BasicPacsService implements PacsService {
         return _searchCache.get(requestId).getKey();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void updateSearchRequest(final UUID requestId, final String studyInstanceUid, final PacsSearchResults<Series> results) throws NotFoundException {
+    public void updateSearchResults(final UUID requestId, final String studyInstanceUid, final PacsSearchResults<Series> results) throws NotFoundException {
         if (!_searchCache.containsKey(requestId)) {
             throw new NotFoundException("No search request found for UUID " + requestId);
         }
@@ -152,8 +186,11 @@ public class BasicPacsService implements PacsService {
         aggregate.put(studyInstanceUid, results);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public UUID getSeriesByStudyUids(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException {
+    public UUID getSeriesByStudyUidAsync(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException {
         if (!pacs.isQueryable()) {
             throw new PacsNotQueryableException(pacs.getId());
         }
@@ -165,24 +202,36 @@ public class BasicPacsService implements PacsService {
         return searchId;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUids(final UUID requestId) throws NotFoundException {
+    public Map<String, PacsSearchResults<Series>> getSearchResults(final UUID requestId) throws NotFoundException {
         if (!getSearchStatus(requestId)) {
             return null;
         }
         return _searchCache.remove(requestId).getValue();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Series getSeriesById(final UserI user, final Pacs pacs, final String seriesInstanceUid) throws PacsNotQueryableException {
+    public Optional<Series> getSeriesById(final UserI user, final Pacs pacs, final String seriesInstanceUid) throws PacsNotQueryableException {
         return buildCFindSCU(pacs).cfindSeriesById(seriesInstanceUid);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
         buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
         final Pacs pacs = _pacsEntityService.retrieve(request.getPacsId());
@@ -190,7 +239,7 @@ public class BasicPacsService implements PacsService {
             throw new PacsNotQueryableException(request.getPacsId());
         }
         final String aeAndPort = request.getDecodedAeAndPort();
-        if (!aeIsStorable(aeAndPort)) {
+        if (!isAeStorable(aeAndPort)) {
             throw new PacsNotStorableException(aeAndPort);
         }
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
@@ -205,18 +254,27 @@ public class BasicPacsService implements PacsService {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
         buildCStoreSCU(pacs).cstoreSeries(series);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean aeIsStorable(final String ae) {
+    public boolean isAeStorable(final String ae) {
         //The user is able to store to an AE if there is either an XNAT SCP receiver with that AE or there is an enabled PACS with that AE for which storable=true
         final boolean hasPort = ae.contains(":");
-        return _dicomSCPManager.getDicomSCPInstances().values().stream().anyMatch(scp -> scp.isEnabled() && StringUtils.equalsIgnoreCase(ae, hasPort ? scp.getAeTitle() + scp.getPort() : scp.getAeTitle()));
+        return _dicomSCPManager.getDicomSCPInstances().values().stream().anyMatch(scp -> scp.isEnabled() && StringUtils.equalsIgnoreCase(ae, hasPort ? scp.getAeTitle() + ":" + scp.getPort() : scp.getAeTitle()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<FindRow> extractNewImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, true, (user1, pacs, columnMap, row, criteria) -> {
@@ -241,6 +299,9 @@ public class BasicPacsService implements PacsService {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<CsvRow> extractImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, false, (user1, pacs, columnMap, row, criteria) -> {
@@ -255,8 +316,11 @@ public class BasicPacsService implements PacsService {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
+    public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException {
         final Pacs pacs = _pacsEntityService.retrieve(pacsId);
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
@@ -279,33 +343,18 @@ public class BasicPacsService implements PacsService {
             String                 currStudy = studyEntry.getKey();
             StudyImportInformation studyInfo = studyEntry.getValue();
             if (currStudy != null) {
-                String       currStudyDate          = null;
-                String       currStudyId            = null;
-                String       currAccessionNumber    = null;
-                String       currPatientId          = null;
-                String       currPatientName        = null;
-                boolean      extraStudyInfoSet      = false;
-                String       currAnonScript         = studyInfo.getAnonScript();
-                List<String> seriesDescriptionsList = studyInfo.getSeriesDescriptions();
-                List<String> seriesInstanceUIDs     = studyInfo.getSeriesInstanceUIDs();
-                if (StringUtils.isBlank(currAnonScript)) {
-                    Map<String, String> relabelMap = studyInfo.getRelabelMap();
-                    if (relabelMap != null && relabelMap.size() > 0) {
-                        currAnonScript = generateAnonScriptFromMap(relabelMap);
-                    }
-                }
-                if (StringUtils.isNotBlank(currAnonScript) && !importEvenIfCustomProcessingIsOff) {
-                    DicomSCPInstance scpInstance = _dicomSCPManager.getDicomSCPInstance(aeTitle, Integer.parseInt(port));
-                    if (!scpInstance.isEnabled()) {
-                        throw new Exception("Invalid DICOM SCP Receiver ID.");
-                    }
-                    if (!scpInstance.isCustomProcessing()) {
-                        throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
-                    }
-                    final List<ArchiveProcessorInstance> processorInstances = _archiveProcessorInstanceService.getAllEnabledSiteProcessorsForAe(ae);
-                    if (processorInstances.isEmpty() || processorInstances.stream().allMatch(instance -> StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor"))) {
-                        throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                    }
+                String             currStudyDate       = null;
+                String             currStudyId         = null;
+                String             currAccessionNumber = null;
+                String             currPatientId       = null;
+                String             currPatientName     = null;
+                boolean            extraStudyInfoSet   = false;
+                final List<String> seriesDescriptions  = studyInfo.getSeriesDescriptions();
+                final List<String> seriesInstanceUIDs  = studyInfo.getSeriesInstanceUids();
+
+                final Optional<String> currAnonScript = getAnonScript(studyInfo);
+                if (currAnonScript.isPresent() && !importEvenIfCustomProcessingIsOff) {
+                    validateDicomScpInstance(ae, aeTitle, port);
                 }
 
                 //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
@@ -316,7 +365,7 @@ public class BasicPacsService implements PacsService {
                 final List<String>              seriesToImport = new ArrayList<>();
                 final Collection<Series>        results        = series.getResults();
                 if (CollectionUtils.isEmpty(seriesInstanceUIDs)) {
-                    if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
+                    if (CollectionUtils.isEmpty(seriesDescriptions)) {
                         //Import all the series in the study
                         for (final Series currSeries : results) {
                             seriesToImport.add(currSeries.getSeriesInstanceUid());
@@ -332,8 +381,8 @@ public class BasicPacsService implements PacsService {
                     } else {
                         //Import all the series in the study that have seriesDescription in the series description list
                         for (final Series currSeries : results) {
-                            String result = currSeries.getSeriesInstanceUid();
-                            if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
+                            final String result = StringUtils.defaultIfBlank(currSeries.getSeriesInstanceUid(), "");
+                            if (seriesDescriptions.contains(StringUtils.defaultIfBlank(currSeries.getSeriesDescription(), ""))) {
                                 seriesToImport.add(result);
                                 if (!extraStudyInfoSet) {
                                     currStudyDate = currSeries.getStudyDate();
@@ -347,11 +396,11 @@ public class BasicPacsService implements PacsService {
                         }
                     }
                 } else {
-                    if (CollectionUtils.isEmpty(seriesDescriptionsList)) {
+                    if (CollectionUtils.isEmpty(seriesDescriptions)) {
                         //Import all the series in the study that are in the seriesUIDs list
                         for (final Series currSeries : results) {
-                            String result = currSeries.getSeriesInstanceUid();
-                            if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
+                            final String result = StringUtils.defaultIfBlank(currSeries.getSeriesInstanceUid(), "");
+                            if (seriesInstanceUIDs.contains(result)) {
                                 seriesToImport.add(result);
                                 if (!extraStudyInfoSet) {
                                     currStudyDate = currSeries.getStudyDate();
@@ -366,9 +415,9 @@ public class BasicPacsService implements PacsService {
                     } else {
                         //Import all the series in the study that are in the seriesUIDs list and have seriesDescription in the series description list
                         for (final Series currSeries : results) {
-                            String result = currSeries.getSeriesInstanceUid();
-                            if (seriesDescriptionsList.contains(currSeries.getSeriesDescription()) || (currSeries.getSeriesDescription() == null && seriesDescriptionsList.contains(""))) {
-                                if (seriesInstanceUIDs.contains(result) || (result == null && seriesInstanceUIDs.contains(""))) {
+                            final String result = StringUtils.defaultIfBlank(currSeries.getSeriesInstanceUid(), "");
+                            if (seriesDescriptions.contains(StringUtils.defaultIfBlank(currSeries.getSeriesDescription(), ""))) {
+                                if (seriesInstanceUIDs.contains(result)) {
                                     seriesToImport.add(result);
                                     if (!extraStudyInfoSet) {
                                         currStudyDate = currSeries.getStudyDate();
@@ -387,9 +436,7 @@ public class BasicPacsService implements PacsService {
                 if (!seriesToImport.isEmpty()) {
                     try {
                         final QueuedPacsRequest request = createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, currStudy, seriesToImport);
-                        if (currAnonScript != null) {
-                            request.setRemappingScript(currAnonScript);
-                        }
+                        currAnonScript.ifPresent(request::setRemappingScript);
                         request.setStudyDate(currStudyDate);
                         request.setStudyId(currStudyId);
                         request.setAccessionNumber(currAccessionNumber);
@@ -412,6 +459,9 @@ public class BasicPacsService implements PacsService {
         return valueToReturn;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception {
         Pacs pacs = _pacsEntityService.retrieve(pacsId);
@@ -434,20 +484,7 @@ public class BasicPacsService implements PacsService {
                         final String anonScript = row.getAnonScript();
                         studiesListMappedToAnonScript.put(study, anonScript);
                         if (StringUtils.isNotBlank(anonScript) && !importEvenIfCustomProcessingIsOff) {
-                            final DicomSCPInstance scpInstance = _dicomSCPManager.getDicomSCPInstance(aeTitle, Integer.parseInt(port));
-                            if (!scpInstance.isEnabled()) {
-                                throw new Exception("Invalid DICOM SCP Receiver ID.");
-                            }
-                            if (!scpInstance.isCustomProcessing()) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, custom processing must be enabled for this SCP receiver.");
-                            }
-                            final List<ArchiveProcessorInstance> processorInstances = _archiveProcessorInstanceService.getAllEnabledSiteProcessorsForAe(ae);
-                            if (processorInstances.isEmpty()) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                            }
-                            if (processorInstances.stream().allMatch(instance -> StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor"))) {
-                                throw new Exception("You are trying to remap DICOM fields. For this to work, you must have a remapping processor for this SCP receiver.");
-                            }
+                            validateDicomScpInstance(ae, aeTitle, port);
                         }
                     }
                 }
@@ -485,6 +522,9 @@ public class BasicPacsService implements PacsService {
         return valueToReturn.get();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void processSpreadsheetImport(final UserI user, final File csv, final String ae, final String project, final long pacsId) throws PacsNotFoundException {
         // TODO: The processSpreadsheetImport*() methods need refactoring similar to extract*ImportRequestFromCsv() methods to eliminate duplicate code
@@ -675,49 +715,6 @@ public class BasicPacsService implements PacsService {
             }
 
             return processor.process(user, pacs, columnMap, row, searchCriteriaBuilder.build());
-//            if (isNewRequest) {
-//                final Map<String, String> anonMapForThisRow = new HashMap<>();
-//                for (final Map.Entry<Integer, String> entry : columnMap.entrySet()) {
-//                    final String stringToRemapTo = row.get(entry.getKey());
-//                    if (StringUtils.isNotBlank(stringToRemapTo)) {
-//                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-//                            anonMapForThisRow.put(entry.getValue(), "\"\"");
-//                        } else {
-//                            anonMapForThisRow.put(entry.getValue(), stringToRemapTo);
-//                        }
-//                    }
-//                }
-//
-//                try {
-//                    final PacsSearchCriteria searchCriteria = searchCriteriaBuilder.build();
-//                    return FindRow.builder().criteria(searchCriteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user, pacs, searchCriteria).getResults()).build();
-//                } catch (PacsNotQueryableException e) {
-//                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
-//                    return null;
-//                }
-//            } else {
-//                final AtomicBoolean anonymizeThisRow     = new AtomicBoolean();
-//                final StringBuilder anonScriptForThisRow = new StringBuilder("version \"6.1\"" + System.lineSeparator());
-//                for (final Map.Entry<Integer, String> entry : columnMap.entrySet()) {
-//                    final String stringToRemapTo = row.get(entry.getKey());
-//                    if (StringUtils.isNotBlank(stringToRemapTo)) {
-//                        if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-//                            anonScriptForThisRow.append(entry.getValue()).append(" := \"\"").append(System.lineSeparator());
-//                        } else {
-//                            anonScriptForThisRow.append(entry.getValue()).append(" := \"").append(stringToRemapTo).append("\"").append(System.lineSeparator());
-//                        }
-//                        anonymizeThisRow.set(true);
-//                    }
-//                }
-//                try {
-//                    final PacsSearchCriteria               searchCriteria = searchCriteriaBuilder.build();
-//                    final PacsSearchResults<Study> results        = getStudiesByExample(user, pacs, searchCriteria);
-//                    return CsvRow.builder().criteria(searchCriteria).anonScript(anonymizeThisRow.get() ? anonScriptForThisRow.toString() : null).studies(results.getResults()).build();
-//                } catch (PacsNotQueryableException e) {
-//                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
-//                    return null;
-//                }
-//            }
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -743,6 +740,20 @@ public class BasicPacsService implements PacsService {
 
     private CMoveSCU buildCMoveSCU(final Pacs pacs, final String receiverAETitle) {
         return new Dcm4cheToolCMoveSCU(_preferences, buildDicomConnectionProperties(pacs, receiverAETitle), getOrmStrategy(pacs));
+    }
+
+    private void validateDicomScpInstance(final String ae, final String aeTitle, final String port) throws NotFoundException, UnknownDicomScpInstanceException, DicomReceiverCustomProcessingDisabledException, ArchiveProcessorsNotAvailableException {
+        final DicomSCPInstance scpInstance = _dicomSCPManager.getDicomSCPInstance(aeTitle, Integer.parseInt(port));
+        if (!scpInstance.isEnabled()) {
+            throw new UnknownDicomScpInstanceException(aeTitle + ":" + port);
+        }
+        if (!scpInstance.isCustomProcessing()) {
+            throw new DicomReceiverCustomProcessingDisabledException(scpInstance);
+        }
+        final List<ArchiveProcessorInstance> processorInstances = _archiveProcessorInstanceService.getAllEnabledSiteProcessorsForAe(ae);
+        if (processorInstances.isEmpty() || processorInstances.stream().allMatch(instance -> StringUtils.equals(instance.getProcessorClass(), "org.nrg.xnat.processors.MizerArchiveProcessor"))) {
+            throw new ArchiveProcessorsNotAvailableException(scpInstance);
+        }
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {
@@ -795,27 +806,6 @@ public class BasicPacsService implements PacsService {
         }};
     }
 
-    private static String generateAnonScriptFromMap(@Nonnull final Map<String, String> relabelMap) {
-        if (relabelMap.isEmpty()) {
-            return null;
-        }
-        final StringBuilder currAnonScript = new StringBuilder("version \"6.1\"" + System.lineSeparator());
-        for (final Map.Entry<String, String> entry : relabelMap.entrySet()) {
-            final String[] tags     = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
-            final String   newValue = entry.getValue();
-            if (StringUtils.isNotBlank(newValue) && tags != null) {
-                for (final String tag : tags) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, newValue) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, newValue)) {
-                        currAnonScript.append(tag).append(" := \"\"").append(System.lineSeparator());
-                    } else {
-                        currAnonScript.append(tag).append(" := \"").append(newValue).append("\"").append(System.lineSeparator());
-                    }
-                }
-            }
-        }
-        return currAnonScript.toString();
-    }
-
     private static DqrDateRange getDateRange(final String studyDate) {
         if (!studyDate.contains("-")) {
             return new DqrDateRange(studyDate);
@@ -831,13 +821,30 @@ public class BasicPacsService implements PacsService {
     private static Optional<String> getAnonScript(final Map<Integer, String> columns, final List<String> row) {
         final String script = columns.entrySet().stream().filter(entry -> StringUtils.isNotBlank(entry.getValue())).map(entry -> {
             final String mapped = row.get(entry.getKey());
-            if (StringUtils.equalsAny(mapped, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X)) {
-                return entry.getValue() + " := \"\"";
-            } else {
-                return entry.getValue() + " := \"" + mapped + "\"";
-            }
+            return StringUtils.equalsAny(mapped, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? entry.getValue() + " := \"\"" : entry.getValue() + " := \"" + mapped + "\"";
         }).collect(Collectors.joining(System.lineSeparator()));
         return StringUtils.isBlank(script) ? Optional.empty() : Optional.of("version \"6.1\"" + System.lineSeparator() + script);
+    }
+
+    private static Optional<String> getAnonScript(final StudyImportInformation info) {
+        final String script = info.getAnonScript();
+        if (StringUtils.isNotBlank(script)) {
+            return Optional.of(script);
+        }
+        final Map<String, String> map = info.getRelabelMap();
+        if (map == null || map.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of("version \"6.1\"" + System.lineSeparator() +
+                           map.entrySet()
+                              .stream()
+                              .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
+                              .map(entry -> {
+                                  final String[] tags   = StringUtils.split(HEADER_TO_TAG_MAP.get(entry.getKey()), ":");
+                                  final String   value  = entry.getValue();
+                                  final String   assign = StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? " := \"\"" : " := \"" + value + "\"";
+                                  return Arrays.stream(tags).map(tag -> tag + assign).collect(Collectors.toList());
+                              }).flatMap(Collection::stream).collect(Collectors.joining(System.lineSeparator())));
     }
 
     private static final String              CLEAR_SIGNIFIER    = "\"\"";

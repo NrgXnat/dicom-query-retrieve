@@ -10,10 +10,7 @@
 package org.nrg.xnatx.dqr.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Singular;
+import lombok.*;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
@@ -25,11 +22,9 @@ import java.util.List;
 @Data
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class Study implements DqrDomainObject, Serializable {
     private static final long serialVersionUID = 8640039199226827418L;
-
-    public Study() {
-    }
 
     public Study(final String studyInstanceUid) {
         setProjectId("");
@@ -77,6 +72,10 @@ public class Study implements DqrDomainObject, Serializable {
     @Override
     public String getUniqueIdentifier() {
         return getStudyInstanceUid();
+    }
+
+    public String getFormattedStudyDate() {
+        return DqrDateRange.formatDate(studyDate);
     }
 
     @JsonManagedReference

@@ -15,19 +15,21 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 
+import java.util.Optional;
+
 public interface CFindSCU {
 
     PacsSearchResults<Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria);
 
-    Patient cfindPatientById(final String patientId);
+    Optional<Patient> cfindPatientById(final String patientId);
 
     PacsSearchResults<Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria);
 
-    Study cfindStudyById(final String studyInstanceUid);
+    Optional<Study> cfindStudyById(final String studyInstanceUid);
 
     PacsSearchResults<Series> cfindSeriesByStudy(final Study Study);
 
     PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid);
 
-    Series cfindSeriesById(final String seriesInstanceUid);
+    Optional<Series> cfindSeriesById(final String seriesInstanceUid);
 }

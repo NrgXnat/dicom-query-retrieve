@@ -22,6 +22,8 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
+import java.util.Optional;
+
 public class Dcm4cheToolCFindSCU implements CFindSCU {
     public Dcm4cheToolCFindSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
         _preferences = preferences;
@@ -36,8 +38,12 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public Patient cfindPatientById(final String patientId) {
-        return new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build()).getFirstResult();
+    public Optional<Patient> cfindPatientById(final String patientId) {
+        if (StringUtils.isBlank(patientId)) {
+            return Optional.empty();
+        }
+        final PacsSearchResults<Patient> result = new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build());
+        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
     }
 
     @Override
@@ -46,29 +52,31 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public Study cfindStudyById(final String studyInstanceUid) {
-        return new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyInstanceUid).build()).getFirstResult();
+    public Optional<Study> cfindStudyById(final String studyInstanceUid) {
+        if (StringUtils.isBlank(studyInstanceUid)) {
+            return Optional.empty();
+        }
+        final PacsSearchResults<Study> result = new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyInstanceUid).build());
+        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
     }
 
     @Override
     public PacsSearchResults<Series> cfindSeriesByStudy(final Study study) {
-        if (study == null) {
-            return PacsSearchResults.emptyResults();
-        }
-        return cfindSeriesByStudyUid(study.getStudyInstanceUid());
+        return study == null ? PacsSearchResults.emptyResults() : cfindSeriesByStudyUid(study.getStudyInstanceUid());
     }
 
     @Override
     public PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid) {
-        if (StringUtils.isBlank(studyUid)) {
-            return PacsSearchResults.emptyResults();
-        }
-        return new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyUid).build());
+        return StringUtils.isBlank(studyUid) ? PacsSearchResults.emptyResults() : new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyUid).build());
     }
 
     @Override
-    public Series cfindSeriesById(final String seriesInstanceUid) {
-        return StringUtils.isBlank(seriesInstanceUid) ? null : new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build()).getFirstResult();
+    public Optional<Series> cfindSeriesById(final String seriesInstanceUid) {
+        if (StringUtils.isBlank(seriesInstanceUid)) {
+            return Optional.empty();
+        }
+        final PacsSearchResults<Series> result = new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build());
+        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
     }
 
     /**

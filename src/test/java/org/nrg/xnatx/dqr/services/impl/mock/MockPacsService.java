@@ -9,7 +9,6 @@
 
 package org.nrg.xnatx.dqr.services.impl.mock;
 
-import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.*;
@@ -17,7 +16,6 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.utils.CsvRow;
@@ -37,50 +35,24 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public Patient getPatientById(final UserI user, final Pacs pacs, final String patientId) {
+    public Optional<Patient> getPatientById(final UserI user, final Pacs pacs, final String patientId) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public Study getStudyById(final UserI user, final Pacs pacs, final String studyInstanceUid) {
+    public Optional<Study> getStudyById(final UserI user, final Pacs pacs, final String studyInstanceUid) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) {
         final Patient patient = getMockPatient();
         return PacsSearchResults.<Study>builder().results(Arrays.asList(getMockStudy(patient, "34525253.34235.23456.1"), getMockStudy(patient, "65860386.24536543.25922"))).hasLimitedResultSetSize(true).build();
-    }
-
-    private Patient getMockPatient() {
-        final Patient patient = new Patient();
-        patient.setId("8675309");
-        patient.setName(new DqrPersonName("Jenny, Jenny"));
-        try {
-            patient.setBirthDate(DATE_FORMAT.parse("1990-01-01"));
-        } catch (final ParseException e) {
-            throw new RuntimeException(e);
-        }
-        patient.setSex("F");
-        return patient;
-    }
-
-    private Study getMockStudy(final Patient p, final String studyInstanceUid) {
-        final Study study = new Study();
-        study.setStudyInstanceUid(studyInstanceUid);
-        study.setReferringPhysicianName(new ReferringPhysicianName("Tommy", "Tutone"));
-        try {
-            study.setStudyDate(DATE_FORMAT.parse("2008-01-01"));
-        } catch (final ParseException e) {
-            throw new RuntimeException(e);
-        }
-        study.setPatient(p);
-        return study;
     }
 
     @Override
@@ -90,6 +62,11 @@ public class MockPacsService implements PacsService {
 
     @Override
     public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(final UserI user, final Pacs pacs, final List<String> studyUids) {
         throw new RuntimeException("method not implemented");
     }
 
@@ -104,22 +81,22 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public void updateSearchRequest(final UUID uuid, final String studyInstanceUid, final PacsSearchResults<Series> results) {
+    public void updateSearchResults(final UUID requestId, final String studyInstanceUid, final PacsSearchResults<Series> results) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public UUID getSeriesByStudyUids(final UserI user, final Pacs pacs, final List<String> studyUids) {
+    public UUID getSeriesByStudyUidAsync(final UserI user, final Pacs pacs, final List<String> studyUids) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public Map<String, PacsSearchResults<Series>> getSeriesByStudyUids(final UUID requestId) {
+    public Map<String, PacsSearchResults<Series>> getSearchResults(final UUID requestId) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public Series getSeriesById(final UserI user, final Pacs pacs, final String seriesInstanceUid) {
+    public Optional<Series> getSeriesById(final UserI user, final Pacs pacs, final String seriesInstanceUid) {
         throw new RuntimeException("method not implemented");
     }
 
@@ -139,7 +116,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public boolean aeIsStorable(final String ae) {
+    public boolean isAeStorable(final String ae) {
         throw new RuntimeException("method not implemented");
     }
 
@@ -166,6 +143,32 @@ public class MockPacsService implements PacsService {
     @Override
     public List<FindRow> extractNewImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) {
         throw new RuntimeException("method not implemented");
+    }
+
+    private Patient getMockPatient() {
+        final Patient patient = new Patient();
+        patient.setId("8675309");
+        patient.setName(new DqrPersonName("Jenny, Jenny"));
+        try {
+            patient.setBirthDate(DATE_FORMAT.parse("1990-01-01"));
+        } catch (final ParseException e) {
+            throw new RuntimeException(e);
+        }
+        patient.setSex("F");
+        return patient;
+    }
+
+    private Study getMockStudy(final Patient p, final String studyInstanceUid) {
+        final Study study = new Study();
+        study.setStudyInstanceUid(studyInstanceUid);
+        study.setReferringPhysicianName(new ReferringPhysicianName("Tommy", "Tutone"));
+        try {
+            study.setStudyDate(DATE_FORMAT.parse("2008-01-01"));
+        } catch (final ParseException e) {
+            throw new RuntimeException(e);
+        }
+        study.setPatient(p);
+        return study;
     }
 
     private static Date getDate(final String date) {

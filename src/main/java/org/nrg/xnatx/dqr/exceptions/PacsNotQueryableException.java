@@ -9,23 +9,21 @@
 
 package org.nrg.xnatx.dqr.exceptions;
 
-import lombok.Getter;
+import lombok.EqualsAndHashCode;
+import lombok.Value;
 import lombok.experimental.Accessors;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@Getter
+@Value
 @Accessors(prefix = "_")
+@EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.CONFLICT, reason = "The specified PACS system does not permit query operations")
 public class PacsNotQueryableException extends Exception {
-    public PacsNotQueryableException(final long id) {
-        this(id, "The specified PACS system \"" + id + "\" does not permit query operations");
-    }
+    long _pacsId;
 
-    private PacsNotQueryableException(final long id, final String message) {
-        super(message);
-        _id = id;
+    public PacsNotQueryableException(final long pacsId) {
+        super("The specified PACS system \"" + pacsId + "\" does not permit query operations");
+        _pacsId = pacsId;
     }
-
-    private final long _id;
 }

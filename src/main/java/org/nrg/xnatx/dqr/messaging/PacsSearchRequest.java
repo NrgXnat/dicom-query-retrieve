@@ -30,8 +30,8 @@ public class PacsSearchRequest implements Serializable {
         StudyById,
         SeriesByStudy,
         SeriesByStudyUid,
-        SeriesByStudyUids,
-        SeriesById
+        SeriesById,
+        Unknown
     }
 
     @Builder

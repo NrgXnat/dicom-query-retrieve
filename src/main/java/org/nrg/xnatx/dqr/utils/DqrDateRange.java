@@ -146,7 +146,7 @@ public class DqrDateRange extends DateRange {
     }
 
     public static String formatDate(final Date date) {
-        return formatLocalTime(convertDateToLocalDateTime(date));
+        return DASHY_FORMATTER.format(convertDateToLocalDateTime(date));
     }
 
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {

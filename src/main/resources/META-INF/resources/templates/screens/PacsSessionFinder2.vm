@@ -1,17 +1,21 @@
-#* @vtlvariable name="projects" type="java.util.ArrayList" *#
-#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
-#* @vtlvariable name="projectId" type="java.lang.String" *#
-#* @vtlvariable="aes" type="java.util.ArrayList" *#
-#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="aes" type="java.util.ArrayList" *#
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
+#* @vtlvariable name="enabledScps" type="java.util.ArrayList" *#
+#* @vtlvariable name="link" type="org.apache.turbine.services.pull.tools.TemplateLink" *#
+#* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
+#* @vtlvariable name="project" type="org.nrg.xdat.om.XnatProjectdata" *#
+#* @vtlvariable name="projectId" type="java.lang.String" *#
+#* @vtlvariable name="projects" type="java.util.ArrayList" *#
+#* @vtlvariable name="scp" type="org.nrg.dcm.scp.DicomSCPInstance" *#
+#* @vtlvariable name="study" type="org.nrg.xnatx.dqr.domain.Study" *#
 <!-- BEGIN templates/screens/PacsSessionFinder2.vm -->
 <script>
     if (XNAT.ui.breadcrumbs.length) {
         XNAT.ui.breadcrumbs.push({
             id:    'pacsSessionFinder',
             link:  '$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId}")',
-            label: 'Select ${displayManager.getSingularDisplayNameForImageSession()} From PACS'
+            label: 'Select ${displayManager.singularDisplayNameForImageSession} From PACS'
         })
     }
 </script>
@@ -26,8 +30,8 @@
 
 <script type="text/javascript">
     jq(document).ready(function () {
-        if (window.pacsSeriesFinder == undefined) {
-            window.pacsSeriesFinder = new PacsSeriesFinder2("$study.getStudyInstanceUid()", "pacsSeriesFinderDiv", "pacsSeriesFinderForm", "pacsSeriesFinderSubmit", "pacsSeriesFinderSelectAll", "validationErrorMessageHolder", $pacs.getId());
+        if (window.pacsSeriesFinder === undefined) {
+            window.pacsSeriesFinder = new PacsSeriesFinder2("$study.studyInstanceUid", "pacsSeriesFinderDiv", "pacsSeriesFinderForm", "pacsSeriesFinderSubmit", "pacsSeriesFinderSelectAll", "validationErrorMessageHolder", $pacs.id);
             window.pacsSeriesFinder.findSeries();
         }
     });
@@ -36,9 +40,9 @@
         var selectedSeriesControls = jq("input[name=selectedSeries]:checked");
         var project = jq("#project").val();
         var ae = jq("#ae").val();
-        if (!selectedSeriesControls || selectedSeriesControls.length == 0) {
+        if (!selectedSeriesControls || selectedSeriesControls.length === 0) {
             xmodal.message('No series selected', 'You have to select at least one series before you can request that it be retrieved from the selected PACS.', 'OK');
-        } else if (project == "") {
+        } else if (project === "") {
             xmodal.message('No project selected', 'You need to select a project to which the requested series can be assigned.', 'OK');
         } else {
             var selectedSeries = [];
@@ -50,7 +54,7 @@
     }
 </script>
 
-<h2 class="edit_title">Import ${displayManager.getSingularDisplayNameForImageSession()} From PACS</h2>
+<h2 class="edit_title">Import ${displayManager.singularDisplayNameForImageSession} From PACS</h2>
 <p><strong>Step 2: Select Scans to Import and Request Images from PACS</strong></p>
 #set($userCanImport = false)
 #set($importErrorMessages = [])
@@ -78,16 +82,16 @@
                 <div id="pacsSeriesAeSelector" style="margin-top: 1em;">
                     #if($enabledScps.size() == 1)
                         #foreach($scp in $enabledScps)
-                            <p><b>XNAT SCP Receiver:</b> ${scp.getAeTitle()}:${scp.getPort()} (Default)</p>
-                            <input type="hidden" id="ae" name="ae" value="${scp.getAeTitle()}:${scp.getPort()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end" />
+                            <p><b>XNAT SCP Receiver:</b> ${scp.aeTitle}:${scp.port} (Default)</p>
+                            <input type="hidden" id="ae" name="ae" value="${scp.aeTitle}:${scp.port}" data-identifier="${scp.identifier}" data-qrs-enabled="#if ($scp.identifier == "dqrClassicExtractors" || $scp.identifier == "dqrObjectIdentifier")true#end" />
                         #end
                     #else
                         <label for="ae" class="select_label"><b>Select XNAT SCP Receiver:</b></label>
                         <select id="ae" id="ae" name="ae" style="min-width:200px;">
                             <option disabled selected value="">(Select AE)</option>
                             #foreach($scp in $enabledScps)
-                                <option value="${scp.getAeTitle()}:${scp.getPort()}" data-id="${scp.getId()}" data-identifier="${scp.getIdentifier()}" data-qrs-enabled="#if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier")true#end">
-                                    ${scp.getAeTitle()}:${scp.getPort()} #if ($scp.getIdentifier() == "dqrClassicExtractors" || $scp.getIdentifier() == "dqrObjectIdentifier") (DQR Enabled)#end
+                                <option value="${scp.aeTitle}:${scp.port}" data-id="${scp.id}" data-identifier="${scp.identifier}" data-qrs-enabled="#if ($scp.identifier == "dqrClassicExtractors" || $scp.identifier == "dqrObjectIdentifier")true#end">
+                                    ${scp.aeTitle}:${scp.port} #if ($scp.identifier == "dqrClassicExtractors" || $scp.identifier == "dqrObjectIdentifier") (DQR Enabled)#end
                                 </option>
                             #end
                         </select>
@@ -96,7 +100,7 @@
                     <script>
                         jq(document).ready(function(){
                             var qrsEnabled=false, aeSelector = jq('#ae');
-                            if (aeSelector.prop('type') =='hidden') {
+                            if (aeSelector.prop('type') ==='hidden') {
                                 if (aeSelector.data('qrs-enabled').toString() === 'true') qrsEnabled=true;
                             }
                             else {
@@ -114,27 +118,27 @@
                 </div>
             </div>
             <div>
-                <h4>$displayManager.getSingularDisplayNameForSubject() Info</h4>
+                <h4>$displayManager.singularDisplayNameForSubject Info</h4>
                 <table id="studyInfoTable" class="xnat-table condensed alt1" width="100%">
                     <tr>
-                        <th>$displayManager.getSingularDisplayNameForSubject():</th>
-                        <td class="max180">$!study.getPatient().getName().getLastNameCommaFirstName()</td>
+                        <th>$displayManager.singularDisplayNameForSubject:</th>
+                        <td class="max180">$!study.patient.name.lastNameCommaFirstName</td>
                     </tr>
                     <tr>
-                        <th>${displayManager.getSingularDisplayNameForImageSession()} Date:</th>
-                        <td class="max180">$!study.getStudyDateFormattedAs("yyyy-MM-dd")</td>
+                        <th>${displayManager.singularDisplayNameForImageSession} Date:</th>
+                        <td class="max180">$!study.formattedStudyDate</td>
                     </tr>
                     <tr>
-                        <th>${displayManager.getSingularDisplayNameForImageSession()} ID:</th>
-                        <td class="max180">$!study.getStudyId()</td>
+                        <th>${displayManager.singularDisplayNameForImageSession} ID:</th>
+                        <td class="max180">$!study.studyId</td>
                     </tr>
                     <tr>
                         <th>DICOM <br>Accession Number:</th>
-                        <td class="max180">$!study.getAccessionNumber()</td>
+                        <td class="max180">$!study.accessionNumber</td>
                     </tr>
                     <tr>
-                        <th>${displayManager.getSingularDisplayNameForImageSession()} Description:</th>
-                        <td class="max180">$!study.getStudyDescription()</td>
+                        <th>${displayManager.singularDisplayNameForImageSession} Description:</th>
+                        <td class="max180">$!study.studyDescription</td>
                     </tr>
                 </table>
             </div>
@@ -147,12 +151,12 @@
             jQuery wipes out the submit button when emptying the div
             -->
             <div id="pacsSeriesFinderWrapperDiv">
-                <div id="pacsSeriesFinderDiv" class="data-table-container" style="margin-bottom:15px;"/>
+                <div id="pacsSeriesFinderDiv" class="data-table-container" style="margin-bottom:15px;"></div>
             </div>
-            <div id="pacsSeriesFinderFooter"/>
-            <a class="btn" id="cancel" name="cancel" href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId}")" style="padding-right: 1em">Retry ${displayManager.getSingularDisplayNameForImageSession()} Search</a>
+            <div id="pacsSeriesFinderFooter"></div>
+            <a class="btn" id="cancel" name="cancel" href="$link.setPage("PacsSessionFinder.vm").addPathInfo("project","${projectId}")" style="padding-right: 1em">Retry ${displayManager.singularDisplayNameForImageSession} Search</a>
             <button class="btn1" id="pacsSeriesFinderSubmit" name="pacsSeriesFinderSubmit" onclick="requestSelectedSeries(); return false;">Request Selected Series</button>
-            <span id="validationErrorMessageHolder" style="color:red;"/>
+            <span id="validationErrorMessageHolder" style="color:red;"></span>
         </div>
 
     </form>

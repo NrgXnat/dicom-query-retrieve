@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.messaging;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Users;
@@ -25,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -41,6 +43,7 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
         _pacsEntityService = pacsEntityService;
     }
 
+    @SuppressWarnings("DuplicateBranchesInSwitch")
     @JmsListener(id = "pacsSearchRequest", destination = "pacsSearchRequest")
     public void onRequest(final PacsSearchRequest request) throws Exception {
         try {
@@ -68,46 +71,51 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
             // SeriesByStudyUids: List<String>
             // SeriesById: String
 
-            switch (request.getSearchType()) {
+            final List<SearchExecutor> executors;
+            switch (ObjectUtils.defaultIfNull(request.getSearchType(), PacsSearchRequest.Type.Unknown)) {
                 // PatientsByExample: PacsSearchCriteria
                 case PatientsByExample:
                     // StudiesByExample: PacsSearchCriteria
                 case StudiesByExample:
                     // Not yet supported
                     // request.getPacsSearchCriteria();
+                    executors = Collections.emptyList();
                     break;
                 // PatientById: String
                 case PatientById:
                     // Not yet supported
                     // request.getPatientId();
+                    executors = Collections.emptyList();
                     break;
                 // StudyById: String
                 case StudyById:
                     // Not yet supported
                     // request.getStudyInstanceUid();
+                    executors = Collections.emptyList();
                     break;
                 // SeriesByStudy: Study
                 case SeriesByStudy:
                     // Not yet supported
                     // request.getStudyInstanceUid();
+                    executors = Collections.emptyList();
                     break;
                 // SeriesByStudyUid: String
                 case SeriesByStudyUid:
-                    // Not yet supported
-                    // request.getStudyInstanceUid();
-                    break;
-                // SeriesByStudyUids: List<String>
-                case SeriesByStudyUids:
-                    final List<SearchExecutor> executors = request.getStudyInstanceUids().parallelStream().map(studyInstanceUid -> new SearchExecutor(getPacsService(), searchId, user, pacs, studyInstanceUid)).collect(Collectors.toList());
-                    log.info("Created {} search executors for search request {}", executors.size(), searchId);
-                    _executorService.invokeAll(executors);
+                    executors = request.getStudyInstanceUids().parallelStream().map(studyInstanceUid -> new SearchExecutor(getPacsService(), searchId, user, pacs, studyInstanceUid)).collect(Collectors.toList());
                     break;
                 // SeriesById: String
                 case SeriesById:
                     // Not yet supported
                     // request.getSeriesIds();
+                    executors = Collections.emptyList();
                     break;
+                default:
+                    log.warn("No");
+                    executors = Collections.emptyList();
             }
+
+            log.info("Created {} search executors for search request {}", executors.size(), searchId);
+            _executorService.invokeAll(executors);
 
             getMailService().sendMessage(getAdminEmail(), user.getEmail(),
                                          "[" + TurbineUtils.GetSystemName() + "] PACS Study Import Request Complete",
@@ -136,7 +144,7 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
         public String call() throws Exception {
             final PacsSearchResults<Series> result = _service.getSeriesByStudyUid(_user, _pacs, _studyInstanceUid);
             log.info("Got a result for search request {} study instance UID {}", _requestId, _studyInstanceUid);
-            _service.updateSearchRequest(_requestId, _studyInstanceUid, result);
+            _service.updateSearchResults(_requestId, _studyInstanceUid, result);
             return _requestId + ":" + _studyInstanceUid;
         }
 
