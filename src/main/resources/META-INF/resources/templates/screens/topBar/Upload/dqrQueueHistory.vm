@@ -8,27 +8,7 @@
 #* @vtlvariable name="content" type="org.apache.turbine.services.pull.tools.ContentTool" *#
 
 #set ($SITE_ROOT = $content.getURI(""))
-###set ($projectId = $project.getId())
-###set ($userHelper = $data.getSession().getAttribute("userHelper"))
 
-#set ($isAdmin = false)
-#set ($isAllowed = false)
-
-#if ($user.checkRole("Administrator"))
-    #set ($isAdmin = true)
-    #set ($isAllowed = true)
-    <script>
-        window.isAdmin   = true;
-    </script>
-#elseif ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr())
-    #set ($isAllowed = true)
-#elseif ($user.checkRole("Dqr"))
-    #set ($isAllowed = true)
-#end
-
-#if ($isAllowed == true)
-<script>
-    window.isAllowed = true;
-</script>
+#if ($user.checkRole("Dqr") || $dqrPreferences.getAllowAllUsersToUseDqr() || $user.checkRole("Administrator"))
 <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
 #end

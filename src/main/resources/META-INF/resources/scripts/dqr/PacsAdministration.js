@@ -974,7 +974,6 @@ XNAT.app = getObject(XNAT.app || {});
 
             for (var key in historyEntry){
                 var val = historyEntry[key], formattedVal = '';
-                if (key === 'seriesIds') val = val.split(',');
 
                 if (Array.isArray(val)) {
                     var items = [];
@@ -1089,7 +1088,6 @@ XNAT.app = getObject(XNAT.app || {});
 
             for (var key in queueEntry){
                 var val = queueEntry[key], formattedVal = '';
-                if (key === 'seriesIds') val = val.split(',');
 
                 if (Array.isArray(val)) {
                     var items = [];
@@ -1183,9 +1181,9 @@ XNAT.app = getObject(XNAT.app || {});
                             queueTable: spawnHistoryTable(data,'queue')
                         });
                         _queueTable.done(function(){
-                            var queueLength = (data.length === 1) ? "Query" : "Queries";
+                            var queueLength = (data.length === 1) ? "Query Has" : "Queries Have";
                             $queueContainer.empty().append(
-                                spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' ' + queueLength + ' Have Been Queued')
+                                spawn('h3', { style: { 'margin-bottom': '1em' }}, data.length + ' ' + queueLength + ' Been Queued')
                             );
                             this.render($queueContainer, 20);
                         });
