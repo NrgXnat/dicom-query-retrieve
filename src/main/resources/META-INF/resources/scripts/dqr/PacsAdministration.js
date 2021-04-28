@@ -912,7 +912,7 @@ XNAT.app = getObject(XNAT.app || {});
                     filter: true, // add filter: true to individual items to add a filter,
                     apply: function(){
                         var sessionID = this['studyInstanceUid'];
-                        var scans = this['seriesIds'].split(',');
+                        var scans = this['seriesIds'];
                         return spawn (
                             'a',
                             { href: '#!', title: sessionID, className: 'view-'+tableType+'-entry', data: { id: this['id'] } },
@@ -1201,3 +1201,5 @@ XNAT.app = getObject(XNAT.app || {});
     historyTable.init();
 
 }));
+
+//# sourceURL=browsertools://scripts/dqr/PacsAdministration.js

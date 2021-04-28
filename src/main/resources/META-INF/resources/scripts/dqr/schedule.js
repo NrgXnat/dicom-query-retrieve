@@ -480,7 +480,6 @@ console.log('Now loading schedule.js');
         // assemble the DOM elements for later insertion all at once
         var tmpFrag = document.createDocumentFragment();
 
-        // var scheduleUrl = '~/page/dqr/schedule-dev/scratch.json';
         var scheduleUrl = XNAT.url.restUrl('/xapi/dqr/pacsAvailability/windows/' + window.pacsId + '/byDay');
 
         // get data then apply it to each day

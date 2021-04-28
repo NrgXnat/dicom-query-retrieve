@@ -848,7 +848,7 @@ var XNAT = getObject(XNAT || {});
                             '<div class="success">PACS data has been queued for import.</div>' +
                             '<p style="margin:1em;">' +
                             'Close this dialog to return to the search results. You can also ' +
-                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue-dev&role=dqr#tab=queue') + '">' +
+                            '<a class="link" href="' + XNAT.url.rootUrl('/app/template/Page.vm?view=dqr/queue&role=dqr#tab=queue') + '">' +
                             'check on the import progress in the queue</a> or ' +
                             '<a class="link" href="' + XNAT.url.rootUrl('/data/projects/' + projectId) + '">' +
                             'go back to the project page.</a>' +

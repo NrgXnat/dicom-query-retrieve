@@ -60,7 +60,7 @@ var XNAT = getObject(XNAT || {});
     }
 
     function getPacsList(){
-        return (dqr.getPacsList = XNAT.xhr.get('~/xapi/pacs'));
+        return (dqr.getPacsList = XNAT.xhr.get(XNAT.url.rootUrl('/xapi/pacs')));
     }
 
     getPacsList();
@@ -250,8 +250,7 @@ var XNAT = getObject(XNAT || {});
                     console.log(data);
                     data = getObject(data);
                     if (data.seriesIds) {
-                        // data.seriesIds = data.seriesIds.split(',').join(', ');
-                        data.seriesIds = spawn('pre|style=margin:0', data.seriesIds.split(',').join(',\n')).outerHTML
+                        data.seriesIds = spawn('pre|style=margin:0', data.seriesIds.join(',\n')).outerHTML
                     }
                     if (data.remappingScript) {
                         data.remappingScript = spawn('pre|style=margin:0', data.remappingScript).outerHTML
@@ -446,8 +445,8 @@ var XNAT = getObject(XNAT || {});
                                     return output.slice(0, SIZE);
                                 }
                                 return output.map(function(item, i){
-                                    (item.series_ids && item.series_ids.length) &&
-                                    (item.series_ids = item.series_ids.split(','));
+                                    // (item.series_ids && item.series_ids.length) &&
+                                    // (item.series_ids = item.series_ids.split(','));
                                     return item;
                                 });
                                 // return data.map(function(item, i){
@@ -933,7 +932,8 @@ var XNAT = getObject(XNAT || {});
 
         dqr.getPacsList.done(function(json){
 
-            var pacsList = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
+            // var pacsList = json && json.ResultSet && json.ResultSet.Result ? json.ResultSet.Result : [];
+            var pacsList = json || [];
 
             if (pacsList.length) {
 
@@ -1039,3 +1039,5 @@ var XNAT = getObject(XNAT || {});
     return (XNAT.plugin.dqr = dqr)
 
 }));
+
+//# sourceURL=browsertools://scripts/dqr/queue.js

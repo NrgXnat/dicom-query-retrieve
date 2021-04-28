@@ -25,7 +25,7 @@ var XNAT = getObject(XNAT || {});
     }
 }(function(){
 
-    console.log('dqr/queue.js');
+    console.log('dqr/queue-dev.js');
 
     var dqr, undef;
 
@@ -1082,3 +1082,5 @@ var XNAT = getObject(XNAT || {});
     return (XNAT.plugin.dqr = dqr)
 
 }));
+
+//# sourceURL=browsertools://scripts/dqr/queue-dev.js
