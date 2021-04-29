@@ -75,7 +75,7 @@ public abstract class DqrSecureAction extends SecureAction {
 
     protected DqrPreferences getDqrPreferences() {
         if (_dqrPreferences == null) {
-            _dqrPreferences = getDqrPreferences();
+            _dqrPreferences = XDAT.getContextService().getBean(DqrPreferences.class);
         }
         return _dqrPreferences;
     }
