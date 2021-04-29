@@ -12,7 +12,13 @@
 #set ($SITE_ROOT = $content.getURI(""))
 #set ($projectId = $project.getId())
 #set ($userHelper = $data.getSession().getAttribute("userHelper"))
-#if (($userHelper.canEdit("xnat:subjectData/project", $projectId) && ($user.checkRole("Dqr") || $dqrPreferences.getAllowAllUsersToUseDqr())) || $user.checkRole("Administrator"))
+#if (
+    (
+        $userHelper.canEdit("xnat:subjectData/project", $projectId)
+        && ($user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()))
+    )
+    || $user.checkRole("Administrator")
+)
 <li id="import-from-pacs-action" class="yuimenuitem hidden">
     <a class="yuimenuitemlabel" href="${SITE_ROOT}/app/template/Page.vm?view=dqr/import&project=${projectId}">Import From PACS</a>
 </li>

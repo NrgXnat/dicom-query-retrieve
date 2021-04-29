@@ -6,8 +6,6 @@
     <!-- BEGIN /templates/screens/xnat_imageSessionData/actionsBox/SendToPacs.vm -->
 
     #set($destination = $link.setPage("ExportSessionToPacs.vm").addQueryData("sessionId", $om.id).addQueryData("project", $project))
-    </ul>
-    <ul>
         <li class="yuimenuitem hidden" id="send-to-pacs-link">
             <a href="$destination" id="sendToPacs">Send to PACS</a>
             <!-- #[[ -->

@@ -1,5 +1,5 @@
 <!-- Sequence: 99 -->
-
+#* @vtlvariable name="dqrPreferences" type="org.nrg.xnatx.dqr.preferences.DqrPreferences" *#
 #* @vtlvariable name="displayManager" type="org.nrg.xdat.display.DisplayManager" *#
 #* @vtlvariable name="data" type="org.apache.turbine.util.RunData" *#
 #* @vtlvariable name="turbineUtils" type="org.nrg.xdat.turbine.utils.TurbineUtils" *#
@@ -9,6 +9,6 @@
 
 #set ($SITE_ROOT = $content.getURI(""))
 
-#if ($user.checkRole("Dqr") || $dqrPreferences.getAllowAllUsersToUseDqr() || $user.checkRole("Administrator"))
+#if ($user.checkRole("Dqr") || ($contextService && $contextService.getBean("dqrPreferences").getAllowAllUsersToUseDqr()) || $user.checkRole("Administrator"))
 <li><a href="${SITE_ROOT}/app/template/Page.vm?view=dqr/queue&role=dqr">Import Queue/History</a></li>
 #end

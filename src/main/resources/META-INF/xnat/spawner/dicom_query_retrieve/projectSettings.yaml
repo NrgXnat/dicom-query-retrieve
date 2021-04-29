@@ -9,7 +9,7 @@ projectSettings:
         dqrSettings: DICOM Query-Retrieve
     contents:
         ${enableDqrTab}
-        ${irbSettingsTab}
+#        ${irbSettingsTab}
 
 enableDqrTab:
     kind: tab
