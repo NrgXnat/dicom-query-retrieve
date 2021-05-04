@@ -1164,6 +1164,7 @@ var XNAT = getObject(XNAT || {});
                         },
                         apply: function(){
                             var studyDateStr = this.studyDate + '';
+                            studyDateStr = studyDateStr.replace(/-/g,'');
                             return spawn('div.center.mono.select-row.filter-data-item', {
                                 data: { filter: 'studyDate' }
                             }, this.studyDate ? [
@@ -1464,12 +1465,64 @@ var XNAT = getObject(XNAT || {});
 
     });
 
+    XNAT.plugin.dqr.submitCsvForm = function(formData){
+
+        XNAT.xhr.post({
+            url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/newUploadCsv'),
+            data: formData,
+            async: false,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function(data){
+                console.log(data);
+                var results = [];
+                if (data.length) {
+                    // pluck the data out of the response
+                    forEach(data, function(item){
+                        var searchId                   = randomizer(16, 'dqrx' + (Date.now() + '').slice(-8, -2) + 'x');
+                        dqr.searchIds                  = dqr.searchIds || {};
+                        dqr.searchIds[searchId]        = item;
+                        dqr.csvSearchResults           = dqr.csvSearchResults || {};
+                        dqr.csvSearchResults[searchId] = item;
+                        // dqr.allSearchResults[searchId] = {
+                        //     anonScript: item.anonScript || ''
+                        // };
+                        console.log(dqr.csvSearchResults);
+                        forEach(item.studies, function(study){
+                            study.searchId   = searchId;
+                            study.relabelMap = item.relabelMap;
+                            results.push(study);
+                        });
+                    });
+                    console.log(results);
+                    renderResultsTable(results);
+                }
+                else {
+                    XNAT.ui.banner.top(3000,'Error: No rows to import','error');
+                }
+            },
+            failure: function(){
+                console.warn('error importing CSV');
+                console.warn(arguments);
+                XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
+            }
+        });
+    };
+
     // handle CSV import
     $(document).on('click', '#import-csv', function(e){
         e.preventDefault();
         // form with file input to render
-        var fileForm = spawn('form#csv-upload', {
-            style: { padding: '10px', fontSize: '13px' }
+        var fileForm = spawn('form#csv-upload|name=csv_upload', {
+            style: { padding: '10px', fontSize: '13px' },
+            onsubmit: function(e){
+                e.preventDefault();
+                var formData = new FormData(this);
+                XNAT.plugin.dqr.submitCsvForm(formData);
+                XNAT.ui.banner.top(2000,'CSV form submitted','success');
+                XNAT.dialog.closeAll();
+            }
         }, [
             ['p', 'Select a CSV file to upload:'],
             ['input|type=hidden|name=pacsId', {
@@ -1485,45 +1538,7 @@ var XNAT = getObject(XNAT || {});
             okLabel: 'Upload',
             okClose: false,
             okAction: function(obj){
-                var postCsv = XNAT.xhr.post({
-                    url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/newUploadCsv'),
-                    data: (new FormData(fileForm)),
-                    cache: false,
-                    contentType: false,
-                    processData: false,
-                    success: function(data){
-                        console.log(data);
-                        var results = [];
-                        if (data.length) {
-                            // pluck the data out of the response
-                            forEach(data, function(item){
-                                var searchId                   = randomizer(16, 'dqrx' + (Date.now() + '').slice(-8, -2) + 'x');
-                                dqr.searchIds                  = dqr.searchIds || {};
-                                dqr.searchIds[searchId]        = item;
-                                dqr.csvSearchResults           = dqr.csvSearchResults || {};
-                                dqr.csvSearchResults[searchId] = item;
-                                // dqr.allSearchResults[searchId] = {
-                                //     anonScript: item.anonScript || ''
-                                // };
-                                console.log(dqr.csvSearchResults);
-                                forEach(item.studies, function(study){
-                                    study.searchId   = searchId;
-                                    study.relabelMap = item.relabelMap;
-                                    results.push(study);
-                                });
-                            });
-                            console.log(results);
-                            renderResultsTable(results);
-                        }
-                        obj.close();
-                        // XNAT.ui.banner.top(3000, 'Saved changes to DICOM AE connection', 'success');
-                    },
-                    failure: function(){
-                        console.warn('error importing CSV');
-                        console.warn(arguments);
-                        XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
-                    }
-                });
+                $(document).find('#csv-upload').submit();
             }
         });
     });
