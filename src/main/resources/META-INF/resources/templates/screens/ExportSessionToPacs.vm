@@ -84,7 +84,7 @@
 
     <link rel="stylesheet" href="$content.getURI("/scripts/xnat/app/scanTable/scanTable.css")" />
     <script src="$content.getURI("/scripts/xnat/app/scanTable/selectableTableBehavior.js")"></script>
-    <script src="$content.getURI("/scripts/dqr/SendToPacs.js")"></script>
+    <script src="$content.getURI("/scripts/xnat/plugin/dqr/SendToPacs.js")"></script>
     <script>
         console.log('exportSessionToPacs.vm');
 ##        var enableAllScans = ('${siteConfig.dqrPushPreference}'.toLowerCase() === 'true');

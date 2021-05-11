@@ -217,3 +217,4 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
     // exportScans.init();
 
 }));
+//# sourceURL=browsertools://scripts/xnat/plugin/dqr/SendToPacs.js

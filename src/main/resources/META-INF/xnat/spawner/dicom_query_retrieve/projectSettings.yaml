@@ -58,7 +58,7 @@ enableDqrPanel:
                     readonly: readonly
 
 adminProjectSettingsJS:
-    tag: "script|src=~/scripts/dqr/adminProjectSettings.js"
+    tag: "script|src=~/scripts/xnat/plugin/dqr/adminProjectSettings.js"
 
 # IRB Settings
 irbSettingsTab:
@@ -112,6 +112,6 @@ irbSettings:
                     </div>
                 </div>
         irbSettingsJS:
-            tag: "script|src=~/scripts/dqr/irbSettings.js"
+            tag: "script|src=~/scripts/xnat/plugin/dqr/irbSettings.js"
 
 #end

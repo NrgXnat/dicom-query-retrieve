@@ -8,7 +8,7 @@
 ##<script src="${SITE_ROOT}/scripts/lib/lodash/lodash.js"></script>
 ##<script src="${SITE_ROOT}/scripts/lib/xx.js"></script>
 
-<script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/xnat-patch.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/plugin/dqr/xnat-patch.js"></script>
 
-<script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/selectableItems.js"></script>
-<script src="${SITE_ROOT}/scripts/xnat/plugins/dqr/filterableItems.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/plugin/dqr/selectableItems.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/plugin/dqr/filterableItems.js"></script>

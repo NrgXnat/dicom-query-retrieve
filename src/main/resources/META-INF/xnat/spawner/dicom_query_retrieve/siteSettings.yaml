@@ -45,7 +45,7 @@ dqrPacsPanel:
             tag: "div#pacsDiv"
             content: No DICOM AE connections yet
         dqrPacsScript:
-            tag: script|src="~/scripts/dqr/PacsAdministration.js"
+            tag: script|src="~/scripts/xnat/plugin/dqr/PacsAdministration.js"
         dqrPacsCss:
             tag: link|href="~/style/dqr/dqr.css"|rel="stylesheet"|type="text/css"
 

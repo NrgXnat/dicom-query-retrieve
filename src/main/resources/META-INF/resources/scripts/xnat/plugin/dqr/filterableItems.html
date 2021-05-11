@@ -132,14 +132,14 @@
 <script>
     (function($){
 
-        var filterInit = XNAT.plugins.dqr.filterableItems([
+        var filterInit = XNAT.plugin.dqr.filterableItems([
             $('#filterable-example'),
             $('#filterable-list')
         ]);
 
         console.log(filterInit);
 
-        XNAT.plugins.dqr.selectableItems('#filterable-list');
+        XNAT.plugin.dqr.selectableItems('#filterable-list');
 
     })(window.jQuery);
 </script>

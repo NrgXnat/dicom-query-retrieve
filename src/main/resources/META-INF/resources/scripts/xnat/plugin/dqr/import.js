@@ -882,7 +882,7 @@ var XNAT = getObject(XNAT || {});
                 title: 'Import from PACS',
                 content: scanTypesTable,
                 afterShow: function(dlg){
-                    XNAT.plugins.dqr.selectableItems(dlg.body$.find('#scan-types-list'));
+                    XNAT.plugin.dqr.selectableItems(dlg.body$.find('#scan-types-list'));
                 },
                 buttons: [
                     {
@@ -1217,10 +1217,10 @@ var XNAT = getObject(XNAT || {});
         renderBody();
 
         // init the selectable stuff
-        XNAT.plugins.dqr.selectableItems($pacsSearchResults);
+        XNAT.plugin.dqr.selectableItems($pacsSearchResults);
 
         // init new filter method
-        XNAT.plugins.dqr.filterableItems($pacsSearchResults);
+        XNAT.plugin.dqr.filterableItems($pacsSearchResults);
 
         $searchResultsSubmit.empty();
 
@@ -1546,3 +1546,5 @@ var XNAT = getObject(XNAT || {});
     XNAT.plugin.dqr = dqr;
 
 }));
+
+//# sourceURL=browsertools://scripts/xnat/plugin/dqr/import.js

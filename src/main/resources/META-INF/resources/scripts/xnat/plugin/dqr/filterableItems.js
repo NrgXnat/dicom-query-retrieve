@@ -29,11 +29,11 @@
             window.XNAT =
                 (window.XNAT != null) ? window.XNAT : {};
 
-    XNAT.plugins =
-        (XNAT.plugins != null) ? XNAT.plugins : {};
+    XNAT.plugin =
+        (XNAT.plugin != null) ? XNAT.plugin : {};
 
-    XNAT.plugins.dqr =
-        (XNAT.plugins.dqr != null) ? XNAT.plugins.dqr : {};
+    XNAT.plugin.dqr =
+        (XNAT.plugin.dqr != null) ? XNAT.plugin.dqr : {};
 
 
     function filterableItems(container){
@@ -275,6 +275,6 @@
 
     window.XNAT = XNAT;
 
-    return (XNAT.plugins.dqr.filterableItems = filterableItems)
+    return (XNAT.plugin.dqr.filterableItems = filterableItems)
 
 }));

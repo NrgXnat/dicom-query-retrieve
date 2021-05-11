@@ -25,7 +25,7 @@ var XNAT = getObject(XNAT);
     }
 }(function(){
 
-    console.log('/scripts/dqr/adminProjectSettings.js');
+    console.log('/scripts/xnat/plugin/dqr/adminProjectSettings.js');
 
     var undef, dqr;
     var projectId = XNAT.data.project || XNAT.data.projectId || window.projectId;
@@ -82,3 +82,5 @@ var XNAT = getObject(XNAT);
     return XNAT.plugin.dqr = dqr;
 
 }));
+
+//# sourceURL=browsertools://scripts/xnat/plugin/dqr/adminProjectSettings.js

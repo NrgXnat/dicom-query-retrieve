@@ -659,8 +659,8 @@ var XNAT = getObject(XNAT || {});
                                 ['div.clear.clearfix']
                             ]) : '';
 
-                            // XNAT.plugins.dqr.selectableItems(queueDisplayContainer$);
-                            // XNAT.plugins.dqr.filterableItems(queueDisplayContainer$);
+                            // XNAT.plugin.dqr.selectableItems(queueDisplayContainer$);
+                            // XNAT.plugin.dqr.filterableItems(queueDisplayContainer$);
 
                             queueDisplayContainer$.empty().append(note).append(spawneri.done(function(){
                                 window.jsdebug && console.log(this);
@@ -1040,4 +1040,4 @@ var XNAT = getObject(XNAT || {});
 
 }));
 
-//# sourceURL=browsertools://scripts/dqr/queue.js
+//# sourceURL=browsertools://scripts/xnat/plugin/dqr/queue.js

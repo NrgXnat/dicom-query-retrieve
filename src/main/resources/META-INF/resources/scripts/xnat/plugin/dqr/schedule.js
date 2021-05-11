@@ -1,7 +1,7 @@
 /*!
  * DQR Utilization Schedule
  */
-console.log('Now loading schedule.js');
+console.log('dqr/schedule.js');
 (function(factory){
     if (typeof define === 'function' && define.amd) {
         define(factory);
@@ -327,6 +327,7 @@ console.log('Now loading schedule.js');
             content: (function(){
 
                 function setupOption(val, cfg){
+                    if (cfg.value.length === 4) cfg.value = "0"+cfg.value; // append leading zero for times less than 10:00
                     cfg      = getObject(cfg);
                     cfg.attr = cfg.attr || {};
                     if (val === cfg.value) {
@@ -608,12 +609,8 @@ console.log('Now loading schedule.js');
 
                 Object.keys(blocks).sort().forEach(function(startKey, i){
 
-                    console.log(startKey);
-
                     // process values needed for display
                     var block = blocks[startKey];
-
-                    console.log(block);
 
                     var threads = block.threads;
                     var pct     = block.utilizationPercent;
@@ -632,7 +629,6 @@ console.log('Now loading schedule.js');
                         ['span', {}, ((threads === 1) ? ' thread' : ' threads') + (+threads !== 0 ? (' @ ' + pct + '%') : '')]
                     ]);
 
-                    console.log('time block:');
                     console.log(block);
 
                     // create the div to represent this interval
@@ -718,4 +714,4 @@ console.log('Now loading schedule.js');
 
 
 }));
-//# sourceURL=browsertools://scripts/dqr/schedule.js
+//# sourceURL=browsertools://scripts/xnat/plugin/dqr/schedule.js

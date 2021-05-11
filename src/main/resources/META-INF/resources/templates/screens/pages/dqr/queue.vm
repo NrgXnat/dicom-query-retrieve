@@ -165,7 +165,7 @@
     </div>
 </div>
 
-<script src="${SITE_ROOT}/scripts/dqr/queue.js"></script>
+<script src="${SITE_ROOT}/scripts/xnat/plugin/dqr/queue.js"></script>
 
 #else
 

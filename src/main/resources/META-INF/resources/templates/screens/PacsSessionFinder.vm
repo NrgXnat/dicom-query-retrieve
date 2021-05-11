@@ -18,7 +18,7 @@
 <script type="text/javascript" charset="utf8" src="https://ajax.aspnetcdn.com/ajax/jquery.validate/1.10.0/jquery.validate.min.js"></script>
 <script type="text/javascript" src="$content.getURI("scripts/dqr/datejs.js")"></script>
 <script type="text/javascript" src="$content.getURI("scripts/dqr/StudyDatePicker.js")"></script>
-<script type="text/javascript" src="$content.getURI("scripts/dqr/CustomDataTablesFilters.js")"></script>
+<script type="text/javascript" src="$content.getURI("scripts/xnat/plugin/dqr/CustomDataTablesFilters.js")"></script>
 
 <script type="text/javascript">
     var terms = {
