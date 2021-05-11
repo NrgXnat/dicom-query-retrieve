@@ -36,6 +36,7 @@ public class PacsSearchCriteria {
         return ToStringBuilder.reflectionToString(this);
     }
 
+    private final long         _pacsId;
     private final String       _patientId;
     private final String       _patientName;
     private final String       _studyInstanceUid;

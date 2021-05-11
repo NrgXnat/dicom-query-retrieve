@@ -9,34 +9,41 @@
 
 package org.nrg.xnatx.dqr.dto;
 
-import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Singular;
-import lombok.experimental.Accessors;
+
+import java.util.List;
 
 @Data
-@Accessors(prefix = "_")
 @Builder
 public class PacsImportRequest {
     /**
+     * The ID of the PACS from which the data should be imported.
+     */
+    private long pacsId;
+
+    /**
      * The AE title to which the requested data should be sent.
      */
-    private String _ae;
+    private String aeTitle;
+
+    /**
+     * The port to which the requested data should be sent.
+     */
+    private int port;
 
     /**
      * The project to which the requested data should be routed.
      */
-    private String _project;
+    private String projectId;
+
+    @Builder.Default
+    private boolean forceImport = false;
 
     /**
-     * The study instance UID for the requested data.
+     * The list of studies to be imported.
      */
-    private String _studyInstanceUid;
-
-    /**
-     * The series IDs for the requested data.
-     */
-    @Singular
-    private List<String> _seriesIds;
+    @Singular("study")
+    private List<StudyImportInformation> studies;
 }

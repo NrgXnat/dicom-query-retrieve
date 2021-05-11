@@ -27,10 +27,6 @@ enableDqrPanel:
     id: enable-dqr-panel
     label: Enable DQR for Project
     footer: false
-    #load: "~/xapi/dqr/adminProjectSettings/{{XNAT.data.projectId}}"
-    #action: "~/xapi/dqr/adminProjectSettings"
-    #method: POST
-    #contentType: json
     contents:
         projectId:
             kind: input.hidden

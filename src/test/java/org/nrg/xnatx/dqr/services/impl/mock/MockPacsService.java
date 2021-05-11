@@ -14,13 +14,14 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.*;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.dto.PacsImportRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
-import org.nrg.xnatx.dqr.utils.StudyImportInformation;
 
 import java.io.File;
 import java.text.ParseException;
@@ -121,7 +122,7 @@ public class MockPacsService implements PacsService {
     }
 
     @Override
-    public boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) {
+    public List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) {
         throw new RuntimeException("method not implemented");
     }
 

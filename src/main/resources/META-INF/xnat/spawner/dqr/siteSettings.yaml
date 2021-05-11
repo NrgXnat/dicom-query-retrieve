@@ -69,7 +69,7 @@ dqrOtherPreferencePanel:
     name: dqrOtherPreferencePanel
     label: Other Preferences
     method: POST
-    url: ~/xapi/dqr
+    url: ~/xapi/dqr/settings
     contentType: json
     contents:
         dqrCallingAe:

@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.services;
 
+import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
@@ -17,15 +18,14 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.dto.PacsImportRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
-import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.exceptions.*;
 import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
-import org.nrg.xnatx.dqr.utils.StudyImportInformation;
 
 import java.io.File;
 import java.util.List;
@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@SuppressWarnings("unused")
 public interface PacsService {
     /**
      * Indicates whether the specified user can connect to the indicated PACS system.
@@ -252,18 +253,19 @@ public interface PacsService {
     /**
      * Processes CSV import operations.
      *
-     * @param studiesToImport                   The studies to import.
-     * @param user                              The user requesting the import operation.
-     * @param ae                                The AE receiving the data to be imported.
-     * @param project                           The project to which the data should be imported.
-     * @param pacsId                            The PACS from which the data should be imported.
-     * @param importEvenIfCustomProcessingIsOff Indicates that the data should be imported even if the AE doesn't currently support custom processing.
+     * @param user    The user requesting the import operation.
+     * @param request Attributes for the import operation.
      *
      * @return Returns <b>true</b> if all data was imported and <b>false</b> if more data needs to be imported from the PACS.
      *
-     * @throws Exception When an unexpected error occurs.
+     * @throws ArchiveProcessorsNotAvailableException         When archive processors aren't available for the DICOM receiver.
+     * @throws DicomReceiverCustomProcessingDisabledException When custom processing is disabled for the DICOM receiver.
+     * @throws NotFoundException                              When the requested data can't be found.
+     * @throws PacsNotFoundException                          When the specified PACS can't be found.
+     * @throws PacsNotQueryableException                      When the specified PACS isn't queryable..
+     * @throws UnknownDicomScpInstanceException               When the specified DICOM receiver doesn't exist.
      */
-    boolean processSpreadsheetImport(Map<String, StudyImportInformation> studiesToImport, UserI user, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
+    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException;
 
     /**
      * Processes CSV import operations.

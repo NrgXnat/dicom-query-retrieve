@@ -42,10 +42,9 @@ var XNAT = getObject(XNAT);
     function adminProjectSettingsSubmit(){
         var isChecked = enableProjectDqr0.checked;
         return XNAT.xhr.post({
-            url: XNAT.url.rootUrl('/xapi/dqr/adminProjectSettings'),
+            url: XNAT.url.rootUrl('/xapi/dqr/settings/project/' + projectId),
             contentType: 'application/json',
             data: JSON.stringify({
-                projectId: projectId,
                 enabled: isChecked
             }),
             processData: false,

@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
 public class PacsAvailability extends AbstractHibernateEntity {
     private static final long serialVersionUID = -5580029561175463693L;
 
-    public Long getPacsId() {
+    public long getPacsId() {
         return _pacsId;
     }
 
@@ -146,7 +146,7 @@ public class PacsAvailability extends AbstractHibernateEntity {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (_pacsId != null ? _pacsId.hashCode() : 0);
+        result = 31 * result + Long.hashCode(_pacsId);
         result = 31 * result + _dayOfWeek.getValue();
         result = 31 * result + (_availabilityStart != null ? _availabilityStart.hashCode() : 0);
         result = 31 * result + (_availabilityEnd != null ? _availabilityEnd.hashCode() : 0);
@@ -183,7 +183,7 @@ public class PacsAvailability extends AbstractHibernateEntity {
     private static final String  BAD_MIDNIGHT      = "24:00";
     private static final String  GOOD_MIDNIGHT     = "00:00";
 
-    private Long      _pacsId;
+    private long      _pacsId;
     private DayOfWeek _dayOfWeek;
     private String    _availabilityStart;
     private String    _availabilityEnd;
