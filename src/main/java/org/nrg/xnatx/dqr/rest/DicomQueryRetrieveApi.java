@@ -40,10 +40,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.entities.*;
-import org.nrg.xnatx.dqr.dto.PacsExportRequest;
-import org.nrg.xnatx.dqr.dto.PacsImportRequest;
-import org.nrg.xnatx.dqr.dto.PacsSearchResults;
-import org.nrg.xnatx.dqr.dto.PacsSeriesSearchRequest;
+import org.nrg.xnatx.dqr.dto.*;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
@@ -120,8 +117,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         }
     }
 
-    @ApiOperation(value = "Get list of Dqr configurations.", notes = "The Dqr configurations function returns a list of all Dqr configurations in the XNAT system.", response = DqrProjectSettings.class, responseContainer = "List")
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns a list of all of the currently configured Dqr configurations."),
+    @ApiOperation(value = "Get list of DQR configurations.", notes = "The Dqr configurations function returns a list of all DQR configurations in the XNAT system.", response = DqrProjectSettings.class, responseContainer = "List")
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns a list of all of the currently configured DQR configurations."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "settings/project", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
@@ -129,57 +126,63 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _dqrProjectSettingsService.getAll();
     }
 
-    @ApiOperation(value = "Creates or updates the DQR configuration for a project from the submitted attributes.", notes = "Returns the newly created DQR configuration for a project with the submitted attributes.", response = DqrProjectSettings.class)
+    @ApiOperation(value = "Creates the DQR configuration for a project from the submitted attributes.", notes = "Returns the newly created DQR configuration for a project with the submitted attributes.", response = DqrProjectSettings.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Returns the DQR configuration for the project."),
                    @ApiResponse(code = 403, message = "Insufficient privileges to create or update the DQR configuration for the project."),
                    @ApiResponse(code = 404, message = "The project for the new DQR configuration wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
-    public DqrProjectSettings createDqrProjectSettings(@RequestBody final DqrProjectSettings settings) throws NotFoundException, NotModifiedException {
-        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.findSettingsByProject(settings.getProjectId());
+    public DqrProjectSettings createDqrProjectSettings(@RequestBody final DqrProjectSettings settings) throws NotFoundException, ResourceAlreadyExistsException {
+        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(settings.getProjectId());
         if (existingSettings == null) {
             return _dqrProjectSettingsService.create(settings);
         }
-
-        // Only update fields that are actually included in the submitted data and differ from the original source.
-        if (settings.isEnabled() == existingSettings.isEnabled()) {
-            throw new NotModifiedException("No changes were made to the DQR settings for the project " + settings.getProjectId());
-        }
-        existingSettings.setEnabled(settings.isEnabled());
-        _dqrProjectSettingsService.update(existingSettings);
-        return existingSettings;
+        throw new ResourceAlreadyExistsException("DQR project settings", settings.getProjectId());
     }
 
-    @ApiOperation(value = "Returns whether project is a project that has been configured to use Dqr.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Whether the project is a Dqr project."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to check whether the project is a Dqr project."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "settings/project/{projectId}/enabled", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
-    public boolean isDqrProject(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
-        return _preferences.getAllowAllProjectsToUseDqr() || _dqrProjectSettingsService.isDqrEnabledForProject(projectId);
-    }
-
-    @ApiOperation(value = "Get Dqr configuration for the specified project.", notes = "The get Dqr configuration function returns the Dqr configuration for the specified project.", response = DqrProjectSettings.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns Dqr configuration for the project."),
+    @ApiOperation(value = "Get DQR configuration for the specified project.", notes = "This function returns the DQR settings for the specified project.", response = DqrProjectSettings.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns DQR configuration for the project."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId) throws NotFoundException {
-        return _dqrProjectSettingsService.findSettingsByProject(projectId);
+        return _dqrProjectSettingsService.getProjectSettings(projectId);
     }
 
-    @ApiOperation(value = "Deletes the requested Dqr configuration for the project.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Dqr configuration for the project was successfully removed."),
+    @ApiOperation(value = "Returns whether project is a project that has been configured to use DQR.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Whether the project is a DQR project."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "Insufficient privileges to delete the Dqr configuration for the project."),
-                   @ApiResponse(code = 404, message = "The requested Dqr configuration for the project wasn't found."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to check whether the project is a DQR project."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "settings/project/{projectId}/enabled", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
+    public boolean isDqrProject(@PathVariable @Project final String projectId) throws NotFoundException {
+        return _preferences.getAllowAllProjectsToUseDqr() || _dqrProjectSettingsService.isDqrEnabledForProject(projectId);
+    }
+
+    @ApiOperation(value = "Get DQR configuration for the specified project.", notes = "Returns the DQR configuration for the specified project.", response = DqrProjectSettings.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns DQR configuration for the project."),
+                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
+    @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
+    @ResponseBody
+    public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId, @RequestBody final ProjectSettings settings) throws NotFoundException, DataFormatException, NotModifiedException {
+        if (_dqrProjectSettingsService.isDqrConfigured(projectId)) {
+            settings.setProjectId(projectId);
+            return _dqrProjectSettingsService.update(settings);
+        }
+        return _dqrProjectSettingsService.create(DqrProjectSettings.builder().projectId(projectId).dqrEnabled(settings.getDqrEnabled()).build());
+    }
+
+    @ApiOperation(value = "Deletes the requested DQR configuration for the project.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "DQR configuration for the project was successfully removed."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "Insufficient privileges to delete the DQR configuration for the project."),
+                   @ApiResponse(code = 404, message = "The requested DQR configuration for the project wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
     @ResponseBody
     public boolean deleteDqrProjectSettings(@PathVariable final String projectId) throws NotFoundException {
-        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.findSettingsByProject(projectId);
+        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(projectId);
         if (existingSettings == null) {
             throw new NotFoundException("No DQR settings were found for the project " + projectId);
         }
@@ -429,7 +432,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "import", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     public ResponseEntity<List<FindRow>> importFromPacs(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") MultipartFile csv,
-                                                        @ApiParam("Pacs to query.") @RequestParam(name = "pacsId") final Long pacsId, @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(name = "allowRowThatGetsAllStudiesOnPacs", required = false) final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+                                                        @ApiParam("Pacs to query.") @RequestParam final Long pacsId,
+                                                        @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(defaultValue = "false") final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         final File temp = File.createTempFile("xnat", "csv");
         try (final InputStream input = csv.getInputStream(); final OutputStream output = new FileOutputStream(temp)) {
             IOUtils.copy(input, output);
@@ -474,9 +478,9 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "export", method = RequestMethod.PUT, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
-    public Map<String, Object> export(@ApiParam("Id of PACS to send to.") @RequestParam(name = "pacsId") final long pacsId,
-                                      @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String session,
-                                      @ApiParam("Array of scans in the session to send.") @RequestParam(name = "scansToExport") final List<String> scansToExport) throws Exception {
+    public Map<String, Object> export(@ApiParam("Id of PACS to send to.") @RequestParam final long pacsId,
+                                      @ApiParam("XNAT session to send.") @RequestParam final String session,
+                                      @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws Exception {
         final Pacs _pacs = getPacsEntityService().retrieve(pacsId);
         if (_pacs == null) {
             throw new PacsNotFoundException(pacsId);

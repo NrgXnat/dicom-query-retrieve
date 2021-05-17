@@ -20,7 +20,7 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class DqrProjectSettingsDAO extends AbstractHibernateDAO<DqrProjectSettings> {
-    public DqrProjectSettings getDqrAdminSettingsByProjectId(final String projectId) {
+    public DqrProjectSettings findByProjectId(final String projectId) {
         final Criteria criteria = getSession().createCriteria(getParameterizedType());
         criteria.add(Restrictions.eq("projectId", projectId));
         return instance(checked(criteria.list()));

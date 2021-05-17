@@ -9,14 +9,19 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import java.io.Serializable;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.envers.Audited;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+
+import java.io.Serializable;
+import javax.persistence.Entity;
+import javax.persistence.Table;
 
 /**
  * Created by mike on 1/23/18.
@@ -26,16 +31,15 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 @Table
 @Audited
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Accessors(prefix = "_")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class DqrProjectSettings extends AbstractHibernateEntity implements Serializable {
     private static final long serialVersionUID = -8377837327063450758L;
 
-    public DqrProjectSettings() {
-        //
-    }
-
-    public DqrProjectSettings(final String projectId) {
-        _projectId = projectId;
-    }
+    private String  _projectId;
+    private boolean _dqrEnabled;
 
     public String getProjectId() {
         return _projectId;
@@ -45,5 +49,11 @@ public class DqrProjectSettings extends AbstractHibernateEntity implements Seria
         _projectId = projectId;
     }
 
-    protected String _projectId;
+    public boolean isDqrEnabled() {
+        return _dqrEnabled;
+    }
+
+    public void setDqrEnabled(final boolean dqrEnabled) {
+        _dqrEnabled = dqrEnabled;
+    }
 }

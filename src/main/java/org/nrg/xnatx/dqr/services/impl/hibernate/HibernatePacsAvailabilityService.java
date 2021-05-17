@@ -76,7 +76,7 @@ public class HibernatePacsAvailabilityService extends AbstractHibernateEntitySer
 
         final Map<DqrDateRange.Relative, List<PacsAvailability>> segregated = getDao().findAllByPacsIdAndDayOfWeek(pacsId, day).stream().filter(availability -> availability.getId() != reference.getId()).collect(Collectors.groupingBy(reference::relative));
 
-        final boolean hasOverlap = !Collections.disjoint(segregated.keySet(), OVERLAPS);
+        final boolean hasOverlap = !segregated.isEmpty() && !Collections.disjoint(segregated.keySet(), OVERLAPS);
         if (!hasOverlap || !removeOverlap) {
             return hasOverlap;
         }

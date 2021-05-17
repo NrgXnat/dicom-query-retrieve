@@ -17,6 +17,10 @@ import lombok.experimental.Accessors;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+import org.nrg.xnatx.dqr.dto.PacsSettings;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.PropertyAccessorFactory;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -25,7 +29,9 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.beans.FeatureDescriptor;
 import java.io.Serializable;
+import java.util.stream.Stream;
 
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames = "label"), @UniqueConstraint(columnNames = {"host", "queryRetrievePort", "aeTitle"})})
@@ -50,6 +56,15 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private boolean _defaultQueryRetrievePacs;
     private String  _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
+
+    public Pacs(final PacsSettings settings) {
+        copySettings(settings);
+    }
+
+    public void copySettings(final PacsSettings settings) {
+        final BeanWrapper wrappedPacs = PropertyAccessorFactory.forBeanPropertyAccess(settings);
+        BeanUtils.copyProperties(settings, this, Stream.of(wrappedPacs.getPropertyDescriptors()).map(FeatureDescriptor::getName).filter(name -> wrappedPacs.getPropertyValue(name) == null).toArray(String[]::new));
+    }
 
     @NotBlank
     @Size(max = 100)

@@ -61,7 +61,7 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projects/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Delete)
-    public String getIrbNumber(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
+    public String getIrbNumber(@PathVariable @Project final String projectId) throws NotFoundException {
         return _projectIrbInfoEntityService.findIrbNumberForProject(projectId);
     }
 
@@ -96,7 +96,7 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projects/{projectId}/irbFilename", produces = MediaType.TEXT_PLAIN_VALUE, method = RequestMethod.GET, restrictTo = Delete)
     @ResponseBody
-    public List<String> getIrbFilenames(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
+    public List<String> getIrbFilenames(@PathVariable @Project final String projectId) throws NotFoundException {
         return _projectIrbInfoEntityService.findIrbFileNamesForProject(projectId);
     }
 
@@ -106,8 +106,8 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to modify the project's IRB number."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "projects/{projectId}/irbNumber", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Delete)
-    public boolean putIrbNumber(@PathVariable("projectId") @Project final String projectId,
-                                @ApiParam("IRB number for this project.") @RequestParam(name = "irbNumber") final String irbNumber) throws NotFoundException {
+    public boolean putIrbNumber(@PathVariable @Project final String projectId,
+                                @ApiParam("IRB number for this project.") @RequestParam final String irbNumber) throws NotFoundException {
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info != null) {
             info.setIrbNumber(irbNumber);
@@ -168,7 +168,7 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "projects/{projectId}/irbFile", method = RequestMethod.DELETE, restrictTo = Delete)
     @ResponseBody
-    public boolean deleteIrbFile(@PathVariable("projectId") @Project final String projectId) throws NotFoundException {
+    public boolean deleteIrbFile(@PathVariable @Project final String projectId) throws NotFoundException {
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             throw new NotFoundException("No IRB file found for project ID " + projectId);

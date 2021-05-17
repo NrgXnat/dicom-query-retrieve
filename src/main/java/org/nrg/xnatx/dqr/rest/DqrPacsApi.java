@@ -16,9 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.nrg.framework.annotations.XapiRestController;
-import org.nrg.framework.beans.Beans;
 import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.exceptions.NotModifiedException;
 import org.nrg.xapi.rest.AuthDelegate;
@@ -29,27 +27,22 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsPing;
+import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.PacsAvailabilityService;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsPingService;
 import org.nrg.xnatx.dqr.services.PacsService;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.beans.FeatureDescriptor;
-import java.lang.reflect.InvocationTargetException;
 import java.time.DayOfWeek;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 @Api(value = "XNAT External PACS API", tags = {"pacs", "send", "retrieve", "query", "import", "export"})
 @XapiRestController
@@ -81,8 +74,8 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to create a new PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
-    public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody Pacs pacs) {
-        return getPacsEntityService().create(pacs);
+    public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody PacsSettings settings) {
+        return getPacsEntityService().create(new Pacs(settings));
     }
 
     @ApiOperation(value = "Retrieves an existing PACS entry.", response = Pacs.class)
@@ -90,9 +83,9 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to retrieve the PACS entry."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
-    public Pacs retrievePacs(final @ApiParam("ID of the PACS entry to be retrieved.") @PathVariable long id) throws PacsNotFoundException {
-        return getPacs(id);
+    @XapiRequestMapping(value = "{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
+    public Pacs retrievePacs(final @ApiParam("ID of the PACS entry to be retrieved.") @PathVariable long pacsId) throws PacsNotFoundException {
+        return getPacs(pacsId);
     }
 
     @ApiOperation(value = "Updates an existing PACS entry.")
@@ -100,39 +93,13 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the PACS entry."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
-    public void updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long id, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody Pacs pacs) throws DataFormatException, PacsNotFoundException {
-        // TODO: Right now the Pacs object isn't getting its id property set. Don't validate the object, just set the ID from the path variable.
-        if (pacs.getId() == 0) {
-            log.debug("No ID found on Pacs object, setting from path variable");
-            pacs.setId(id);
-        } else {
-            validate(id, pacs);
-        }
-        final Pacs        existing    = getPacsEntityService().retrieve(id);
-        final BeanWrapper wrappedPacs = PropertyAccessorFactory.forBeanPropertyAccess(pacs);
-        BeanUtils.copyProperties(pacs, existing, Stream.of(wrappedPacs.getPropertyDescriptors()).filter(descriptor -> descriptor.getPropertyType().isPrimitive() || wrappedPacs.getPropertyValue(descriptor.getName()) == null).map(FeatureDescriptor::getName).toArray(String[]::new));
-        getPacsEntityService().update(existing);
-    }
-
-    @ApiOperation(value = "Updates an existing PACS entry.")
-    @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully updated."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the PACS entry."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "{id}", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
-    public void updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long id, final @ApiParam("Attributes for the updated PACS entry.") Map<String, Object> attributes) throws DataFormatException, PacsNotFoundException, InitializationException {
-        if (attributes.containsKey("pacsId")) {
-            attributes.put("id", attributes.remove("pacsId"));
-        }
-        try {
-            final Pacs pacs = Beans.getInitializedBean(attributes, Pacs.class);
-            validate(id, pacs);
-            getPacsEntityService().update(pacs);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            log.error("An error occurred trying to create a PACS object from the submitted form values", e);
-            throw new InitializationException(e);
-        }
+    @XapiRequestMapping(value = "{pacsId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
+    public Pacs updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long pacsId, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody PacsSettings settings) throws DataFormatException, PacsNotFoundException {
+        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        pacs.copySettings(settings);
+        validate(pacsId, pacs);
+        getPacsEntityService().update(pacs);
+        return getPacsEntityService().retrieve(pacsId);
     }
 
     @ApiOperation(value = "Deletes an existing PACS entry.")
@@ -140,10 +107,10 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to delete the PACS entry."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "{id}", method = RequestMethod.DELETE, restrictTo = Admin)
-    public void deletePacs(final @ApiParam("ID of the PACS entry to be deleted.") @PathVariable long id) throws PacsNotFoundException {
-        validate(id);
-        getPacsEntityService().delete(id);
+    @XapiRequestMapping(value = "{pacsId}", method = RequestMethod.DELETE, restrictTo = Admin)
+    public void deletePacs(final @ApiParam("ID of the PACS entry to be deleted.") @PathVariable long pacsId) throws PacsNotFoundException {
+        validate(pacsId);
+        getPacsEntityService().delete(pacsId);
     }
 
     @ApiOperation(value = "Ping a PACS.", notes = "The ping PACS function returns whether the PACS was responsive.", response = PacsPing.class)
@@ -190,7 +157,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "{pacsId}/availability", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
     public PacsAvailability createPacsAvailabilityInterval(@PathVariable final long pacsId, @RequestBody final PacsAvailability settings) throws DataFormatException {
-        if (!checkPacsAvailabilityInterval(pacsId, settings)) {
+        if (!validatePacsAvailabilityInterval(pacsId, settings)) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to create an availability interval for PACS " + pacsId + " but the interval was invalid (probable overlap with existing interval).");
         }
         if (settings.getUtilizationPercent() == 0 || settings.getThreads() == 0) {
@@ -200,19 +167,19 @@ public class DqrPacsApi extends AbstractDqrRestController {
         return _pacsAvailabilityService.create(settings);
     }
 
-    @ApiOperation(value = "Checks whether a new PACS availability interval would overlap with any existing intervals.", notes = "Returns whether the posted PACS availability interval would overlap with any existing intervals.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns whether there is overlap with an existing interval."),
+    @ApiOperation(value = "Validates a new PACS availability interval, including checking whether it would overlap with any existing intervals.", notes = "Returns true if the posted PACS availability interval is valid and false if not (e.g. if it would overlap with any existing intervals).", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns true if the availability interval is valid."),
                    @ApiResponse(code = 400, message = "Interval not fully specified."),
                    @ApiResponse(code = 403, message = "Insufficient privileges to check interval overlap."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @XapiRequestMapping(value = "{pacsId}/availability/validate", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
-    public boolean checkPacsAvailabilityInterval(@PathVariable final long pacsId, @RequestBody final PacsAvailability settings) throws DataFormatException {
+    public boolean validatePacsAvailabilityInterval(@PathVariable final long pacsId, @RequestBody final PacsAvailability settings) throws DataFormatException {
         if (settings.getDayOfWeek().getValue() == 0 || StringUtils.isBlank(settings.getAvailabilityStart()) || StringUtils.isBlank(settings.getAvailabilityEnd())) {
             throw new DataFormatException("User " + getSessionUser().getUsername() + " tried to check overlap for a PACS availability interval but did not supply the day of week, start time, and end time.");
         }
         settings.setPacsId(pacsId);
-        return _pacsAvailabilityService.checkOverlap(settings, false);
+        return !_pacsAvailabilityService.checkOverlap(settings, false);
     }
 
     @ApiOperation(value = "Updates the requested PACS availability interval using the submitted attributes.", notes = "Returns the updated PACS availability interval.", response = PacsAvailability.class)
@@ -306,7 +273,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
         return _pacsAvailabilityService.findAllByPacsIdGroupedByDayOfWeek(pacsId);
     }
 
-    private final PacsService               _pacsService;
-    private final PacsPingService           _pacsPingService;
-    private final PacsAvailabilityService   _pacsAvailabilityService;
+    private final PacsService             _pacsService;
+    private final PacsPingService         _pacsPingService;
+    private final PacsAvailabilityService _pacsAvailabilityService;
 }

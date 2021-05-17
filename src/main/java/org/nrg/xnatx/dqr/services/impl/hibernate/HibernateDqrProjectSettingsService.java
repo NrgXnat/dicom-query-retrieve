@@ -11,15 +11,20 @@ package org.nrg.xnatx.dqr.services.impl.hibernate;
 
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
+import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.xapi.exceptions.NotModifiedException;
 import org.nrg.xnatx.dqr.domain.daos.DqrProjectSettingsDAO;
 import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
+import org.nrg.xnatx.dqr.dto.ProjectSettings;
 import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Transactional
@@ -33,14 +38,23 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      * {@inheritDoc}
      */
     @Override
-    public DqrProjectSettings findSettingsByProject(final String projectId) throws NotFoundException {
-        if (StringUtils.isBlank(projectId)) {
-            return null;
-        }
-        if (!_template.queryForObject(QUERY_PROJECT_EXISTS, new MapSqlParameterSource("projectId", projectId), Boolean.class)) {
+    public boolean isDqrConfigured(final String projectId) throws NotFoundException {
+        final MapSqlParameterSource parameters = new MapSqlParameterSource("projectId", projectId);
+        if (!_template.queryForObject(QUERY_PROJECT_EXISTS, parameters, Boolean.class)) {
             throw new NotFoundException("Project " + projectId + " does not exist");
         }
-        return getDao().getDqrAdminSettingsByProjectId(projectId);
+        return _template.queryForObject(QUERY_IS_DQR_CONFIGURED, parameters, Boolean.class);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DqrProjectSettings getProjectSettings(final String projectId) throws NotFoundException {
+        if (StringUtils.isBlank(projectId) || !isDqrConfigured(projectId)) {
+            return null;
+        }
+        return getDao().findByProjectId(projectId);
     }
 
     /**
@@ -48,11 +62,27 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      */
     @Override
     public boolean isDqrEnabledForProject(final String projectId) throws NotFoundException {
-        final DqrProjectSettings settings = findSettingsByProject(projectId);
-        return settings != null && settings.isEnabled();
+        final DqrProjectSettings settings = getProjectSettings(projectId);
+        return settings != null && settings.isDqrEnabled();
     }
 
-    private static final String QUERY_PROJECT_EXISTS = "SELECT EXISTS(SELECT id FROM xnat_projectdata WHERE id = :projectId)";
+    @Override
+    public DqrProjectSettings update(final ProjectSettings settings) throws NotFoundException, NotModifiedException, DataFormatException {
+        final DqrProjectSettings persisted = getProjectSettings(settings.getProjectId());
+        final AtomicBoolean      changed   = new AtomicBoolean();
+        if (settings.getDqrEnabled() != null && persisted.isDqrEnabled() != settings.getDqrEnabled()) {
+            persisted.setDqrEnabled(settings.getDqrEnabled());
+            changed.set(true);
+        }
+        if (!changed.get()) {
+            throw new NotModifiedException("No changes were provided for project " + settings.getProjectId() + " for DQR settings");
+        }
+        update(persisted);
+        return getProjectSettings(settings.getProjectId());
+    }
+
+    private static final String QUERY_PROJECT_EXISTS    = "SELECT EXISTS(SELECT id FROM xnat_projectdata WHERE id = :projectId)";
+    private static final String QUERY_IS_DQR_CONFIGURED = "SELECT EXISTS(SELECT id FROM xhbm_dqr_project_settings WHERE project_id = :projectId)";
 
     private final NamedParameterJdbcTemplate _template;
 }
