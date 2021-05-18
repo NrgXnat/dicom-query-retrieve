@@ -177,34 +177,26 @@ XNAT.app = getObject(XNAT.app || {});
                             label: 'Queryable',
                             onText: 'Yes',
                             offText: 'No',
-                            value: true,
-                            checked: false,
                             addClass: 'toggle-query'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultQueryRetrievePacs',
                             label: 'Default Q/R AE',
                             onText: 'Yes',
-                            offText: 'No',
-                            value: true,
-                            checked: false
+                            offText: 'No'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'storable',
                             label: 'Storable',
                             onText: 'Yes',
                             offText: 'No',
-                            value: true,
-                            checked: false,
                             addClass: 'toggle-store'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultStoragePacs',
                             label: 'Default Storage AE',
                             onText: 'Yes',
-                            offText: 'No',
-                            value: true,
-                            checked: false
+                            offText: 'No'
                         })
                     ])
                 );
@@ -241,7 +233,7 @@ XNAT.app = getObject(XNAT.app || {});
                             return false;
                         }
 
-                        // // validate AE title
+                        // validate AE title
                         var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
                         if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && pacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
@@ -473,7 +465,8 @@ XNAT.app = getObject(XNAT.app || {});
     function editPacs($form) {
         XNAT.xhr.putJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs/" + currentOperation.pacs.id),
-            data: XNAT.xhr.formToJSON($form, true),
+            data: JSON.stringify($form),
+            // data: XNAT.xhr.formToJSON($form, true),
             success: function () {
                 xmodal.close();
                 getAllPacs();
@@ -519,7 +512,8 @@ XNAT.app = getObject(XNAT.app || {});
     function addPacs($form) {
         XNAT.xhr.postJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs"),
-            data: XNAT.xhr.formToJSON($form, true),
+            data: JSON.stringify($form),
+            // data: XNAT.xhr.formToJSON($form, true),
             success: function (data) {
                 xmodal.close();
                 if (data.queryable) setInitialAvailability(data); // if this PACS can be queried, set an initial availability window
