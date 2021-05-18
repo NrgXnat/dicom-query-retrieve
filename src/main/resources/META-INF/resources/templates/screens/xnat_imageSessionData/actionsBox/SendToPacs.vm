@@ -55,13 +55,13 @@
 
                 console.log('[Send to PACS]');
 
-                window.projectId = XNAT.data.context.project || (window.location.href.split('/project/')[1] || '').split('/')[0]
+                var projectId = XNAT.data.context.project || (window.location.href.split('/project/')[1] || '').split('/')[0]
 
                 var sendToPacsLink$ = $('#send-to-pacs-link');
 
                 // only show 'Send to PACS' when all requirements are met
                 XNAT.xhr.get({
-                    url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/' + window.projectId),
+                    url: XNAT.url.rootUrl('/xapi/dqr/settings/project/' + projectId+'/enabled'),
                     success: function(data){
                         console.log('PACS enabled');
                         if (/^true$/i.test(data)) {

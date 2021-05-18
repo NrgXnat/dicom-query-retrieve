@@ -137,8 +137,8 @@ var XNAT = getObject(XNAT || {});
         function resolvePACSLabel(id){
             var pacsInfo = dqr.pacsList[id + ''];
             return pacsInfo ?
-                pacsInfo.label || pacsInfo.aeTitle || '-' :
-                '-'
+                pacsInfo.label || pacsInfo.aeTitle || '<em>Not Recognized</em>' :
+                '<em>Not Recognized</em>'
         }
 
 
@@ -283,7 +283,6 @@ var XNAT = getObject(XNAT || {});
         // var containerSelector = '#pacs-queue-history-tabs > .xnat-tab-container';
         // var $tabsContainer    = $(containerSelector);
 
-        // `/xapi/dqr/query/queue/user/ordered`
         var queueItemSample = [
             {
                 'queue_location': 1,
@@ -309,13 +308,13 @@ var XNAT = getObject(XNAT || {});
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
-            showItemData(XNAT.url.restUrl('/xapi/dqr/query/queue/request/' + itemId));
+            showItemData(XNAT.url.restUrl('/xapi/dqr/query/queue/' + itemId));
         }
 
 
         function removeQueuedItem(itemId){
             return XNAT.xhr
-                       .delete('/xapi/dqr/query/queue/request/' + itemId)
+                       .delete('/xapi/dqr/query/queue/' + itemId)
                        .done(function(){
                            XNAT.ui.banner.top(2000, 'Item removed from queue.', 'success');
                            // re-render queue table
@@ -367,7 +366,8 @@ var XNAT = getObject(XNAT || {});
          * @returns {*}
          */
         function getListSize(part, fn){
-            var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl('/xapi/dqr/query/' + part + (dqr.adminView ? '/all' : '/user') + '/count'));
+            var uri = '/xapi/dqr/query/'+part+'/count' + (XNAT.user.isAdmin ? '' : '?user=true');
+            var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl(uri));
             if (fn && isFunction(fn)) {
                 listSizeReq.done(fn)
             }
@@ -375,7 +375,6 @@ var XNAT = getObject(XNAT || {});
         }
 
 
-        // `/xapi/dqr/query/queue/user/ordered`
         var queueItemSample = [
             {
                 "queue_location": 1,
@@ -400,16 +399,15 @@ var XNAT = getObject(XNAT || {});
         ];
 
 
-        function setupQueueUrl(all, page, size){
-            var queueUrl = '/xapi/dqr/query/queue' + (dqr.adminView ? '/all' : '/user') + '/ordered';
-            var queueUrlQuery = [];
-            if (!all) {
-                queueUrl += ('/paged');
-                if (page) queueUrlQuery.push('page=' + (page || PAGE));
-                if (size) queueUrlQuery.push('size=' + (size || SIZE));
-            }
-            queueUrlQuery.push('t=' + Date.now());
-            return XNAT.url.rootUrl(queueUrl + '?' + queueUrlQuery.join('&'));
+        function setupQueueUrl(all, page, size, sort){
+            var queueUrl = '/xapi/dqr/query/queue';
+            var queueUrlQueryParams = [];
+            queueUrlQueryParams.push("page=" + (page || 1));
+            queueUrlQueryParams.push("pageSize=" + (size || 100));
+            queueUrlQueryParams.push("sort=" + (sort || 'DESC'));
+
+            if (!dqr.adminView) queueUrlQueryParams.push('user=true');
+            return XNAT.url.rootUrl(queueUrl + '?' + queueUrlQueryParams.join('&'));
         }
 
 
@@ -479,7 +477,7 @@ var XNAT = getObject(XNAT || {});
                             ],
                             items: {
                                 _id: '~data-id',
-                                _pacs_id: '~data-pacs-id',
+                                _pacsId: '~data-pacs-id',
                                 // TODO: select multiple items for deletion
                                 // CKBX: {
                                 //     label: '<input type="checkbox" id="select-all-queue-items" class="selectable-all">',
@@ -491,7 +489,7 @@ var XNAT = getObject(XNAT || {});
                                 //         })
                                 //     }
                                 // },
-                                queue_location: {
+                                queueLocation: {
                                     label: 'Position',
                                     sort: true,
                                     th: { style: { width: '80px' } },
@@ -528,14 +526,14 @@ var XNAT = getObject(XNAT || {});
                                 //     sort: true,
                                 //     td: { className: 'center show-data' }
                                 // },
-                                queued_time: {
+                                queuedTime: {
                                     label: 'Queued',
                                     sort: true,
                                     filter: true,
                                     td: { className: 'queued-time show-data queued_time' },
                                     apply: renderTimeCell
                                 },
-                                patient_name: {
+                                patientName: {
                                     label: 'Patient Name',
                                     sort: true,
                                     filter: true,
@@ -544,14 +542,14 @@ var XNAT = getObject(XNAT || {});
                                         return spawn('div.truncate', name);
                                     }
                                 },
-                                study_date: {
+                                studyDate: {
                                     label: 'Study Date',
                                     sort: true,
                                     filter: true,
                                     td: { className: 'study-date show-data nowrap study_date' },
                                     apply: renderDayCell
                                 },
-                                xnat_project: {
+                                xnatProject: {
                                     label: 'Project',
                                     sort: true,
                                     filter: true,
@@ -566,16 +564,16 @@ var XNAT = getObject(XNAT || {});
                                         return spawn('div.nowrap', this.username);
                                     }
                                 } : '~!',
-                                pacs_id: {
+                                pacsId: {
                                     label: 'PACS',
                                     sort: true,
                                     filter: true,
                                     td: { className: 'center show-data pacs_id' },
-                                    apply: function(id){
-                                        return spawn('span.pacs-label', resolvePACSLabel(id))
+                                    apply: function(pacsId){
+                                        return spawn('span.pacs-label', resolvePACSLabel(pacsId))
                                     }
                                 },
-                                destination_ae_title: {
+                                destinationAeTitle: {
                                     label: 'Dest. AE',
                                     sort: true,
                                     filter: true,
@@ -712,25 +710,24 @@ var XNAT = getObject(XNAT || {});
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
-            showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/request/' + itemId));
+            showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/' + itemId));
         }
 
 
-        function setupHistoryUrl(all, page, size){
-            var historyUrl = '/xapi/dqr/query/history' + (dqr.adminView ? '/all' : '/user');
-            var historyUrlQuery = [];
-            if (!all) {
-                historyUrl += ('/paged');
-                if (page) historyUrlQuery.push('page=' + (page || PAGE));
-                if (size) historyUrlQuery.push('size=' + (size || SIZE));
-            }
-            historyUrlQuery.push('t=' + Date.now());
-            return XNAT.url.rootUrl(historyUrl + '?' + historyUrlQuery.join('&'));
+        function setupHistoryUrl(all, page, size, sort){
+            var historyUrl = '/xapi/dqr/query/history';
+            var historyUrlQueryParams = [];
+            historyUrlQueryParams.push('page=' + (page || 1));
+            historyUrlQueryParams.push('pageSize=' + (size || 100));
+            historyUrlQueryParams.push('sort=' + (sort || 'DESC'));
+
+            if (!dqr.adminView) historyUrlQueryParams.push('user=true');
+            return XNAT.url.rootUrl(historyUrl + '?' + historyUrlQueryParams.join('&'));
         }
 
 
         function getHistory(all, fn){
-            var historyReq = XNAT.xhr.get(setupHistoryUrl())
+            XNAT.xhr.get(setupHistoryUrl());
         }
 
 

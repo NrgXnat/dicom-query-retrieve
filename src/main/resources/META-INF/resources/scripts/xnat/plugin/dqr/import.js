@@ -1354,9 +1354,9 @@ var XNAT = getObject(XNAT || {});
             return;
         }
         return XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
-            success: function(json){
-                if (json && json.successful) {
+            url: XNAT.url.restUrl('/xapi/pacs/' + id + '/status'),
+            success: function(data){
+                if (data && data.enabled) {
                     if (isFunction(callback)) {
                         callback.call(this, id);
                     }

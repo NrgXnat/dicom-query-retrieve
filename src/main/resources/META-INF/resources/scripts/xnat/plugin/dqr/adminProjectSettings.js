@@ -59,7 +59,7 @@ var XNAT = getObject(XNAT);
 
     // check for a configuration when the script loads
     XNAT.xhr.get({
-        url: XNAT.url.restUrl('/xapi/dqr/isDqrProject/' + projectId),
+        url: XNAT.url.restUrl('/xapi/dqr/settings/project/' + projectId + '/enabled'),
         success: function(data){
             enableProjectDqr0.checked = !!data;
         },
