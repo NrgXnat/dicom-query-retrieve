@@ -265,11 +265,11 @@ console.log('dqr/schedule.js');
                             XNAT.ui.banner.top(2000, 'Saved', 'success');
                             dlg.close();
                         });
-                        saveInterval.fail(function(txt){
+                        saveInterval.fail(function(e){
                             console.error(arguments);
-                            XNAT.dialog.message('Error', '' +
+                            XNAT.dialog.message('Scheduling Error', '' +
                                 '<p>An error occurred when saving.</p>' +
-                                '<div class="error">' + txt + '</div>' +
+                                '<div class="error">' + e.responseText + '</div>' +
                                 '');
                         });
                     }
@@ -604,9 +604,6 @@ console.log('dqr/schedule.js');
                     });
                 }
 
-                // console.log('blocks');
-                // console.log(blocks);
-
                 Object.keys(blocks).sort().forEach(function(startKey, i){
 
                     // process values needed for display
@@ -628,8 +625,6 @@ console.log('dqr/schedule.js');
                         threads + '',
                         ['span', {}, ((threads === 1) ? ' thread' : ' threads') + (+threads !== 0 ? (' @ ' + pct + '%') : '')]
                     ]);
-
-                    console.log(block);
 
                     // create the div to represent this interval
                     var timeBlock = spawn('div.time-block', {

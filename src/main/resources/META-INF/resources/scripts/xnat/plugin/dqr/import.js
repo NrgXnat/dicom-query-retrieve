@@ -525,8 +525,8 @@ var XNAT = getObject(XNAT || {});
         var pacsId = this.value;
         if (!pacsId || pacsId === dqr.selectedPacs) return false;
         var PACS = this.options[this.selectedIndex].textContent;
-        // only show the dialog if there are are items in the dqr['allSearchResults'] object
-        if (Object.keys(dqr.allSearchResults).length) {
+
+        function resetSearch(pacsId){
             XNAT.dialog.open({
                 width: 400,
                 title: 'Change Source PACS?',
@@ -546,6 +546,34 @@ var XNAT = getObject(XNAT || {});
                 }
             });
         }
+
+        // ping the PACS to ensure it is up
+        XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
+            .success(function(data){
+                if (data.successful) {
+                    $('#pacs-status-indicator').empty().css('color','#393').append(
+                        spawn('!',[
+                            spawn('i.fa.fa-check'),
+                            spawn('span', { style: { padding: '0 4px' }}, 'Ready to Query')
+                        ])
+                    );
+                    // only show the dialog if there are are items in the dqr['allSearchResults'] object
+                    if (Object.keys(dqr.allSearchResults).length) {
+                        resetSearch(pacsId);
+                    }
+                } else {
+                    $('#pacs-status-indicator').empty().css('color','#933').append(
+                        spawn('!',[
+                            spawn('i.fa.fa-cancel'),
+                            spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
+                        ])
+                    )
+                }
+            })
+            .fail(function(e){
+                XNAT.dialog.message("Error: could not test PACS connection")
+            });
+
     });
 
     // initialize date fields *after* DOM loads
@@ -903,7 +931,7 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    function renderResultsTable(json){
+    dqr.renderResultsTable = renderResultsTable = function(json){
 
         // console.log(json);
 
@@ -1224,7 +1252,31 @@ var XNAT = getObject(XNAT || {});
 
         $searchResultsSubmit.empty();
 
-        function renderBottom(receivers){
+    }
+
+    function pingPACS(id, callback){
+        if (!id) {
+            console.warn('id required');
+            return;
+        }
+        return XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/pacs/' + id + '/status'),
+            success: function(data){
+                if (data && data.enabled) {
+                    if (isFunction(callback)) {
+                        callback.call(this, id);
+                    }
+                }
+            },
+            failure: function(){
+                console.warn('PACS ping failed');
+                console.warn(arguments);
+            }
+        });
+    };
+
+    dqr.initReceivers = initReceivers = function(){
+        function renderScpSelector(receivers){
 
             var aeMenu$         = $.spawn('select#ae-menu');
             var aeMenu0         = aeMenu$[0];
@@ -1256,6 +1308,16 @@ var XNAT = getObject(XNAT || {});
             });
 
             var relabelInputs$ = null;
+
+            function showReceiverWarning(e){
+                e.preventDefault();
+                XNAT.dialog.message({
+                    title: 'SCP Receiver Configuration Error',
+                    content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver</p>'+
+                        '<p>You can still query PACS data in this configuration.</p>' +
+                        '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
+                });
+            }
 
             function toggleRemapping(e){
 
@@ -1308,24 +1370,27 @@ var XNAT = getObject(XNAT || {});
             });
 
             if (!hasReceiver) {
-                aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
-                aeMenu0.disabled = true;
+                // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
+                // aeMenu0.disabled = true;
                 beginImportButton.disabled = true;
                 beginImportButton.classList && beginImportButton.classList.add('disabled');
+
+                $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', {
+                    style: { color: '#933' }
+                }, [
+                    '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
+                ]));
+            } else {
+
+                $('#scp-receiver-selector').empty().append(spawn('span', {
+                    on: [['change', '#ae-menu', toggleRemapping]]
+                }, [
+                    'Select SCP Receiver: ',
+                    aeMenu0
+                ]));
             }
 
-            $searchResultsSubmit.spawn('div.pull-right', {
-                on: [['change', '#ae-menu', toggleRemapping]]
-            }, [
-                '<br>',
-                hasReceiver ?
-                    'Select SCP Receiver: ' :
-                    '<small style="color:#777;"><i>There are no available DQR receivers.</i></small>&nbsp;',
-                aeMenu0,
-                '&nbsp;&nbsp;',
-                beginImportButton
-            ]);
-
+            $searchResultsSubmit.spawn('div.pull-right', beginImportButton)
         }
 
         XNAT.xhr.get({
@@ -1339,37 +1404,15 @@ var XNAT = getObject(XNAT || {});
                     'aeTitle': 'XNAT',
                     'customProcessing': true
                 };
-                renderBottom(json);
+                renderScpSelector(json);
             },
             failure: function(e){
                 console.warn('Could not retrieve SCP Receivers');
             }
         });
+    };
 
-    }
-
-    function pingPACS(id, callback){
-        if (!id) {
-            console.warn('id required');
-            return;
-        }
-        return XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/pacs/' + id + '/status'),
-            success: function(data){
-                if (data && data.enabled) {
-                    if (isFunction(callback)) {
-                        callback.call(this, id);
-                    }
-                }
-            },
-            failure: function(){
-                console.warn('PACS ping failed');
-                console.warn(arguments);
-            }
-        });
-    }
-
-    function searchPACS(id){
+    dqr.searchPacs = searchPACS = function(id){
 
         console.log('PACS search...');
 
@@ -1543,7 +1586,13 @@ var XNAT = getObject(XNAT || {});
         });
     });
 
+    dqr.initSearchPage = function(){
+        initReceivers();
+    };
+
     XNAT.plugin.dqr = dqr;
+
+    XNAT.plugin.dqr.initSearchPage();
 
 }));
 
