@@ -33,10 +33,14 @@ public class StudyDateRangeLimitResults implements Serializable {
         this(limitType, dateRange, null);
     }
 
-    @SuppressWarnings("unused")
     @JsonIgnore
     public boolean isUnlimited() {
         return _limitType.equals(LimitType.NO_LIMIT);
+    }
+
+    @JsonIgnore
+    public boolean isLimited() {
+        return !isUnlimited();
     }
 
     @Builder.Default

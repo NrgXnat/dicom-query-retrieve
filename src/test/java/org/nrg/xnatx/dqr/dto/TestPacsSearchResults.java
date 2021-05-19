@@ -72,19 +72,21 @@ public class TestPacsSearchResults {
         final List<Study> studies = Stream.of(study1, study2, study3).collect(Collectors.toList());
         patient.setStudies(studies);
         final PacsSearchResults<Study> results = PacsSearchResults.<Study>builder()
-                .hasLimitedResultSetSize(false)
-                .studyDateRangeLimitResults(StudyDateRangeLimitResults.builder()
-                                                                      .limitType(StudyDateRangeLimitResults.LimitType.NO_LIMIT)
-                                                                      .build())
-                .results(studies)
-                .build();
+                                                                  .hasLimitedResultSetSize(false)
+                                                                  .studyDateRangeLimitResults(StudyDateRangeLimitResults.builder()
+                                                                                                                        .limitType(StudyDateRangeLimitResults.LimitType.NO_LIMIT)
+                                                                                                                        .build())
+                                                                  .results(studies)
+                                                                  .build();
         assertThat(results.getResults()).hasSize(3).containsOnly(study1, study2, study3).allSatisfy(study -> StringUtils.equals("0001", study.getPatient().getId()));
         assertThat(results).hasFieldOrPropertyWithValue("hasLimitedResultSetSize", false);
         assertThat(results.getStudyDateRangeLimitResults())
-                .hasFieldOrPropertyWithValue("dateRange", null)
-                .hasFieldOrPropertyWithValue("limitExplanation", null)
-                .hasFieldOrPropertyWithValue("unlimited", true)
-                .hasFieldOrPropertyWithValue("limited", false);
+            .hasFieldOrPropertyWithValue("dateRange", null)
+            .hasFieldOrPropertyWithValue("limitExplanation", null)
+            .hasFieldOrPropertyWithValue("unlimited", true)
+            .hasFieldOrPropertyWithValue("limited", false);
+        assertThat(results.getStudyDateRangeLimitResults().isUnlimited()).isTrue();
+        assertThat(results.getStudyDateRangeLimitResults().isLimited()).isFalse();
 
         final ObjectMapper mapper     = getDefaultObjectMapper();
         final String       serialized = mapper.writeValueAsString(results);
