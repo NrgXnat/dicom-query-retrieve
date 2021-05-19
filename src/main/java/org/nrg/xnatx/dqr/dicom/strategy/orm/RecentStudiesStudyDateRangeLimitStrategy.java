@@ -9,9 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
-import java.util.Calendar;
-import java.util.Date;
-import lombok.Data;
+import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -19,7 +17,10 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
-@Data
+import java.util.Calendar;
+import java.util.Date;
+
+@Value
 @Accessors(prefix = "_")
 public class RecentStudiesStudyDateRangeLimitStrategy implements StudyDateRangeLimitStrategy {
     @Override
@@ -44,5 +45,5 @@ public class RecentStudiesStudyDateRangeLimitStrategy implements StudyDateRangeL
 
     private static final String RESULTS_LIMITED_MESSAGE = "The query results have been limited to studies performed within the past %d days to avoid overtaxing the PACS.";
 
-    private final int _numberOfDays;
+    int _numberOfDays;
 }

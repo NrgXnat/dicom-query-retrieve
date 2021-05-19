@@ -1,25 +1,30 @@
 package org.nrg.xnatx.dqr.dto;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Singular;
+import lombok.Value;
 
+import java.io.Serializable;
 import java.util.List;
 
-@Data
+@Value
 @Builder
-public class PacsExportRequest {
+public class PacsExportRequest implements Serializable {
+    private static final long serialVersionUID = 3155882003916837310L;
+
     /**
      * The ID of the PACS to which the data should be exported.
      */
-    private long pacsId;
+    long pacsId;
 
     /**
      * The ID of the session to be exported.
      */
-    private String sessionId;
+    String sessionId;
 
     /**
      * The IDs of the scans in the session to be exported.
      */
-    private List<String> scans;
+    @Singular
+    List<String> scans;
 }

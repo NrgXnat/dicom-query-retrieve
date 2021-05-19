@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.messaging;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 
 @Data
 @Accessors(prefix = "_")
+@AllArgsConstructor
 @Builder
 public class PacsScanExportRequest implements Serializable {
     private static final long serialVersionUID = 7911307125500245254L;

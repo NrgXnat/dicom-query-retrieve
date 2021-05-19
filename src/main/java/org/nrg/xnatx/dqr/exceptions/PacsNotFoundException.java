@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Accessors(prefix = "_")
 @EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "The specified PACS system was not found")
-public class PacsNotFoundException extends Exception {
-    long _pacsId;
+public class PacsNotFoundException extends PacsException {
+    private static final long   serialVersionUID = -3954836001755769050L;
+    private static final String MESSAGE_FORMAT   = "The specified PACS system \"%d\" was not found";
 
     public PacsNotFoundException(final long pacsId) {
-        super("The specified PACS system \"" + pacsId + "\" was not found");
-        _pacsId = pacsId;
+        super(pacsId, MESSAGE_FORMAT);
     }
 }

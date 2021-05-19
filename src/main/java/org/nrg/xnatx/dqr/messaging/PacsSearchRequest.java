@@ -10,7 +10,8 @@
 package org.nrg.xnatx.dqr.messaging;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Singular;
+import lombok.Value;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
@@ -18,8 +19,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-@Data
+@Value
 @Accessors(prefix = "_")
+@Builder
 public class PacsSearchRequest implements Serializable {
     private static final long serialVersionUID = -1150137478832020599L;
 
@@ -34,18 +36,32 @@ public class PacsSearchRequest implements Serializable {
         Unknown
     }
 
-    @Builder
-    public PacsSearchRequest(final String username, final Long pacsId, final String project, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final Type searchType, final String modality, final String dob, final Date startDate, final Date endDate, final List<String> studyInstanceUids) {
-        _searchId = UUID.randomUUID();
-        _username = username;
-        _pacsId = pacsId;
-        _searchType = searchType;
-        _studyInstanceUids = studyInstanceUids;
-    }
+    @Builder.Default
+    UUID _searchId = UUID.randomUUID();
 
-    private final UUID         _searchId;
-    private final String       _username;
-    private final Long         _pacsId;
-    private final Type         _searchType;
-    private final List<String> _studyInstanceUids;
+    String _username;
+    Long   _pacsId;
+    Type   _searchType;
+    String _project;
+    String _remappingScript;
+    String _destinationAeTitle;
+    String _status;
+    Long   _priority;
+    Date   _queuedTime;
+    String _studyDate;
+    String _accessionNumber;
+    String _patientId;
+    String _patientName;
+    String _modality;
+    String _dob;
+    Date   _startDate;
+    Date   _endDate;
+    @Singular
+    List<String> _studyIds;
+    @Singular
+    List<String> _studyInstanceUids;
+    @Singular
+    List<String> _seriesIds;
+    @Singular
+    List<String> _seriesInstanceUids;
 }

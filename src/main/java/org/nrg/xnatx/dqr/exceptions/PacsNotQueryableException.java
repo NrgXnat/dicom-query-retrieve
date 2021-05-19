@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Accessors(prefix = "_")
 @EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.CONFLICT, reason = "The specified PACS system does not permit query operations")
-public class PacsNotQueryableException extends Exception {
-    long _pacsId;
+public class PacsNotQueryableException extends PacsException {
+    private static final long   serialVersionUID = 9145550884640654901L;
+    private static final String MESSAGE_FORMAT   = "The specified PACS system \"%d\" does not permit query operations";
 
     public PacsNotQueryableException(final long pacsId) {
-        super("The specified PACS system \"" + pacsId + "\" does not permit query operations");
-        _pacsId = pacsId;
+        super(pacsId, MESSAGE_FORMAT);
     }
 }

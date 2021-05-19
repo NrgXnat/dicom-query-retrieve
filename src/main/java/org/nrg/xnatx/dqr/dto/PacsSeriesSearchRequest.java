@@ -1,22 +1,25 @@
 package org.nrg.xnatx.dqr.dto;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Value
 @Builder
-public class PacsSeriesSearchRequest {
+public class PacsSeriesSearchRequest implements Serializable {
+    private static final long serialVersionUID = 268284582078420330L;
+
     /**
      * The ID of the PACS to search.
      */
-    private long pacsId;
+    long pacsId;
 
     /**
      * The study instance UIDs of the sessions to search.
      */
     @Builder.Default
-    private List<String> studyInstanceUids = new ArrayList<>();
+    List<String> studyInstanceUids = new ArrayList<>();
 }

@@ -21,7 +21,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "The specified PACS system is not currently available")
 public class ArchiveProcessorsNotAvailableException extends Exception {
-    int    _id;
+    private static final long serialVersionUID = 2291079889933081769L;
+
+    int _id;
     String _aeTitle;
     int    _port;
 

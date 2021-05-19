@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Accessors(prefix = "_")
 @EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.SERVICE_UNAVAILABLE, reason = "The specified PACS system is not currently available")
-public class PacsNotAvailableException extends Exception {
-    long _pacsId;
+public class PacsNotAvailableException extends PacsException {
+    private static final long   serialVersionUID = 8411366497789328237L;
+    private static final String MESSAGE_FORMAT   = "The specified PACS system \"%d\" is not currently available";
 
     public PacsNotAvailableException(final long pacsId) {
-        super("The specified PACS system \"" + pacsId + "\" is not currently available");
-        _pacsId = pacsId;
+        super(pacsId, MESSAGE_FORMAT);
     }
 }

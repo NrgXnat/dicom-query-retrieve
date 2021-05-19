@@ -10,40 +10,43 @@
 package org.nrg.xnatx.dqr.dto;
 
 import lombok.Builder;
-import lombok.Data;
 import lombok.Singular;
+import lombok.Value;
 
+import java.io.Serializable;
 import java.util.List;
 
-@Data
+@Value
 @Builder
-public class PacsImportRequest {
+public class PacsImportRequest implements Serializable {
+    private static final long serialVersionUID = 1012946910048078606L;
+
     /**
      * The ID of the PACS from which the data should be imported.
      */
-    private long pacsId;
+    long pacsId;
 
     /**
      * The AE title to which the requested data should be sent.
      */
-    private String aeTitle;
+    String aeTitle;
 
     /**
      * The port to which the requested data should be sent.
      */
-    private int port;
+    int port;
 
     /**
      * The project to which the requested data should be routed.
      */
-    private String projectId;
+    String projectId;
 
     @Builder.Default
-    private boolean forceImport = false;
+    boolean forceImport = false;
 
     /**
      * The list of studies to be imported.
      */
     @Singular("study")
-    private List<StudyImportInformation> studies;
+    List<StudyImportInformation> studies;
 }

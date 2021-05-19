@@ -11,6 +11,7 @@ package org.nrg.xnatx.dqr.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +21,9 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class StudyImportInformation {
+public class StudyImportInformation implements Serializable {
+    private static final long serialVersionUID = -8705317972189793781L;
+
     @NonNull
     private String studyInstanceUid;
 

@@ -58,10 +58,7 @@ import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
-import org.nrg.xnatx.dqr.utils.CsvRow;
-import org.nrg.xnatx.dqr.utils.DqrDateRange;
-import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
-import org.nrg.xnatx.dqr.utils.FindRow;
+import org.nrg.xnatx.dqr.utils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
@@ -77,6 +74,7 @@ import java.util.stream.Stream;
 @Service
 @Slf4j
 public class BasicPacsService implements PacsService {
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public BasicPacsService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsEntityService pacsEntityService, final JmsTemplate jmsTemplate, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
         _preferences = preferences;
@@ -247,7 +245,7 @@ public class BasicPacsService implements PacsService {
         }
         final String aeAndPort = request.getDecodedAeAndPort();
         if (!isAeStorable(aeAndPort)) {
-            throw new PacsNotStorableException(aeAndPort);
+            throw new PacsNotStorableException(new AeTitle(aeAndPort));
         }
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
         try {
@@ -359,8 +357,8 @@ public class BasicPacsService implements PacsService {
         if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
-        final AeTitle            aeTitle       = new AeTitle(ae);
-        final AtomicBoolean      valueToReturn = new AtomicBoolean(true);
+        final AeTitle       aeTitle       = new AeTitle(ae);
+        final AtomicBoolean valueToReturn = new AtomicBoolean(true);
         final Map<Study, String> studies       = new HashMap<>();
         for (final CsvRow row : rows) {
             if (row != null && row.getStudies() != null) {
@@ -759,28 +757,6 @@ public class BasicPacsService implements PacsService {
                                   final String   assign = StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? " := \"\"" : " := \"" + value + "\"";
                                   return Arrays.stream(tags).map(tag -> tag + assign).collect(Collectors.toList());
                               }).flatMap(Collection::stream).collect(Collectors.joining(System.lineSeparator())));
-    }
-
-    @Value
-    private static class AeTitle {
-        AeTitle(final String ae) {
-            if (StringUtils.contains(ae, ":")) {
-                final String[] parts = ae.split(":");
-                aeTitle = parts[0];
-                port = Integer.parseInt(parts[1]);
-            } else {
-                aeTitle = ae;
-                port = 0;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return port == 0 ? aeTitle : aeTitle + ":" + port;
-        }
-
-        String aeTitle;
-        int    port;
     }
 
     @Value

@@ -9,13 +9,14 @@
 
 package org.nrg.xnatx.dqr.domain;
 
-import java.io.Serializable;
 import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
+import lombok.Value;
 
-@Data
+import java.io.Serializable;
+
+@Value
 @Builder
 @EqualsAndHashCode
 public class Series implements DqrDomainObject, Serializable {
@@ -41,14 +42,14 @@ public class Series implements DqrDomainObject, Serializable {
     }
 
     @NonNull
-    private final String  seriesInstanceUid;
-    private final Study   study;
-    private final Integer seriesNumber;
-    private final String  modality;
-    private final String  seriesDescription;
-    private final String  studyDate;
-    private final String  studyId;
-    private final String  accessionNumber;
-    private final String  patientId;
-    private final String  patientName;
+    String seriesInstanceUid;
+    Study   study;
+    Integer seriesNumber;
+    String  modality;
+    String  seriesDescription;
+    String  studyDate;
+    String  studyId;
+    String  accessionNumber;
+    String  patientId;
+    String  patientName;
 }

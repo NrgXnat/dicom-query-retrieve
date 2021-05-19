@@ -9,49 +9,33 @@
 
 package org.nrg.xnatx.dqr.dto;
 
+import lombok.Builder;
+import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.nrg.xnatx.dqr.utils.AeTitle;
 
+@Data
+@Builder
 public class ApplicationEntity implements Comparable<ApplicationEntity> {
-
-    private String aeTitle;
+    private AeTitle aeTitle;
 
     private String label;
 
     private boolean isDefaultStorageDestination;
 
-    public String getAeTitle() {
-        return aeTitle;
-    }
-
-    public void setAeTitle(String aeTitle) {
-        this.aeTitle = aeTitle;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public boolean isDefaultStorageDestination() {
-        return isDefaultStorageDestination;
-    }
-
-    public void setIsDefaultStorageDestination(boolean isDefaultStorageDestination) {
-        this.isDefaultStorageDestination = isDefaultStorageDestination;
+    public void setAeTitle(final String aeTitleAndPort) {
+        this.aeTitle = new AeTitle(aeTitleAndPort);
     }
 
     public String getDisplayString() {
         if (!StringUtils.isBlank(label)) {
             return label;
-        } else if (!StringUtils.isBlank(aeTitle)) {
-            return aeTitle;
-        } else {
-            return "";
         }
+        if (aeTitle != null) {
+            return aeTitle.toString();
+        }
+        return "";
     }
 
     @Override
@@ -61,6 +45,6 @@ public class ApplicationEntity implements Comparable<ApplicationEntity> {
 
     @Override
     public int compareTo(final ApplicationEntity other) {
-        return this.getDisplayString().compareTo(other.getDisplayString());
+        return getDisplayString().compareTo(other.getDisplayString());
     }
 }

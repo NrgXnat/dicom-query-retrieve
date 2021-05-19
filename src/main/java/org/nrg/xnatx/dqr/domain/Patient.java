@@ -25,8 +25,8 @@ import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Patient implements DqrDomainObject, Serializable {
     private static final long serialVersionUID = -3085053888171875651L;
 
