@@ -10,6 +10,8 @@
 package org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
@@ -37,7 +39,7 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
         try {
             _dcmEcho.open();
             _dcmEcho.echo();
-            log.debug("Received C-ECHO response from PACS, calling from " + _aeTitle + " to " + _remoteAeTitle + ":" + _remoteQrPort + " on host " + _remoteHost + ".");
+            log.debug("Received C-ECHO response from PACS, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost);
         } catch (final Exception e) {
             isInError = true;
             log.error("There was a problem running the C-ECHO command against the DICOM network connection, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost, e);
@@ -61,6 +63,8 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
             _dcmEcho.open();
             _dcmEcho.echo();
             return true;
+        } catch (SocketTimeoutException e) {
+            log.warn("Tried to check the connection to AE {}:{} on host {} but the connection timed out. Verify that you can reach the host on the specified port.", _remoteAeTitle, _remoteQrPort, _remoteHost);
         } catch (IOException e) {
             log.warn("An error occurred trying to check the connection to AE {}:{} on host {}", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
         } catch (ConfigurationException e) {

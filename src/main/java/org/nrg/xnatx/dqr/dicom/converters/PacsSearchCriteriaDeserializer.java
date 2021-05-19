@@ -42,6 +42,9 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
             final String field = parser.getCurrentName();
             parser.nextToken();
             switch (field) {
+                case "pacsId":
+                    builder.pacsId(Long.parseLong(parser.getText()));
+                    break;
                 case "patientId":
                     builder.patientId(parser.getText());
                     break;

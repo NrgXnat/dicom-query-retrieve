@@ -50,7 +50,7 @@ public class UpdateRequestStatusArchiveProcessor extends AbstractArchiveProcesso
                 }
             }
         } catch (Throwable e) {
-            log.debug("Error updating request status: " + dicomData, e);
+            log.debug("Error updating request status: {}", dicomData, e);
             //throw new ServerException(Status.SERVER_ERROR_INTERNAL,e);
             //Don't throw exception because we should not block import just because request status couldn't be updated.
         }

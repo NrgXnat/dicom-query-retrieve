@@ -68,7 +68,7 @@ public class BasicCStoreSCU implements CStoreSCU {
                     // but as I'm not sure what types of warnings we expect to get,
                     // I'd rather fail fast for now.
                     if (log.isDebugEnabled()) {
-                        log.debug("Failed sending DICOM object from file {}:\n{}", file.getAbsolutePath(), dicomObject.toString());
+                        log.debug("Failed sending DICOM object from file {}:\n{}", file.getAbsolutePath(), dicomObject);
                     } else if (log.isWarnEnabled()) {
                         log.warn("Failed sending DICOM object from file {}", file.getAbsolutePath());
                     }
@@ -78,9 +78,7 @@ public class BasicCStoreSCU implements CStoreSCU {
             } catch (Exception e) {
                 // Once we know more, we may want to soldier on if a single file fails.
                 // For now, I'm going to fail fast.
-                if (log.isWarnEnabled()) {
-                    log.warn("Failed sending DICOM object from file " + file.getAbsolutePath(), e);
-                }
+                log.warn("Failed sending DICOM object from file {}", file.getAbsolutePath(), e);
                 results.addFailure(new CStoreResults.CStoreFailure(file.getAbsolutePath(), e.getMessage()));
                 throw new CStoreFailureException(e, results);
             }

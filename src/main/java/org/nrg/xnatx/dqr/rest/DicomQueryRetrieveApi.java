@@ -38,7 +38,9 @@ import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
+import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.*;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
@@ -67,9 +69,6 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Created by mike on 1/19/18.
- */
 @Api("Dicom Query Retrieve API")
 @XapiRestController
 @Slf4j
@@ -357,7 +356,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _pacsService.getSearchStatus(searchId) ? ResponseEntity.ok(_pacsService.getSearchResults(searchId)) : ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/query/series/" + searchId)).build();
     }
 
-    /*
     @ApiOperation(value = "Searches for patients on the specified PACS.")
     @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -374,17 +372,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return patients;
     }
 
-    @ApiOperation(value = "Searches for a particular patient on the specified PACS.")
-    @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to import data from the specified PACS."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/patients", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Patient searchForPatient(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String patientId) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
-        return _pacsService.getPatientById(getSessionUser(), getPacs(id), patientId).orElseThrow(() -> new NotFoundException("No patient was found with the ID " + patientId + " on the PACS " + id));
-    }
-
     @ApiOperation(value = "Searches for studies on the specified PACS.")
     @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -392,40 +379,16 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/studies", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Collection<Study> searchForStudies(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final PacsSearchResults<Study> studies = _pacsService.getStudiesByExample(getSessionUser(), getQueryablePacs(id), criteria);
+    public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+        final long  pacsId = criteria.getPacsId();
+        final UserI user   = getSessionUser();
+        log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user, criteria);
+        final PacsSearchResults<Study> studies = _pacsService.getStudiesByExample(user, getQueryablePacs(pacsId), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
         }
         return studies.getResults();
     }
-
-    @ApiOperation(value = "Searches for a particular study on the specified PACS.")
-    @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to import data from the specified PACS."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Study searchForStudy(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
-        return _pacsService.getStudyById(getSessionUser(), getQueryablePacs(id), studyId).orElseThrow(() -> new NotFoundException("No study was found with the ID " + studyId + " on the PACS " + id));
-    }
-
-    @ApiOperation(value = "Searches for a particular study on the specified PACS.", response = Series.class, responseContainer = "List")
-    @ApiResponses({@ApiResponse(code = 200, message = "Series successfully requested."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to import data from the specified PACS."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/studies", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Collection<Series> searchForStudySeries(final @ApiParam("ID of the PACS entry from which data should be imported.") @PathVariable long id, final @ApiParam("Import request.") @PathVariable String studyId) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final PacsSearchResults<Series> series = _pacsService.getSeriesByStudy(getSessionUser(), getQueryablePacs(id), Study.builder().studyId(studyId).build());
-        if (series.getResults().isEmpty()) {
-            throw new NoContentException("No series found for study with the ID " + studyId + " on the PACS " + id);
-        }
-        return series.getResults();
-    }
-    */
 
     @ApiOperation(value = "Uses the uploaded csv to generate JSON (with the format the new importer wants) containing information about what would be imported if the user decides to continue.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})

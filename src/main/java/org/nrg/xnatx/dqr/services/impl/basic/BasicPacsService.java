@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.services.impl.basic;
 
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -71,12 +72,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
 public class BasicPacsService implements PacsService {
     @Autowired
-    public BasicPacsService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsEntityService pacsEntityService, @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") final JmsTemplate jmsTemplate, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
+    public BasicPacsService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsEntityService pacsEntityService, final JmsTemplate jmsTemplate, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
         _preferences = preferences;
         _dicomSCPManager = dicomSCPManager;
         _queuedPacsRequestService = queuedPacsRequestService;
@@ -283,20 +285,13 @@ public class BasicPacsService implements PacsService {
     @Override
     public List<FindRow> extractNewImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, true, (user1, pacs, columnMap, row, criteria) -> {
-            final Map<String, String> anonMapForThisRow = new HashMap<>();
-            for (final Map.Entry<Integer, String> entry : columnMap.entrySet()) {
-                final String stringToRemapTo = row.get(entry.getKey());
-                if (StringUtils.isNotBlank(stringToRemapTo)) {
-                    if (StringUtils.equals(CLEAR_SIGNIFIER, stringToRemapTo) || StringUtils.equals(CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER, stringToRemapTo)) {
-                        anonMapForThisRow.put(entry.getValue(), "\"\"");
-                    } else {
-                        anonMapForThisRow.put(entry.getValue(), stringToRemapTo);
-                    }
-                }
-            }
-
             try {
-                return FindRow.builder().criteria(criteria).relabelMap(anonMapForThisRow).studies(getStudiesByExample(user1, pacs, criteria).getResults()).build();
+                return FindRow.builder().criteria(criteria).relabelMap(columnMap.entrySet().stream()
+                                                                                .filter(entry -> StringUtils.isNotBlank(row.get(entry.getKey())))
+                                                                                .collect(Collectors.toMap(Map.Entry::getValue, entry -> {
+                                                                                    final String value = row.get(entry.getKey());
+                                                                                    return StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? "\"\"" : value;
+                                                                                }))).studies(getStudiesByExample(user1, pacs, criteria).getResults()).build();
             } catch (PacsNotQueryableException e) {
                 log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
                 return null;
@@ -331,6 +326,7 @@ public class BasicPacsService implements PacsService {
 
     /**
      * {@inheritDoc}
+     *
      * @return
      */
     @Override
@@ -352,6 +348,157 @@ public class BasicPacsService implements PacsService {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
         return request.getStudies().stream().map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()))).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean processSpreadsheetImportFromRows(final UserI user, final List<CsvRow> rows, final String ae, final String project, final long pacsId, final boolean importEvenIfCustomProcessingIsOff) throws Exception {
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException(pacsId);
+        }
+        final AeTitle            aeTitle       = new AeTitle(ae);
+        final AtomicBoolean      valueToReturn = new AtomicBoolean(true);
+        final Map<Study, String> studies       = new HashMap<>();
+        for (final CsvRow row : rows) {
+            if (row != null && row.getStudies() != null) {
+                for (final Study study : row.getStudies()) {
+                    if (study != null && !studies.containsKey(study)) {
+                        final String anonScript = row.getAnonScript();
+                        studies.put(study, anonScript);
+                        if (StringUtils.isNotBlank(anonScript) && !importEvenIfCustomProcessingIsOff) {
+                            validateDicomScpInstance(aeTitle.getAeTitle(), aeTitle.getPort());
+                        }
+                    }
+                }
+            }
+        }
+        final boolean multiStudy = studies.size() > 1;
+        for (final Study study : studies.keySet()) {
+            final String anonScript = studies.get(study);
+            final String login      = _xnatUserProvider.getLogin();
+            final String studyId    = study.getStudyInstanceUid();
+            final String path       = "/studies/" + studyId;
+            log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
+            if (studyId == null) {
+                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, anonScript);
+            } else {
+                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, anonScript, Scope.Site, studyId);
+                _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+            }
+
+            try {
+                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle.toString(), project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList())));
+                valueToReturn.set(false);
+            } catch (Exception e) {
+                if (e instanceof CMoveFailureException) {
+                    log.error("C-MOVE operation failed: {}", e.getMessage(), e);
+                } else if (e.getCause() instanceof CMoveFailureException) {
+                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
+                } else {
+                    log.error("An unexpected error occurred", e);
+                }
+            }
+        }
+        return valueToReturn.get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void processSpreadsheetImport(final UserI user, final File csv, final String ae, final String project, final long pacsId) throws PacsNotFoundException {
+        // TODO: The processSpreadsheetImport*() methods need refactoring similar to extract*ImportRequestFromCsv() methods to eliminate duplicate code
+        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException(pacsId);
+        }
+
+        final Map<Study, String> studiesListMappedToAnonScript = new HashMap<>();
+        try {
+            final RowManager           indexes   = new RowManager(FileUtils.CSVFileToArrayList(csv));
+            final Map<Integer, String> columnMap = indexes.getColumnMap();
+
+            indexes.forEach(row -> {
+                final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
+                if (indexes.hasAccessionNumber()) {
+                    searchCriteriaBuilder.accessionNumber(indexes.getAccessionNumber());
+                }
+                if (indexes.hasFirstName() || indexes.hasLastName()) {
+                    final String lastName  = StringUtils.defaultIfBlank(indexes.getLastName(), "");
+                    final String firstName = StringUtils.defaultIfBlank(indexes.getFirstName(), "");
+                    searchCriteriaBuilder.patientName(StringUtils.isNotBlank(firstName) ? lastName + "," + firstName : lastName);
+                }
+                if (indexes.hasPatientId()) {
+                    searchCriteriaBuilder.patientName(indexes.getPatientId());
+                }
+                if (indexes.hasStudyDate()) {
+                    final DqrDateRange dateRange = getDateRange(indexes.getStudyDate());
+                    if (dateRange != null) {
+                        searchCriteriaBuilder.studyDateRange(dateRange);
+                    }
+                }
+                if (indexes.hasDob()) {
+                    searchCriteriaBuilder.dob(indexes.getDob());
+                }
+                if (indexes.hasModality()) {
+                    searchCriteriaBuilder.modality(indexes.getModality());
+                }
+
+                final Optional<String> script = getAnonScript(columnMap, row);
+                try {
+                    getStudiesByExample(user, pacs, searchCriteriaBuilder.build()).getResults().stream()
+                                                                                  .filter(Objects::nonNull)
+                                                                                  .filter(study -> !studiesListMappedToAnonScript.containsKey(study))
+                                                                                  .forEach(study -> studiesListMappedToAnonScript.put(study, script.orElse(null)));
+                } catch (PacsNotQueryableException e) {
+                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
+                }
+            });
+        } catch (final Throwable e) {
+            log.error("Failed to get studies list from spreadsheet.", e);
+        }
+
+        final Set<Map.Entry<Study, String>> studiesSet = studiesListMappedToAnonScript.entrySet();
+        final boolean                       multiStudy = studiesSet.size() > 1;
+        for (final Map.Entry<Study, String> entry : studiesSet) {
+            final Study  study      = entry.getKey();
+            final String anonScript = entry.getValue();
+
+            final String studyInstanceUid = study.getStudyInstanceUid();
+            try {
+                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
+                request.setRemappingScript(anonScript);
+                _queuedPacsRequestService.create(request);
+            } catch (PacsNotQueryableException e) {
+                log.warn("The PACS {} is not queryable, request not created for the study {}", pacs.getLabel(), studyInstanceUid, e);
+            } catch (CMoveFailureException e) {
+                log.error("C-MOVE operation failed: {}", e.getMessage(), e);
+            } catch (Exception e) {
+                if (e.getCause() instanceof CMoveFailureException) {
+                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
+                } else {
+                    log.error("An unexpected error occurred", e);
+                }
+            }
+        }
+    }
+
+    protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
+        if (!StringUtils.isBlank(projectId)) {
+            log.debug("Assigning study instance UID {} to project {}", studyInstanceUid, projectId);
+            _studyRoutingService.assign(studyInstanceUid, projectId, username);
+            return new Study(projectId, studyInstanceUid);
+        } else {
+            log.debug("No project assignment specified for study instance UID {}, may be registered as Unassigned", studyInstanceUid);
+            return new Study(studyInstanceUid);
+        }
+    }
+
+    private interface RowProcessor<R> {
+        R process(final UserI user, final Pacs pacs, final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria);
     }
 
     private QueuedPacsRequest queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript) {
@@ -398,165 +545,6 @@ public class BasicPacsService implements PacsService {
         return null;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean processSpreadsheetImportFromRows(final UserI user, final List<CsvRow> rows, final String ae, final String project, final long pacsId, final boolean importEvenIfCustomProcessingIsOff) throws Exception {
-        Pacs pacs = _pacsEntityService.retrieve(pacsId);
-        if (pacs == null) {
-            throw new PacsNotFoundException(pacsId);
-        }
-        String aeTitle = ae;
-        String port    = "";
-        if (ae != null && ae.contains(":")) {
-            String[] parts = ae.split(":");
-            aeTitle = parts[0];
-            port = parts[1];
-        }
-        final AtomicBoolean      valueToReturn                 = new AtomicBoolean(true);
-        final Map<Study, String> studiesListMappedToAnonScript = new HashMap<>();
-        for (final CsvRow row : rows) {
-            if (row != null && row.getStudies() != null) {
-                for (final Study study : row.getStudies()) {
-                    if (study != null && !studiesListMappedToAnonScript.containsKey(study)) {
-                        final String anonScript = row.getAnonScript();
-                        studiesListMappedToAnonScript.put(study, anonScript);
-                        if (StringUtils.isNotBlank(anonScript) && !importEvenIfCustomProcessingIsOff) {
-                            validateDicomScpInstance(aeTitle, Integer.parseInt(port));
-                        }
-                    }
-                }
-            }
-        }
-        final Set<Map.Entry<Study, String>> studiesSet = studiesListMappedToAnonScript.entrySet();
-        final boolean                       multiStudy = studiesSet.size() > 1;
-        for (final Map.Entry<Study, String> entry : studiesSet) {
-            final Study  study      = entry.getKey();
-            final String anonScript = entry.getValue();
-            final String login      = _xnatUserProvider.getLogin();
-            final String studyId    = study.getStudyInstanceUid();
-            final String path       = "/studies/" + studyId;
-            log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyId);
-            if (studyId == null) {
-                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, anonScript);
-            } else {
-                _configService.replaceConfig(login, "", DicomEdit.ToolName, path, anonScript, Scope.Site, studyId);
-                _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-            }
-
-            try {
-                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle, project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList())));
-                valueToReturn.set(false);
-            } catch (Exception e) {
-                if (e instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getMessage(), e);
-                } else if (e.getCause() instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
-                } else {
-                    log.error("An unexpected error occurred", e);
-                }
-            }
-        }
-        return valueToReturn.get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void processSpreadsheetImport(final UserI user, final File csv, final String ae, final String project, final long pacsId) throws PacsNotFoundException {
-        // TODO: The processSpreadsheetImport*() methods need refactoring similar to extract*ImportRequestFromCsv() methods to eliminate duplicate code
-        final Pacs pacs = _pacsEntityService.retrieve(pacsId);
-        if (pacs == null) {
-            throw new PacsNotFoundException(pacsId);
-        }
-
-        final Map<Study, String> studiesListMappedToAnonScript = new HashMap<>();
-        try {
-            final List<List<String>> rows                  = FileUtils.CSVFileToArrayList(csv);
-            final List<String>       columnHeaders         = rows.get(0); //The first row must contain the column headers
-            final int                accessionNumberColumn = columnHeaders.indexOf("Accession Number");
-            final int                studyDateColumn       = columnHeaders.indexOf("Study Date");
-            final int                patientIdColumn       = columnHeaders.indexOf("Patient ID");
-            final int                lastNameColumn        = columnHeaders.indexOf("Last Name");
-            final int                firstNameColumn       = columnHeaders.indexOf("First Name");
-            final int                dobColumn             = columnHeaders.indexOf("DOB");
-            final int                modalityColumn        = columnHeaders.indexOf("Modality");
-
-            final Map<Integer, String> columnToDicomTagMap = new HashMap<>();
-            for (final Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
-                final int indexOfHeader = columnHeaders.indexOf(entry.getKey());
-                if (indexOfHeader != -1) {
-                    columnToDicomTagMap.put(indexOfHeader, entry.getValue());
-                }
-            }
-
-            rows.subList(1, rows.size()).forEach(row -> {
-                final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
-                if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                    searchCriteriaBuilder.accessionNumber(row.get(accessionNumberColumn));
-                }
-                if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
-                    String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
-                    String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
-                    searchCriteriaBuilder.patientName(StringUtils.isNotBlank(firstName) ? lastName + "," + firstName : lastName);
-                }
-                if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                    searchCriteriaBuilder.patientName(row.get(patientIdColumn));
-                }
-                if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                    final DqrDateRange dateRange = getDateRange(row.get(studyDateColumn));
-                    if (dateRange != null) {
-                        searchCriteriaBuilder.studyDateRange(dateRange);
-                    }
-                }
-                if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                    searchCriteriaBuilder.dob(row.get(dobColumn));
-                }
-                if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                    searchCriteriaBuilder.modality(row.get(modalityColumn));
-                }
-
-                final Optional<String> script = getAnonScript(columnToDicomTagMap, row);
-                try {
-                    getStudiesByExample(user, pacs, searchCriteriaBuilder.build()).getResults().stream()
-                                                                                  .filter(Objects::nonNull)
-                                                                                  .filter(study -> !studiesListMappedToAnonScript.containsKey(study))
-                                                                                  .forEach(study -> studiesListMappedToAnonScript.put(study, script.orElse(null)));
-                } catch (PacsNotQueryableException e) {
-                    log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
-                }
-            });
-        } catch (final Throwable e) {
-            log.error("Failed to get studies list from spreadsheet.", e);
-        }
-
-        final Set<Map.Entry<Study, String>> studiesSet = studiesListMappedToAnonScript.entrySet();
-        final boolean                       multiStudy = studiesSet.size() > 1;
-        for (final Map.Entry<Study, String> entry : studiesSet) {
-            final Study  study      = entry.getKey();
-            final String anonScript = entry.getValue();
-
-            final String studyInstanceUid = study.getStudyInstanceUid();
-            try {
-                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
-                request.setRemappingScript(anonScript);
-                _queuedPacsRequestService.create(request);
-            } catch (PacsNotQueryableException e) {
-                log.warn("The PACS {} is not queryable, request not created for the study {}", pacs.getLabel(), studyInstanceUid, e);
-            } catch (CMoveFailureException e) {
-                log.error("C-MOVE operation failed: {}", e.getMessage(), e);
-            } catch (Exception e) {
-                if (e.getCause() instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
-                } else {
-                    log.error("An unexpected error occurred", e);
-                }
-            }
-        }
-    }
-
     @NotNull
     private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds) {
         return QueuedPacsRequest.builder()
@@ -571,23 +559,19 @@ public class BasicPacsService implements PacsService {
                                 .queuedTime(new Date()).build();
     }
 
-    protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
-        if (!StringUtils.isBlank(projectId)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Assigning study instance UID " + studyInstanceUid + " to project " + projectId);
+    @SuppressWarnings("unused")
+    private void getCurrentSeries(final StudyInfo.StudyInfoBuilder builder, final AtomicBoolean extraStudyInfoSet, final List<String> seriesInstanceUIDs, final List<String> seriesToImport, final Series currSeries, final String result) {
+        if (seriesInstanceUIDs.contains(result)) {
+            seriesToImport.add(result);
+            if (!extraStudyInfoSet.get()) {
+                builder.studyDate(currSeries.getStudyDate())
+                       .studyId(currSeries.getStudyId())
+                       .accessionNumber(currSeries.getAccessionNumber())
+                       .patientId(currSeries.getPatientId())
+                       .patientName(currSeries.getPatientName());
+                extraStudyInfoSet.set(true);
             }
-            _studyRoutingService.assign(studyInstanceUid, projectId, username);
-            return new Study(projectId, studyInstanceUid);
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("No project assignment specified for study instance UID " + studyInstanceUid + ", may be registered as Unassigned");
-            }
-            return new Study(studyInstanceUid);
         }
-    }
-
-    private interface RowProcessor<R> {
-        R process(final UserI user, final Pacs pacs, final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria);
     }
 
     private <R> List<R> _extractImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs, final boolean isNewRequest, final RowProcessor<R> processor) throws Exception {
@@ -596,56 +580,40 @@ public class BasicPacsService implements PacsService {
             throw new PacsNotFoundException(pacsId);
         }
 
-        final List<List<String>> rows                  = FileUtils.CSVFileToArrayList(csv);
-        final List<String>       columnHeaders         = rows.get(0); //The first row must contain the column headers
-        final int                accessionNumberColumn = columnHeaders.indexOf("Accession Number");
-        final int                studyDateColumn       = columnHeaders.indexOf("Study Date");
-        final int                patientIdColumn       = columnHeaders.indexOf("Patient ID");
-        final int                lastNameColumn        = columnHeaders.indexOf("Last Name");
-        final int                firstNameColumn       = columnHeaders.indexOf("First Name");
-        final int                dobColumn             = columnHeaders.indexOf("DOB");
-        final int                modalityColumn        = columnHeaders.indexOf("Modality");
+        final RowManager           indexes   = new RowManager(FileUtils.CSVFileToArrayList(csv));
+        final Map<Integer, String> columnMap = indexes.getColumnMap(isNewRequest);
 
-        final Map<Integer, String> columnMap = new HashMap<>();
-        for (final Map.Entry<String, String> entry : HEADER_TO_TAG_MAP.entrySet()) {
-            final int indexOfHeader = columnHeaders.indexOf(entry.getKey());
-            if (indexOfHeader != -1) {
-                columnMap.put(indexOfHeader, isNewRequest ? entry.getKey() : entry.getValue());
-            }
-        }
-
-        return rows.subList(1, rows.size()).stream().map(row -> {
-            final AtomicBoolean areThereSearchCriteriaForThisRow = new AtomicBoolean();
-
-            final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
-            if (accessionNumberColumn != -1 && StringUtils.isNotBlank(row.get(accessionNumberColumn))) {
-                searchCriteriaBuilder.accessionNumber(isNewRequest ? removeExtraQuotes(row.get(accessionNumberColumn)) : row.get(accessionNumberColumn));
+        return indexes.stream().map(row -> {
+            final AtomicBoolean                                areThereSearchCriteriaForThisRow = new AtomicBoolean();
+            final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder            = PacsSearchCriteria.builder();
+            if (indexes.hasAccessionNumber()) {
+                searchCriteriaBuilder.accessionNumber(isNewRequest ? removeExtraQuotes(indexes.getAccessionNumber()) : indexes.getAccessionNumber());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if ((lastNameColumn != -1 && StringUtils.isNotBlank(row.get(lastNameColumn))) || (firstNameColumn != -1 && StringUtils.isNotBlank(row.get(firstNameColumn)))) {
-                final String lastName  = (lastNameColumn == -1 || StringUtils.isBlank(row.get(lastNameColumn))) ? "" : row.get(lastNameColumn);
-                final String firstName = (firstNameColumn == -1 || StringUtils.isBlank(row.get(firstNameColumn))) ? "" : row.get(firstNameColumn);
+            if (indexes.hasFirstName() || indexes.hasLastName()) {
+                final String firstName = indexes.getFirstName();
+                final String lastName  = indexes.getLastName();
                 final String fullName  = StringUtils.isNotBlank(firstName) ? lastName + "," + firstName : lastName;
                 searchCriteriaBuilder.patientName(isNewRequest ? removeExtraQuotes(fullName) : fullName);
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (patientIdColumn != -1 && StringUtils.isNotBlank(row.get(patientIdColumn))) {
-                searchCriteriaBuilder.patientId(isNewRequest ? removeExtraQuotes(row.get(patientIdColumn)) : row.get(patientIdColumn));
+            if (indexes.hasPatientId()) {
+                searchCriteriaBuilder.patientId(isNewRequest ? removeExtraQuotes(indexes.getPatientId()) : indexes.getPatientId());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (studyDateColumn != -1 && StringUtils.isNotBlank(row.get(studyDateColumn))) {
-                final DqrDateRange dateRange = getDateRange(row.get(studyDateColumn));
+            if (indexes.hasStudyDate()) {
+                final DqrDateRange dateRange = getDateRange(indexes.getStudyDate());
                 if (dateRange != null) {
                     searchCriteriaBuilder.studyDateRange(dateRange);
                     areThereSearchCriteriaForThisRow.set(true);
                 }
             }
-            if (dobColumn != -1 && StringUtils.isNotBlank(row.get(dobColumn))) {
-                searchCriteriaBuilder.dob(isNewRequest ? removeExtraQuotes(row.get(dobColumn)) : row.get(dobColumn));
+            if (indexes.hasDob()) {
+                searchCriteriaBuilder.dob(isNewRequest ? removeExtraQuotes(indexes.getDob()) : indexes.getDob());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (modalityColumn != -1 && StringUtils.isNotBlank(row.get(modalityColumn))) {
-                searchCriteriaBuilder.modality(isNewRequest ? removeExtraQuotes(row.get(modalityColumn)) : row.get(modalityColumn));
+            if (indexes.hasModality()) {
+                searchCriteriaBuilder.modality(isNewRequest ? removeExtraQuotes(indexes.getModality()) : indexes.getModality());
                 areThereSearchCriteriaForThisRow.set(true);
             }
             if (!areThereSearchCriteriaForThisRow.get() && !allowRowThatGetsAllStudiesOnPacs) {
@@ -752,19 +720,6 @@ public class BasicPacsService implements PacsService {
         }
     }
 
-    private static Map<String, String> createHeaderToTagMap() {
-        return new HashMap<String, String>() {{
-            put("Relabel Accession Number", "(0008,0050)");
-            put("Relabel Study Date", "(0008,0020)");
-            put("Relabel Study ID", "(0020,0010)");
-            put("Relabel Patient ID", "(0010,0020)");
-            put("Relabel Patient Name", "(0010,0010)");
-            put("Relabel Patient Birth Date", "(0010,0030)");
-            put("Subject", "(0010,0010):(0010,0020)");
-            put("Session", "(0020,0010):(0008,0050)");
-        }};
-    }
-
     private static DqrDateRange getDateRange(final String studyDate) {
         if (!studyDate.contains("-")) {
             return new DqrDateRange(studyDate);
@@ -806,9 +761,163 @@ public class BasicPacsService implements PacsService {
                               }).flatMap(Collection::stream).collect(Collectors.joining(System.lineSeparator())));
     }
 
+    @Value
+    private static class AeTitle {
+        AeTitle(final String ae) {
+            if (StringUtils.contains(ae, ":")) {
+                final String[] parts = ae.split(":");
+                aeTitle = parts[0];
+                port = Integer.parseInt(parts[1]);
+            } else {
+                aeTitle = ae;
+                port = 0;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return port == 0 ? aeTitle : aeTitle + ":" + port;
+        }
+
+        String aeTitle;
+        int    port;
+    }
+
+    @Value
+    @Builder
+    private static class StudyInfo {
+        @Builder.Default
+        String studyDate       = null;
+        @Builder.Default
+        String studyId         = null;
+        @Builder.Default
+        String accessionNumber = null;
+        @Builder.Default
+        String patientId       = null;
+        @Builder.Default
+        String patientName     = null;
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    private static class RowManager extends AbstractList<List<String>> implements Collection<List<String>> {
+        RowManager(final List<List<String>> rows) {
+            columnHeaders = rows.get(0);
+            accessionNumberIndex = columnHeaders.indexOf("Accession Number");
+            studyDateIndex = columnHeaders.indexOf("Study Date");
+            patientIdIndex = columnHeaders.indexOf("Patient ID");
+            lastNameIndex = columnHeaders.indexOf("Last Name");
+            firstNameIndex = columnHeaders.indexOf("First Name");
+            dobIndex = columnHeaders.indexOf("DOB");
+            modalityIndex = columnHeaders.indexOf("Modality");
+            this.rows = rows.subList(1, rows.size());
+        }
+
+        @Override
+        public List<String> get(final int index) {
+            return rows.get(index);
+        }
+
+        @NotNull
+        @Override
+        public Iterator<List<String>> iterator() {
+            return rows.iterator();
+        }
+
+        @Override
+        public int size() {
+            return rows.size();
+        }
+
+        public Map<Integer, String> getColumnMap() {
+            return getColumnMap(false);
+        }
+
+        public Map<Integer, String> getColumnMap(final boolean isNewRequest) {
+            return HEADER_TO_TAG_MAP.entrySet().stream().filter(entry -> columnHeaders.contains(entry.getKey())).collect(Collectors.toMap(entry -> columnHeaders.indexOf(entry.getKey()), entry -> isNewRequest ? entry.getKey() : entry.getValue()));
+        }
+
+        public boolean hasAccessionNumber() {
+            return accessionNumberIndex >= 0 && StringUtils.isNotBlank(getAccessionNumber());
+        }
+
+        String getAccessionNumber() {
+            return row.get(accessionNumberIndex);
+        }
+
+        boolean hasStudyDate() {
+            return studyDateIndex >= 0 && StringUtils.isNotBlank(getStudyDate());
+        }
+
+        String getStudyDate() {
+            return row.get(studyDateIndex);
+        }
+
+        boolean hasPatientId() {
+            return patientIdIndex >= 0 && StringUtils.isNotBlank(getPatientId());
+        }
+
+        String getPatientId() {
+            return row.get(patientIdIndex);
+        }
+
+        boolean hasLastName() {
+            return lastNameIndex >= 0 && StringUtils.isNotBlank(getLastName());
+        }
+
+        String getLastName() {
+            return row.get(lastNameIndex);
+        }
+
+        boolean hasFirstName() {
+            return firstNameIndex >= 0 && StringUtils.isNotBlank(getFirstName());
+        }
+
+        String getFirstName() {
+            return row.get(firstNameIndex);
+        }
+
+        boolean hasDob() {
+            return dobIndex >= 0 && StringUtils.isNotBlank(getDob());
+        }
+
+        String getDob() {
+            return row.get(dobIndex);
+        }
+
+        boolean hasModality() {
+            return modalityIndex >= 0 && StringUtils.isNotBlank(getModality());
+        }
+
+        String getModality() {
+            return row.get(modalityIndex);
+        }
+
+        private final List<List<String>> rows;
+        private final int                accessionNumberIndex;
+        private final int                studyDateIndex;
+        private final int                patientIdIndex;
+        private final int                lastNameIndex;
+        private final int                firstNameIndex;
+        private final int                dobIndex;
+        private final int                modalityIndex;
+
+        @Getter(AccessLevel.NONE)
+        private List<String> columnHeaders;
+        @Getter(AccessLevel.NONE)
+        private List<String> row;
+    }
+
     private static final String              CLEAR_SIGNIFIER    = "\"\"";
     private static final String              CLEAR_SIGNIFIER_3X = CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER;
-    private static final Map<String, String> HEADER_TO_TAG_MAP  = createHeaderToTagMap();
+    private static final Map<String, String> HEADER_TO_TAG_MAP  = Stream.of(new String[][] {{"Relabel Accession Number", "(0008,0050)"},
+                                                                                            {"Relabel Study Date", "(0008,0020)"},
+                                                                                            {"Relabel Study ID", "(0020,0010)"},
+                                                                                            {"Relabel Patient ID", "(0010,0020)"},
+                                                                                            {"Relabel Patient Name", "(0010,0010)"},
+                                                                                            {"Relabel Patient Birth Date", "(0010,0030)"},
+                                                                                            {"Subject", "(0010,0010):(0010,0020)"},
+                                                                                            {"Session", "(0020,0010):(0008,0050)"}}).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
 
     private final DqrPreferences                                                             _preferences;
     private final DicomSCPManager                                                            _dicomSCPManager;

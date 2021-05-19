@@ -16,6 +16,7 @@ import lombok.Value;
 import lombok.experimental.Accessors;
 
 import java.util.Collection;
+import java.util.Optional;
 
 @Value
 @Accessors(prefix = "_")
@@ -28,12 +29,11 @@ public class PacsSearchResults<V> {
     }
 
     @JsonIgnore
-    public V getFirstResult() {
-        return _results == null || _results.isEmpty() ? null : _results.iterator().next();
+    public Optional<V> getFirstResult() {
+        return _results == null || _results.isEmpty() ? Optional.empty() : Optional.ofNullable(_results.iterator().next());
     }
 
-    @SuppressWarnings("rawtypes")
-    private static final PacsSearchResults EMPTY_RESULTS = PacsSearchResults.builder().build();
+    private static final PacsSearchResults<?> EMPTY_RESULTS = PacsSearchResults.builder().build();
 
     Collection<V>              _results;
     boolean                    _hasLimitedResultSetSize;

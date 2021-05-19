@@ -39,11 +39,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
 
     @Override
     public Optional<Patient> cfindPatientById(final String patientId) {
-        if (StringUtils.isBlank(patientId)) {
-            return Optional.empty();
-        }
-        final PacsSearchResults<Patient> result = new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build());
-        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
+        return StringUtils.isBlank(patientId) ? Optional.empty() : new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build()).getFirstResult();
     }
 
     @Override
@@ -53,11 +49,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
 
     @Override
     public Optional<Study> cfindStudyById(final String studyInstanceUid) {
-        if (StringUtils.isBlank(studyInstanceUid)) {
-            return Optional.empty();
-        }
-        final PacsSearchResults<Study> result = new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyInstanceUid).build());
-        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
+        return StringUtils.isBlank(studyInstanceUid) ? Optional.empty() : new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyInstanceUid).build()).getFirstResult();
     }
 
     @Override
@@ -72,11 +64,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
 
     @Override
     public Optional<Series> cfindSeriesById(final String seriesInstanceUid) {
-        if (StringUtils.isBlank(seriesInstanceUid)) {
-            return Optional.empty();
-        }
-        final PacsSearchResults<Series> result = new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build());
-        return result.getResults().isEmpty() ? Optional.empty() : Optional.of(result.getFirstResult());
+        return StringUtils.isBlank(seriesInstanceUid) ? Optional.empty() : new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build()).getFirstResult();
     }
 
     /**

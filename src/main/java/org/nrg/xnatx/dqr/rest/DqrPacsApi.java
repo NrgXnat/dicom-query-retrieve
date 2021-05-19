@@ -44,7 +44,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@Api(value = "XNAT External PACS API", tags = {"pacs", "send", "retrieve", "query", "import", "export"})
+@Api("XNAT PACS Management API")
 @XapiRestController
 @Slf4j
 @RequestMapping(value = "/pacs")

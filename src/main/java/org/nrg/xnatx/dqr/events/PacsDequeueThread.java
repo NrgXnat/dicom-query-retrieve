@@ -167,7 +167,11 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                 context.put("seriesIds", seriesIds);
 
                 try {
-                    log.debug("Completed DICOM request for study {} {}", studyInstanceUid, StringUtils.isBlank(projectId) ? " with no project assignment." : " assigned to project " + projectId);
+                    if (StringUtils.isBlank(projectId)) {
+                        log.debug("Completed DICOM request for study {} with no project assignment.", studyInstanceUid);
+                    } else {
+                        log.debug("Completed DICOM request for study {}  assigned to project {}.", studyInstanceUid, projectId);
+                    }
                     final String adminEmail = _siteConfigPreferences.getAdminEmail();
                     context.put("adminEmail", adminEmail);
                     context.put("pacs", _pacsEntityService.retrieve(_pacsId));
