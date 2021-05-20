@@ -46,7 +46,9 @@ public class PacsSearchCriteria implements Serializable {
         getKey(keys, Tag.StudyID, studyId);
         getKey(keys, Tag.SeriesInstanceUID, seriesInstanceUid);
         getKey(keys, Tag.SeriesDescription, seriesDescription);
-        getKey(keys, Tag.SeriesNumber, Integer.toString(seriesNumber));
+        if (seriesNumber > 0) {
+            getKey(keys, Tag.SeriesNumber, Integer.toString(seriesNumber));
+        }
         getKey(keys, Tag.ModalitiesInStudy, modality);
         return keys;
     }
