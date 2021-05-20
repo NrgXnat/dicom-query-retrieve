@@ -74,7 +74,7 @@ public class ExportSessionToPacs extends DqrSecureAction {
                 throw new PacsNotStorableException(getPacsId());
             }
             for (final String scanId : scanIds) {
-                getPacsService().exportSeries(user, getPacs(), session.getScanById(scanId));
+                getDicomQueryRetrieveService().exportSeries(user, getPacs(), session.getScanById(scanId));
                 log.info("Exported series {} from session {}", scanId, session.getId());
             }
 

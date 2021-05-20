@@ -9,7 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind;
 
-import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 public class SearchCriteriaTooVagueException extends DqrRuntimeException {
 

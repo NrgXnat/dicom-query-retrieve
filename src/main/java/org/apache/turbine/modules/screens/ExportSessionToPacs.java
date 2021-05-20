@@ -29,7 +29,7 @@ public class ExportSessionToPacs extends DqrSecureScreen {
             context.put("message", "You must specify a valid session ID that you want to export.");
         }
 
-        final List<Pacs> pacsList = getPacsEntityService().findAllStorable();
+        final List<Pacs> pacsList = getPacsService().findAllStorable();
         if (pacsList == null || pacsList.size() == 0) {
             context.put("message", "No PACS were found configured on this system.");
             return;

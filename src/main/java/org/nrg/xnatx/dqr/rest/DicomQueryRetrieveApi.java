@@ -75,12 +75,12 @@ import java.util.stream.Collectors;
 @RequestMapping("/dqr")
 public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @Autowired
-    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final PacsService pacsService, final PacsEntityService pacsEntityService, final DqrProjectSettingsService dqrProjectSettingsService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final NamedParameterJdbcTemplate template) {
-        super(pacsEntityService, template, userManagementService, roleHolder);
+    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final DqrProjectSettingsService dqrProjectSettingsService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final NamedParameterJdbcTemplate template) {
+        super(pacsService, template, userManagementService, roleHolder);
         _preferences = preferences;
         _executedRequestService = requestService;
         _queuedRequestService = queuedRequestService;
-        _pacsService = pacsService;
+        _dqrService = dqrService;
         _dqrProjectSettingsService = dqrProjectSettingsService;
         _ormStrategies = ormStrategies;
         _siteConfigPreferences = siteConfigPreferences;
@@ -325,9 +325,9 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         }
 
         final UserI user = getSessionUser();
-        final Pacs  pacs = getPacsEntityService().retrieve(request.getPacsId());
+        final Pacs  pacs = getPacsService().retrieve(request.getPacsId());
         try {
-            return _pacsService.getSeriesByStudyUid(user, pacs, request.getStudyInstanceUids());
+            return _dqrService.getSeriesByStudyUid(user, pacs, request.getStudyInstanceUids());
         } catch (PacsNotQueryableException e) {
             log.error("An error occurred trying to retrieve series for user {} from PACS {} for study instance UIDs {}", user.getUsername(), request.getPacsId(), String.join(", ", request.getStudyInstanceUids()), e);
             throw e;
@@ -336,7 +336,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         TODO: get queuing and polling working so that this search can be run asynchronously and pushed when completed.
         TODO: This method should return ResponseEntity<UUID> from the following code:
         try {
-            final UUID uuid = _pacsService.getSeriesByStudyUids(user, pacs, studyInstanceUids);
+            final UUID uuid = _dqrService.getSeriesByStudyUids(user, pacs, studyInstanceUids);
             return ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/seriesInfo/pacs/" + pacsId + "/studies/" + uuid)).body(uuid);
         } catch (PacsNotQueryableException e) {
             throw new NoContentException("The PACS " + pacs.getId() + " is not queryable");
@@ -353,7 +353,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/series/{searchId}", produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public ResponseEntity<Map<String, PacsSearchResults<Series>>> getSeries(@ApiParam(value = "ID of the search request", required = true) @PathVariable final UUID searchId) throws NotFoundException, URISyntaxException {
-        return _pacsService.getSearchStatus(searchId) ? ResponseEntity.ok(_pacsService.getSearchResults(searchId)) : ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/query/series/" + searchId)).build();
+        return _dqrService.getSearchStatus(searchId) ? ResponseEntity.ok(_dqrService.getSearchResults(searchId)) : ResponseEntity.status(HttpStatus.CREATED).location(new URI(_siteConfigPreferences.getSiteUrl() + "/xapi/dqr/query/series/" + searchId)).build();
     }
 
     @ApiOperation(value = "Searches for patients on the specified PACS.")
@@ -364,8 +364,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "query/patients", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
     public PacsSearchResults<Patient> searchForPatients(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
-        final Pacs                       pacs     = getQueryablePacs(criteria.getPacsId());
-        final PacsSearchResults<Patient> patients = _pacsService.getPatientsByExample(getSessionUser(), pacs, criteria);
+        final Pacs                       pacs     = getDefaultQueryablePacs(criteria.getPacsId());
+        final PacsSearchResults<Patient> patients = _dqrService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {
             throw new NoContentException("No patients were found that met the specified criteria");
         }
@@ -379,11 +379,11 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/studies", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+    public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException, DataFormatException {
         final long  pacsId = criteria.getPacsId();
         final UserI user   = getSessionUser();
         log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user, criteria);
-        final PacsSearchResults<Study> studies = _pacsService.getStudiesByExample(user, getQueryablePacs(pacsId), criteria);
+        final PacsSearchResults<Study> studies = _dqrService.getStudiesByExample(user, getDefaultQueryablePacs(pacsId), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
         }
@@ -401,7 +401,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         try (final InputStream input = csv.getInputStream(); final OutputStream output = new FileOutputStream(temp)) {
             IOUtils.copy(input, output);
         }
-        final List<FindRow>              rows    = _pacsService.extractNewImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
+        final List<FindRow>              rows    = _dqrService.extractNewImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
         final ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
         if (rows.stream().filter(Objects::nonNull).map(FindRow::getRelabelMap).filter(Objects::nonNull).allMatch(Map::isEmpty)) {
             builder.header(HttpHeaders.WARNING, "The generated JSON has no anon script.");
@@ -422,7 +422,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         if (!_preferences.getAllowAllProjectsToUseDqr() && !_dqrProjectSettingsService.isDqrEnabledForProject(projectId) || !Permissions.canEditProject(user, projectId) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
             throw new InsufficientPrivilegesException(user.getUsername(), projectId);
         }
-        return _pacsService.importFromPacs(getSessionUser(), request);
+        return _dqrService.importFromPacs(getSessionUser(), request);
     }
 
     @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
@@ -444,7 +444,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public Map<String, Object> export(@ApiParam("Id of PACS to send to.") @RequestParam final long pacsId,
                                       @ApiParam("XNAT session to send.") @RequestParam final String session,
                                       @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws Exception {
-        final Pacs _pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs _pacs = getPacsService().retrieve(pacsId);
         if (_pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -473,7 +473,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                     for (String scanId : scansToExport) {
                         final XnatImagescandata scan = imageSession.getScanById(scanId);
                         scans.add(scanId);
-                        new Thread(() -> _pacsService.exportSeries(user, _pacs, scan)).start();
+                        new Thread(() -> _dqrService.exportSeries(user, _pacs, scan)).start();
                         log.info("Exported series {} from session {}", scanId, imageSession.getId());
                     }
                     final EventDetails eventDetails;
@@ -507,7 +507,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _ormStrategies.keySet();
     }
 
-    private final PacsService                _pacsService;
+    private final DicomQueryRetrieveService  _dqrService;
     private final ExecutedPacsRequestService _executedRequestService;
     private final QueuedPacsRequestService   _queuedRequestService;
     private final DqrProjectSettingsService  _dqrProjectSettingsService;

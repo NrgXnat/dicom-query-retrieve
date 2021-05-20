@@ -52,7 +52,7 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
 
         final String ae   = (String) TurbineUtils.GetPassedParameter("ae", data);
         final Pacs   pacs = getPassedPacs(data);
-        getPacsService().processSpreadsheetImport(user, temp, ae, project, pacs.getId());
+        getDicomQueryRetrieveService().processSpreadsheetImport(user, temp, ae, project, pacs.getId());
 
         temp.delete();
         fileItem.delete();

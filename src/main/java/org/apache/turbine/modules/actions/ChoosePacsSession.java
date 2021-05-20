@@ -28,7 +28,7 @@ public class ChoosePacsSession extends DqrSecureAction {
     public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
         final Pacs            pacs             = getPassedPacs(data);
         final String          studyInstanceUid = (String) TurbineUtils.GetPassedParameter("studyInstanceUid", data);
-        final Optional<Study> study            = getPacsService().getStudyById(XDAT.getUserDetails(), pacs, studyInstanceUid);
+        final Optional<Study> study            = getDicomQueryRetrieveService().getStudyById(XDAT.getUserDetails(), pacs, studyInstanceUid);
         setDqrSessionVariables(data, pacs, study.orElseThrow(() -> new NotFoundException("No study was found with the ID " + studyInstanceUid + " on the PACS " + pacs.getId())));
         context.put("study", study.get());
         context.put("pacs", pacs);

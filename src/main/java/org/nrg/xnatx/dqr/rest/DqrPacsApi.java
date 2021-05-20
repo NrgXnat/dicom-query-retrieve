@@ -31,9 +31,9 @@ import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.PacsAvailabilityService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
-import org.nrg.xnatx.dqr.services.PacsPingService;
 import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.PacsPingService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -50,9 +50,9 @@ import java.util.Map;
 @RequestMapping(value = "/pacs")
 public class DqrPacsApi extends AbstractDqrRestController {
     @Autowired
-    public DqrPacsApi(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final PacsService pacsService, final PacsAvailabilityService pacsAvailabilityService, final PacsPingService pacsPingService, final PacsEntityService pacsEntityService, final NamedParameterJdbcTemplate template) {
-        super(pacsEntityService, template, userManagementService, roleHolder);
-        _pacsService = pacsService;
+    public DqrPacsApi(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final DicomQueryRetrieveService dqrService, final PacsAvailabilityService pacsAvailabilityService, final PacsPingService pacsPingService, final PacsService pacsService, final NamedParameterJdbcTemplate template) {
+        super(pacsService, template, userManagementService, roleHolder);
+        _dqrService = dqrService;
         _pacsAvailabilityService = pacsAvailabilityService;
         _pacsPingService = pacsPingService;
     }
@@ -65,7 +65,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
     @XapiRequestMapping(produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
     public List<Pacs> getAllPacs(final @ApiParam("Indicates whether the results should include only PACS that allow store (C-PUT) operations.") @RequestParam(defaultValue = "false") boolean storable,
                                  final @ApiParam("Indicates whether the results should include only PACS that allow query (C-FIND) operations.") @RequestParam(defaultValue = "false") boolean queryable) {
-        return getPacsEntityService().findAll(storable, queryable);
+        return getPacsService().findAll(storable, queryable);
     }
 
     @ApiOperation(value = "Creates a new PACS entry.", response = Pacs.class)
@@ -75,7 +75,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody PacsSettings settings) {
-        return getPacsEntityService().create(new Pacs(settings));
+        return getPacsService().create(new Pacs(settings));
     }
 
     @ApiOperation(value = "Retrieves an existing PACS entry.", response = Pacs.class)
@@ -95,11 +95,11 @@ public class DqrPacsApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     public Pacs updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long pacsId, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody PacsSettings settings) throws DataFormatException, PacsNotFoundException {
-        final Pacs pacs = getPacsEntityService().retrieve(pacsId);
+        final Pacs pacs = getPacsService().retrieve(pacsId);
         pacs.copySettings(settings);
         validate(pacsId, pacs);
-        getPacsEntityService().update(pacs);
-        return getPacsEntityService().retrieve(pacsId);
+        getPacsService().update(pacs);
+        return getPacsService().retrieve(pacsId);
     }
 
     @ApiOperation(value = "Deletes an existing PACS entry.")
@@ -110,7 +110,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "{pacsId}", method = RequestMethod.DELETE, restrictTo = Admin)
     public void deletePacs(final @ApiParam("ID of the PACS entry to be deleted.") @PathVariable long pacsId) throws PacsNotFoundException {
         validate(pacsId);
-        getPacsEntityService().delete(pacsId);
+        getPacsService().delete(pacsId);
     }
 
     @ApiOperation(value = "Ping a PACS.", notes = "The ping PACS function returns whether the PACS was responsive.", response = PacsPing.class)
@@ -123,7 +123,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
     public PacsPing pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) {
         final PacsPing ping = new PacsPing();
         ping.setPacsId(pacsId);
-        ping.setSuccessful(_pacsService.canConnect(getSessionUser(), getPacsEntityService().retrieve(pacsId)));
+        ping.setSuccessful(_dqrService.canConnect(getSessionUser(), getPacsService().retrieve(pacsId)));
         ping.setPingTime(new Date());
         _pacsPingService.create(ping);
         return ping;
@@ -273,7 +273,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
         return _pacsAvailabilityService.findAllByPacsIdGroupedByDayOfWeek(pacsId);
     }
 
-    private final PacsService             _pacsService;
-    private final PacsPingService         _pacsPingService;
+    private final DicomQueryRetrieveService _dqrService;
+    private final PacsPingService           _pacsPingService;
     private final PacsAvailabilityService _pacsAvailabilityService;
 }

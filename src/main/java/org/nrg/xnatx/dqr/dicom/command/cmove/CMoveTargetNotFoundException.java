@@ -9,7 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cmove;
 
-import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 public class CMoveTargetNotFoundException extends DqrRuntimeException {
 

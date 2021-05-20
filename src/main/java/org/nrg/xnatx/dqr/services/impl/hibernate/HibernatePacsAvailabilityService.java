@@ -1,5 +1,5 @@
 /*
- * org.nrg.dqr.services.HibernatePacsEntityService
+ * org.nrg.dqr.services.HibernatePacsAvailabilityService
  * DQR is developed by the Neuroinformatics Research Group
  * XNAT http://www.xnat.org
  * Copyright (c) 2013, Washington University School of Medicine

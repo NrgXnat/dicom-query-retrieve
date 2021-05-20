@@ -12,6 +12,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.nrg.xnat.utils.DateRange;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -124,13 +125,13 @@ public class DqrDateRange extends DateRange {
         }
         try {
             if (Pattern.matches(SLASHY_PATTERN, date)) {
-                return LocalDateTime.parse(date, SLASHY_FORMATTER);
+                return LocalDate.parse(date, SLASHY_FORMATTER).atStartOfDay();
             }
             if (Pattern.matches(DASHY_PATTERN, date)) {
-                return LocalDateTime.parse(date, DASHY_FORMATTER);
+                return LocalDate.parse(date, DASHY_FORMATTER).atStartOfDay();
             }
             if (Pattern.matches(BASIC_PATTERN, date)) {
-                return LocalDateTime.parse(date, BASIC_FORMATTER);
+                return LocalDate.parse(date, BASIC_FORMATTER).atStartOfDay();
             }
         } catch (DateTimeParseException ignored) {
         }
@@ -149,6 +150,10 @@ public class DqrDateRange extends DateRange {
         return DASHY_FORMATTER.format(convertDateToLocalDateTime(date));
     }
 
+    public static String formatDicomDate(final Date date) {
+        return BASIC_FORMATTER.format(convertDateToLocalDateTime(date));
+    }
+
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {
         return getDateRange(start, end, LocalDate.now().getDayOfWeek());
     }
@@ -160,6 +165,16 @@ public class DqrDateRange extends DateRange {
             return Pair.of(LocalDateTime.of(date, start), LocalDateTime.of(date, end));
         }
         return Pair.of(LocalDateTime.of(date, start), LocalDateTime.of(date.plusDays(1), end));
+    }
+
+    @Override
+    public Date getStart() {
+        return Date.from(getStartDate().atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    @Override
+    public Date getEnd() {
+        return Date.from(getEndDate().atZone(ZoneId.systemDefault()).toInstant());
     }
 
     public boolean isEmpty() {

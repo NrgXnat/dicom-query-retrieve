@@ -16,7 +16,7 @@ import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
@@ -25,8 +25,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PacsStudyImportRequestListener extends AbstractPacsRequestListener<PacsStudyImportRequest> {
     @Autowired
-    public PacsStudyImportRequestListener(final PacsService pacsService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
-        super(pacsService, siteConfigPreferences, mailService);
+    public PacsStudyImportRequestListener(final DicomQueryRetrieveService dqrService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+        super(dqrService, siteConfigPreferences, mailService);
     }
 
     @JmsListener(id = "pacsStudyImportRequest", destination = "pacsStudyImportRequest")
@@ -36,7 +36,7 @@ public class PacsStudyImportRequestListener extends AbstractPacsRequestListener<
             //Study import requests are not currently set up to allow users to specify which AE to send the data to
             log.info("Listener received study import request from user {}", user.getUsername());
             for (final PacsScanImportRequest scanImportRequest : request.getScans()) {
-                getPacsService().importSeries(user, request.getPacs(), scanImportRequest.getStudy(), scanImportRequest.getSeries(), null);
+                getDqrService().importSeries(user, request.getPacs(), scanImportRequest.getStudy(), scanImportRequest.getSeries(), null);
             }
             getMailService().sendMessage(getAdminEmail(), user.getEmail(),
                                          "[" + TurbineUtils.GetSystemName() + "] PACS Study Import Request Complete",

@@ -16,14 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.nrg.framework.messaging.JmsRequestListener;
 import org.nrg.mail.services.MailService;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
-import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 
 @Getter(AccessLevel.PROTECTED)
 @Accessors(prefix = "_")
 @Slf4j
 public abstract class AbstractPacsRequestListener<T> implements JmsRequestListener<T> {
-    protected AbstractPacsRequestListener(final PacsService pacsService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
-        _pacsService = pacsService;
+    protected AbstractPacsRequestListener(final DicomQueryRetrieveService dqrService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+        _dqrService = dqrService;
         _siteConfigPreferences = siteConfigPreferences;
         _mailService = mailService;
     }
@@ -34,7 +34,7 @@ public abstract class AbstractPacsRequestListener<T> implements JmsRequestListen
         return getSiteConfigPreferences().getAdminEmail();
     }
 
-    private final PacsService           _pacsService;
-    private final SiteConfigPreferences _siteConfigPreferences;
+    private final DicomQueryRetrieveService _dqrService;
+    private final SiteConfigPreferences     _siteConfigPreferences;
     private final MailService           _mailService;
 }

@@ -52,12 +52,12 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
     private static final String PREARCHIVE_SCREEN = "app/template/XDATScreen_prearchives.vm";
 
-    public PacsDequeueThread(final Long pacsId, final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsDequeueThread(final Long pacsId, final PacsThreads threads, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         log.debug("Initializing the PACS dequeue thread job");
         _pacsId = pacsId;
         _threads = threads;
+        _dqrService = dqrService;
         _pacsService = pacsService;
-        _pacsEntityService = pacsEntityService;
         _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
         _pacsAvailabilityService = pacsAvailabilityService;
@@ -83,7 +83,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     break;
                 }
                 final UserI admin      = _primaryAdminUserProvider.get();
-                boolean     canConnect = _pacsService.canConnect(admin, _pacsEntityService.retrieve(_pacsId));
+                boolean     canConnect = _dqrService.canConnect(admin, _pacsService.retrieve(_pacsId));
                 if (!canConnect) {
                     break;
                 }
@@ -141,7 +141,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     _executedPacsRequestService.create(pacsRequest);
 
                     final StopWatch stopWatch = StopWatch.createStarted();
-                    _pacsService.importFromPacsRequest(pacsRequest);
+                    _dqrService.importFromPacsRequest(pacsRequest);
                     stopWatch.stop();
                     requestTimeInMilliseconds.set(stopWatch.getTime());
 
@@ -174,7 +174,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     }
                     final String adminEmail = _siteConfigPreferences.getAdminEmail();
                     context.put("adminEmail", adminEmail);
-                    context.put("pacs", _pacsEntityService.retrieve(_pacsId));
+                    context.put("pacs", _pacsService.retrieve(_pacsId));
                     if (_dqrPreferences.getNotifyAdminOnImport()) {
                         _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
                     } else {
@@ -207,10 +207,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     private final static String SUBJECT_FORMAT = "[" + TurbineUtils.GetSystemName() + "] %d selected DICOM series requested";
 
     private final Long                       _pacsId;
-    private final PacsThreads                _threads;
-    private final PacsService                _pacsService;
-    private final PacsEntityService          _pacsEntityService;
-    private final QueuedPacsRequestService   _queuedPacsRequestService;
+    private final PacsThreads               _threads;
+    private final DicomQueryRetrieveService _dqrService;
+    private final PacsService               _pacsService;
+    private final QueuedPacsRequestService  _queuedPacsRequestService;
     private final ExecutedPacsRequestService _executedPacsRequestService;
     private final PacsAvailabilityService    _pacsAvailabilityService;
     private final StudyRoutingService        _studyRoutingService;

@@ -34,11 +34,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Slf4j
 public class PacsThreadsChecker extends AbstractXnatRunnable {
-    public PacsThreadsChecker(final PacsThreads threads, final PacsService pacsService, final PacsEntityService pacsEntityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsThreadsChecker(final PacsThreads threads, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final PacsAvailabilityService pacsAvailabilityService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         log.debug("Initializing the PACS threads checker job");
         _threads = threads;
+        _dqrService = dqrService;
         _pacsService = pacsService;
-        _pacsEntityService = pacsEntityService;
         _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
         _pacsAvailabilityService = pacsAvailabilityService;
@@ -54,7 +54,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
     public void runTask() {
         try {
             log.debug("Executing PACS threads checker function");
-            final List<Pacs> pacsList = _pacsEntityService.findAllQueryable();
+            final List<Pacs> pacsList = _pacsService.findAllQueryable();
             if (pacsList != null) {
                 for (final Pacs pacs : pacsList) {
                     try {
@@ -73,12 +73,12 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         }
                         try {
                             final UserI admin = _primaryAdminUserProvider.get();
-                            if (_pacsService.canConnect(admin, pacs)) {
+                            if (_dqrService.canConnect(admin, pacs)) {
                                 final AtomicInteger added                     = new AtomicInteger();
                                 final int           currentThreadsForThisPacs = _threads.get(pacsId);
                                 final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
                                 for (final QueuedPacsRequest request : requests) {
-                                    new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                    new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
                                     if (added.incrementAndGet() >= newThreadsAllowed) {
                                         break;
                                     }
@@ -101,10 +101,10 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
         }
     }
 
-    private final PacsThreads                   _threads;
-    private final PacsService                   _pacsService;
-    private final PacsEntityService             _pacsEntityService;
-    private final QueuedPacsRequestService      _queuedPacsRequestService;
+    private final PacsThreads               _threads;
+    private final DicomQueryRetrieveService _dqrService;
+    private final PacsService               _pacsService;
+    private final QueuedPacsRequestService  _queuedPacsRequestService;
     private final ExecutedPacsRequestService _executedPacsRequestService;
     private final PacsAvailabilityService    _pacsAvailabilityService;
     private final StudyRoutingService        _studyRoutingService;

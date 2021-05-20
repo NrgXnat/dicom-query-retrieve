@@ -18,7 +18,7 @@ import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
-import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
@@ -27,8 +27,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PacsSessionExportRequestListener extends AbstractPacsRequestListener<PacsSessionExportRequest> {
     @Autowired
-    public PacsSessionExportRequestListener(final PacsService pacsService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
-        super(pacsService, siteConfigPreferences, mailService);
+    public PacsSessionExportRequestListener(final DicomQueryRetrieveService dqrService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+        super(dqrService, siteConfigPreferences, mailService);
     }
 
     @JmsListener(id = "pacsStudyExportRequest", destination = "pacsStudyExportRequest")
@@ -43,7 +43,7 @@ public class PacsSessionExportRequestListener extends AbstractPacsRequestListene
 
             final XDATUser user = new XDATUser(request.getRequestingUser());
             for (final PacsScanExportRequest scan : request.getScans()) {
-                getPacsService().exportSeries(user, pacsToExportTo, XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(scan.getImageScanDataId(), user, false));
+                getDqrService().exportSeries(user, pacsToExportTo, XnatImagescandata.getXnatImagescandatasByXnatImagescandataId(scan.getImageScanDataId(), user, false));
             }
 
             // Send complete notification

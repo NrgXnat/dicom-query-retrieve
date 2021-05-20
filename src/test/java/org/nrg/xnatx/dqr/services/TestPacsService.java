@@ -1,5 +1,5 @@
 /*
- * dicom-query-retrieve: org.nrg.xnatx.dqr.services.PacsEntityServiceTests
+ * dicom-query-retrieve: org.nrg.xnatx.dqr.services.TestPacsService
  * XNAT http://www.xnat.org
  * Copyright (c) 2005-2021, Washington University School of Medicine
  * All Rights Reserved
@@ -16,7 +16,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.nrg.xnatx.dqr.domain.TestPacsEntityServiceConfig;
+import org.nrg.xnatx.dqr.domain.TestPacsServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
@@ -25,13 +25,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit.jupiter.SpringJUnitJupiterConfig;
 
 @ExtendWith(SpringExtension.class)
-@SpringJUnitJupiterConfig(TestPacsEntityService.class)
-@ContextConfiguration(classes = TestPacsEntityServiceConfig.class)
+@SpringJUnitJupiterConfig(TestPacsService.class)
+@ContextConfiguration(classes = TestPacsServiceConfig.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Slf4j
-public class TestPacsEntityService {
+public class TestPacsService {
     @Autowired
-    public TestPacsEntityService(final PacsEntityService service) {
+    public TestPacsService(final PacsService service) {
         _service = service;
     }
 
@@ -130,6 +130,84 @@ public class TestPacsEntityService {
                          .hasFieldOrPropertyWithValue("storable", true);
     }
 
+    @Test
+    public void testDefaultQueryRetrieveAndStoragePacsTransactions() {
+        final Pacs pacs1 = _service.create(Pacs.builder().host(PACS_HOST_1).queryRetrievePort(PACS_PORT_1).aeTitle(PACS_AE_1).label(PACS_LABEL_1).defaultQueryRetrievePacs(true).defaultStoragePacs(false).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).build());
+        assertThat(pacs1).isNotNull()
+                         .hasFieldOrPropertyWithValue("host", PACS_HOST_1)
+                         .hasFieldOrPropertyWithValue("queryRetrievePort", PACS_PORT_1)
+                         .hasFieldOrPropertyWithValue("aeTitle", PACS_AE_1)
+                         .hasFieldOrPropertyWithValue("label", PACS_LABEL_1)
+                         .hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true)
+                         .hasFieldOrPropertyWithValue("defaultStoragePacs", false)
+                         .hasFieldOrPropertyWithValue("ormStrategySpringBeanId", PACS_ORM_STRATEGY_1)
+                         .hasFieldOrPropertyWithValue("queryable", true)
+                         .hasFieldOrPropertyWithValue("storable", true);
+        final Pacs pacs2 = _service.create(Pacs.builder().host(PACS_HOST_2).queryRetrievePort(PACS_PORT_2).aeTitle(PACS_AE_2).label(PACS_LABEL_2).defaultQueryRetrievePacs(false).defaultStoragePacs(true).ormStrategySpringBeanId(PACS_ORM_STRATEGY_2).queryable(true).storable(true).build());
+        assertThat(pacs2).isNotNull()
+                         .hasFieldOrPropertyWithValue("host", PACS_HOST_2)
+                         .hasFieldOrPropertyWithValue("queryRetrievePort", PACS_PORT_2)
+                         .hasFieldOrPropertyWithValue("aeTitle", PACS_AE_2)
+                         .hasFieldOrPropertyWithValue("label", PACS_LABEL_2)
+                         .hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", false)
+                         .hasFieldOrPropertyWithValue("defaultStoragePacs", true)
+                         .hasFieldOrPropertyWithValue("ormStrategySpringBeanId", PACS_ORM_STRATEGY_2)
+                         .hasFieldOrPropertyWithValue("queryable", true)
+                         .hasFieldOrPropertyWithValue("storable", true);
+
+        final Pacs defaultQueryRetrievePacs1 = _service.findDefaultQueryRetrievePacs().orElse(null);
+        final Pacs defaultStoragePacs1       = _service.findDefaultStoragePacs().orElse(null);
+        assertThat(defaultQueryRetrievePacs1).isNotNull().hasFieldOrPropertyWithValue("id", pacs1.getId()).hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true);
+        assertThat(defaultStoragePacs1).isNotNull().hasFieldOrPropertyWithValue("id", pacs2.getId()).hasFieldOrPropertyWithValue("defaultStoragePacs", true);
+
+        // Different PACS, doesn't step on default Q/R or storable attributes.
+        final Pacs pacs3 = _service.create(Pacs.builder().host(PACS_HOST_1).queryRetrievePort(PACS_PORT_2).aeTitle(PACS_AE_1).label(PACS_LABEL_3).defaultQueryRetrievePacs(false).defaultStoragePacs(false).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).build());
+        assertThat(pacs3).isNotNull()
+                         .hasFieldOrPropertyWithValue("host", PACS_HOST_1)
+                         .hasFieldOrPropertyWithValue("queryRetrievePort", PACS_PORT_2)
+                         .hasFieldOrPropertyWithValue("aeTitle", PACS_AE_1)
+                         .hasFieldOrPropertyWithValue("label", PACS_LABEL_3)
+                         .hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", false)
+                         .hasFieldOrPropertyWithValue("defaultStoragePacs", false)
+                         .hasFieldOrPropertyWithValue("ormStrategySpringBeanId", PACS_ORM_STRATEGY_1)
+                         .hasFieldOrPropertyWithValue("queryable", true)
+                         .hasFieldOrPropertyWithValue("storable", true);
+
+        // Default Q/R and storage should not have changed.
+        final Pacs defaultQueryRetrievePacs2 = _service.findDefaultQueryRetrievePacs().orElse(null);
+        final Pacs defaultStoragePacs2       = _service.findDefaultStoragePacs().orElse(null);
+        assertThat(defaultQueryRetrievePacs2).isNotNull().hasFieldOrPropertyWithValue("id", pacs1.getId()).hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true);
+        assertThat(defaultStoragePacs2).isNotNull().hasFieldOrPropertyWithValue("id", pacs2.getId()).hasFieldOrPropertyWithValue("defaultStoragePacs", true);
+
+        pacs3.setDefaultQueryRetrievePacs(true);
+        pacs3.setDefaultStoragePacs(true);
+        _service.update(pacs3);
+
+        // Default Q/R and storage should now be pacs3
+        final Pacs defaultQueryRetrievePacs3 = _service.findDefaultQueryRetrievePacs().orElse(null);
+        final Pacs defaultStoragePacs3       = _service.findDefaultStoragePacs().orElse(null);
+        assertThat(defaultQueryRetrievePacs3).isNotNull().hasFieldOrPropertyWithValue("id", pacs3.getId()).hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true);
+        assertThat(defaultStoragePacs3).isNotNull().hasFieldOrPropertyWithValue("id", pacs3.getId()).hasFieldOrPropertyWithValue("defaultStoragePacs", true);
+
+        final Pacs pacs4 = _service.create(Pacs.builder().host(PACS_HOST_2).queryRetrievePort(PACS_PORT_1).aeTitle(PACS_AE_1).label(PACS_LABEL_4).defaultQueryRetrievePacs(true).defaultStoragePacs(true).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).build());
+        assertThat(pacs4).isNotNull()
+                         .hasFieldOrPropertyWithValue("host", PACS_HOST_2)
+                         .hasFieldOrPropertyWithValue("queryRetrievePort", PACS_PORT_1)
+                         .hasFieldOrPropertyWithValue("aeTitle", PACS_AE_1)
+                         .hasFieldOrPropertyWithValue("label", PACS_LABEL_4)
+                         .hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true)
+                         .hasFieldOrPropertyWithValue("defaultStoragePacs", true)
+                         .hasFieldOrPropertyWithValue("ormStrategySpringBeanId", PACS_ORM_STRATEGY_1)
+                         .hasFieldOrPropertyWithValue("queryable", true)
+                         .hasFieldOrPropertyWithValue("storable", true);
+
+        // Default Q/R and storage should now be pacs4
+        final Pacs defaultQueryRetrievePacs4 = _service.findDefaultQueryRetrievePacs().orElse(null);
+        final Pacs defaultStoragePacs4       = _service.findDefaultStoragePacs().orElse(null);
+        assertThat(defaultQueryRetrievePacs4).isNotNull().hasFieldOrPropertyWithValue("id", pacs4.getId()).hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true);
+        assertThat(defaultStoragePacs4).isNotNull().hasFieldOrPropertyWithValue("id", pacs4.getId()).hasFieldOrPropertyWithValue("defaultStoragePacs", true);
+    }
+
     private static final String PACS_HOST_1         = "pacs1.xnat.org";
     private static final String PACS_HOST_2         = "pacs2.xnat.org";
     private static final int    PACS_PORT_1         = 4242;
@@ -143,5 +221,5 @@ public class TestPacsEntityService {
     private static final String PACS_ORM_STRATEGY_1 = "dicomOrmStrategy1";
     private static final String PACS_ORM_STRATEGY_2 = "dicomOrmStrategy2";
 
-    private final PacsEntityService _service;
+    private final PacsService _service;
 }

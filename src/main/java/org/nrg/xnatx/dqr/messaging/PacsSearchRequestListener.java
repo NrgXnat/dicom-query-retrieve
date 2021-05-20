@@ -20,7 +20,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
@@ -37,10 +37,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsSearchRequest> {
     @Autowired
-    public PacsSearchRequestListener(final ExecutorService executorService, final PacsEntityService pacsEntityService, final PacsService pacsService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
-        super(pacsService, siteConfigPreferences, mailService);
+    public PacsSearchRequestListener(final ExecutorService executorService, final PacsService pacsService, final DicomQueryRetrieveService dqrService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+        super(dqrService, siteConfigPreferences, mailService);
         _executorService = executorService;
-        _pacsEntityService = pacsEntityService;
+        _pacsService = pacsService;
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
@@ -48,7 +48,7 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
     public void onRequest(final PacsSearchRequest request) throws Exception {
         try {
             final UserI user     = Users.getUser(request.getUsername());
-            final Pacs  pacs     = _pacsEntityService.get(request.getPacsId());
+            final Pacs  pacs     = _pacsService.get(request.getPacsId());
             final UUID  searchId = request.getSearchId();
 
             //Study import requests are not currently set up to allow users to specify which AE to send the data to
@@ -101,7 +101,7 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
                     break;
                 // SeriesByStudyUid: String
                 case SeriesByStudyUid:
-                    executors = request.getStudyInstanceUids().parallelStream().map(studyInstanceUid -> new SearchExecutor(getPacsService(), searchId, user, pacs, studyInstanceUid)).collect(Collectors.toList());
+                    executors = request.getStudyInstanceUids().parallelStream().map(studyInstanceUid -> new SearchExecutor(getDqrService(), searchId, user, pacs, studyInstanceUid)).collect(Collectors.toList());
                     break;
                 // SeriesById: String
                 case SeriesById:
@@ -132,8 +132,8 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
     }
 
     private static class SearchExecutor implements Callable<String> {
-        SearchExecutor(final PacsService service, final UUID requestId, final UserI user, final Pacs pacs, final String studyInstanceUid) {
-            _service = service;
+        SearchExecutor(final DicomQueryRetrieveService dqrService, final UUID requestId, final UserI user, final Pacs pacs, final String studyInstanceUid) {
+            _dqrService = dqrService;
             _user = user;
             _pacs = pacs;
             _requestId = requestId;
@@ -142,19 +142,19 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
 
         @Override
         public String call() throws Exception {
-            final PacsSearchResults<Series> result = _service.getSeriesByStudyUid(_user, _pacs, _studyInstanceUid);
+            final PacsSearchResults<Series> result = _dqrService.getSeriesByStudyUid(_user, _pacs, _studyInstanceUid);
             log.info("Got a result for search request {} study instance UID {}", _requestId, _studyInstanceUid);
-            _service.updateSearchResults(_requestId, _studyInstanceUid, result);
+            _dqrService.updateSearchResults(_requestId, _studyInstanceUid, result);
             return _requestId + ":" + _studyInstanceUid;
         }
 
-        private final PacsService _service;
-        private final UserI       _user;
-        private final Pacs        _pacs;
-        private final UUID        _requestId;
-        private final String      _studyInstanceUid;
+        private final DicomQueryRetrieveService _dqrService;
+        private final UserI                     _user;
+        private final Pacs                      _pacs;
+        private final UUID                      _requestId;
+        private final String                    _studyInstanceUid;
     }
 
-    private final ExecutorService   _executorService;
-    private final PacsEntityService _pacsEntityService;
+    private final ExecutorService _executorService;
+    private final PacsService     _pacsService;
 }

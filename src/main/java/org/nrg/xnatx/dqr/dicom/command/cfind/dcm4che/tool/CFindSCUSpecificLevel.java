@@ -27,7 +27,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
-import org.nrg.xnatx.dqr.utils.DqrRuntimeException;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -36,28 +36,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
-    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        Object callingAeObject = preferences.get("dqrCallingAe");
-        String callingAe       = dicomConnectionProperties.getLocalAeTitle();
-        if (callingAeObject != null && callingAeObject.toString() != null) {
-            callingAe = callingAeObject.toString();
-        }
-        dcmQR = createDcmQR(callingAe);
-        dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
-        dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
-        dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
-        dcmQR.setNoExtNegotiation(!dicomConnectionProperties.getSupportsExtendedNegotiations());
-        if (cMoveRequestedOnResults()) {
-            dcmQR.setMoveDest(dicomConnectionProperties.getLocalAeTitle());
-        }
-        this.cechoSCU = cechoSCU;
-        this.ormStrategy = ormStrategy;
-    }
-
-    protected DcmQR createDcmQR(String localAETitle) {
-        return new DcmQR(localAETitle);
-    }
-
     /**
      * Performs a C-FIND against the select PACS.
      *
@@ -97,7 +75,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         } catch (DqrRuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new DqrRuntimeException(e);
         } finally {
             try {
                 dcmQR.close();
@@ -109,48 +87,57 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         }
     }
 
-    protected void setSearchCriteriaInQuery(final PacsSearchCriteria searchCriteria,
-                                            final String dicomPatientNameSearchCriterion) {
+    /**
+     * @param searchCriteria The search criteria to be validated.
+     *
+     * @throws SearchCriteriaTooVagueException Thrown when the search criteria are not well defined.
+     */
+    protected abstract void validatePacsSearchCriteria(final PacsSearchCriteria searchCriteria) throws SearchCriteriaTooVagueException;
 
-        if (!StringUtils.isBlank(searchCriteria.getPatientId())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientID), searchCriteria.getPatientId());
+    /**
+     * These are in addition to whatever DcmQR returns.
+     *
+     * @return The paths
+     */
+    protected abstract List<Integer> getReturnTagPaths();
+
+    protected abstract QueryRetrieveLevel getQueryLevel();
+
+    protected abstract T mapDicomObjectToDomainObject(final DicomObject d);
+
+    protected abstract PacsSearchResults<T> wrapResults(final Collection<T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
+
+    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
+        Object callingAeObject = preferences.get("dqrCallingAe");
+        String callingAe       = dicomConnectionProperties.getLocalAeTitle();
+        if (callingAeObject != null && callingAeObject.toString() != null) {
+            callingAe = callingAeObject.toString();
         }
+        dcmQR = createDcmQR(callingAe);
+        dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
+        dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
+        dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
+        dcmQR.setNoExtNegotiation(!dicomConnectionProperties.getSupportsExtendedNegotiations());
+        if (cMoveRequestedOnResults()) {
+            dcmQR.setMoveDest(dicomConnectionProperties.getLocalAeTitle());
+        }
+        this.cechoSCU = cechoSCU;
+        this.ormStrategy = ormStrategy;
+    }
+
+    protected DcmQR createDcmQR(String localAETitle) {
+        return new DcmQR(localAETitle);
+    }
+
+    protected void setSearchCriteriaInQuery(final PacsSearchCriteria searchCriteria, final String dicomPatientNameSearchCriterion) {
+        searchCriteria.getDicomKeys().stream().filter(pair -> pair.getKey()[0] != Tag.PatientName && pair.getKey()[0] != Tag.StudyDate).forEach(pair -> dcmQR.addMatchingKey(pair.getKey(), pair.getValue()));
         if (!StringUtils.isBlank(dicomPatientNameSearchCriterion)) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientName), dicomPatientNameSearchCriterion);
         }
-        if (!StringUtils.isBlank(searchCriteria.getStudyInstanceUid())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyInstanceUID), searchCriteria.getStudyInstanceUid());
-        }
-        if (!StringUtils.isBlank(searchCriteria.getSeriesInstanceUid())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.SeriesInstanceUID), searchCriteria.getSeriesInstanceUid());
-        }
-        if (!StringUtils.isBlank(searchCriteria.getAccessionNumber())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.AccessionNumber), searchCriteria.getAccessionNumber());
-        }
-
-        if (!StringUtils.isBlank(searchCriteria.getDob())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientBirthDate), searchCriteria.getDob());
-        }
-        if (!StringUtils.isBlank(searchCriteria.getModality())) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.ModalitiesInStudy), searchCriteria.getModality());
-        }
-
-        DqrDateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
-                                                      .getDateRange();
+        final DqrDateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria).getDateRange();
         if (null != studyDateRange && studyDateRange.isBounded()) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildStudyDateCriterion(studyDateRange));
         }
-    }
-
-    private String buildStudyDateCriterion(DqrDateRange studyDateRange) {
-        String startDate = "", endDate = "";
-        if (studyDateRange.isBoundedAtStart()) {
-            startDate = DqrDateRange.formatDate(studyDateRange.getStart());
-        }
-        if (studyDateRange.isBoundedAtEnd()) {
-            endDate = DqrDateRange.formatDate(studyDateRange.getEnd());
-        }
-        return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
     }
 
     protected List<DicomObject> setParamsAndSendQuery(final PacsSearchCriteria searchCriteria) throws IOException, InterruptedException {
@@ -201,7 +188,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     protected int[] dicomTagPathToArray(final int dicomTagPath) {
-        return new int[]{
+        return new int[] {
             dicomTagPath
         };
     }
@@ -214,32 +201,15 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         return getOrmStrategy().getResultSetLimitStrategy().getMaxResultsForQueryLevel(getQueryLevel());
     }
 
-    /**
-     * @param searchCriteria The search criteria to be validated.
-     *
-     * @throws SearchCriteriaTooVagueException Thrown when the search criteria are not well defined.
-     */
-    protected abstract void validatePacsSearchCriteria(final PacsSearchCriteria searchCriteria)
-        throws SearchCriteriaTooVagueException;
-
-    /**
-     * These are in addition to whatever DcmQR returns.
-     *
-     * @return The paths
-     */
-    protected abstract List<Integer> getReturnTagPaths();
-
-    protected abstract QueryRetrieveLevel getQueryLevel();
-
-    protected abstract T mapDicomObjectToDomainObject(final DicomObject d);
-
-    protected abstract PacsSearchResults<T> wrapResults(final Collection<T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
+    private String buildStudyDateCriterion(final DqrDateRange studyDateRange) {
+        final String startDate = studyDateRange.isBoundedAtStart() ? DqrDateRange.formatDicomDate(studyDateRange.getStart()) : "";
+        final String endDate   = studyDateRange.isBoundedAtEnd() ? DqrDateRange.formatDicomDate(studyDateRange.getEnd()) : "";
+        return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
+    }
 
     private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
 
-    private final DcmQR dcmQR;
-
-    private final CEchoSCU cechoSCU;
-
+    private final DcmQR       dcmQR;
+    private final CEchoSCU    cechoSCU;
     private final OrmStrategy ormStrategy;
 }

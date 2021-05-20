@@ -24,8 +24,8 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
 import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 
 @Getter(AccessLevel.PROTECTED)
 @Setter(AccessLevel.PROTECTED)
@@ -38,7 +38,7 @@ public abstract class DqrSecureAction extends SecureAction {
 
     protected Pacs getPassedPacs(final RunData data) throws PacsNotFoundException {
         _pacsId = getPassedPacsId(data);
-        final Pacs pacs = getPacsEntityService().retrieve(_pacsId);
+        final Pacs pacs = getPacsService().retrieve(_pacsId);
         if (null == pacs) {
             throw new PacsNotFoundException(_pacsId);
         }
@@ -59,18 +59,18 @@ public abstract class DqrSecureAction extends SecureAction {
         data.getSession().setAttribute(STUDY_SESSION_KEY, study);
     }
 
+    protected DicomQueryRetrieveService getDicomQueryRetrieveService() {
+        if (_dqrService == null) {
+            _dqrService = XDAT.getContextService().getBean(DicomQueryRetrieveService.class);
+        }
+        return _dqrService;
+    }
+
     protected PacsService getPacsService() {
         if (_pacsService == null) {
             _pacsService = XDAT.getContextService().getBean(PacsService.class);
         }
         return _pacsService;
-    }
-
-    protected PacsEntityService getPacsEntityService() {
-        if (_pacsEntityService == null) {
-            _pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
-        }
-        return _pacsEntityService;
     }
 
     protected DqrPreferences getDqrPreferences() {
@@ -112,8 +112,8 @@ public abstract class DqrSecureAction extends SecureAction {
     private final static String PACS_SESSION_KEY  = "pacs";
     private final static String STUDY_SESSION_KEY = "study";
 
+    private static DicomQueryRetrieveService _dqrService;
     private static PacsService               _pacsService;
-    private static PacsEntityService         _pacsEntityService;
     private static DqrPreferences            _dqrPreferences;
     private static DqrProjectSettingsService _dqrAdminSettings;
     private static SiteConfigPreferences     _siteConfigPreferences;

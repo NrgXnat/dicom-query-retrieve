@@ -12,23 +12,25 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
+import org.nrg.xnatx.dqr.services.PacsService;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.util.Optional;
+
 @Getter(AccessLevel.PROTECTED)
 @Accessors(prefix = "_")
 public abstract class AbstractDqrRestController extends AbstractXapiRestController {
-    protected AbstractDqrRestController(final PacsEntityService pacsEntityService, final NamedParameterJdbcTemplate template, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
+    protected AbstractDqrRestController(final PacsService pacsService, final NamedParameterJdbcTemplate template, final UserManagementServiceI userManagementService, final RoleHolder roleHolder) {
         super(userManagementService, roleHolder);
-        _pacsEntityService = pacsEntityService;
+        _pacsService = pacsService;
         _template = template;
     }
 
     protected Pacs getPacs(final long pacsId) throws PacsNotFoundException {
         try {
-            return _pacsEntityService.get(pacsId);
+            return _pacsService.get(pacsId);
         } catch (org.nrg.framework.exceptions.NotFoundException e) {
             throw new PacsNotFoundException(pacsId);
         }
@@ -40,6 +42,30 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
             return pacs;
         }
         throw new PacsNotQueryableException(pacsId);
+    }
+
+    /**
+     * Returns the PACS marked as the default query/retrieve PACS.
+     *
+     * @return The PACS marked as the default query/retrieve PACS or null if no PACS is marked as default.
+     */
+    protected Pacs getDefaultQueryablePacs() {
+        return _pacsService.findDefaultQueryRetrievePacs().orElse(null);
+    }
+
+    /**
+     * Returns the PACS with the specified ID <i>unless</i> the specified ID is 0, in which case this returns the default
+     * query/retrieve PACS.
+     *
+     * @param pacsId The ID of the PACS to retrieve or 0 for the default query/retrieve PACS
+     *
+     * @return The requested PACS or the default query/retrieve PACS if the ID is 0
+     *
+     * @throws PacsNotFoundException     If the requested PACS can't be found
+     * @throws PacsNotQueryableException If the requested PACS is marked as not queryable
+     */
+    protected Pacs getDefaultQueryablePacs(final long pacsId) throws PacsNotFoundException, PacsNotQueryableException {
+        return pacsId > 0 ? getQueryablePacs(pacsId) : Optional.ofNullable(getDefaultQueryablePacs()).orElseThrow(() -> new PacsNotFoundException(pacsId));
     }
 
     protected Pacs getStorablePacs(final long pacsId) throws PacsNotFoundException, PacsNotStorableException {
@@ -86,6 +112,6 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
     private static final String MESSAGE_SESSION_NOT_FOUND      = "No image session with ID \"%s\" exists on this system";
     private static final String MESSAGE_SESSION_SCAN_NOT_FOUND = "No image session \"%s\" with scan ID \"%s\" exists on this system";
 
-    private final PacsEntityService          _pacsEntityService;
+    private final PacsService                _pacsService;
     private final NamedParameterJdbcTemplate _template;
 }

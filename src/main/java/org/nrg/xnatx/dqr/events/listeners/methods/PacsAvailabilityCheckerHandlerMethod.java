@@ -36,11 +36,11 @@ import org.springframework.stereotype.Component;
 @Accessors(prefix = "_")
 public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatPreferenceHandlerMethod {
     @Autowired
-    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsEntityService pacsEntityService, final PacsService pacsService, final PacsAvailabilityService pacsAvailabilityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final PacsThreads threads, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
+    public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsService pacsService, final DicomQueryRetrieveService dqrService, final PacsAvailabilityService pacsAvailabilityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final PacsThreads threads, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
         super(scheduler, AVAILABILITY_CHECK_FREQUENCY);
 
-        _pacsEntityService = pacsEntityService;
         _pacsService = pacsService;
+        _dqrService = dqrService;
         _pacsAvailabilityService = pacsAvailabilityService;
         _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
@@ -57,7 +57,7 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
 
     @Override
     protected AbstractXnatRunnable getTask() {
-        return new PacsThreadsChecker(_threads, _pacsService, _pacsEntityService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider);
+        return new PacsThreadsChecker(_threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider);
     }
 
     @Override
@@ -82,9 +82,9 @@ public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatP
     private static final String DEFAULT_CHECK_FREQUENCY      = "1 minute";
     private static final String AVAILABILITY_CHECK_FREQUENCY = "pacsAvailabilityCheckFrequency";
 
-    private final PacsEntityService             _pacsEntityService;
-    private final PacsService              _pacsService;
-    private final PacsAvailabilityService  _pacsAvailabilityService;
+    private final PacsService               _pacsService;
+    private final DicomQueryRetrieveService _dqrService;
+    private final PacsAvailabilityService   _pacsAvailabilityService;
     private final QueuedPacsRequestService _queuedPacsRequestService;
     private final ExecutedPacsRequestService    _executedPacsRequestService;
     private final StudyRoutingService           _studyRoutingService;

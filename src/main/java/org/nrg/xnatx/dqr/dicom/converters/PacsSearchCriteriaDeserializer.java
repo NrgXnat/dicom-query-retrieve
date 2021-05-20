@@ -51,14 +51,23 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
                 case "patientName":
                     builder.patientName(parser.getText());
                     break;
+                case "accessionNumber":
+                    builder.accessionNumber(parser.getText());
+                    break;
                 case "studyInstanceUid":
                     builder.studyInstanceUid(parser.getText());
+                    break;
+                case "studyId":
+                    builder.studyId(parser.getText());
                     break;
                 case "seriesInstanceUid":
                     builder.seriesInstanceUid(parser.getText());
                     break;
-                case "accessionNumber":
-                    builder.accessionNumber(parser.getText());
+                case "seriesDescription":
+                    builder.seriesDescription(parser.getText());
+                    break;
+                case "seriesNumber":
+                    builder.seriesNumber(Integer.parseInt(parser.getText()));
                     break;
                 case "modality":
                     builder.modality(parser.getText());
@@ -73,9 +82,7 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
                     if (ObjectUtils.anyNotNull(startRange, endRange)) {
                         throw new InvalidFormatException("Value specified for \"studyDateIsToday\" but either \"studyDateFrom\", \"studyDateTo\", or both were also specified.", "studyDateIsToday", Date.class);
                     }
-                    final LocalDateTime now = LocalDateTime.now();
-                    startRange = now;
-                    endRange = now;
+                    startRange = endRange = LocalDateTime.now();
                     break;
                 case "studyDateFrom":
                     final String startText = parser.getText();

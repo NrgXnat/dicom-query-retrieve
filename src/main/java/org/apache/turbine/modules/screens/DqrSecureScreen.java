@@ -21,7 +21,7 @@ import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.PacsEntityService;
+import org.nrg.xnatx.dqr.services.PacsService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public abstract class DqrSecureScreen extends SecureScreen {
     }
 
     protected void storeProjectAndQueryablePacs(final RunData data, final Context context) {
-        final List<Pacs> pacsList = getPacsEntityService().findAllQueryable();
+        final List<Pacs> pacsList = getPacsService().findAllQueryable();
         if (pacsList.isEmpty()) {
             data.setScreenTemplate("PacsSessionFinderNoPacsFound.vm");
         } else {
@@ -64,11 +64,11 @@ public abstract class DqrSecureScreen extends SecureScreen {
         return _dqrPreferences;
     }
 
-    protected PacsEntityService getPacsEntityService() {
-        if (_pacsEntityService == null) {
-            _pacsEntityService = XDAT.getContextService().getBean(PacsEntityService.class);
+    protected PacsService getPacsService() {
+        if (_pacsService == null) {
+            _pacsService = XDAT.getContextService().getBean(PacsService.class);
         }
-        return _pacsEntityService;
+        return _pacsService;
     }
 
     protected DicomSCPManager getDicomSCPManager() {
@@ -85,8 +85,8 @@ public abstract class DqrSecureScreen extends SecureScreen {
         return _strategies;
     }
 
-    private static DqrPreferences           _dqrPreferences;
-    private static PacsEntityService        _pacsEntityService;
-    private static DicomSCPManager          _dicomSCPManager;
+    private static DqrPreferences  _dqrPreferences;
+    private static PacsService     _pacsService;
+    private static DicomSCPManager _dicomSCPManager;
     private static Map<String, OrmStrategy> _strategies;
 }
