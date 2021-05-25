@@ -177,7 +177,6 @@ XNAT.app = getObject(XNAT.app || {});
                             label: 'Queryable',
                             onText: 'Yes',
                             offText: 'No',
-                            value: false,
                             addClass: 'toggle-query'
                         }),
                         XNAT.ui.panel.input.switchbox({
@@ -191,15 +190,13 @@ XNAT.app = getObject(XNAT.app || {});
                             label: 'Storable',
                             onText: 'Yes',
                             offText: 'No',
-                            value: false,
                             addClass: 'toggle-store'
                         }),
                         XNAT.ui.panel.input.switchbox({
                             name: 'defaultStoragePacs',
                             label: 'Default Storage AE',
                             onText: 'Yes',
-                            offText: 'No',
-                            value: false
+                            offText: 'No'
                         })
                     ])
                 );
@@ -236,7 +233,7 @@ XNAT.app = getObject(XNAT.app || {});
                             return false;
                         }
 
-                        // // validate AE title
+                        // validate AE title
                         var submittedAeTitle = $form.find('input[name=aeTitle]').val().toLowerCase();
                         if (originalPacsLabel && submittedAeTitle !== originalPacsLabel && pacsList.indexOf(submittedAeTitle) >= 0) {
                             xmodal.alert('<strong>Error:</strong> You cannot save more than one connection to a single AE Title');
@@ -468,7 +465,8 @@ XNAT.app = getObject(XNAT.app || {});
     function editPacs($form) {
         XNAT.xhr.putJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs/" + currentOperation.pacs.id),
-            data: XNAT.xhr.formToJSON($form, true),
+            data: JSON.stringify($form),
+            // data: XNAT.xhr.formToJSON($form, true),
             success: function () {
                 xmodal.close();
                 getAllPacs();
@@ -483,12 +481,42 @@ XNAT.app = getObject(XNAT.app || {});
         openModalPanel(constants.MODAL_WINDOW_NAME, "Loading data...");
     }
 
+    function setInitialAvailability(pacsObj){
+        var pacsId = pacsObj.id;
+        var days = ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"];
+        days.forEach(function(day){
+            var availabilityObj = {
+                availabilityStart: "0:00",
+                availabilityEnd: "24:00",
+                dayOfWeek: day,
+                pacsId: pacsId,
+                threads: 1,
+                utilizationPercent: 100
+            };
+            XNAT.xhr.postJSON({
+                url: XNAT.url.csrfUrl('/xapi/pacs/'+pacsId+'/availability'),
+                data: JSON.stringify(availabilityObj),
+                cache: false,
+                processData: false,
+                success: function(data){
+                    console.log(data)
+                },
+                fail: function(e){
+                    console.warn(e)
+                }
+            })
+        })
+
+    }
+
     function addPacs($form) {
         XNAT.xhr.postJSON({
             url: XNAT.url.csrfUrl("/xapi/pacs"),
-            data: XNAT.xhr.formToJSON($form, true),
-            success: function () {
+            data: JSON.stringify($form),
+            // data: XNAT.xhr.formToJSON($form, true),
+            success: function (data) {
                 xmodal.close();
+                if (data.queryable) setInitialAvailability(data); // if this PACS can be queried, set an initial availability window
                 getAllPacs();
                 XNAT.ui.banner.top(3000, 'Created new DICOM AE connection', 'success');
             },
@@ -574,7 +602,7 @@ XNAT.app = getObject(XNAT.app || {});
     PacsAdministration.checkPacsStatus = function(id, button){
         id = parseInt(id);
         var $button = $(button);
-        var url = XNAT.url.rootUrl('/xapi/dqr/pacsStatus/ping/'+id);
+        var url = XNAT.url.rootUrl('/xapi/pacs/'+id+'/status');
 
         function showPingError(errorObj){
             xmodal.loading.close();
@@ -668,12 +696,12 @@ XNAT.app = getObject(XNAT.app || {});
         getObject(XNAT.app.dqr.queryQueue || {});
 
     function getQueryHistoryUrl(id){
-        var appended = (id) ? '/request/'+id : '/all';
+        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
         return XNAT.url.restUrl('/xapi/dqr/query/history' + appended);
     }
 
     function getQueryQueueUrl(id){
-        var appended = (id) ? '/request/'+id : '/all';
+        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
         return XNAT.url.restUrl('/xapi/dqr/query/queue' + appended);
     }
 

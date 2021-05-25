@@ -129,8 +129,8 @@ var XNAT = getObject(XNAT || {});
     // ...a very ham-fisted approach to handle this
     function initDatePickers(){
 
-        var $studyDateFrom = dateInputSetup$('study-date-from', 'studyDateFrom');
-        var $studyDateTo   = dateInputSetup$('study-date-to', 'studyDateTo');
+        var $studyDateFrom = dateInputSetup$('study-date-from', 'startDate');
+        var $studyDateTo   = dateInputSetup$('study-date-to', 'endDate');
 
         $studyDateFromContainer.empty().append($studyDateFrom);
         $studyDateToContainer.empty().append($studyDateTo);
@@ -525,8 +525,8 @@ var XNAT = getObject(XNAT || {});
         var pacsId = this.value;
         if (!pacsId || pacsId === dqr.selectedPacs) return false;
         var PACS = this.options[this.selectedIndex].textContent;
-        // only show the dialog if there are are items in the dqr['allSearchResults'] object
-        if (Object.keys(dqr.allSearchResults).length) {
+
+        function resetSearch(pacsId){
             XNAT.dialog.open({
                 width: 400,
                 title: 'Change Source PACS?',
@@ -546,6 +546,34 @@ var XNAT = getObject(XNAT || {});
                 }
             });
         }
+
+        // ping the PACS to ensure it is up
+        XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
+            .success(function(data){
+                if (data.successful) {
+                    $('#pacs-status-indicator').empty().css('color','#393').append(
+                        spawn('!',[
+                            spawn('i.fa.fa-check'),
+                            spawn('span', { style: { padding: '0 4px' }}, 'Ready to Query')
+                        ])
+                    );
+                    // only show the dialog if there are are items in the dqr['allSearchResults'] object
+                    if (Object.keys(dqr.allSearchResults).length) {
+                        resetSearch(pacsId);
+                    }
+                } else {
+                    $('#pacs-status-indicator').empty().css('color','#933').append(
+                        spawn('!',[
+                            spawn('i.fa.fa-cancel'),
+                            spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
+                        ])
+                    )
+                }
+            })
+            .fail(function(e){
+                XNAT.dialog.message("Error: could not test PACS connection")
+            });
+
     });
 
     // initialize date fields *after* DOM loads
@@ -603,10 +631,15 @@ var XNAT = getObject(XNAT || {});
 
     function getStudies(pacsId, studyUIDs){
         var UIDS = [].concat(studyUIDs).join(',');
-        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies');
+        var requestData = {
+            pacsId: pacsId,
+            studyInstanceUids: UIDS
+        };
+        // var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies');
+        var URL = XNAT.url.csrfUrl('/xapi/dqr/query/series');
         return XNAT.xhr.postJSON({
             url: URL,
-            data: UIDS,
+            data: JSON.stringify(requestData),
             success: function(studies){
                 console.log(studies);
             }
@@ -872,10 +905,7 @@ var XNAT = getObject(XNAT || {});
 
 
     function scanTypesDialog(pacsId, studyUIDs){
-        console.log('scanTypesDialog');
         getStudies(pacsId, studyUIDs).done(function(studies){
-            console.log('studies');
-            console.log(studies);
             collectScanTypes(studies);
             var scanTypesTable = scanTypesListDisplay();
             XNAT.dialog.open({
@@ -903,7 +933,7 @@ var XNAT = getObject(XNAT || {});
 
     }
 
-    function renderResultsTable(json){
+    dqr.renderResultsTable = renderResultsTable = function(json){
 
         // console.log(json);
 
@@ -1222,9 +1252,55 @@ var XNAT = getObject(XNAT || {});
         // init new filter method
         XNAT.plugin.dqr.filterableItems($pacsSearchResults);
 
+        var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
+            html: 'Begin Import',
+            on: [
+                ['click', function(e){
+                    e.preventDefault();
+                    var studyUIDs = [];
+                    $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
+                        studyUIDs.push(this.value);
+                    });
+                    if (!studyUIDs.length) {
+                        XNAT.dialog.message(false, 'Please select at least one study to import.');
+                        return false;
+                    }
+                    dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                    scanTypesDialog(dqr.selectedPacs, studyUIDs);
+                }]
+            ]
+        });
+
         $searchResultsSubmit.empty();
 
-        function renderBottom(receivers){
+        $searchResultsSubmit.spawn('div.pull-right', [ beginImportButton ])
+
+
+    };
+
+    function pingPACS(id, callback){
+        if (!id) {
+            console.warn('id required');
+            return;
+        }
+        return XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/pacs/' + id + '/status'),
+            success: function(data){
+                if (data && data.enabled) {
+                    if (isFunction(callback)) {
+                        callback.call(this, id);
+                    }
+                }
+            },
+            failure: function(){
+                console.warn('PACS ping failed');
+                console.warn(arguments);
+            }
+        });
+    }
+
+    dqr.initReceivers = initReceivers = function(){
+        function renderScpSelector(receivers){
 
             var aeMenu$         = $.spawn('select#ae-menu');
             var aeMenu0         = aeMenu$[0];
@@ -1257,6 +1333,16 @@ var XNAT = getObject(XNAT || {});
 
             var relabelInputs$ = null;
 
+            function showReceiverWarning(e){
+                e.preventDefault();
+                XNAT.dialog.message({
+                    title: 'SCP Receiver Configuration Error',
+                    content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver</p>'+
+                        '<p>You can still query PACS data in this configuration.</p>' +
+                        '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
+                });
+            }
+
             function toggleRemapping(e){
 
                 try {
@@ -1287,44 +1373,26 @@ var XNAT = getObject(XNAT || {});
 
             toggleRemapping.call(aeMenu0);
 
-            var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
-                html: 'Begin Import',
-                on: [
-                    ['click', function(e){
-                        e.preventDefault();
-                        console.log('importing...');
-                        var studyUIDs = [];
-                        $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
-                            studyUIDs.push(this.value);
-                        });
-                        if (!studyUIDs.length) {
-                            XNAT.dialog.message(false, 'Please select at least one study to import.');
-                            return false;
-                        }
-                        dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                        scanTypesDialog(dqr.selectedPacs, studyUIDs);
-                    }]
-                ]
-            });
-
             if (!hasReceiver) {
-                aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
-                aeMenu0.disabled = true;
+                // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
+                // aeMenu0.disabled = true;
                 beginImportButton.disabled = true;
                 beginImportButton.classList && beginImportButton.classList.add('disabled');
-            }
 
-            $searchResultsSubmit.spawn('div.pull-right', {
-                on: [['change', '#ae-menu', toggleRemapping]]
-            }, [
-                '<br>',
-                hasReceiver ?
-                    'Select SCP Receiver: ' :
-                    '<small style="color:#777;"><i>There are no available DQR receivers.</i></small>&nbsp;',
-                aeMenu0,
-                '&nbsp;&nbsp;',
-                beginImportButton
-            ]);
+                $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', {
+                    style: { color: '#933' }
+                }, [
+                    '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
+                ]));
+            } else {
+
+                $('#scp-receiver-selector').empty().append(spawn('span', {
+                    on: [['change', '#ae-menu', toggleRemapping]]
+                }, [
+                    'Select SCP Receiver: ',
+                    aeMenu0
+                ]));
+            }
 
         }
 
@@ -1339,43 +1407,46 @@ var XNAT = getObject(XNAT || {});
                     'aeTitle': 'XNAT',
                     'customProcessing': true
                 };
-                renderBottom(json);
+                renderScpSelector(json);
             },
             failure: function(e){
                 console.warn('Could not retrieve SCP Receivers');
             }
         });
+    };
 
-    }
+    dqr.searchPacs = searchPACS = function(id){
 
-    function pingPACS(id, callback){
-        if (!id) {
-            console.warn('id required');
-            return;
-        }
-        return XNAT.xhr.getJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/pacsStatus/ping/' + id),
-            success: function(json){
-                if (json && json.successful) {
-                    if (isFunction(callback)) {
-                        callback.call(this, id);
-                    }
-                }
+        var searchObj = {
+            "accessionNumber": "string",
+            "dob": "string",
+            "modality": "string",
+            "pacsId": 0,
+            "patientId": "string",
+            "patientName": "string",
+            "seriesDescription": "string",
+            "seriesInstanceUid": "string",
+            "seriesNumber": 0,
+            "studyDateRange": {
+                "bounded": true,
+                "boundedAtEnd": true,
+                "boundedAtStart": true,
+                "empty": true,
+                "end": "2021-05-25T18:33:01.812Z",
+                "endDate": "2021-05-25T18:33:01.812Z",
+                "start": "2021-05-25T18:33:01.812Z",
+                "startDate": "2021-05-25T18:33:01.812Z"
             },
-            failure: function(){
-                console.warn('PACS ping failed');
-                console.warn(arguments);
-            }
-        });
-    }
-
-    function searchPACS(id){
-
-        console.log('PACS search...');
+            "studyId": "string",
+            "studyInstanceUid": "string"
+        };
 
         var selectedPacs = id || dqr.selectedPacs || $selectPacsMenu.val();
 
-        var searchCriteria = {};
+        var searchCriteria = {
+            pacsId: selectedPacs,
+            studyDateRange: {}
+        };
 
         $pacsSearchFields.find('input').not('.ignore').serializeArray().forEach(function(param, i){
             // skip fields that start with '!'
@@ -1386,17 +1457,24 @@ var XNAT = getObject(XNAT || {});
 
         searchCriteria.pacsId = selectedPacs;
 
-        // transform date to expected format
-        if (searchCriteria.studyDateFrom) {
-            searchCriteria.studyDateFrom = (new SplitDate(searchCriteria.studyDateFrom)).US;
+        // transform date to expected format and reposition in object structure
+        if (searchCriteria.startDate) {
+            searchCriteria.studyDateRange.startDate = (new SplitDate(searchCriteria.startDate)).US;
+            searchCriteria.studyDateRange.bounded = true;
+            searchCriteria.studyDateRange.boundedAtStart = true;
+            delete searchCriteria.startDate;
         }
-        if (searchCriteria.studyDateTo) {
-            searchCriteria.studyDateTo = (new SplitDate(searchCriteria.studyDateTo)).US;
+        if (searchCriteria.endDate) {
+            searchCriteria.studyDateRange.endDate = (new SplitDate(searchCriteria.endDate)).US;
+            searchCriteria.studyDateRange.bounded = true;
+            searchCriteria.studyDateRange.boundedAtEnd = true;
+            delete searchCriteria.endDate;
         }
 
-        // console.log(searchCriteria);
+        console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
+        // var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
+        var searchUrl = XNAT.url.csrfUrl('/xapi/dqr/query/studies');
 
         // console.log(searchUrl);
 
@@ -1543,7 +1621,13 @@ var XNAT = getObject(XNAT || {});
         });
     });
 
+    dqr.initSearchPage = function(){
+        initReceivers();
+    };
+
     XNAT.plugin.dqr = dqr;
+
+    XNAT.plugin.dqr.initSearchPage();
 
 }));
 

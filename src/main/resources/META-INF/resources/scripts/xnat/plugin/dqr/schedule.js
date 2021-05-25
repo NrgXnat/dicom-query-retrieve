@@ -265,11 +265,11 @@ console.log('dqr/schedule.js');
                             XNAT.ui.banner.top(2000, 'Saved', 'success');
                             dlg.close();
                         });
-                        saveInterval.fail(function(txt){
+                        saveInterval.fail(function(e){
                             console.error(arguments);
-                            XNAT.dialog.message('Error', '' +
+                            XNAT.dialog.message('Scheduling Error', '' +
                                 '<p>An error occurred when saving.</p>' +
-                                '<div class="error">' + txt + '</div>' +
+                                '<div class="error">' + e.responseText + '</div>' +
                                 '');
                         });
                     }
@@ -306,7 +306,7 @@ console.log('dqr/schedule.js');
                         okLabel: 'Delete',
                         okClose: false,
                         okAction: function(dlg2){
-                            XNAT.xhr.delete('~/xapi/dqr/pacsAvailability/window/' + id)
+                            XNAT.xhr.delete('~/xapi/pacs/'+data.pacsId+'/availability/' + id)
                                 .done(function(){
                                     renderDayRows();
                                     XNAT.ui.banner.top(2000, 'Deleted', 'success');
@@ -388,7 +388,7 @@ console.log('dqr/schedule.js');
                     method: id ? 'PUT' : 'POST',
                     contentType: 'json',
                     load: data,
-                    action: '~/xapi/dqr/pacsAvailability/window' + (id ? '/' + id : ''),
+                    action: '~/xapi/pacs/'+ window.pacsId + '/availability' + (id ? '/' + id : ''),
                     contents: {
                         id: idField(),
                         pacsId: {
@@ -481,7 +481,7 @@ console.log('dqr/schedule.js');
         // assemble the DOM elements for later insertion all at once
         var tmpFrag = document.createDocumentFragment();
 
-        var scheduleUrl = XNAT.url.restUrl('/xapi/dqr/pacsAvailability/windows/' + window.pacsId + '/byDay');
+        var scheduleUrl = XNAT.url.restUrl('/xapi/pacs/' + window.pacsId + '/availability');
 
         // get data then apply it to each day
         var getSchedule = XNAT.xhr.get(scheduleUrl);
@@ -604,9 +604,6 @@ console.log('dqr/schedule.js');
                     });
                 }
 
-                // console.log('blocks');
-                // console.log(blocks);
-
                 Object.keys(blocks).sort().forEach(function(startKey, i){
 
                     // process values needed for display
@@ -628,8 +625,6 @@ console.log('dqr/schedule.js');
                         threads + '',
                         ['span', {}, ((threads === 1) ? ' thread' : ' threads') + (+threads !== 0 ? (' @ ' + pct + '%') : '')]
                     ]);
-
-                    console.log(block);
 
                     // create the div to represent this interval
                     var timeBlock = spawn('div.time-block', {
