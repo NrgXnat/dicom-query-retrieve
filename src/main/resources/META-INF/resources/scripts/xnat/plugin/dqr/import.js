@@ -129,8 +129,8 @@ var XNAT = getObject(XNAT || {});
     // ...a very ham-fisted approach to handle this
     function initDatePickers(){
 
-        var $studyDateFrom = dateInputSetup$('study-date-from', 'studyDateFrom');
-        var $studyDateTo   = dateInputSetup$('study-date-to', 'studyDateTo');
+        var $studyDateFrom = dateInputSetup$('study-date-from', 'startDate');
+        var $studyDateTo   = dateInputSetup$('study-date-to', 'endDate');
 
         $studyDateFromContainer.empty().append($studyDateFrom);
         $studyDateToContainer.empty().append($studyDateTo);
@@ -631,10 +631,15 @@ var XNAT = getObject(XNAT || {});
 
     function getStudies(pacsId, studyUIDs){
         var UIDS = [].concat(studyUIDs).join(',');
-        var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies');
+        var requestData = {
+            pacsId: pacsId,
+            studyInstanceUids: UIDS
+        };
+        // var URL  = XNAT.url.restUrl('/xapi/dqr/seriesInfo/pacs/' + pacsId + '/studies');
+        var URL = XNAT.url.csrfUrl('/xapi/dqr/query/series');
         return XNAT.xhr.postJSON({
             url: URL,
-            data: UIDS,
+            data: JSON.stringify(requestData),
             success: function(studies){
                 console.log(studies);
             }
@@ -900,10 +905,7 @@ var XNAT = getObject(XNAT || {});
 
 
     function scanTypesDialog(pacsId, studyUIDs){
-        console.log('scanTypesDialog');
         getStudies(pacsId, studyUIDs).done(function(studies){
-            console.log('studies');
-            console.log(studies);
             collectScanTypes(studies);
             var scanTypesTable = scanTypesListDisplay();
             XNAT.dialog.open({
@@ -1250,9 +1252,31 @@ var XNAT = getObject(XNAT || {});
         // init new filter method
         XNAT.plugin.dqr.filterableItems($pacsSearchResults);
 
+        var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
+            html: 'Begin Import',
+            on: [
+                ['click', function(e){
+                    e.preventDefault();
+                    var studyUIDs = [];
+                    $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
+                        studyUIDs.push(this.value);
+                    });
+                    if (!studyUIDs.length) {
+                        XNAT.dialog.message(false, 'Please select at least one study to import.');
+                        return false;
+                    }
+                    dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                    scanTypesDialog(dqr.selectedPacs, studyUIDs);
+                }]
+            ]
+        });
+
         $searchResultsSubmit.empty();
 
-    }
+        $searchResultsSubmit.spawn('div.pull-right', [ beginImportButton ])
+
+
+    };
 
     function pingPACS(id, callback){
         if (!id) {
@@ -1273,7 +1297,7 @@ var XNAT = getObject(XNAT || {});
                 console.warn(arguments);
             }
         });
-    };
+    }
 
     dqr.initReceivers = initReceivers = function(){
         function renderScpSelector(receivers){
@@ -1349,26 +1373,6 @@ var XNAT = getObject(XNAT || {});
 
             toggleRemapping.call(aeMenu0);
 
-            var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
-                html: 'Begin Import',
-                on: [
-                    ['click', function(e){
-                        e.preventDefault();
-                        console.log('importing...');
-                        var studyUIDs = [];
-                        $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
-                            studyUIDs.push(this.value);
-                        });
-                        if (!studyUIDs.length) {
-                            XNAT.dialog.message(false, 'Please select at least one study to import.');
-                            return false;
-                        }
-                        dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
-                        scanTypesDialog(dqr.selectedPacs, studyUIDs);
-                    }]
-                ]
-            });
-
             if (!hasReceiver) {
                 // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
                 // aeMenu0.disabled = true;
@@ -1390,7 +1394,6 @@ var XNAT = getObject(XNAT || {});
                 ]));
             }
 
-            $searchResultsSubmit.spawn('div.pull-right', beginImportButton)
         }
 
         XNAT.xhr.get({
@@ -1414,11 +1417,36 @@ var XNAT = getObject(XNAT || {});
 
     dqr.searchPacs = searchPACS = function(id){
 
-        console.log('PACS search...');
+        var searchObj = {
+            "accessionNumber": "string",
+            "dob": "string",
+            "modality": "string",
+            "pacsId": 0,
+            "patientId": "string",
+            "patientName": "string",
+            "seriesDescription": "string",
+            "seriesInstanceUid": "string",
+            "seriesNumber": 0,
+            "studyDateRange": {
+                "bounded": true,
+                "boundedAtEnd": true,
+                "boundedAtStart": true,
+                "empty": true,
+                "end": "2021-05-25T18:33:01.812Z",
+                "endDate": "2021-05-25T18:33:01.812Z",
+                "start": "2021-05-25T18:33:01.812Z",
+                "startDate": "2021-05-25T18:33:01.812Z"
+            },
+            "studyId": "string",
+            "studyInstanceUid": "string"
+        };
 
         var selectedPacs = id || dqr.selectedPacs || $selectPacsMenu.val();
 
-        var searchCriteria = {};
+        var searchCriteria = {
+            pacsId: selectedPacs,
+            studyDateRange: {}
+        };
 
         $pacsSearchFields.find('input').not('.ignore').serializeArray().forEach(function(param, i){
             // skip fields that start with '!'
@@ -1429,17 +1457,24 @@ var XNAT = getObject(XNAT || {});
 
         searchCriteria.pacsId = selectedPacs;
 
-        // transform date to expected format
-        if (searchCriteria.studyDateFrom) {
-            searchCriteria.studyDateFrom = (new SplitDate(searchCriteria.studyDateFrom)).US;
+        // transform date to expected format and reposition in object structure
+        if (searchCriteria.startDate) {
+            searchCriteria.studyDateRange.startDate = (new SplitDate(searchCriteria.startDate)).US;
+            searchCriteria.studyDateRange.bounded = true;
+            searchCriteria.studyDateRange.boundedAtStart = true;
+            delete searchCriteria.startDate;
         }
-        if (searchCriteria.studyDateTo) {
-            searchCriteria.studyDateTo = (new SplitDate(searchCriteria.studyDateTo)).US;
+        if (searchCriteria.endDate) {
+            searchCriteria.studyDateRange.endDate = (new SplitDate(searchCriteria.endDate)).US;
+            searchCriteria.studyDateRange.bounded = true;
+            searchCriteria.studyDateRange.boundedAtEnd = true;
+            delete searchCriteria.endDate;
         }
 
-        // console.log(searchCriteria);
+        console.log(searchCriteria);
 
-        var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
+        // var searchUrl = XNAT.url.csrfUrl('/xapi/pacs/' + selectedPacs + '/studies', {}, false);
+        var searchUrl = XNAT.url.csrfUrl('/xapi/dqr/query/studies');
 
         // console.log(searchUrl);
 
