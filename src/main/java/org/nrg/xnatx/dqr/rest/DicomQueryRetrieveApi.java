@@ -194,129 +194,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return true;
     }
 
-    @ApiOperation(value = "Returns a list of completed DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "The list of completed DICOM query requests."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public List<ExecutedPacsRequest> queryHistory(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
-                                                  @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
-                                                  @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
-        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
-        return user ? _executedRequestService.getAllForUser(getSessionUser(), request) : _executedRequestService.getPaginated(request);
-    }
-
-    @ApiOperation(value = "Get count of all DICOM query requests.", notes = "The DICOM query history count function returns a count of all DICOM queries that have ever been made on the XNAT system.", response = Integer.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "A count of completed DICOM query requests."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/history/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public long queryHistoryCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
-        return user ? _executedRequestService.getAllForUserCount(getSessionUser()) : _executedRequestService.getCount();
-    }
-
-    @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = ExecutedPacsRequest.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "A DICOM query request."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/history/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public ExecutedPacsRequest queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
-        try {
-            final UserI user = getSessionUser();
-            return Roles.isSiteAdmin(user) ? _executedRequestService.get(id) : _executedRequestService.getByIdForUser(id, user);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new NotFoundException("No executed PACS request with ID " + id + " found");
-        }
-    }
-
-    @ApiOperation(value = "Returns a list of queued DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "The list of queued DICOM query requests."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public List<QueuedPacsRequest> queryQueue(@ApiParam("Indicates that the queued requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
-                                              @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
-                                              @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
-        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
-        return user ? _queuedRequestService.getAllForUser(getSessionUser(), request) : _queuedRequestService.getPaginated(request);
-    }
-
-    @ApiOperation(value = "Get count of all queued DICOM query requests.", notes = "The DICOM query queue count function returns a count of all DICOM queries that are currently queued on the XNAT system.", response = Integer.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "A count of queued DICOM query requests."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "query/queue/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public long queryQueueCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
-        return user ? _queuedRequestService.getAllForUserCount(getSessionUser()) : _queuedRequestService.getCount();
-    }
-
-    @ApiOperation(value = "Deletes queued DICOM query requests with the given IDs.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns true to indicate the queued DICOM query requests were successfully deleted."),
-                   @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
-                   @ApiResponse(code = 404, message = "The queued DICOM query requests weren't found."),
-                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queue", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public boolean queryQueueDelete(@RequestBody final List<Long> idsToDelete) throws InsufficientPrivilegesException, NotFoundException {
-        final List<Long> idsNotFound = new ArrayList<>();
-        for (final long idToDelete : idsToDelete) {
-            try {
-                queryQueueDelete(idToDelete);
-            } catch (NotFoundException e) {
-                idsNotFound.add(idToDelete);
-            }
-        }
-        if (idsNotFound.isEmpty()) {
-            return true;
-        }
-        throw new NotFoundException("Deleted " + (idsToDelete.size() - idsNotFound.size()) + " queued requests, but the remaining IDs were not found: " + idsNotFound.stream().map(Object::toString).collect(Collectors.joining(", ")));
-    }
-
-    @ApiOperation(value = "Get the specified queued DICOM query request by ID.", notes = "The DICOM query queue function returns information about the queued DICOM query with a given ID.", response = QueuedPacsRequest.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
-                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
-                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
-                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queue/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public QueuedPacsRequest queryQueueGet(@ApiParam(value = "ID of the queued query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
-        try {
-            final UserI user = getSessionUser();
-            return Roles.isSiteAdmin(user) ? _queuedRequestService.get(id) : _queuedRequestService.getByIdForUser(id, user);
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new NotFoundException("No queued PACS request with ID " + id + " found");
-        }
-    }
-
-    @ApiOperation(value = "Deletes the queued DICOM query request with given ID.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
-    @ApiResponses({@ApiResponse(code = 200, message = "Returns true to indicate the queued DICOM query request was successfully deleted."),
-                   @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
-                   @ApiResponse(code = 404, message = "The queued DICOM query request wasn't found."),
-                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "query/queue/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authorizer)
-    public boolean queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable final long id) throws NotFoundException, InsufficientPrivilegesException {
-        final UserI user = getSessionUser();
-        try {
-            final QueuedPacsRequest request = _queuedRequestService.get(id);
-            if (!Roles.isSiteAdmin(user) && !StringUtils.equals(request.getUsername(), user.getUsername())) {
-                throw new InsufficientPrivilegesException(user.getUsername(), Long.toString(id));
-            }
-            _queuedRequestService.delete(id);
-            return true;
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new NotFoundException("No queued PACS request with ID " + id + " found");
-        }
-    }
-
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
     @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -398,9 +275,9 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @ApiOperation(value = "Uses the uploaded csv to generate JSON (with the format the new importer wants) containing information about what would be imported if the user decides to continue.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "CSV successfully uploaded and processed."), @ApiResponse(code = 400, message = "Uploaded file must be a CSV."), @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."), @ApiResponse(code = 403, message = "Not authorized to upload a CSV."), @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "import", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public ResponseEntity<List<FindRow>> importFromPacs(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") MultipartFile csv,
-                                                        @ApiParam("Pacs to query.") @RequestParam final Long pacsId,
+    @XapiRequestMapping(value = "query/batch", consumes = MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
+    public ResponseEntity<List<FindRow>> importFromPacs(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") final MultipartFile csv,
+                                                        @ApiParam("PACS to query.") @RequestParam final Long pacsId,
                                                         @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(defaultValue = "false") final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
         final File temp = File.createTempFile("xnat", "csv");
         try (final InputStream input = csv.getInputStream(); final OutputStream output = new FileOutputStream(temp)) {
@@ -430,6 +307,129 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _dqrService.importFromPacs(getSessionUser(), request);
     }
 
+    @ApiOperation(value = "Returns a list of queued DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The list of queued DICOM query requests."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "import/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public List<QueuedPacsRequest> queryQueue(@ApiParam("Indicates that the queued requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
+                                              @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
+                                              @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
+                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
+        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
+        return user ? _queuedRequestService.getAllForUser(getSessionUser(), request) : _queuedRequestService.getPaginated(request);
+    }
+
+    @ApiOperation(value = "Get count of all queued DICOM query requests.", notes = "The DICOM query queue count function returns a count of all DICOM queries that are currently queued on the XNAT system.", response = Integer.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "A count of queued DICOM query requests."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "import/queue/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public long queryQueueCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
+        return user ? _queuedRequestService.getAllForUserCount(getSessionUser()) : _queuedRequestService.getCount();
+    }
+
+    @ApiOperation(value = "Deletes queued DICOM query requests with the given IDs.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns true to indicate the queued DICOM query requests were successfully deleted."),
+                   @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
+                   @ApiResponse(code = 404, message = "The queued DICOM query requests weren't found."),
+                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/queue", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
+    public boolean queryQueueDelete(@RequestBody final List<Long> idsToDelete) throws InsufficientPrivilegesException, NotFoundException {
+        final List<Long> idsNotFound = new ArrayList<>();
+        for (final long idToDelete : idsToDelete) {
+            try {
+                queryQueueDelete(idToDelete);
+            } catch (NotFoundException e) {
+                idsNotFound.add(idToDelete);
+            }
+        }
+        if (idsNotFound.isEmpty()) {
+            return true;
+        }
+        throw new NotFoundException("Deleted " + (idsToDelete.size() - idsNotFound.size()) + " queued requests, but the remaining IDs were not found: " + idsNotFound.stream().map(Object::toString).collect(Collectors.joining(", ")));
+    }
+
+    @ApiOperation(value = "Get the specified queued DICOM query request by ID.", notes = "The DICOM query queue function returns information about the queued DICOM query with a given ID.", response = QueuedPacsRequest.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/queue/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public QueuedPacsRequest queryQueueGet(@ApiParam(value = "ID of the queued query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
+        try {
+            final UserI user = getSessionUser();
+            return Roles.isSiteAdmin(user) ? _queuedRequestService.get(id) : _queuedRequestService.getByIdForUser(id, user);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("No queued PACS request with ID " + id + " found");
+        }
+    }
+
+    @ApiOperation(value = "Deletes the queued DICOM query request with given ID.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Returns true to indicate the queued DICOM query request was successfully deleted."),
+                   @ApiResponse(code = 403, message = "The user doesn't have permission to delete queued DICOM query requests."),
+                   @ApiResponse(code = 404, message = "The queued DICOM query request wasn't found."),
+                   @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/queue/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authorizer)
+    public boolean queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable final long id) throws NotFoundException, InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        try {
+            final QueuedPacsRequest request = _queuedRequestService.get(id);
+            if (!Roles.isSiteAdmin(user) && !StringUtils.equals(request.getUsername(), user.getUsername())) {
+                throw new InsufficientPrivilegesException(user.getUsername(), Long.toString(id));
+            }
+            _queuedRequestService.delete(id);
+            return true;
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("No queued PACS request with ID " + id + " found");
+        }
+    }
+
+    @ApiOperation(value = "Returns a list of completed DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The list of completed DICOM query requests."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "import/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public List<ExecutedPacsRequest> queryHistory(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
+                                                  @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
+                                                  @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
+                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
+        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
+        return user ? _executedRequestService.getAllForUser(getSessionUser(), request) : _executedRequestService.getPaginated(request);
+    }
+
+    @ApiOperation(value = "Get count of all DICOM query requests.", notes = "The DICOM query history count function returns a count of all DICOM queries that have ever been made on the XNAT system.", response = Integer.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "A count of completed DICOM query requests."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "import/history/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    public long queryHistoryCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
+        return user ? _executedRequestService.getAllForUserCount(getSessionUser()) : _executedRequestService.getCount();
+    }
+
+    @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = ExecutedPacsRequest.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "A DICOM query request."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the DICOM query request."),
+                   @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/history/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public ExecutedPacsRequest queryHistoryGet(@ApiParam(value = "ID of the query request to fetch", required = true) @PathVariable final long id) throws NotFoundException {
+        try {
+            final UserI user = getSessionUser();
+            return Roles.isSiteAdmin(user) ? _executedRequestService.get(id) : _executedRequestService.getByIdForUser(id, user);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("No executed PACS request with ID " + id + " found");
+        }
+    }
+
     @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Scans sent to PACS."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -446,7 +446,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "export", method = RequestMethod.PUT, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
-    public Map<String, Object> export(@ApiParam("Id of PACS to send to.") @RequestParam final long pacsId,
+    public Map<String, Object> export(@ApiParam("ID of PACS to send to.") @RequestParam final long pacsId,
                                       @ApiParam("XNAT session to send.") @RequestParam final String session,
                                       @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws Exception {
         final Pacs _pacs = getPacsService().retrieve(pacsId);
