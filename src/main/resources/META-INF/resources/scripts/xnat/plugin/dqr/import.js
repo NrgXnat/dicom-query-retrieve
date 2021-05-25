@@ -35,6 +35,9 @@ var XNAT = getObject(XNAT || {});
     XNAT.plugin.dqr = dqr =
         getObject(XNAT.plugin.dqr || {});
 
+    // set import capability status
+    dqr.canImport = true;
+
     // cache DOM elements when script loads for faster access later
     var $selectPacsMenu      = $('#select-pacs');
     var $pacsSearchFields    = $('#pacs-search-fields');
@@ -478,8 +481,12 @@ var XNAT = getObject(XNAT || {});
 
     }
 
+    dqr.pacsDate = pacsDate = function(dateString){
+        // accepts YYYY-MM-DD and returns YYYYMMDD, which is a non-standard date format anywhere else but is accepted by PACS
+        return dateString.replace(/-/g,'');
+    };
 
-    function resetResults(clear){
+    dqr.resetResults = resetResults = function(clear){
 
         dqr.searchResults    = [];
         dqr.allSearchResults = {};
@@ -513,11 +520,6 @@ var XNAT = getObject(XNAT || {});
 
     // immediately render the 'query info' message
     resetResults(true);
-
-    // and bind to the 'Clear Search Results' button
-    $('#clear-search-results').on('click', function(){
-        resetResults(true);
-    });
 
     // reset the search results if changing source PACS...
     // ...but warn the user first
@@ -1252,6 +1254,16 @@ var XNAT = getObject(XNAT || {});
         // init new filter method
         XNAT.plugin.dqr.filterableItems($pacsSearchResults);
 
+        var resetSearchButton = spawn('button#clear-search-results.clear-search-results.btn|type=button',{
+            html: 'Clear Search',
+            on: [
+                ['click', function(e){
+                    // e.preventDefault();
+                    resetResults(true);
+                }]
+            ]
+        });
+
         var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
             html: 'Begin Import',
             on: [
@@ -1271,10 +1283,23 @@ var XNAT = getObject(XNAT || {});
             ]
         });
 
-        $searchResultsSubmit.empty();
+        var importBlockedButton = spawn('button.btn.btn1.disabled|type=button',{
+            html: 'Cannot Import',
+            on: [
+                ['click',function(e){
+                    e.preventDefault();
+                    XNAT.ui.dialog.message('Cannot import data with your current configuration. Please contact a site administrator.');
+                }]
+            ]
+        });
 
-        $searchResultsSubmit.spawn('div.pull-right', [ beginImportButton ])
-
+        $searchResultsSubmit.empty().spawn('div.pull-right', {
+            style: { 'padding-top': '20px' }
+        }, [
+            resetSearchButton,
+            '&nbsp;',
+            (dqr.canImport)? beginImportButton : importBlockedButton
+        ]);
 
     };
 
@@ -1298,6 +1323,16 @@ var XNAT = getObject(XNAT || {});
             }
         });
     }
+
+    dqr.showReceiverWarning = showReceiverWarning = function(e){
+        e.preventDefault();
+        XNAT.dialog.message({
+            title: 'SCP Receiver Configuration Error',
+            content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver</p>'+
+                '<p>You can still query PACS data in this configuration.</p>' +
+                '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
+        });
+    };
 
     dqr.initReceivers = initReceivers = function(){
         function renderScpSelector(receivers){
@@ -1333,16 +1368,6 @@ var XNAT = getObject(XNAT || {});
 
             var relabelInputs$ = null;
 
-            function showReceiverWarning(e){
-                e.preventDefault();
-                XNAT.dialog.message({
-                    title: 'SCP Receiver Configuration Error',
-                    content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver</p>'+
-                        '<p>You can still query PACS data in this configuration.</p>' +
-                        '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
-                });
-            }
-
             function toggleRemapping(e){
 
                 try {
@@ -1376,8 +1401,7 @@ var XNAT = getObject(XNAT || {});
             if (!hasReceiver) {
                 // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
                 // aeMenu0.disabled = true;
-                beginImportButton.disabled = true;
-                beginImportButton.classList && beginImportButton.classList.add('disabled');
+                dqr.canImport = false;
 
                 $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', {
                     style: { color: '#933' }
@@ -1415,31 +1439,15 @@ var XNAT = getObject(XNAT || {});
         });
     };
 
-    dqr.searchPacs = searchPACS = function(id){
+    $(document).on('click','.receiver-warning',function(e){
+        dqr.showReceiverWarning(e);
+    });
 
-        var searchObj = {
-            "accessionNumber": "string",
-            "dob": "string",
-            "modality": "string",
-            "pacsId": 0,
-            "patientId": "string",
-            "patientName": "string",
-            "seriesDescription": "string",
-            "seriesInstanceUid": "string",
-            "seriesNumber": 0,
-            "studyDateRange": {
-                "bounded": true,
-                "boundedAtEnd": true,
-                "boundedAtStart": true,
-                "empty": true,
-                "end": "2021-05-25T18:33:01.812Z",
-                "endDate": "2021-05-25T18:33:01.812Z",
-                "start": "2021-05-25T18:33:01.812Z",
-                "startDate": "2021-05-25T18:33:01.812Z"
-            },
-            "studyId": "string",
-            "studyInstanceUid": "string"
-        };
+    $(document).on('click','.clear-search-results',function(e){
+        dqr.resetResults(true);
+    });
+
+    dqr.searchPacs = searchPACS = function(id){
 
         var selectedPacs = id || dqr.selectedPacs || $selectPacsMenu.val();
 
@@ -1457,17 +1465,18 @@ var XNAT = getObject(XNAT || {});
 
         searchCriteria.pacsId = selectedPacs;
 
+        // enable partial matches on name searches by default
+        if (searchCriteria.patientName) {
+            searchCriteria.patientName = '*' + searchCriteria.patientName + '*';
+        }
+
         // transform date to expected format and reposition in object structure
         if (searchCriteria.startDate) {
-            searchCriteria.studyDateRange.startDate = (new SplitDate(searchCriteria.startDate)).US;
-            searchCriteria.studyDateRange.bounded = true;
-            searchCriteria.studyDateRange.boundedAtStart = true;
+            searchCriteria.studyDateRange.start = pacsDate(searchCriteria.startDate);
             delete searchCriteria.startDate;
         }
         if (searchCriteria.endDate) {
-            searchCriteria.studyDateRange.endDate = (new SplitDate(searchCriteria.endDate)).US;
-            searchCriteria.studyDateRange.bounded = true;
-            searchCriteria.studyDateRange.boundedAtEnd = true;
+            searchCriteria.studyDateRange.end = pacsDate(searchCriteria.endDate);
             delete searchCriteria.endDate;
         }
 
