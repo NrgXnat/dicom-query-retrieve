@@ -630,7 +630,7 @@ var XNAT = getObject(XNAT || {});
     // }
 
     function getStudies(pacsId, studyUIDs){
-        var UIDS = [].concat(studyUIDs).join(',');
+        var UIDS = [].concat(studyUIDs);
         var requestData = {
             pacsId: pacsId,
             studyInstanceUids: UIDS
