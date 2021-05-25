@@ -435,28 +435,28 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
             indexes.forEach(row -> {
                 final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
-                if (indexes.hasAccessionNumber()) {
-                    searchCriteriaBuilder.accessionNumber(indexes.getAccessionNumber());
+                if (row.hasAccessionNumber()) {
+                    searchCriteriaBuilder.accessionNumber(row.getAccessionNumber());
                 }
-                if (indexes.hasFirstName() || indexes.hasLastName()) {
-                    final String lastName  = StringUtils.defaultIfBlank(indexes.getLastName(), "");
-                    final String firstName = StringUtils.defaultIfBlank(indexes.getFirstName(), "");
+                if (row.hasFirstName() || row.hasLastName()) {
+                    final String lastName  = StringUtils.defaultIfBlank(row.getLastName(), "");
+                    final String firstName = StringUtils.defaultIfBlank(row.getFirstName(), "");
                     searchCriteriaBuilder.patientName(StringUtils.isNotBlank(firstName) ? lastName + "," + firstName : lastName);
                 }
-                if (indexes.hasPatientId()) {
-                    searchCriteriaBuilder.patientName(indexes.getPatientId());
+                if (row.hasPatientId()) {
+                    searchCriteriaBuilder.patientName(row.getPatientId());
                 }
-                if (indexes.hasStudyDate()) {
-                    final DqrDateRange dateRange = getDateRange(indexes.getStudyDate());
+                if (row.hasStudyDate()) {
+                    final DqrDateRange dateRange = getDateRange(row.getStudyDate());
                     if (dateRange != null) {
                         searchCriteriaBuilder.studyDateRange(dateRange);
                     }
                 }
-                if (indexes.hasDob()) {
-                    searchCriteriaBuilder.dob(indexes.getDob());
+                if (row.hasDob()) {
+                    searchCriteriaBuilder.dob(row.getDob());
                 }
-                if (indexes.hasModality()) {
-                    searchCriteriaBuilder.modality(indexes.getModality());
+                if (row.hasModality()) {
+                    searchCriteriaBuilder.modality(row.getModality());
                 }
 
                 final Optional<String> script = getAnonScript(columnMap, row);
@@ -600,34 +600,34 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         return indexes.stream().map(row -> {
             final AtomicBoolean                                areThereSearchCriteriaForThisRow = new AtomicBoolean();
             final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder            = PacsSearchCriteria.builder();
-            if (indexes.hasAccessionNumber()) {
-                searchCriteriaBuilder.accessionNumber(isNewRequest ? removeExtraQuotes(indexes.getAccessionNumber()) : indexes.getAccessionNumber());
+            if (row.hasAccessionNumber()) {
+                searchCriteriaBuilder.accessionNumber(isNewRequest ? removeExtraQuotes(row.getAccessionNumber()) : row.getAccessionNumber());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (indexes.hasFirstName() || indexes.hasLastName()) {
-                final String firstName = indexes.getFirstName();
-                final String lastName  = indexes.getLastName();
+            if (row.hasFirstName() || row.hasLastName()) {
+                final String firstName = row.getFirstName();
+                final String lastName  = row.getLastName();
                 final String fullName  = StringUtils.isNotBlank(firstName) ? lastName + "," + firstName : lastName;
                 searchCriteriaBuilder.patientName(isNewRequest ? removeExtraQuotes(fullName) : fullName);
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (indexes.hasPatientId()) {
-                searchCriteriaBuilder.patientId(isNewRequest ? removeExtraQuotes(indexes.getPatientId()) : indexes.getPatientId());
+            if (row.hasPatientId()) {
+                searchCriteriaBuilder.patientId(isNewRequest ? removeExtraQuotes(row.getPatientId()) : row.getPatientId());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (indexes.hasStudyDate()) {
-                final DqrDateRange dateRange = getDateRange(indexes.getStudyDate());
+            if (row.hasStudyDate()) {
+                final DqrDateRange dateRange = getDateRange(row.getStudyDate());
                 if (dateRange != null) {
                     searchCriteriaBuilder.studyDateRange(dateRange);
                     areThereSearchCriteriaForThisRow.set(true);
                 }
             }
-            if (indexes.hasDob()) {
-                searchCriteriaBuilder.dob(isNewRequest ? removeExtraQuotes(indexes.getDob()) : indexes.getDob());
+            if (row.hasDob()) {
+                searchCriteriaBuilder.dob(isNewRequest ? removeExtraQuotes(row.getDob()) : row.getDob());
                 areThereSearchCriteriaForThisRow.set(true);
             }
-            if (indexes.hasModality()) {
-                searchCriteriaBuilder.modality(isNewRequest ? removeExtraQuotes(indexes.getModality()) : indexes.getModality());
+            if (row.hasModality()) {
+                searchCriteriaBuilder.modality(isNewRequest ? removeExtraQuotes(row.getModality()) : row.getModality());
                 areThereSearchCriteriaForThisRow.set(true);
             }
             if (!areThereSearchCriteriaForThisRow.get() && !allowRowThatGetsAllStudiesOnPacs) {
@@ -792,9 +792,19 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
     @Data
     @EqualsAndHashCode(callSuper = true)
-    private static class RowManager extends AbstractList<List<String>> implements Collection<List<String>> {
-        RowManager(final List<List<String>> rows) {
-            columnHeaders = rows.get(0);
+    private static class Row extends ArrayList<String> {
+        private static final long serialVersionUID = 6044778440958597758L;
+
+        private final int accessionNumberIndex;
+        private final int studyDateIndex;
+        private final int patientIdIndex;
+        private final int lastNameIndex;
+        private final int firstNameIndex;
+        private final int dobIndex;
+        private final int modalityIndex;
+
+        Row(final List<String> values, final List<String> columnHeaders) {
+            super(values);
             accessionNumberIndex = columnHeaders.indexOf("Accession Number");
             studyDateIndex = columnHeaders.indexOf("Study Date");
             patientIdIndex = columnHeaders.indexOf("Patient ID");
@@ -802,23 +812,73 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             firstNameIndex = columnHeaders.indexOf("First Name");
             dobIndex = columnHeaders.indexOf("DOB");
             modalityIndex = columnHeaders.indexOf("Modality");
-            this.rows = rows.subList(1, rows.size());
         }
 
-        @Override
-        public List<String> get(final int index) {
-            return rows.get(index);
+        public boolean hasAccessionNumber() {
+            return accessionNumberIndex >= 0 && StringUtils.isNotBlank(getAccessionNumber());
         }
 
-        @NotNull
-        @Override
-        public Iterator<List<String>> iterator() {
-            return rows.iterator();
+        String getAccessionNumber() {
+            return get(accessionNumberIndex);
         }
 
-        @Override
-        public int size() {
-            return rows.size();
+        boolean hasStudyDate() {
+            return studyDateIndex >= 0 && StringUtils.isNotBlank(getStudyDate());
+        }
+
+        String getStudyDate() {
+            return get(studyDateIndex);
+        }
+
+        boolean hasPatientId() {
+            return patientIdIndex >= 0 && StringUtils.isNotBlank(getPatientId());
+        }
+
+        String getPatientId() {
+            return get(patientIdIndex);
+        }
+
+        boolean hasLastName() {
+            return lastNameIndex >= 0 && StringUtils.isNotBlank(getLastName());
+        }
+
+        String getLastName() {
+            return get(lastNameIndex);
+        }
+
+        boolean hasFirstName() {
+            return firstNameIndex >= 0 && StringUtils.isNotBlank(getFirstName());
+        }
+
+        String getFirstName() {
+            return get(firstNameIndex);
+        }
+
+        boolean hasDob() {
+            return dobIndex >= 0 && StringUtils.isNotBlank(getDob());
+        }
+
+        String getDob() {
+            return get(dobIndex);
+        }
+
+        boolean hasModality() {
+            return modalityIndex >= 0 && StringUtils.isNotBlank(getModality());
+        }
+
+        String getModality() {
+            return get(modalityIndex);
+        }
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    private static class RowManager extends ArrayList<Row> {
+        private static final long serialVersionUID = 5979173538127275825L;
+
+        RowManager(final List<List<String>> rows) {
+            columnHeaders = rows.get(0);
+            addAll(rows.subList(1, rows.size()).stream().map(row -> new Row(row, columnHeaders)).collect(Collectors.toList()));
         }
 
         public Map<Integer, String> getColumnMap() {
@@ -828,71 +888,6 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         public Map<Integer, String> getColumnMap(final boolean isNewRequest) {
             return HEADER_TO_TAG_MAP.entrySet().stream().filter(entry -> columnHeaders.contains(entry.getKey())).collect(Collectors.toMap(entry -> columnHeaders.indexOf(entry.getKey()), entry -> isNewRequest ? entry.getKey() : entry.getValue()));
         }
-
-        public boolean hasAccessionNumber() {
-            return accessionNumberIndex >= 0 && StringUtils.isNotBlank(getAccessionNumber());
-        }
-
-        String getAccessionNumber() {
-            return row.get(accessionNumberIndex);
-        }
-
-        boolean hasStudyDate() {
-            return studyDateIndex >= 0 && StringUtils.isNotBlank(getStudyDate());
-        }
-
-        String getStudyDate() {
-            return row.get(studyDateIndex);
-        }
-
-        boolean hasPatientId() {
-            return patientIdIndex >= 0 && StringUtils.isNotBlank(getPatientId());
-        }
-
-        String getPatientId() {
-            return row.get(patientIdIndex);
-        }
-
-        boolean hasLastName() {
-            return lastNameIndex >= 0 && StringUtils.isNotBlank(getLastName());
-        }
-
-        String getLastName() {
-            return row.get(lastNameIndex);
-        }
-
-        boolean hasFirstName() {
-            return firstNameIndex >= 0 && StringUtils.isNotBlank(getFirstName());
-        }
-
-        String getFirstName() {
-            return row.get(firstNameIndex);
-        }
-
-        boolean hasDob() {
-            return dobIndex >= 0 && StringUtils.isNotBlank(getDob());
-        }
-
-        String getDob() {
-            return row.get(dobIndex);
-        }
-
-        boolean hasModality() {
-            return modalityIndex >= 0 && StringUtils.isNotBlank(getModality());
-        }
-
-        String getModality() {
-            return row.get(modalityIndex);
-        }
-
-        private final List<List<String>> rows;
-        private final int                accessionNumberIndex;
-        private final int                studyDateIndex;
-        private final int                patientIdIndex;
-        private final int                lastNameIndex;
-        private final int                firstNameIndex;
-        private final int                dobIndex;
-        private final int                modalityIndex;
 
         @Getter(AccessLevel.NONE)
         private List<String> columnHeaders;
