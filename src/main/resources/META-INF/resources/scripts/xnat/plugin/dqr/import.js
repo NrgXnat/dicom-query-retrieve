@@ -1404,7 +1404,7 @@ var XNAT = getObject(XNAT || {});
                 dqr.canImport = false;
 
                 $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', {
-                    style: { color: '#933' }
+                    style: { color: '#933', cursor: 'pointer', display: 'inline-block', 'padding-top': '4px' }
                 }, [
                     '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
                 ]));

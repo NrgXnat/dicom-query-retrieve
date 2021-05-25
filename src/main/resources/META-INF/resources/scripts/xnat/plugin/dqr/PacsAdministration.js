@@ -697,12 +697,12 @@ XNAT.app = getObject(XNAT.app || {});
 
     function getQueryHistoryUrl(id){
         var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
-        return XNAT.url.restUrl('/xapi/dqr/query/history' + appended);
+        return XNAT.url.restUrl('/xapi/dqr/import/history' + appended);
     }
 
     function getQueryQueueUrl(id){
         var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
-        return XNAT.url.restUrl('/xapi/dqr/query/queue' + appended);
+        return XNAT.url.restUrl('/xapi/dqr/import/queue' + appended);
     }
 
     function viewHistoryDialog(e, onclose){

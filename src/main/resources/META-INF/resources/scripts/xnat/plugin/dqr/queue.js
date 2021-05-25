@@ -308,13 +308,13 @@ var XNAT = getObject(XNAT || {});
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
-            showItemData(XNAT.url.restUrl('/xapi/dqr/query/queue/' + itemId));
+            showItemData(XNAT.url.restUrl('/xapi/dqr/import/queue/' + itemId));
         }
 
 
         function removeQueuedItem(itemId){
             return XNAT.xhr
-                       .delete('/xapi/dqr/query/queue/' + itemId)
+                       .delete('/xapi/dqr/import/queue/' + itemId)
                        .done(function(){
                            XNAT.ui.banner.top(2000, 'Item removed from queue.', 'success');
                            // re-render queue table
@@ -366,7 +366,7 @@ var XNAT = getObject(XNAT || {});
          * @returns {*}
          */
         function getListSize(part, fn){
-            var uri = '/xapi/dqr/query/'+part+'/count' + (XNAT.user.isAdmin ? '' : '?user=true');
+            var uri = '/xapi/dqr/import/'+part+'/count' + (XNAT.user.isAdmin ? '' : '?user=true');
             var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl(uri));
             if (fn && isFunction(fn)) {
                 listSizeReq.done(fn)
@@ -400,7 +400,7 @@ var XNAT = getObject(XNAT || {});
 
 
         function setupQueueUrl(all, page, size, sort){
-            var queueUrl = '/xapi/dqr/query/queue';
+            var queueUrl = '/xapi/dqr/import/queue';
             var queueUrlQueryParams = [];
             queueUrlQueryParams.push("page=" + (page || 1));
             queueUrlQueryParams.push("pageSize=" + (size || 100));
@@ -710,12 +710,12 @@ var XNAT = getObject(XNAT || {});
             e.preventDefault();
             e.stopImmediatePropagation();
             var itemId = $(this).closest('tr').attr('data-id');
-            showItemData(XNAT.url.restUrl('/xapi/dqr/query/history/' + itemId));
+            showItemData(XNAT.url.restUrl('/xapi/dqr/import/history/' + itemId));
         }
 
 
         function setupHistoryUrl(all, page, size, sort){
-            var historyUrl = '/xapi/dqr/query/history';
+            var historyUrl = '/xapi/dqr/import/history';
             var historyUrlQueryParams = [];
             historyUrlQueryParams.push('page=' + (page || 1));
             historyUrlQueryParams.push('pageSize=' + (size || 100));
