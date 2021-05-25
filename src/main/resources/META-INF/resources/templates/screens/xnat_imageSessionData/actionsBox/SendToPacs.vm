@@ -61,7 +61,7 @@
 
                 // only show 'Send to PACS' when all requirements are met
                 XNAT.xhr.get({
-                    url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/' + window.projectId),
+                    url: XNAT.url.rootUrl('/xapi/dqr/settings/project/' + window.projectId + '/enabled'),
                     success: function(data){
                         console.log('PACS enabled');
                         if (/^true$/i.test(data)) {

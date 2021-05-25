@@ -26,7 +26,7 @@
     (function(){
         const importActionItem = $('#import-from-pacs-action');
         XNAT.xhr.get({
-            url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/$!{projectId}'),
+            url: XNAT.url.rootUrl('/xapi/dqr/settings/project/$!{projectId}/enabled'),
             success: function(data){
                 if (/^true$/i.test(data)) {
                     importActionItem.removeClass('hidden').show();

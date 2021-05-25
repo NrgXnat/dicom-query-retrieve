@@ -164,12 +164,17 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
     @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     @ResponseBody
-    public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId, @RequestBody final ProjectSettings settings) throws NotFoundException, DataFormatException, NotModifiedException {
+    public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId, @RequestBody final DqrProjectSettingsDTO settings) throws NotFoundException, DataFormatException, NotModifiedException {
+        // This validation is only worthwhile until we add settings besides enabled at the project level. But for
+        // now if there's no enabled setting they're not changing anything.
+        if (settings.getEnabled() == null) {
+            throw new NotModifiedException("No changes were provided for project " + projectId + " for DQR settings");
+        }
         if (_dqrProjectSettingsService.isDqrConfigured(projectId)) {
             settings.setProjectId(projectId);
             return _dqrProjectSettingsService.update(settings);
         }
-        return _dqrProjectSettingsService.create(DqrProjectSettings.builder().projectId(projectId).dqrEnabled(settings.getDqrEnabled()).build());
+        return _dqrProjectSettingsService.create(DqrProjectSettings.builder().projectId(projectId).dqrEnabled(settings.getEnabled()).build());
     }
 
     @ApiOperation(value = "Deletes the requested DQR configuration for the project.", response = Boolean.class)

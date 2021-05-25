@@ -40,7 +40,7 @@ enableDqrPanel:
                 }
         enableDqr:
             kind: panel.input.switchbox
-            name: enabled
+            name: dqrEnabled
             id: enable-project-dqr
             label: Enable DQR?
             description: >

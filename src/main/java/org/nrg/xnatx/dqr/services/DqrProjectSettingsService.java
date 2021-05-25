@@ -11,11 +11,10 @@ package org.nrg.xnatx.dqr.services;
 
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xapi.exceptions.NoContentException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.exceptions.NotModifiedException;
 import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
-import org.nrg.xnatx.dqr.dto.ProjectSettings;
+import org.nrg.xnatx.dqr.dto.DqrProjectSettingsDTO;
 
 /**
  * The Interface DqrProjectSettingsService.
@@ -55,11 +54,11 @@ public interface DqrProjectSettingsService extends BaseHibernateService<DqrProje
     boolean isDqrEnabledForProject(final String projectId) throws NotFoundException;
 
     /**
-     * Creates or updates the DQR project settings for the project specified in the submitted {@link ProjectSettings}.
+     * Creates or updates the DQR project settings for the project specified in the submitted {@link DqrProjectSettingsDTO}.
      *
      * @param settings Settings for the project.
      *
      * @return Returns the newly created or updated project settings.
      */
-    DqrProjectSettings update(final ProjectSettings settings) throws NotFoundException, NotModifiedException, DataFormatException;
+    DqrProjectSettings update(final DqrProjectSettingsDTO settings) throws NotFoundException, NotModifiedException, DataFormatException;
 }

@@ -16,15 +16,13 @@ import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.exceptions.NotModifiedException;
 import org.nrg.xnatx.dqr.domain.daos.DqrProjectSettingsDAO;
 import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
-import org.nrg.xnatx.dqr.dto.ProjectSettings;
+import org.nrg.xnatx.dqr.dto.DqrProjectSettingsDTO;
 import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Transactional
@@ -67,16 +65,12 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
     }
 
     @Override
-    public DqrProjectSettings update(final ProjectSettings settings) throws NotFoundException, NotModifiedException, DataFormatException {
+    public DqrProjectSettings update(final DqrProjectSettingsDTO settings) throws NotFoundException, NotModifiedException, DataFormatException {
         final DqrProjectSettings persisted = getProjectSettings(settings.getProjectId());
-        final AtomicBoolean      changed   = new AtomicBoolean();
-        if (settings.getDqrEnabled() != null && persisted.isDqrEnabled() != settings.getDqrEnabled()) {
-            persisted.setDqrEnabled(settings.getDqrEnabled());
-            changed.set(true);
-        }
-        if (!changed.get()) {
+        if (settings.getEnabled() == null || persisted.isDqrEnabled() == settings.getEnabled()) {
             throw new NotModifiedException("No changes were provided for project " + settings.getProjectId() + " for DQR settings");
         }
+        persisted.setDqrEnabled(settings.getEnabled());
         update(persisted);
         return getProjectSettings(settings.getProjectId());
     }

@@ -19,7 +19,7 @@ $(function(){
     window.projectId = window.projectId || getQueryStringValue('project');
 
     XNAT.xhr.get({
-        url: XNAT.url.rootUrl('/xapi/dqr/isDqrProject/' + window.projectId),
+        url: XNAT.url.rootUrl('/xapi/dqr/settings/project/' + window.projectId + '/enabled'),
         success: function(data){
             if (/^true$/i.test(data)) {
                 pageBody.removeClass('hidden').show();

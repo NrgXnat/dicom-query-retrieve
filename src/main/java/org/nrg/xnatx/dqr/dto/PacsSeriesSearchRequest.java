@@ -1,14 +1,18 @@
 package org.nrg.xnatx.dqr.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Value
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class PacsSeriesSearchRequest implements Serializable {
     private static final long serialVersionUID = 268284582078420330L;
 
