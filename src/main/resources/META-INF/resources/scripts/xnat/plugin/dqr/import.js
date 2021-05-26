@@ -36,6 +36,7 @@ var XNAT = getObject(XNAT || {});
         getObject(XNAT.plugin.dqr || {});
 
     // set import capability status
+    dqr.canQuery = true;
     dqr.canImport = true;
 
     // cache DOM elements when script loads for faster access later
@@ -84,7 +85,17 @@ var XNAT = getObject(XNAT || {});
     }
 
     getPacsList(function fn(json){
-        renderPacsMenu(json);
+        if (json.length) {
+            renderPacsMenu(json);
+        } else {
+            dqr.canQuery = false;
+            $('#pacs-status-indicator').append(
+                spawn('span.pacs-warning',
+                    '<i class="fa fa-warning"></i>&nbsp;Error: Cannot query'
+                )
+            );
+            dqr.disableQueryForm();
+        }
     });
 
     var $studyDateFromContainer = $('#study-date-from-container');
@@ -1328,8 +1339,17 @@ var XNAT = getObject(XNAT || {});
         e.preventDefault();
         XNAT.dialog.message({
             title: 'SCP Receiver Configuration Error',
-            content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver</p>'+
+            content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver.</p>'+
                 '<p>You can still query PACS data in this configuration.</p>' +
+                '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
+        });
+    };
+
+    dqr.showPacsWarning = showPacsWarning = function(e){
+        e.preventDefault();
+        XNAT.dialog.message({
+            title: 'DICOM AE Configuration Error',
+            content: '<p>There is no DICOM AE or PACS configured to allow DQR queries from this XNAT system. An XNAT system adminstrator must configure a queryable DICOM AE.</p>'+
                 '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
         });
     };
@@ -1403,9 +1423,7 @@ var XNAT = getObject(XNAT || {});
                 // aeMenu0.disabled = true;
                 dqr.canImport = false;
 
-                $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', {
-                    style: { color: '#933', cursor: 'pointer', display: 'inline-block', 'padding-top': '4px' }
-                }, [
+                $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', [
                     '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
                 ]));
             } else {
@@ -1443,9 +1461,19 @@ var XNAT = getObject(XNAT || {});
         dqr.showReceiverWarning(e);
     });
 
+    $(document).on('click','.pacs-warning',function(e){
+        dqr.showPacsWarning(e);
+    });
+
     $(document).on('click','.clear-search-results',function(e){
         dqr.resetResults(true);
     });
+
+    dqr.disableQueryForm = disableQueryForm = function(){
+        $('#pacs-import-search').find('input').prop('disabled','disabled');
+        $searchSubmit.addClass('disabled').prop('disabled','disabled').off('click');
+        $('#import-csv').off('click').find('button').addClass('disabled').prop('disabled','disabled');
+    };
 
     dqr.searchPacs = searchPACS = function(id){
 

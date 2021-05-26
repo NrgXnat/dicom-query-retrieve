@@ -15,6 +15,8 @@ The 'view.html' file should be formatted so it can be
 included and parsed in both JSP and Velocity parent pages.
 --%> *# -->
 
+<link href="${SITE_ROOT}/style/dqr/dqr.css" rel="stylesheet">
+
 <header id="content-header">
     <h2>Import Studies from PACS</h2>
     <div id="select-pacs-menu-container" class="header-panel" style="border: 1px solid #e0e0e0; background: #f7f7f7; margin: 1em 0; padding: 1em;">
@@ -38,7 +40,9 @@ included and parsed in both JSP and Velocity parent pages.
     <!-- Panel for search form, CSV import, and search results table -->
     <div class="panel panel-default">
         <div class="panel-heading" style="color:inherit;background:#e0e0e0;line-height:26px;">
-            <h3 class="panel-title " style="font-size:16px;">Enter Search Criteria &nbsp;<small>&hellip;or&hellip;</small>&nbsp; <a id="import-csv" class="link" href="#!">Import CSV</a></h3>
+            <a id="import-csv" class="link pull-right" href="#!"><button class="btn"><i class="fa fa-table"></i> Import CSV</button></a>
+            <h3 class="panel-title pull-left" style="font-size:16px;">Enter Search Criteria</h3>
+            <div class="clearfix clear"></div>
         </div>
         <div class="panel-body" style="background:#f0f0f0;">
 

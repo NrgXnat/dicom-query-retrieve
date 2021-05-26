@@ -9,6 +9,14 @@
 
 @CHARSET "ISO-8859-1";
 
+.pacs-warning,
+.receiver-warning {
+    color: #933;
+    cursor: pointer;
+    display: inline-block;
+    padding-top: 4px;
+}
+
 
 table.pacsSessionSearchResults thead input {
     -webkit-box-sizing: border-box;
