@@ -71,7 +71,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             }
 
             return mapDicomResultsToDomainResults(searchCriteria, dicomResults);
-
         } catch (DqrRuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -108,12 +107,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     protected abstract PacsSearchResults<T> wrapResults(final Collection<T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
 
     protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        Object callingAeObject = preferences.get("dqrCallingAe");
-        String callingAe       = dicomConnectionProperties.getLocalAeTitle();
-        if (callingAeObject != null && callingAeObject.toString() != null) {
-            callingAe = callingAeObject.toString();
-        }
-        dcmQR = createDcmQR(callingAe);
+        dcmQR = createDcmQR(StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
         dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
         dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
         dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
@@ -141,16 +135,18 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     protected List<DicomObject> setParamsAndSendQuery(final PacsSearchCriteria searchCriteria) throws IOException, InterruptedException {
-        List<DicomObject> dicomResults = null;
-        for (String dicomPatientNameSearchCriterion : ormStrategy.getPatientNameStrategy()
-                                                                 .dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
+        for (final String dicomPatientNameSearchCriterion : ormStrategy.getPatientNameStrategy().dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
             setSearchCriteriaInQuery(searchCriteria, dicomPatientNameSearchCriterion);
-            dicomResults = dcmQR.query();
-            if (dicomResults.size() > 0) {
-                break;
+            log.debug("Trying query with patient name criterion {}: {}", dicomPatientNameSearchCriterion, dcmQR.getKeys());
+            final List<DicomObject> results = dcmQR.query();
+            if (!results.isEmpty()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Query with patient name criterion {} got results:\n{}", dicomPatientNameSearchCriterion, results.stream().map(Object::toString).collect(Collectors.joining("\n")));
+                }
+                return results;
             }
         }
-        return dicomResults;
+        return null;
     }
 
     protected PacsSearchResults<T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) {

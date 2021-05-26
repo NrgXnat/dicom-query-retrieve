@@ -289,43 +289,16 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public List<FindRow> extractNewImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, true, (user1, pacs, columnMap, row, criteria) -> {
-            try {
-                return FindRow.builder().criteria(criteria).relabelMap(columnMap.entrySet().stream()
-                                                                                .filter(entry -> StringUtils.isNotBlank(row.get(entry.getKey())))
-                                                                                .collect(Collectors.toMap(Map.Entry::getValue, entry -> {
-                                                                                    final String value = row.get(entry.getKey());
-                                                                                    return StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? "\"\"" : value;
-                                                                                }))).studies(getStudiesByExample(user1, pacs, criteria).getResults()).build();
-            } catch (PacsNotQueryableException e) {
-                log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
-                return null;
-            } catch (DataFormatException e) {
-                log.warn("An error occurred trying to query the PACS {}, returning null for search results", pacs.getLabel(), e);
-                return null;
-            }
-        });
+    public List<FindRow> extractNewImportRequestFromCsv(final UserI requestingUser, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+        return _extractImportRequestFromCsv(requestingUser, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, true, FIND_ROW_PROCESSOR);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public List<CsvRow> extractImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        return _extractImportRequestFromCsv(user, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, false, (user1, pacs, columnMap, row, criteria) -> {
-            final Optional<String> script = getAnonScript(columnMap, row);
-            try {
-                final PacsSearchResults<Study> results = getStudiesByExample(user1, pacs, criteria);
-                return CsvRow.builder().criteria(criteria).anonScript(script.orElse(null)).studies(results.getResults()).build();
-            } catch (PacsNotQueryableException e) {
-                log.warn("The PACS {} is not queryable, returning null for search results", pacs.getLabel(), e);
-                return null;
-            } catch (DataFormatException e) {
-                log.warn("An error occurred trying to query the PACS {}, returning null for search results", pacs.getLabel(), e);
-                return null;
-            }
-        });
+    public List<CsvRow> extractImportRequestFromCsv(final UserI requestingUser, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
+        return _extractImportRequestFromCsv(requestingUser, csv, pacsId, allowRowThatGetsAllStudiesOnPacs, false, CSV_ROW_PROCESSOR);
     }
 
     /*
@@ -512,7 +485,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     private interface RowProcessor<R> {
-        R process(final UserI user, final Pacs pacs, final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria);
+        R process(final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria, final Collection<Study> results);
     }
 
     private QueuedPacsRequest queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript) {
@@ -635,7 +608,25 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                 return null;
             }
 
-            return processor.process(user, pacs, columnMap, row, searchCriteriaBuilder.build());
+            final PacsSearchCriteria criteria = searchCriteriaBuilder.build();
+
+            log.debug("User {} is querying PACS {}: {}", user.getUsername(), pacs.getId(), criteria);
+            final PacsSearchResults<Study> studies;
+            try {
+                studies = getStudiesByExample(user, pacs, criteria);
+            } catch (PacsNotQueryableException e) {
+                // This should never happen: we should have already accounted for this situation.
+                log.error("PACS {} is not queryable, no results will be returned.", e.getPacsId(), e);
+                return null;
+            } catch (DataFormatException e) {
+                log.error("The submitted PACS query criteria were invalid", e);
+                return null;
+            }
+
+            final Collection<Study> results = studies.getResults();
+            log.debug("User {} queried PACS {} with {} results", user.getUsername(), pacs.getId(), results.size());
+
+            return processor.process(columnMap, row, criteria, results);
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
@@ -895,16 +886,23 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         private List<String> row;
     }
 
-    private static final String              CLEAR_SIGNIFIER    = "\"\"";
-    private static final String              CLEAR_SIGNIFIER_3X = CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER;
-    private static final Map<String, String> HEADER_TO_TAG_MAP  = Stream.of(new String[][] {{"Relabel Accession Number", "(0008,0050)"},
-                                                                                            {"Relabel Study Date", "(0008,0020)"},
-                                                                                            {"Relabel Study ID", "(0020,0010)"},
-                                                                                            {"Relabel Patient ID", "(0010,0020)"},
-                                                                                            {"Relabel Patient Name", "(0010,0010)"},
-                                                                                            {"Relabel Patient Birth Date", "(0010,0030)"},
-                                                                                            {"Subject", "(0010,0010):(0010,0020)"},
-                                                                                            {"Session", "(0020,0010):(0008,0050)"}}).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
+    private static final String                CLEAR_SIGNIFIER    = "\"\"";
+    private static final String                CLEAR_SIGNIFIER_3X = CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER;
+    private static final Map<String, String>   HEADER_TO_TAG_MAP  = Stream.of(new String[][] {{"Relabel Accession Number", "(0008,0050)"},
+                                                                                              {"Relabel Study Date", "(0008,0020)"},
+                                                                                              {"Relabel Study ID", "(0020,0010)"},
+                                                                                              {"Relabel Patient ID", "(0010,0020)"},
+                                                                                              {"Relabel Patient Name", "(0010,0010)"},
+                                                                                              {"Relabel Patient Birth Date", "(0010,0030)"},
+                                                                                              {"Subject", "(0010,0010):(0010,0020)"},
+                                                                                              {"Session", "(0020,0010):(0008,0050)"}}).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
+    private static final RowProcessor<FindRow> FIND_ROW_PROCESSOR = (columnMap, row, criteria, results) -> FindRow.builder().criteria(criteria).relabelMap(columnMap.entrySet().stream()
+                                                                                                                                                                    .filter(entry -> StringUtils.isNotBlank(row.get(entry.getKey())))
+                                                                                                                                                                    .collect(Collectors.toMap(Map.Entry::getValue, entry -> {
+                                                                                                                                                                        final String value = row.get(entry.getKey());
+                                                                                                                                                                        return StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? "\"\"" : value;
+                                                                                                                                                                    }))).studies(results).build();
+    private static final RowProcessor<CsvRow>  CSV_ROW_PROCESSOR  = (columnMap, row, criteria, results) -> CsvRow.builder().criteria(criteria).anonScript(getAnonScript(columnMap, row).orElse(null)).studies(results).build();
 
     private final DqrPreferences                                                             _preferences;
     private final DicomSCPManager                                                            _dicomSCPManager;

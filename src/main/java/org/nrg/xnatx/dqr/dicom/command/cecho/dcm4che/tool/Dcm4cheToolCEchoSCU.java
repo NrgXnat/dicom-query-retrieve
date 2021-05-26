@@ -9,25 +9,21 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool;
 
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+
 @Slf4j
 public class Dcm4cheToolCEchoSCU implements CEchoSCU {
     public Dcm4cheToolCEchoSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties) {
-        Object callingAeObject = preferences.get("dqrCallingAe");
-        String callingAe       = dicomConnectionProperties.getLocalAeTitle();
-        if (callingAeObject != null && callingAeObject.toString() != null) {
-            callingAe = callingAeObject.toString();
-        }
-        _dcmEcho = new DcmEcho(_aeTitle = callingAe);
+        _dcmEcho = new DcmEcho(_aeTitle = StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
         _dcmEcho.setRemoteHost(_remoteHost = dicomConnectionProperties.getRemoteHost());
         _dcmEcho.setCalledAET(_remoteAeTitle = dicomConnectionProperties.getRemoteAeTitle(), true);
         _dcmEcho.setRemotePort(_remoteQrPort = dicomConnectionProperties.getRemotePort());

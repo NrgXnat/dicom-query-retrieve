@@ -67,6 +67,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Api("Dicom Query Retrieve API")
@@ -316,8 +317,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public List<QueuedPacsRequest> queryQueue(@ApiParam("Indicates that the queued requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
                                               @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
                                               @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
-        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
+                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException {
+        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
         return user ? _queuedRequestService.getAllForUser(getSessionUser(), request) : _queuedRequestService.getPaginated(request);
     }
 
@@ -399,8 +400,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public List<ExecutedPacsRequest> queryHistory(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
                                                   @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
                                                   @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) {
-        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(PaginatedRequest.SortDir.valueOf(sort)).pageNumber(page).pageSize(pageSize).build();
+                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException {
+        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
         return user ? _executedRequestService.getAllForUser(getSessionUser(), request) : _executedRequestService.getPaginated(request);
     }
 
@@ -511,6 +512,15 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public Set<String> getOrmStrategies() {
         return _ormStrategies.keySet();
     }
+
+    private PaginatedRequest.SortDir validateSort(final String sort) throws DataFormatException {
+        if (!SORT.matcher(sort).matches()) {
+            throw new DataFormatException("Invalid value for sort order (must be \"desc\" or \"asc\"): " + sort);
+        }
+        return PaginatedRequest.SortDir.valueOf(StringUtils.upperCase(sort));
+    }
+
+    private static final Pattern SORT = Pattern.compile("^(DESC|ASC)$", Pattern.CASE_INSENSITIVE);
 
     private final DicomQueryRetrieveService  _dqrService;
     private final ExecutedPacsRequestService _executedRequestService;
