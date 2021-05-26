@@ -245,7 +245,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/patients", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<Patient> searchForPatients(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+    public PacsSearchResults<Patient> searchForPatients(final @ApiParam("Search criteria for the patient search.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
         final Pacs                       pacs     = getDefaultQueryablePacs(criteria.getPacsId());
         final PacsSearchResults<Patient> patients = _dqrService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {

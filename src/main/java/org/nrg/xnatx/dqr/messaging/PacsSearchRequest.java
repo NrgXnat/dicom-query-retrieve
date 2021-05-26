@@ -12,7 +12,6 @@ package org.nrg.xnatx.dqr.messaging;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
-import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Value
-@Accessors(prefix = "_")
 @Builder
 public class PacsSearchRequest implements Serializable {
     private static final long serialVersionUID = -1150137478832020599L;
@@ -37,31 +35,31 @@ public class PacsSearchRequest implements Serializable {
     }
 
     @Builder.Default
-    UUID _searchId = UUID.randomUUID();
+    UUID searchId = UUID.randomUUID();
 
-    String _username;
-    Long   _pacsId;
-    Type   _searchType;
-    String _project;
-    String _remappingScript;
-    String _destinationAeTitle;
-    String _status;
-    Long   _priority;
-    Date   _queuedTime;
-    String _studyDate;
-    String _accessionNumber;
-    String _patientId;
-    String _patientName;
-    String _modality;
-    String _dob;
-    Date   _startDate;
-    Date   _endDate;
+    String username;
+    Long   pacsId;
+    Type   searchType;
+    String project;
+    String remappingScript;
+    String destinationAeTitle;
+    String status;
+    Long   priority;
+    Date   queuedTime;
+    String studyDate;
+    String accessionNumber;
+    String patientId;
+    String patientName;
+    String modality;
+    String dob;
+    Date   startDate;
+    Date   endDate;
     @Singular
-    List<String> _studyIds;
+    List<String> studyIds;
     @Singular
-    List<String> _studyInstanceUids;
+    List<String> studyInstanceUids;
     @Singular
-    List<String> _seriesIds;
+    List<String> seriesIds;
     @Singular
-    List<String> _seriesInstanceUids;
+    List<String> seriesInstanceUids;
 }

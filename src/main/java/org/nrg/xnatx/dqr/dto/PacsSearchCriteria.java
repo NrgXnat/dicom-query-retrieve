@@ -11,8 +11,10 @@ package org.nrg.xnatx.dqr.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,8 +26,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Value
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @JsonDeserialize(using = PacsSearchCriteriaDeserializer.class)
 public class PacsSearchCriteria implements Serializable {
     private static final long serialVersionUID = -4480914700711320053L;
@@ -65,16 +69,16 @@ public class PacsSearchCriteria implements Serializable {
         keys.add(Pair.of(new int[] {tag}, value));
     }
 
-    long         pacsId;
-    String       patientId;
-    String       patientName;
-    String       dob;
-    String       accessionNumber;
-    String       studyInstanceUid;
-    String       studyId;
-    String       seriesInstanceUid;
-    String       seriesDescription;
-    int          seriesNumber;
-    String       modality;
-    DqrDateRange studyDateRange;
+    private long         pacsId;
+    private String       patientId;
+    private String       patientName;
+    private String       dob;
+    private String       accessionNumber;
+    private String       studyInstanceUid;
+    private String       studyId;
+    private String       seriesInstanceUid;
+    private String       seriesDescription;
+    private int          seriesNumber;
+    private String       modality;
+    private DqrDateRange studyDateRange;
 }

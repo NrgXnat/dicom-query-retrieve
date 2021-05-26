@@ -18,10 +18,13 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Date;
 
 public abstract class AbstractDqrSerializer<T> extends StdSerializer<T> {
+    private static final long serialVersionUID = 3634214101922651894L;
+
     protected AbstractDqrSerializer(final Class<T> typeToSerialize) {
         super(typeToSerialize);
     }
@@ -46,6 +49,12 @@ public abstract class AbstractDqrSerializer<T> extends StdSerializer<T> {
     }
 
     protected void writeNonNullDateField(final JsonGenerator generator, final String name, final Date value) throws IOException {
+        if (value != null) {
+            generator.writeStringField(name, DqrDateRange.formatDate(value));
+        }
+    }
+
+    protected void writeNonNullDateField(final JsonGenerator generator, final String name, final LocalDateTime value) throws IOException {
         if (value != null) {
             generator.writeStringField(name, DqrDateRange.formatDate(value));
         }

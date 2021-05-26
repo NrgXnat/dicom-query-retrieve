@@ -9,14 +9,18 @@
 
 package org.nrg.xnatx.dqr.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.nrg.xnatx.dqr.utils.AeTitle;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ApplicationEntity implements Comparable<ApplicationEntity> {
     private AeTitle aeTitle;
 

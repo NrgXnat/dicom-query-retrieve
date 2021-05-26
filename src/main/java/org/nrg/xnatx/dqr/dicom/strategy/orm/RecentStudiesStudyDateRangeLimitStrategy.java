@@ -12,13 +12,13 @@ package org.nrg.xnatx.dqr.dicom.strategy.orm;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Calendar;
-import java.util.Date;
 
 @Value
 @Accessors(prefix = "_")
@@ -32,9 +32,9 @@ public class RecentStudiesStudyDateRangeLimitStrategy implements StudyDateRangeL
         final DqrDateRange workingStudyDateRange = ObjectUtils.defaultIfNull(searchCriteria.getStudyDateRange(), new DqrDateRange());
         final Calendar     calendar              = Calendar.getInstance();
         calendar.add(Calendar.DATE, -_numberOfDays);
-        final Date earliestAllowedBeginningOfStudyDateRange = DateUtils.truncate(calendar.getTime(), Calendar.DATE);
+        final LocalDateTime earliestAllowedBeginningOfStudyDateRange = LocalDate.now().minusDays(_numberOfDays).atStartOfDay();
 
-        if (workingStudyDateRange.getStart().before(earliestAllowedBeginningOfStudyDateRange)) {
+        if (workingStudyDateRange.getStart().isBefore(earliestAllowedBeginningOfStudyDateRange)) {
             return new StudyDateRangeLimitResults(StudyDateRangeLimitResults.LimitType.RECENT_STUDIES_LIMIT,
                                                   new DqrDateRange(earliestAllowedBeginningOfStudyDateRange, workingStudyDateRange.getEnd()),
                                                   String.format(RESULTS_LIMITED_MESSAGE, _numberOfDays));

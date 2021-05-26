@@ -3,6 +3,7 @@ package org.nrg.xnatx.dqr.utils;
 import static java.time.temporal.ChronoField.HOUR_OF_DAY;
 import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
@@ -11,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
-import org.nrg.xnat.utils.DateRange;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.time.*;
@@ -25,12 +25,12 @@ import java.util.regex.Pattern;
 @Getter
 @Accessors(prefix = "_")
 @Builder
-public class DqrDateRange extends DateRange {
+public class DqrDateRange {
     public static final DateTimeFormatter HH_MM_FORMATTER = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
 
     /**
      * Used by the {@link #relative(DqrDateRange)} method to indicate the relative position of the availability
-     * window (that is, the time from {@link #getStartDate()} to {@link #getEndDate()}) of this object compared to
+     * window (that is, the time from {@link #getStart()} to {@link #getEnd()}) of this object compared to
      * another:
      *
      * <ul>
@@ -39,33 +39,33 @@ public class DqrDateRange extends DateRange {
      *     </li>
      *     <li>
      *         <b>Before</b> indicates that this object comes before the other, with no overlap: {@link
-     *         #getEndDate()} occurs before the other object's {@link #getStartDate()}
+     *         #getEnd()} occurs before the other object's {@link #getStart()}
      *     </li>
      *     <li>
      *         <b>After</b> indicates that this object comes after the other, with no overlap: {@link
-     *         #getStartDate()} occurs after the other object's {@link #getEndDate()}
+     *         #getStart()} occurs after the other object's {@link #getEnd()}
      *     </li>
      *     <li>
-     *         <b>Includes</b> indicates that this object includes the other: {@link #getStartDate()} occurs
-     *         before the other object's {@link #getStartDate()} and {@link #getEndDate()} occurs
-     *         after the other object's {@link #getEndDate()}
+     *         <b>Includes</b> indicates that this object includes the other: {@link #getStart()} occurs
+     *         before the other object's {@link #getStart()} and {@link #getEnd()} occurs
+     *         after the other object's {@link #getEnd()}
      *     </li>
      *     <li>
-     *         <b>Included</b> indicates that the other object includes this object: {@link #getStartDate()}
-     *         occurs after the other object's {@link #getStartDate()} and {@link #getEndDate()} occurs
-     *         before the other object's {@link #getEndDate()}
+     *         <b>Included</b> indicates that the other object includes this object: {@link #getStart()}
+     *         occurs after the other object's {@link #getStart()} and {@link #getEnd()} occurs
+     *         before the other object's {@link #getEnd()}
      *     </li>
      *     <li>
      *         <b>BeforeOverlap</b> indicates that the time windows overlap, but this object's time window is earlier:
-     *         {@link #getStartDate()} occurs before the other object's {@link #getStartDate()}, while
-     *         {@link #getEndDate()} occurs after the other object's {@link #getStartDate()} but before
-     *         the other object's {@link #getEndDate()}
+     *         {@link #getStart()} occurs before the other object's {@link #getStart()}, while
+     *         {@link #getEnd()} occurs after the other object's {@link #getStart()} but before
+     *         the other object's {@link #getEnd()}
      *     </li>
      *     <li>
      *         <b>AfterOverlap</b> indicates that the time windows overlap, but this object's time window is later:
-     *         {@link #getStartDate()} occurs after the other object's {@link #getStartDate()} but
-     *         before the other object's {@link #getEndDate()}, while {@link #getEndDate()} occurs after
-     *         the other object's {@link #getEndDate()}
+     *         {@link #getStart()} occurs after the other object's {@link #getStart()} but
+     *         before the other object's {@link #getEnd()}, while {@link #getEnd()} occurs after
+     *         the other object's {@link #getEnd()}
      *     </li>
      * </ul>
      */
@@ -86,10 +86,6 @@ public class DqrDateRange extends DateRange {
         this(LocalDateTime.MIN, LocalDateTime.MAX);
     }
 
-    public DqrDateRange(final Date startDate, final Date endDate) {
-        this(convertDateToLocalDateTime(startDate), convertDateToLocalDateTime(endDate));
-    }
-
     /**
      * Creates a new date range that starts with the date contained in the <b>start</b>
      * parameter and ends one day later.
@@ -100,23 +96,23 @@ public class DqrDateRange extends DateRange {
         this(convertDateToLocalDateTime(start), convertDateToLocalDateTime(start, 1));
     }
 
-    public DqrDateRange(final String startDate, final String endDate) {
-        this(convertDateToLocalDateTime(startDate), convertDateToLocalDateTime(endDate));
+    public DqrDateRange(final String start, final String end) {
+        this(convertDateToLocalDateTime(start), convertDateToLocalDateTime(end));
     }
 
-    public DqrDateRange(final LocalTime startDate, final LocalTime endDate) {
-        this(startDate, endDate, LocalDate.now().getDayOfWeek());
+    public DqrDateRange(final LocalTime start, final LocalTime end) {
+        this(start, end, LocalDate.now().getDayOfWeek());
     }
 
-    public DqrDateRange(final LocalTime startDate, final LocalTime endDate, final DayOfWeek dayOfWeek) {
-        this(LocalDateTime.of(LocalDateTime.now().with(TemporalAdjusters.next(dayOfWeek)).toLocalDate(), startDate),
-             LocalDateTime.of(LocalDateTime.now().with(TemporalAdjusters.next(dayOfWeek)).toLocalDate(), endDate));
+    public DqrDateRange(final LocalTime start, final LocalTime end, final DayOfWeek dayOfWeek) {
+        this(LocalDateTime.of(LocalDateTime.now().with(TemporalAdjusters.next(dayOfWeek)).toLocalDate(), start),
+             LocalDateTime.of(LocalDateTime.now().with(TemporalAdjusters.next(dayOfWeek)).toLocalDate(), end));
     }
 
-    public DqrDateRange(final LocalDateTime startDate, final LocalDateTime endDate) {
-        _startDate = startDate == null ? LocalDateTime.MIN : startDate;
-        final LocalDateTime initialEnd = endDate == null ? LocalDateTime.MAX : endDate;
-        _endDate = _startDate.isBefore(initialEnd) ? initialEnd : initialEnd.plusDays(1);
+    public DqrDateRange(final LocalDateTime start, final LocalDateTime end) {
+        _start = start == null ? LocalDateTime.MIN : start;
+        final LocalDateTime initialEnd = end == null ? LocalDateTime.MAX : end;
+        _end = _start.isBefore(initialEnd) ? initialEnd : initialEnd.plusDays(1);
     }
 
     public static LocalDateTime parse(final String date) {
@@ -138,7 +134,7 @@ public class DqrDateRange extends DateRange {
         throw new RuntimeException(String.format(PARSE_ERROR, date));
     }
 
-    public static String formatLocalTime(final LocalDateTime date) {
+    public static String formatDate(final LocalDateTime date) {
         return formatLocalTime(date.toLocalTime());
     }
 
@@ -150,8 +146,8 @@ public class DqrDateRange extends DateRange {
         return DASHY_FORMATTER.format(convertDateToLocalDateTime(date));
     }
 
-    public static String formatDicomDate(final Date date) {
-        return BASIC_FORMATTER.format(convertDateToLocalDateTime(date));
+    public static String formatDicomDate(final LocalDateTime date) {
+        return BASIC_FORMATTER.format(date);
     }
 
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {
@@ -167,47 +163,37 @@ public class DqrDateRange extends DateRange {
         return Pair.of(LocalDateTime.of(date, start), LocalDateTime.of(date.plusDays(1), end));
     }
 
-    @Override
-    public Date getStart() {
-        return Date.from(getStartDate().atZone(ZoneId.systemDefault()).toInstant());
-    }
-
-    @Override
-    public Date getEnd() {
-        return Date.from(getEndDate().atZone(ZoneId.systemDefault()).toInstant());
-    }
-
+    @JsonIgnore
     public boolean isEmpty() {
-        return _startDate.isAfter(_endDate);
+        return _start.isAfter(_end);
     }
 
+    @JsonIgnore
     public boolean isBoundedAtStart() {
-        return !_startDate.equals(LocalDateTime.MIN);
+        return !_start.equals(LocalDateTime.MIN);
     }
 
+    @JsonIgnore
     public boolean isBoundedAtEnd() {
-        return !_endDate.equals(LocalDateTime.MAX);
+        return !_end.equals(LocalDateTime.MAX);
     }
 
+    @JsonIgnore
     public boolean isBounded() {
-        return isBoundedAtStart() || isBoundedAtEnd();
-    }
-
-    public boolean includes(final Date date) {
-        return includes(convertDateToLocalDateTime(date));
+        return !isEmpty() && (isBoundedAtStart() || isBoundedAtEnd());
     }
 
     public boolean includes(final LocalDateTime date) {
-        return (_startDate.isBefore(date) || _startDate.isEqual(date)) && (_endDate.equals(date) || _endDate.isAfter(date));
+        return (_start.isBefore(date) || _start.isEqual(date)) && (_end.equals(date) || _end.isAfter(date));
     }
 
     public boolean includes(final DqrDateRange range) {
-        return includes(range._startDate) && includes(range._endDate);
+        return includes(range._start) && includes(range._end);
     }
 
     @SuppressWarnings("unused")
     public boolean overlaps(final DqrDateRange range) {
-        return includes(range.getStartDate()) || includes(range.getEndDate());
+        return includes(range.getStart()) || includes(range.getEnd());
     }
 
     public Relative relative(final DqrDateRange other) {
@@ -220,19 +206,19 @@ public class DqrDateRange extends DateRange {
         if (other.includes(this)) {
             return Relative.Included;
         }
-        if (getStartDate().isAfter(other.getEndDate()) || getStartDate().equals(other.getEndDate())) {
+        if (getStart().isAfter(other.getEnd()) || getStart().equals(other.getEnd())) {
             return Relative.After;
         }
-        if (getEndDate().isBefore(other.getStartDate()) || getEndDate().equals(other.getStartDate())) {
+        if (getEnd().isBefore(other.getStart()) || getEnd().equals(other.getStart())) {
             return Relative.Before;
         }
-        if (getStartDate().isBefore(other.getStartDate()) && getEndDate().isBefore(other.getEndDate())) {
+        if (getStart().isBefore(other.getStart()) && getEnd().isBefore(other.getEnd())) {
             return Relative.BeforeOverlap;
         }
-        if (getStartDate().isAfter(other.getStartDate()) && getEndDate().isAfter(other.getEndDate())) {
+        if (getStart().isAfter(other.getStart()) && getEnd().isAfter(other.getEnd())) {
             return Relative.AfterOverlap;
         }
-        throw new DqrRuntimeException("I found a weird relation for two DqrDateRange objects. First starts at " + formatLocalTime(getStartDate()) + " and ends at " + formatLocalTime(getEndDate()) + ", while the other starts at " + formatLocalTime(other.getStartDate()) + " and ends at " + formatLocalTime(other.getEndDate()));
+        throw new DqrRuntimeException("I found a weird relation for two DqrDateRange objects. First starts at " + formatDate(getStart()) + " and ends at " + formatDate(getEnd()) + ", while the other starts at " + formatDate(other.getStart()) + " and ends at " + formatDate(other.getEnd()));
     }
 
     @Override
@@ -240,7 +226,7 @@ public class DqrDateRange extends DateRange {
         if (isEmpty()) {
             return "Empty Date Range";
         }
-        return _startDate.toString() + " - " + _endDate.toString();
+        return _start.toString() + " - " + _end.toString();
     }
 
     @Override
@@ -254,12 +240,12 @@ public class DqrDateRange extends DateRange {
         }
 
         final DqrDateRange that = (DqrDateRange) object;
-        return new EqualsBuilder().appendSuper(super.equals(object)).append(getStartDate(), that.getStartDate()).append(getEndDate(), that.getEndDate()).isEquals();
+        return new EqualsBuilder().appendSuper(super.equals(object)).append(getStart(), that.getStart()).append(getEnd(), that.getEnd()).isEquals();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37).appendSuper(super.hashCode()).append(getStartDate()).append(getEndDate()).toHashCode();
+        return new HashCodeBuilder(17, 37).appendSuper(super.hashCode()).append(getStart()).append(getEnd()).toHashCode();
     }
 
     private static LocalDateTime convertDateToLocalDateTime(final Date date) {
@@ -283,9 +269,6 @@ public class DqrDateRange extends DateRange {
     private static final String            DASHY_PATTERN    = "^\\d{8}-\\d{2}-\\d{2}";
     private static final String            PARSE_ERROR      = "An error occurred parsing the date value \"%s\": should match one of the patterns \"" + BASIC_PATTERN + "\", \"" + SLASHY_PATTERN + "\", or \"" + DASHY_PATTERN + "\"";
 
-    private final static Date MIN_DATE = new Date(-5364640800000L); //January 1, 1800
-    private final static Date MAX_DATE = new Date(32503701600000L); //January 1, 3000.
-
-    private final LocalDateTime _startDate;
-    private final LocalDateTime _endDate;
+    private final LocalDateTime _start;
+    private final LocalDateTime _end;
 }

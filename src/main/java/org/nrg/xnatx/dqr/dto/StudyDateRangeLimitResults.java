@@ -12,16 +12,16 @@ package org.nrg.xnatx.dqr.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
-import lombok.experimental.Accessors;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
 
-@Value
-@Accessors(prefix = "_")
-@AllArgsConstructor
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class StudyDateRangeLimitResults implements Serializable {
     private static final long serialVersionUID = 7707527574121492161L;
 
@@ -35,7 +35,7 @@ public class StudyDateRangeLimitResults implements Serializable {
 
     @JsonIgnore
     public boolean isUnlimited() {
-        return _limitType.equals(LimitType.NO_LIMIT);
+        return limitType.equals(LimitType.NO_LIMIT);
     }
 
     @JsonIgnore
@@ -44,9 +44,9 @@ public class StudyDateRangeLimitResults implements Serializable {
     }
 
     @Builder.Default
-    LimitType    _limitType        = LimitType.NO_LIMIT;
+    private LimitType    limitType        = LimitType.NO_LIMIT;
     @Builder.Default
-    DqrDateRange _dateRange        = null;
+    private DqrDateRange dateRange        = null;
     @Builder.Default
-    String       _limitExplanation = null;
+    private String       limitExplanation = null;
 }

@@ -9,15 +9,15 @@
 
 package org.nrg.xnatx.dqr.dto;
 
-import lombok.Builder;
-import lombok.Singular;
-import lombok.Value;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.List;
 
-@Value
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class PacsImportRequest implements Serializable {
     private static final long serialVersionUID = 1012946910048078606L;
 

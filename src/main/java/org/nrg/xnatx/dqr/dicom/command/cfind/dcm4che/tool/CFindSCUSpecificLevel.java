@@ -25,9 +25,9 @@ import org.nrg.xnatx.dqr.domain.DqrDomainObject;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
-import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.io.IOException;
 import java.util.Collection;

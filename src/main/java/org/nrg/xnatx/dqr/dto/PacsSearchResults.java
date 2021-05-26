@@ -12,16 +12,16 @@ package org.nrg.xnatx.dqr.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
-import lombok.experimental.Accessors;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.Optional;
 
-@Value
-@Accessors(prefix = "_")
+@Data
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class PacsSearchResults<V> {
     @SuppressWarnings("unchecked")
     public static <V> PacsSearchResults<V> emptyResults() {
@@ -30,12 +30,12 @@ public class PacsSearchResults<V> {
 
     @JsonIgnore
     public Optional<V> getFirstResult() {
-        return _results == null || _results.isEmpty() ? Optional.empty() : Optional.ofNullable(_results.iterator().next());
+        return results == null || results.isEmpty() ? Optional.empty() : Optional.ofNullable(results.iterator().next());
     }
 
     private static final PacsSearchResults<?> EMPTY_RESULTS = PacsSearchResults.builder().build();
 
-    Collection<V>              _results;
-    boolean                    _hasLimitedResultSetSize;
-    StudyDateRangeLimitResults _studyDateRangeLimitResults;
+    private Collection<V>              results;
+    private boolean                    hasLimitedResultSetSize;
+    private StudyDateRangeLimitResults studyDateRangeLimitResults;
 }

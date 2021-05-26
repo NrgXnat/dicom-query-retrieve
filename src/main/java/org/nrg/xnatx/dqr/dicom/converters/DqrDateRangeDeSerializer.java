@@ -44,10 +44,10 @@ public class DqrDateRangeDeSerializer extends StdDeserializer<DqrDateRange> {
             }
             switch (field) {
                 case "start":
-                    builder.startDate(date);
+                    builder.start(date);
                     break;
                 case "end":
-                    builder.endDate(date);
+                    builder.end(date);
                     break;
             }
         }

@@ -10,9 +10,8 @@
 package org.nrg.xnatx.dqr.messaging;
 
 import lombok.Builder;
-import lombok.Data;
 import lombok.Singular;
-import lombok.experimental.Accessors;
+import lombok.Value;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 
@@ -20,16 +19,15 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
-@Data
-@Accessors(prefix = "_")
+@Value
 @Builder
 public class PacsStudyImportRequest implements Serializable {
     private static final long serialVersionUID = 9007334962767471276L;
 
-    private final Pacs                        _pacs;
-    private final Study                       _study;
-    private final Date                        _dateRequested;
-    private final String                      _requestingUser;
+    Pacs   pacs;
+    Study  study;
+    Date   dateRequested;
+    String requestingUser;
     @Singular
-    private final List<PacsScanImportRequest> _scans;
+    List<PacsScanImportRequest> scans;
 }

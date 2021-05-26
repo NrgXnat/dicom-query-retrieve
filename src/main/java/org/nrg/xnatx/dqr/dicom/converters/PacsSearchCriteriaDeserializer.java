@@ -103,10 +103,10 @@ public class PacsSearchCriteriaDeserializer extends StdDeserializer<PacsSearchCr
         if (ObjectUtils.anyNotNull(startRange, endRange)) {
             final DqrDateRange.DqrDateRangeBuilder dateRange = DqrDateRange.builder();
             if (startRange != null) {
-                dateRange.startDate(startRange);
+                dateRange.start(startRange);
             }
             if (endRange != null) {
-                dateRange.endDate(endRange);
+                dateRange.end(endRange);
             }
             builder.studyDateRange(dateRange.build());
         }
