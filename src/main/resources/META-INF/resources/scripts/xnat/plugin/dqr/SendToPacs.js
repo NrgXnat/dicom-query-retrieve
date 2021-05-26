@@ -33,47 +33,34 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
     exportScans.SendToPacs = function (pacsId, sessionId, scanIds) {
 
-        try {
-            xmodal.open({
-                title: 'Send Processed Data To PACS',
-                content: 'This operation sends all processed data back to the selected PACS. Click <b>OK</b> to start the update operation or <b>Cancel</b> if you want to wait.',
-                okAction: this.sendToPacsOk,
-                cancelAction: this.sendToPacsCancel
-            });
-        } catch (e) {
-            xmodal.message('Error', "<p>Couldn't start the PACS send operation. Error message:</p><blockquote>" + e.toString() + "</blockquote>", 'OK');
-        }
 
-        this.sendToPacsOk = function(obj) {
+        xmodal.loading.open({title: 'Please wait...'});
 
-            xmodal.close(obj.$modal);
-            xmodal.loading.open({title: 'Please wait...'});
+        var exportUrl = XNAT.url.restUrl('/xapi/dqr/export', ['pacsId='+pacsId,'session='+sessionId ]);
 
-            for (var index = 0; index < scanIds.length; index++) {
-                var scanId = scanIds[index];
-                XNAT.xhr.ajax({
-                    type: "POST",
-                    url: XNAT.url.csrfUrl("/xapi/pacs/" + pacsId + "/experiments/" + sessionId + "/scans/" + scanId),
-                    dataType: "json",
-                    success: this.exportSuccess,
-                    error: this.exportFailure
+        scanIds.forEach(function(scan){
+            exportUrl += '&scansToExport='+scan;
+        });
+
+        XNAT.xhr.put({
+            url: exportUrl,
+            success: function(data) {
+                console.log(data);
+                xmodal.loading.close();
+                XNAT.dialog.message({
+                    title: sessionId + ' Sent',
+                    content: 'The request to store your session to the requested PACS has been sent.',
+                    okAction: function(){
+                        window.location.assign(XNAT.url.rootUrl('/data/experiments/'+sessionId+'?format=html'));
+                    }
                 });
+            },
+            error: function(e) {
+                xmodal.loading.close();
+                xmodal.message('Error', 'An unexpected error has occurred while processing ' + sessionId + '. Please contact your administrator. Status code: ' + e.status, 'OK');
             }
-        };
+        });
 
-        this.sendToPacsCancel = function(obj) {
-            xmodal.close(obj.$modal);
-        };
-
-        this.exportSuccess = function() {
-            xmodal.loading.close();
-            xmodal.message(sessionId + ' Sent', 'The request to store your session to the requested PACS has been sent.', 'OK');
-        };
-
-        this.exportFailure = function(results) {
-            xmodal.loading.close();
-            xmodal.message('Error', 'An unexpected error has occurred while processing ' + sessionId + '. Please contact your administrator. Status code: ' + results.status, 'OK');
-        };
     };
 
     // Populate Scan Table
@@ -161,7 +148,14 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
 
     $('#submitScansToPacs').on('click',function(e){
         e.preventDefault();
-        var scansToSubmit = [];
+        var scansToSubmit = [],
+            pacsId = $('#pacsId').find('option:selected').val(),
+            sessionId = $('#session').val();
+
+        if (!pacsId) {
+            XNAT.dialog.message('Error','Please select a valid DICOM AE destination.');
+            return false;
+        }
 
         $('#editPacsForm').find('input[name=scansToExport]').not(':disabled').each(function(){
             if ($(this).prop('checked')) {
@@ -170,10 +164,10 @@ XNAT.app.dqr = getObject(XNAT.app.dqr || {});
         });
 
         if (scansToSubmit.length > 0) {
-            $('#editPacsForm').submit();
+            exportScans.SendToPacs(pacsId,sessionId,scansToSubmit);
         }
         else {
-            xmodal.message('Error', "<p>Please select a valid scan to send.</p>", 'OK');
+            XNAT.dialog.message('Error', 'Please select a valid scan to send.');
         }
 
     });

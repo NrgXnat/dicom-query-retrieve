@@ -30,7 +30,7 @@
     <div class="error">$message</div>
 #else
 
-    <form id="editPacsForm" name="editPacsForm" class="friendlyForm" method="POST" action="$link.setAction("ExportSessionToPacs")">
+    <form id="editPacsForm" name="editPacsForm" class="friendlyForm">
         <div style="display: inline-block; margin-right: 8%; vertical-align: top; width: 30%;">
             <div style="margin-bottom: 4em;">
                 <h4>Set Destination (Required)</h4>
