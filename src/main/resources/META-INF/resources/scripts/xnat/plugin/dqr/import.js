@@ -887,6 +887,7 @@ var XNAT = getObject(XNAT || {});
                     okLabel: 'Close',
                     okAction: function(obj){
                         scanTypesDialog.close();
+                        dqr.resetResults();
                         // XNAT.dialog.loading.open();
                         // window.location.reload(true);
                     }
@@ -983,6 +984,7 @@ var XNAT = getObject(XNAT || {});
             select: '4%',
             name: '14%',
             studyId: '14%',
+            studyDescription: '14%',
             xnatSubject: '16%',
             xnatSession: '16%',
             date: '12%',
@@ -1040,14 +1042,24 @@ var XNAT = getObject(XNAT || {});
                             style: { width: WIDTHS.name, padding: FILTER_TH_PADDING }
                         }
                     },
-                    studyId: {
-                        label: 'Study ID',
+                    // studyId: {
+                    //     label: 'Study ID',
+                    //     filter: function(){
+                    //         return filterInput('studyId');
+                    //     },
+                    //     sort: true,
+                    //     th: {
+                    //         style: { width: WIDTHS.studyId, padding: FILTER_TH_PADDING }
+                    //     }
+                    // },
+                    studyDescription: {
+                        label: 'Study Description',
                         filter: function(){
-                            return filterInput('studyId');
+                            return filterInput('studyDescription');
                         },
                         sort: true,
                         th: {
-                            style: { width: WIDTHS.studyId, padding: FILTER_TH_PADDING }
+                            style: { width: WIDTHS.studyDescription, padding: FILTER_TH_PADDING }
                         }
                     },
                     studyDate: {
@@ -1172,19 +1184,30 @@ var XNAT = getObject(XNAT || {});
                             }, patientName);
                         }
                     },
-                    studyId: {
+                    studyDescription: {
                         label: false,
-                        td: {
-                            style: { width: WIDTHS.studyId }
-                        },
+                        td: { width: WIDTHS.studyDescription },
                         apply: function(){
-                            var studyId = this.studyId;
-                            return spawn('div.truncate.select-row.filter-data-item', {
-                                title: studyId,
-                                data: { filter: 'studyId' }
-                            }, studyId);
+                            var studyDescription = this.studyDescription;
+                            return spawn('div.truncate.select-row.filter-data-item',{
+                                title: studyDescription,
+                                data: { filter: 'studyDescription' }
+                            }, studyDescription)
                         }
                     },
+                    // studyId: {
+                    //     label: false,
+                    //     td: {
+                    //         style: { width: WIDTHS.studyId }
+                    //     },
+                    //     apply: function(){
+                    //         var studyId = this.studyId;
+                    //         return spawn('div.truncate.select-row.filter-data-item', {
+                    //             title: studyId,
+                    //             data: { filter: 'studyId' }
+                    //         }, studyId);
+                    //     }
+                    // },
                     studyDate: {
                         label: false,
                         td: {

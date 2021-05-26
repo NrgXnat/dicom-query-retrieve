@@ -489,18 +489,18 @@ var XNAT = getObject(XNAT || {});
                                 //         })
                                 //     }
                                 // },
-                                queueLocation: {
-                                    label: 'Position',
-                                    sort: true,
-                                    th: { style: { width: '80px' } },
-                                    td: { className: 'show-data' },
-                                    apply: function(loc){
-                                        return spawn('div.center.mono', [
-                                            ['span.hidden.sort.sort-value', zeroPad(loc, 8)],
-                                            loc
-                                        ])
-                                    }
-                                },
+                                // queueLocation: {
+                                //     label: 'Position',
+                                //     sort: true,
+                                //     th: { style: { width: '80px' } },
+                                //     td: { className: 'show-data' },
+                                //     apply: function(loc){
+                                //         return spawn('div.center.mono', [
+                                //             ['span.hidden.sort.sort-value', zeroPad(loc, 8)],
+                                //             loc
+                                //         ])
+                                //     }
+                                // },
                                 id: {
                                     label: 'ID',
                                     sort: true,
