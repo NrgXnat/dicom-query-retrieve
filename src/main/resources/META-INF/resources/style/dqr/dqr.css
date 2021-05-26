@@ -17,6 +17,13 @@
     padding-top: 4px;
 }
 
+.padded-block {
+    border: 1px solid #e0e0e0;
+    background: #f7f7f7;
+    margin: 1em 0;
+    padding: 12px 16px;
+}
+
 
 table.pacsSessionSearchResults thead input {
     -webkit-box-sizing: border-box;

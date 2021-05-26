@@ -1589,6 +1589,7 @@ var XNAT = getObject(XNAT || {});
     });
 
     XNAT.plugin.dqr.submitCsvForm = function(formData){
+        XNAT.dialog.closeAll();
 
         XNAT.xhr.post({
             url: XNAT.url.csrfUrl('/xapi/dqr/query/batch'),
@@ -1598,7 +1599,7 @@ var XNAT = getObject(XNAT || {});
             contentType: false,
             processData: false,
             success: function(data){
-                console.log(data);
+                xmodal.loading.close();
                 var results = [];
                 if (data.length) {
                     // pluck the data out of the response
@@ -1629,6 +1630,7 @@ var XNAT = getObject(XNAT || {});
                 }
             },
             failure: function(){
+                xmodal.loading.close();
                 console.warn('error importing CSV');
                 console.warn(arguments);
                 XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
@@ -1646,24 +1648,27 @@ var XNAT = getObject(XNAT || {});
                 e.preventDefault();
                 var formData = new FormData(this);
                 XNAT.plugin.dqr.submitCsvForm(formData);
-                XNAT.ui.banner.top(2000,'CSV form submitted','success');
-                XNAT.dialog.closeAll();
             }
         }, [
-            ['p', 'Select a CSV file to upload:'],
-            ['input|type=hidden|name=pacsId', {
-                // pick up value of selected PACS
-                value: $('#select-pacs').val()
-            }],
-            ['input|type=file|name=csv_to_store|accept=.csv']
+            ['p', 'This interface lets you upload a CSV-formatted list of queries to run on your PACS. <a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin/using-dqr-bulk-querying-and-importing-via-csv-file" target="_blank">See DQR Documentation</a> for assistance with this feature.'],
+            ['div.padded-block',[
+                ['p', 'Select a CSV file to upload:'],
+                ['input|type=hidden|name=pacsId', {
+                    // pick up value of selected PACS
+                    value: $('#select-pacs').val()
+                }],
+                ['input|type=file|name=csv_to_store|accept=.csv']
+            ]]
         ]);
         XNAT.dialog.open({
-            title: 'Upload CSV',
-            width: 320,
+            title: 'Start New Search via CSV File',
+            width: 480,
             content: fileForm,
             okLabel: 'Upload',
             okClose: false,
             okAction: function(obj){
+                dqr.resetResults();
+                xmodal.loading.open('Querying PACS...');
                 $(document).find('#csv-upload').submit();
             }
         });
