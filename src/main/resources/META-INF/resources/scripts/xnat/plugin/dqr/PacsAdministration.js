@@ -516,7 +516,7 @@ XNAT.app = getObject(XNAT.app || {});
             // data: XNAT.xhr.formToJSON($form, true),
             success: function (data) {
                 xmodal.close();
-                if (data.queryable) setInitialAvailability(data); // if this PACS can be queried, set an initial availability window
+                setInitialAvailability(data); // set initial availability at 24/7 by default
                 getAllPacs();
                 XNAT.ui.banner.top(3000, 'Created new DICOM AE connection', 'success');
             },

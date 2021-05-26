@@ -62,7 +62,11 @@ var XNAT = getObject(XNAT || {});
             if (item.queryable) {
                 pacsMenu.add(spawn('option', {
                     value: item.id,
-                    title: item.aeTitle
+                    title: item.aeTitle,
+                    data: {
+                        title: item.aeTitle,
+                        port: item.queryRetrievePort
+                    }
                 }, item.label || item.aeTitle));
             }
             if (item.defaultQueryRetrievePacs) {
@@ -70,7 +74,7 @@ var XNAT = getObject(XNAT || {});
                 $selectPacsMenu.changeVal(item.id);
             }
         });
-        menuUpdate($selectPacsMenu);
+        // menuUpdate($selectPacsMenu);
     }
 
     function getPacsList(fn){
@@ -555,7 +559,7 @@ var XNAT = getObject(XNAT || {});
                     console.log('not changing PACS');
                     // revert menu if cancelling
                     $selectPacsMenu.changeVal(dqr.selectedPacs);
-                    menuUpdate($selectPacsMenu);
+                    // menuUpdate($selectPacsMenu);
                 }
             });
         }
@@ -719,7 +723,8 @@ var XNAT = getObject(XNAT || {});
                         return spawn('div.center', [
                             ['input.selectable-all|type=checkbox', {
                                 value: '*',
-                                checked: true
+                                checked: true,
+                                style: { width: 'inherit' }
                             }]
                         ]);
                     },
@@ -770,7 +775,7 @@ var XNAT = getObject(XNAT || {});
 
         console.log(studyUIDs);
 
-        var ae = $('#ae-menu').val();
+        var ae = $('#ae-menu').val().split(':'); // ae produces an array [ title, port ]
 
         var projectId = window.projectId || getQueryStringValue('project');
 
@@ -785,82 +790,65 @@ var XNAT = getObject(XNAT || {});
             return false;
         }
 
-        var jsonDataOldExample = {
-            'importRows': [
+        var jsonModel = {
+            "aeTitle": "string",
+            "port": 0,
+            "forceImport": true,
+            "pacsId": 0,
+            "projectId": "string",
+            "studies": [
                 {
-                    'relabelMap': {},
-                    'studyInstanceUIDs': [
-                        'string'
-                    ]
+                    "anonScript": "string",
+                    "relabelMap": {
+                        "additionalProp1": "string",
+                        "additionalProp2": "string",
+                        "additionalProp3": "string"
+                    },
+                    "seriesDescriptions": [
+                        "string"
+                    ],
+                    "seriesInstanceUids": [
+                        "string"
+                    ],
+                    "studyInstanceUid": "string"
                 }
-            ],
-            'seriesDescriptions': [
-                'string'
             ]
         };
 
-        var jsonDataOld = {
-            importRows: studyUIDs.map(function(uid, i){
-                var relabelMap = {};
-                var $importRow = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
-                $importRow.find('input.relabel').each(function(){
-                    relabelMap[this.title] = this.value || '';
-                });
-                return {
-                    relabelMap: relabelMap,
-                    studyInstanceUIDs: [].concat(uid)
-                };
-            }),
-            seriesDescriptions: scanTypes
+
+        var jsonData = {
+            pacsId: $selectPacsMenu.val(),
+            aeTitle: ae[0],
+            port: ae[1],
+            projectId: projectId,
+            forceImport: true,
+            studies: []
         };
-
-        var jsonDataExample = {
-            '1.234.567890987654321': {
-                'seriesInstanceUIDs': [
-                    '1.23.456.7890',
-                    '1.23.789.0234'
-                ],
-                'seriesDescriptions': [
-                    'string'
-                ],
-                'relabelMap': {
-                    'Subject': 'SUBJ1',
-                    'Session': 'SUBJ1_001'
-                }
-            }
-        };
-
-
-
-        var jsonData = {};
 
         // SETUP THE FINAL SUBMISSION JSON
         forEach(studyUIDs, function(uid){
 
-            jsonData[uid] = jsonData[uid] || {};
+            var importObj = {
+                studyInstanceUid: uid,
+                seriesDescriptions: [],
+                seriesInstanceUids: []
+            };
 
-            jsonData[uid].seriesDescriptions = scanTypes.filter(function(type){
+            importObj.seriesDescriptions = scanTypes.filter(function(type){
                 return dqr.seriesDescriptions[type].studyUIDs.indexOf(uid) !== -1;
             }).map(function(type){
                 return type === NONE ? '' : type;
             });
 
-            // remove this item if there are no associated series descriptions
-            if (jsonData[uid].seriesDescriptions.length === 0) {
+            // don't include this item if there are no associated series descriptions
+            if (importObj.seriesDescriptions.length) {
 
-                delete jsonData[uid];
-
-            }
-            else {
-
-                jsonData[uid].seriesInstanceUids = jsonData[uid].seriesInstanceUids || [];
-
-                forEach(jsonData[uid].seriesDescriptions, function(type){
-                    jsonData[uid].seriesInstanceUids =
-                        jsonData[uid].seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
+                forEach(importObj.seriesDescriptions, function(type){
+                    importObj.seriesInstanceUids =
+                        importObj.seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
                 });
 
-                jsonData[uid].relabelMap = (function(){
+                importObj.relabelMap = (function(){
                     var relabelMapTemp = {};
                     var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
                     $importRow.find('input.relabel').each(function(){
@@ -870,19 +858,15 @@ var XNAT = getObject(XNAT || {});
                     return relabelMapTemp;
                 })();
 
+                jsonData.studies.push(importObj);
             }
 
         });
 
-        console.log('SUBMIT...');
         console.log(jsonData);
 
         XNAT.xhr.postJSON({
-            url: XNAT.url.restUrl('/xapi/dqr/csvimport/generalImportFromJson', [
-                'pacsId=' + $selectPacsMenu.val(),
-                'ae=' + ae,
-                'project=' + projectId
-            ], false),
+            url: XNAT.url.csrfUrl('/xapi/dqr/import'),
             data: JSON.stringify(jsonData),
             success: function(){
                 window.jsdebug && console.log(arguments);
@@ -1026,7 +1010,8 @@ var XNAT = getObject(XNAT || {});
                         filter: function(){
                             var ckbx = spawn('input#toggle-all-sessions.selectable-all|type=checkbox', {
                                 checked: false,
-                                value: '*'
+                                value: '*',
+                                style: { width: 'inherit' }
                             });
                             return ckbxLabel(ckbx);
                         }
@@ -1583,7 +1568,7 @@ var XNAT = getObject(XNAT || {});
     XNAT.plugin.dqr.submitCsvForm = function(formData){
 
         XNAT.xhr.post({
-            url: XNAT.url.csrfUrl('/xapi/dqr/csvimport/newUploadCsv'),
+            url: XNAT.url.csrfUrl('/xapi/dqr/query/batch'),
             data: formData,
             async: false,
             cache: false,
@@ -1614,7 +1599,10 @@ var XNAT = getObject(XNAT || {});
                     renderResultsTable(results);
                 }
                 else {
-                    XNAT.ui.banner.top(3000,'Error: No rows to import','error');
+                    XNAT.ui.dialog.message(
+                        'CSV Query Results',
+                        'No matching data was found for your CSV query.'
+                    );
                 }
             },
             failure: function(){
