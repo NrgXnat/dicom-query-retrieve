@@ -114,13 +114,8 @@ public class PacsSearchRequestListener extends AbstractPacsRequestListener<PacsS
                     executors = Collections.emptyList();
             }
 
-            log.info("Created {} search executors for search request {}", executors.size(), searchId);
+            log.info("Launching {} search executors for search request {}", executors.size(), searchId);
             _executorService.invokeAll(executors);
-
-            getMailService().sendMessage(getAdminEmail(), user.getEmail(),
-                                         "[" + TurbineUtils.GetSystemName() + "] PACS Study Import Request Complete",
-                                         "The study you requested from the PACS has been successfully imported.");
-            log.info("Listener completed study import request");
         } catch (final UserNotFoundException e) {
             // not much to do here - was their account deleted since they made the request?
             log.error("User {} queued up a PACS import request, but their user account cannot be found to send them a confirmation email.", request.getUsername());
