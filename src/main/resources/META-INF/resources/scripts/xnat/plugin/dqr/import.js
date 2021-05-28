@@ -100,7 +100,7 @@ var XNAT = getObject(XNAT || {});
                     '<i class="fa fa-warning"></i>&nbsp;Error: Cannot query'
                 )
             );
-            dqr.disableQueryForm();
+            dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
         }
     });
 
@@ -118,6 +118,7 @@ var XNAT = getObject(XNAT || {});
             attr: { tabindex: '1' },
             placeholder: DATE_FORMAT
         });
+        // return $(document).find('input[name='+name+']');
     }
 
     var DATE_MIN   = new Date('1900-01-01T00:00');
@@ -223,9 +224,6 @@ var XNAT = getObject(XNAT || {});
             }
 
             // the dateRange object has been updated
-
-            console.log(dateRange);
-
         }
 
 
@@ -265,7 +263,7 @@ var XNAT = getObject(XNAT || {});
             }
         })).data('datepicker');
         //
-        window.studyImportDateFrom = dateFromI;
+        dqr.studyImportDateFrom = dateFromI;
 
 
 
@@ -309,7 +307,7 @@ var XNAT = getObject(XNAT || {});
             }
         })).data('datepicker');
 
-        window.studyImportDateTo = dateToI;
+        dqr.studyImportDateTo = dateToI;
 
         // $studyDateFrom.mask('9999-99-99');
         // $studyDateTo.mask('9999-99-99');
@@ -514,7 +512,7 @@ var XNAT = getObject(XNAT || {});
         // if these are defined, they should be initialized
         // dateFromI && dateFromI.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
         // dateToI && dateToI.update({ maxDate: DATE_TODAY, minDate: DATE_MIN });
-    }
+    };
 
     // immediately render the 'query info' message
     resetResults(true);
@@ -547,11 +545,14 @@ var XNAT = getObject(XNAT || {});
             });
         }
 
+        dqr.selectedPacs = pacsId;
+
         // ping the PACS to ensure it is up
         XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
             .success(function(data){
                 if (data.successful) {
                     dqr.canQuery = true;
+                    dqr.enableQueryForm($(document).find('#pacs-search-fields').find('input'));
                     $('#pacs-status-indicator').empty().css('color','#393').append(
                         spawn('!',[
                             spawn('i.fa.fa-check'),
@@ -570,7 +571,7 @@ var XNAT = getObject(XNAT || {});
                         ])
                     );
                     dqr.canQuery = false;
-                    dqr.disableQueryForm();
+                    dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
                     XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
                 }
             })
@@ -582,15 +583,11 @@ var XNAT = getObject(XNAT || {});
                     ])
                 );
                 dqr.canQuery = false;
-                dqr.disableQueryForm();
+                dqr.resetResults(true);
+                dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
                 XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
             });
 
-    });
-
-    // initialize date fields *after* DOM loads
-    $(function(){
-        initDatePickers();
     });
 
     var relabelColumn = {
@@ -1510,8 +1507,15 @@ var XNAT = getObject(XNAT || {});
 
     $patientNameField[0].addEventListener('input',dqr.setNameFieldFormat);
 
-    dqr.disableQueryForm = disableQueryForm = function(){
-        $('#pacs-import-search').find('input').prop('disabled','disabled');
+    dqr.enableQueryForm = enableQueryForm = function(inputs){
+        inputs.prop('disabled',false);
+        $searchSubmit.removeClass('disabled').prop('disabled',false);
+        $('#import-csv').find('button').removeClass('disabled').prop('disabled',false);
+        dqr.initSearchPage('refresh');
+    };
+
+    dqr.disableQueryForm = disableQueryForm = function(inputs){
+        inputs.prop('disabled',true);
         $searchSubmit.addClass('disabled').prop('disabled','disabled').off('click');
         $('#import-csv').off('click').find('button').addClass('disabled').prop('disabled','disabled');
     };
@@ -1577,50 +1581,6 @@ var XNAT = getObject(XNAT || {});
         // TODO: write this function
     }
 
-    $searchSubmit.on('click', function(e){
-        e.preventDefault();
-
-        var self = this;
-
-        var searchResultsTable$ = $('#all-search-results');
-
-        function doSearch(){
-            dqr.selectedPacs = $selectPacsMenu.val();
-            if (!dqr.selectedPacs) {
-                XNAT.dialog.message(false, 'Please select a PACS to query.', {
-                    okAction: function(obj){
-                        // $selectPacsMenu.click();
-                        // menuUpdate($selectPacsMenu);
-                    }
-                });
-                return;
-            }
-            pingPACS(dqr.selectedPacs, function(){
-                renderResultsTable(false);
-                searchPACS.apply(self, arguments);
-            });
-        }
-
-        // confirm clearing of search results before doing new search
-        if (searchResultsTable$.find('tr[data-uid]').length) {
-            XNAT.dialog.confirm({
-                title: 'Perform New Search?',
-                content: '' +
-                    'Performing a new search will clear the results table below. ' +
-                    'Would you like to clear the current results and continue?',
-                okLabel: 'Continue',
-                okAction: function(dialog){
-                    doSearch();
-                }
-            })
-        }
-        // if there are no results displayed, just do it
-        else {
-            doSearch()
-        }
-
-    });
-
     XNAT.plugin.dqr.submitCsvForm = function(formData){
         XNAT.dialog.closeAll();
 
@@ -1671,44 +1631,94 @@ var XNAT = getObject(XNAT || {});
         });
     };
 
-    // handle CSV import
-    $(document).on('click', '#import-csv', function(e){
-        e.preventDefault();
-        // form with file input to render
-        var fileForm = spawn('form#csv-upload|name=csv_upload', {
-            style: { padding: '10px', fontSize: '13px' },
-            onsubmit: function(e){
-                e.preventDefault();
-                var formData = new FormData(this);
-                XNAT.plugin.dqr.submitCsvForm(formData);
-            }
-        }, [
-            ['p', 'This interface lets you upload a CSV-formatted list of queries to run on your PACS. <a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin/using-dqr-bulk-querying-and-importing-via-csv-file" target="_blank">See DQR Documentation</a> for assistance with this feature.'],
-            ['div.padded-block',[
-                ['p', 'Select a CSV file to upload:'],
-                ['input|type=hidden|name=pacsId', {
-                    // pick up value of selected PACS
-                    value: $('#select-pacs').val()
-                }],
-                ['input|type=file|name=csv_to_store|accept=.csv']
-            ]]
-        ]);
-        XNAT.dialog.open({
-            title: 'Start New Search via CSV File',
-            width: 480,
-            content: fileForm,
-            okLabel: 'Upload',
-            okClose: false,
-            okAction: function(obj){
-                dqr.resetResults(true);
-                xmodal.loading.open('Querying PACS...');
-                $(document).find('#csv-upload').submit();
-            }
-        });
-    });
+    dqr.initSearchPage = function(refresh){
+        if (!refresh) initReceivers();
 
-    dqr.initSearchPage = function(){
-        initReceivers();
+        // initialize date fields *after* DOM loads
+        $(document).ready(function(){
+            initDatePickers();
+        });
+
+        // handle CSV import
+        $(document).on('click', '#import-csv', function(e){
+            e.preventDefault();
+            // form with file input to render
+            var fileForm = spawn('form#csv-upload|name=csv_upload', {
+                style: { padding: '10px', fontSize: '13px' },
+                onsubmit: function(e){
+                    e.preventDefault();
+                    var formData = new FormData(this);
+                    XNAT.plugin.dqr.submitCsvForm(formData);
+                }
+            }, [
+                ['p', 'This interface lets you upload a CSV-formatted list of queries to run on your PACS. <a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin/using-dqr-bulk-querying-and-importing-via-csv-file" target="_blank">See DQR Documentation</a> for assistance with this feature.'],
+                ['div.padded-block',[
+                    ['p', 'Select a CSV file to upload:'],
+                    ['input|type=hidden|name=pacsId', {
+                        // pick up value of selected PACS
+                        value: $('#select-pacs').val()
+                    }],
+                    ['input|type=file|name=csv_to_store|accept=.csv']
+                ]]
+            ]);
+            XNAT.dialog.open({
+                title: 'Start New Search via CSV File',
+                width: 480,
+                content: fileForm,
+                okLabel: 'Upload',
+                okClose: false,
+                okAction: function(obj){
+                    dqr.resetResults(true);
+                    xmodal.loading.open('Querying PACS...');
+                    $(document).find('#csv-upload').submit();
+                }
+            });
+        });
+
+        // enable search submission
+        $searchSubmit.on('click', function(e){
+            e.preventDefault();
+
+            var self = this;
+
+            var searchResultsTable$ = $('#all-search-results');
+
+            function doSearch(){
+                dqr.selectedPacs = $selectPacsMenu.val();
+                if (!dqr.selectedPacs) {
+                    XNAT.dialog.message(false, 'Please select a PACS to query.', {
+                        okAction: function(obj){
+                            // $selectPacsMenu.click();
+                            // menuUpdate($selectPacsMenu);
+                        }
+                    });
+                    return;
+                }
+                pingPACS(dqr.selectedPacs, function(){
+                    renderResultsTable(false);
+                    searchPACS.apply(self, arguments);
+                });
+            }
+
+            // confirm clearing of search results before doing new search
+            if (searchResultsTable$.find('tr[data-uid]').length) {
+                XNAT.dialog.confirm({
+                    title: 'Perform New Search?',
+                    content: '' +
+                        'Performing a new search will clear the results table below. ' +
+                        'Would you like to clear the current results and continue?',
+                    okLabel: 'Continue',
+                    okAction: function(dialog){
+                        doSearch();
+                    }
+                })
+            }
+            // if there are no results displayed, just do it
+            else {
+                doSearch()
+            }
+
+        });
     };
 
     XNAT.plugin.dqr = dqr;

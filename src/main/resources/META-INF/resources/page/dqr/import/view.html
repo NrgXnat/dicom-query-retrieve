@@ -90,7 +90,9 @@ included and parsed in both JSP and Velocity parent pages.
                 <div class="pacs-search-item pull-left">
                     <b>Patient Name</b>
                     <input type="text" name="patientName" placeholder="Last, First" data-format="last-first" tabindex="1">
-                    <br><label><input type="checkbox" class="pacs-name-format" value="true" /> PACS Name Format?</label>
+                    <label style="display: block; font-size: 11px; padding: 4px 0;">
+                        <input type="checkbox" class="pacs-name-format" value="true" /> PACS Name Format?
+                    </label>
                 </div>
                 <div class="pacs-search-item pull-left">
                     <b>Patient ID</b>
@@ -99,15 +101,11 @@ included and parsed in both JSP and Velocity parent pages.
                 <div class="pacs-search-item pull-left">
                     <b>Date Range</b>
                     <label id="study-date-from-container">
-                        <!--
                     <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
-                        -->
                     </label>
                     -
                     <label id="study-date-to-container">
-                        <!--
                     <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
-                        -->
                     </label>
 <!--                    <button class="ignore btn btn-sm" type="button" id="study-date-today" name="!studyDateToday">Today</button>-->
                 </div>
