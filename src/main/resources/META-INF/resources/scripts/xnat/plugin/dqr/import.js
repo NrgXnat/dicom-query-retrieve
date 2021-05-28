@@ -35,9 +35,10 @@ var XNAT = getObject(XNAT || {});
     XNAT.plugin.dqr = dqr =
         getObject(XNAT.plugin.dqr || {});
 
-    // set import capability status
+    // set conditional values
     dqr.canQuery = true;
     dqr.canImport = true;
+    dqr.usePacsNameFormatting = false;
 
     // cache DOM elements when script loads for faster access later
     var $selectPacsMenu      = $('#select-pacs');
@@ -47,6 +48,7 @@ var XNAT = getObject(XNAT || {});
     var $searchResultsHeader = $pacsSearchResults.find('.results-header');
     var $searchResultsBody   = $pacsSearchResults.find('.results-body');
     var $searchResultsSubmit = $pacsSearchResults.find('.results-submit');
+    var $patientNameField    = $('input[name=patientName');
     var $pacsNoResults       = $('#pacs-no-results');
     var $pacsQueryMsg        = $('#pacs-query-msg');
     var $noResultsTemplate   = $('#no-search-results');
@@ -475,25 +477,6 @@ var XNAT = getObject(XNAT || {});
             // }
         });
 
-        // // click the 'today' button to fill in today's date
-        // $studyDateToday.off().on('click', function(e){
-        //
-        //     e.preventDefault();
-        //
-        //     $studyDateFrom.val(XNAT.data.todaysDate.ISO);
-        //     // dateFromI.date = DATE_TODAY;
-        //     // dateFromI.update({
-        //     //     startDate: DATE_TODAY
-        //     // });
-        //
-        //     $studyDateTo.val(XNAT.data.todaysDate.ISO);
-        //     // dateToI.date = DATE_TODAY;
-        //     // dateToI.update({
-        //     //     startDate: DATE_TODAY
-        //     // });
-        //
-        // });
-
     }
 
     dqr.pacsDate = pacsDate = function(dateString){
@@ -568,6 +551,7 @@ var XNAT = getObject(XNAT || {});
         XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
             .success(function(data){
                 if (data.successful) {
+                    dqr.canQuery = true;
                     $('#pacs-status-indicator').empty().css('color','#393').append(
                         spawn('!',[
                             spawn('i.fa.fa-check'),
@@ -584,11 +568,22 @@ var XNAT = getObject(XNAT || {});
                             spawn('i.fa.fa-cancel'),
                             spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
                         ])
-                    )
+                    );
+                    dqr.canQuery = false;
+                    dqr.disableQueryForm();
+                    XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
                 }
             })
             .fail(function(e){
-                XNAT.dialog.message("Error: could not test PACS connection")
+                $('#pacs-status-indicator').empty().css('color','#933').append(
+                    spawn('!',[
+                        spawn('i.fa.fa-cancel'),
+                        spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
+                    ])
+                );
+                dqr.canQuery = false;
+                dqr.disableQueryForm();
+                XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
             });
 
     });
@@ -887,7 +882,7 @@ var XNAT = getObject(XNAT || {});
                     okLabel: 'Close',
                     okAction: function(obj){
                         scanTypesDialog.close();
-                        dqr.resetResults();
+                        dqr.resetResults(true);
                         // XNAT.dialog.loading.open();
                         // window.location.reload(true);
                     }
@@ -1362,6 +1357,33 @@ var XNAT = getObject(XNAT || {});
         });
     };
 
+    dqr.formatNameField = formatNameField = function(input,method){
+        if (method === 'pacs'){
+            var inputVal = $(input).val(),
+                pacsVal = inputVal.toUpperCase().replace(/\s/g,'^').replace(',','');
+            $(input).val(pacsVal);
+        } else {
+            var inputVal = $(input).val(),
+                arrayVal = inputVal.toLowerCase().split('^');
+            arrayVal.forEach(function(namePart,i){
+                arrayVal[i] = (namePart.length) ?
+                    namePart[0].toUpperCase() + namePart.slice(1) :
+                    '';
+            });
+            var nameVal = arrayVal.join(', ');
+            $(input).val(nameVal);
+        }
+    };
+
+    dqr.setNameFieldFormat = setNameFieldFormat = function(e){
+        var input = $(e.target);
+        if (dqr.usePacsNameFormatting) {
+            formatNameField(input,'pacs');
+        } else {
+            formatNameField(input,'human');
+        }
+    };
+
     dqr.initReceivers = initReceivers = function(){
         function renderScpSelector(receivers){
 
@@ -1476,6 +1498,17 @@ var XNAT = getObject(XNAT || {});
     $(document).on('click','.clear-search-results',function(e){
         dqr.resetResults(true);
     });
+
+    $(document).on('click','.pacs-name-format',function(){
+        dqr.usePacsNameFormatting = this.checked;
+        $patientNameField.prop('placeholder',(this.checked) ?
+            'LAST^FIRST':
+            'Last, First'
+        );
+        dqr.formatNameField($patientNameField,(this.checked) ? 'pacs':'human');
+    });
+
+    $patientNameField[0].addEventListener('input',dqr.setNameFieldFormat);
 
     dqr.disableQueryForm = disableQueryForm = function(){
         $('#pacs-import-search').find('input').prop('disabled','disabled');
@@ -1667,7 +1700,7 @@ var XNAT = getObject(XNAT || {});
             okLabel: 'Upload',
             okClose: false,
             okAction: function(obj){
-                dqr.resetResults();
+                dqr.resetResults(true);
                 xmodal.loading.open('Querying PACS...');
                 $(document).find('#csv-upload').submit();
             }
