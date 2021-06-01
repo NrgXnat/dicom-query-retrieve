@@ -1640,7 +1640,7 @@ var XNAT = getObject(XNAT || {});
         });
 
         // handle CSV import
-        $(document).on('click', '#import-csv', function(e){
+        $(document).off('click').on('click', '#import-csv', function(e){
             e.preventDefault();
             // form with file input to render
             var fileForm = spawn('form#csv-upload|name=csv_upload', {
@@ -1676,7 +1676,7 @@ var XNAT = getObject(XNAT || {});
         });
 
         // enable search submission
-        $searchSubmit.on('click', function(e){
+        $searchSubmit.off('click').on('click', function(e){
             e.preventDefault();
 
             var self = this;
