@@ -27,4 +27,9 @@ public class HibernateExecutedPacsRequestService extends AbstractHibernatePacsRe
     public HibernateExecutedPacsRequestService(final NamedParameterJdbcTemplate template) {
         super(template);
     }
+
+    @Override
+    protected String getRequestType() {
+        return TYPE;
+    }
 }

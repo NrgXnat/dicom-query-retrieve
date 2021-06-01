@@ -10,8 +10,8 @@
 package org.nrg.xnatx.dqr.services;
 
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
+import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 
@@ -25,7 +25,7 @@ public interface BasePacsRequestService<R extends PacsRequest> extends BaseHiber
 
     List<R> getAllForUser(final UserI user, final PaginatedPacsRequest request);
 
-    R getByIdForUser(final long id, final UserI user);
+    R getByIdForUser(final long id, final UserI user) throws NotFoundException;
 
     List<R> getAllOrderedByDate();
 

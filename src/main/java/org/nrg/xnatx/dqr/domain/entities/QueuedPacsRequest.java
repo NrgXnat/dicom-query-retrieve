@@ -22,6 +22,8 @@ import java.util.List;
 @Table
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 public class QueuedPacsRequest extends PacsRequest {
+    private static final long serialVersionUID = 7081993254603730636L;
+
     public QueuedPacsRequest() {
         super();
     }

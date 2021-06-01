@@ -32,6 +32,11 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     }
 
     @Override
+    protected String getRequestType() {
+        return TYPE;
+    }
+
+    @Override
     public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId) {
         return getDao().findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId);
     }

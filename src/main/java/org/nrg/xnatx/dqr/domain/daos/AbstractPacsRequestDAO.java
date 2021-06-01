@@ -9,8 +9,6 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import java.util.List;
-
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
@@ -23,6 +21,8 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
+
+import java.util.List;
 
 public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends AbstractHibernateDAO<E> {
     protected abstract String getTimeSortProperty();
@@ -47,15 +47,16 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
                                         .build());
     }
 
-    public List<E> findAllByIdAndUser(final long id, final UserI user) {
-        return findAllByIdAndUser(id, user, null);
+    public E findByIdAndUser(final long id, final UserI user) {
+        return findByIdAndUser(id, user, null);
     }
 
-    public List<E> findAllByIdAndUser(final long id, final UserI user, final PaginatedPacsRequest request) {
+    public E findByIdAndUser(final long id, final UserI user, final PaginatedPacsRequest request) {
         final PaginatedPacsRequest realized = ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest());
         realized.getFiltersMap().put("id", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(id).build());
         realized.getFiltersMap().put("username", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(user.getUsername()).build());
-        return findPaginated(realized);
+        final List<E> results = findPaginated(realized);
+        return results.isEmpty() ? null : results.get(0);
     }
 
     public List<E> findByPacsIdOrderedByMostRecent(final long pacsId) {

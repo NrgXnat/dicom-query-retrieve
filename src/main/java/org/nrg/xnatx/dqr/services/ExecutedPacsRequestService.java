@@ -15,4 +15,5 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
  * Created by mike on 1/19/18.
  */
 public interface ExecutedPacsRequestService extends BasePacsRequestService<ExecutedPacsRequest> {
+    String TYPE = "executed";
 }

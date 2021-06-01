@@ -283,9 +283,14 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public ResponseEntity<List<FindRow>> importFromPacs(@ApiParam(value = "Multipart file object being uploaded") @RequestParam(value = "csv_to_store") final MultipartFile csv,
                                                         @ApiParam("PACS to query.") @RequestParam final Long pacsId,
                                                         @ApiParam("Get all studies on PACS when a row has no search criteria.") @RequestParam(defaultValue = "false") final boolean allowRowThatGetsAllStudiesOnPacs) throws Exception {
-        final File temp = File.createTempFile("xnat", "csv");
+        final File temp = File.createTempFile("xnat", ".csv");
         try (final InputStream input = csv.getInputStream(); final OutputStream output = new FileOutputStream(temp)) {
-            IOUtils.copy(input, output);
+            final int bytesCopied = IOUtils.copy(input, output);
+            if (bytesCopied > 0) {
+                log.debug("Copied a total of {} bytes from multi-part file {} to temp file {}", bytesCopied, csv.getOriginalFilename(), temp.getAbsolutePath());
+            } else {
+                log.warn("I tried to copy multi-part file {} to temp file {} but it looks like no data was transferred. The destination file thinks that it's {} bytes long.", csv.getOriginalFilename(), temp.getAbsolutePath(), temp.length());
+            }
         }
         final List<FindRow>              rows    = _dqrService.extractNewImportRequestFromCsv(getSessionUser(), temp, pacsId, allowRowThatGetsAllStudiesOnPacs);
         final ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
@@ -326,7 +331,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                                               @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException, InsufficientPrivilegesException {
         final UserI user = getSessionUser();
         if (all && !Groups.hasAllDataAccess(user)) {
-            throw new InsufficientPrivilegesException(user.getUsername(), "queued", "You must have all data access privileges to view all queued PACS requests.");
+            throw new InsufficientPrivilegesException(user.getUsername(), QueuedPacsRequestService.TYPE, "You must have all data access privileges to view all queued PACS requests.");
         }
 
         final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
@@ -343,9 +348,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public long queryQueueCount(@ApiParam("Indicates that all queued requests should be counted instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all) throws InsufficientPrivilegesException {
         final UserI user = getSessionUser();
         if (all && !Groups.hasAllDataAccess(user)) {
-            throw new InsufficientPrivilegesException(user.getUsername(), "queued", "You must have all data access privileges to count all queued PACS requests.");
+            throw new InsufficientPrivilegesException(user.getUsername(), QueuedPacsRequestService.TYPE, "You must have all data access privileges to count all queued PACS requests.");
         }
-
         return all ? _queuedRequestService.getCount() : _queuedRequestService.getAllForUserCount(getSessionUser());
     }
 

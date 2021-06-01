@@ -22,10 +22,4 @@
     <logger name="org.nrg.xnatx.dqr" additivity="false" level="INFO">
         <appender-ref ref="dqr"/>
     </logger>
-    <logger name="org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool" additivity="false" level="DEBUG">
-        <appender-ref ref="dqr"/>
-    </logger>
-    <logger name="org.nrg.xnatx.dqr.services.impl.basic" additivity="false" level="DEBUG">
-        <appender-ref ref="dqr"/>
-    </logger>
 </configuration>

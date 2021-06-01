@@ -20,6 +20,8 @@ import java.util.Map;
  * Created by mike on 1/19/18.
  */
 public interface QueuedPacsRequestService extends BasePacsRequestService<QueuedPacsRequest> {
+    String TYPE = "queued";
+
     List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId);
 
     List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request);
