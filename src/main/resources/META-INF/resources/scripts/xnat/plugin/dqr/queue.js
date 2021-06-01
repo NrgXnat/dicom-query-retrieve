@@ -366,7 +366,8 @@ var XNAT = getObject(XNAT || {});
          * @returns {*}
          */
         function getListSize(part, fn){
-            var uri = '/xapi/dqr/import/'+part+'/count' + (XNAT.user.isAdmin ? '?all=true' : '');
+            var isAdmin = window.isAdmin || false;
+            var uri = '/xapi/dqr/import/'+part+'/count' + (isAdmin ? '?all=true' : '');
             var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl(uri));
             if (fn && isFunction(fn)) {
                 listSizeReq.done(fn)
