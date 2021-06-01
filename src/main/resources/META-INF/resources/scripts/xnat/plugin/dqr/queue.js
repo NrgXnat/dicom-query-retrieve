@@ -366,7 +366,7 @@ var XNAT = getObject(XNAT || {});
          * @returns {*}
          */
         function getListSize(part, fn){
-            var uri = '/xapi/dqr/import/'+part+'/count' + (XNAT.user.isAdmin ? '' : '?user=true');
+            var uri = '/xapi/dqr/import/'+part+'/count' + (XNAT.user.isAdmin ? '?all=true' : '');
             var listSizeReq = XNAT.xhr.get(XNAT.url.rootUrl(uri));
             if (fn && isFunction(fn)) {
                 listSizeReq.done(fn)
@@ -406,7 +406,7 @@ var XNAT = getObject(XNAT || {});
             queueUrlQueryParams.push("pageSize=" + (size || 100));
             queueUrlQueryParams.push("sort=" + (sort || 'DESC'));
 
-            if (!dqr.adminView) queueUrlQueryParams.push('user=true');
+            if (dqr.adminView) queueUrlQueryParams.push('all=true');
             return XNAT.url.rootUrl(queueUrl + '?' + queueUrlQueryParams.join('&'));
         }
 
@@ -721,7 +721,7 @@ var XNAT = getObject(XNAT || {});
             historyUrlQueryParams.push('pageSize=' + (size || 100));
             historyUrlQueryParams.push('sort=' + (sort || 'DESC'));
 
-            if (!dqr.adminView) historyUrlQueryParams.push('user=true');
+            if (dqr.adminView) historyUrlQueryParams.push('all=true');
             return XNAT.url.rootUrl(historyUrl + '?' + historyUrlQueryParams.join('&'));
         }
 

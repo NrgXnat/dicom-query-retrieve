@@ -17,17 +17,17 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class DicomPersonNameSearchCriteria {
 
-    private List<String> criteriaInOrderOfPreference;
+    private final List<String> criteriaInOrderOfPreference;
 
     public DicomPersonNameSearchCriteria() {
-        criteriaInOrderOfPreference = new ArrayList<String>(5);
+        criteriaInOrderOfPreference = new ArrayList<>(5);
     }
 
     public List<String> getCriteriaInOrderOfPreference() {
-        return new ArrayList<String>(criteriaInOrderOfPreference);
+        return new ArrayList<>(criteriaInOrderOfPreference);
     }
 
-    public void addCriterion(String criterion) {
+    public void addCriterion(final String criterion) {
         criteriaInOrderOfPreference.add(criterion);
     }
 

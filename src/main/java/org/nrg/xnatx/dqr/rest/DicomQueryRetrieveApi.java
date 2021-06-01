@@ -92,7 +92,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "Insufficient privileges to retrieve the requested setting."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "settings", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = DataAccess)
     public Map<String, Object> getDqrPreferences() {
         log.info("User {} requested the system DQR settings.", getSessionUser().getUsername());
         return new HashMap<>(_preferences);
@@ -103,7 +103,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "Not authorized to set automation properties."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "settings", consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.POST, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings", consumes = {MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE}, method = RequestMethod.POST, restrictTo = DataAdmin)
     public void setDqrPreferences(@ApiParam(value = "The map of DQR preferences to be set.", required = true) @RequestBody final Map<String, String> properties) {
         log.info("User {} requested to set a batch of DQR preferences.", getSessionUser().getUsername());
         // Is this call initializing the system?
@@ -120,7 +120,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @ApiOperation(value = "Get list of DQR configurations.", notes = "The Dqr configurations function returns a list of all DQR configurations in the XNAT system.", response = DqrProjectSettings.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "Returns a list of all of the currently configured DQR configurations."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings/project", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = DataAccess)
     @ResponseBody
     public List<DqrProjectSettings> getAllDqrProjectSettings() {
         return _dqrProjectSettingsService.getAll();
@@ -131,7 +131,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 403, message = "Insufficient privileges to create or update the DQR configuration for the project."),
                    @ApiResponse(code = 404, message = "The project for the new DQR configuration wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @ResponseBody
     public DqrProjectSettings createDqrProjectSettings(@RequestBody final DqrProjectSettings settings) throws NotFoundException, ResourceAlreadyExistsException {
         final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(settings.getProjectId());
@@ -144,9 +145,9 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @ApiOperation(value = "Get DQR configuration for the specified project.", notes = "This function returns the DQR settings for the specified project.", response = DqrProjectSettings.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Returns DQR configuration for the project."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
     @ResponseBody
-    public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId) throws NotFoundException {
+    public DqrProjectSettings getDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
         return _dqrProjectSettingsService.getProjectSettings(projectId);
     }
 
@@ -160,12 +161,14 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _preferences.getAllowAllProjectsToUseDqr() || _dqrProjectSettingsService.isDqrEnabledForProject(projectId);
     }
 
-    @ApiOperation(value = "Get DQR configuration for the specified project.", notes = "Returns the DQR configuration for the specified project.", response = DqrProjectSettings.class)
+    @ApiOperation(value = "Update the DQR configuration for the specified project.", notes = "Updates and returns the DQR configuration for the specified project.", response = DqrProjectSettings.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Returns DQR configuration for the project."),
+                   @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+                   @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the DQR settings for the specified project."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Edit)
     @ResponseBody
-    public DqrProjectSettings getDqrProjectSettings(@PathVariable final String projectId, @RequestBody final DqrProjectSettingsDTO settings) throws NotFoundException, DataFormatException, NotModifiedException {
+    public DqrProjectSettings getDqrProjectSettings(@PathVariable @Project final String projectId, @RequestBody final DqrProjectSettingsDTO settings) throws NotFoundException, DataFormatException, NotModifiedException {
         // This validation is only worthwhile until we add settings besides enabled at the project level. But for
         // now if there's no enabled setting they're not changing anything.
         if (settings.getEnabled() == null) {
@@ -184,9 +187,9 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 403, message = "Insufficient privileges to delete the DQR configuration for the project."),
                    @ApiResponse(code = 404, message = "The requested DQR configuration for the project wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
+    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Edit)
     @ResponseBody
-    public boolean deleteDqrProjectSettings(@PathVariable final String projectId) throws NotFoundException {
+    public boolean deleteDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
         final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(projectId);
         if (existingSettings == null) {
             throw new NotFoundException("No DQR settings were found for the project " + projectId);
@@ -308,28 +311,42 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _dqrService.importFromPacs(getSessionUser(), request);
     }
 
-    @ApiOperation(value = "Returns a list of queued DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
+    @ApiOperation(value = "Returns a list of queued DICOM query requests.",
+                  notes = "The results can be transformed and filtered using the various query string parameters, which includes all (all queued requests should be returned rather than being limited to requests made by the current user; note that this is only available to system administrators and all data access users), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.",
+                  responseContainer = "List", response = QueuedPacsRequest.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The list of queued DICOM query requests."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "import/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public List<QueuedPacsRequest> queryQueue(@ApiParam("Indicates that the queued requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/queue", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public List<QueuedPacsRequest> queryQueue(@ApiParam("Indicates that all queued requests should be returned instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all,
                                               @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
                                               @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException {
+                                              @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException, InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        if (all && !Groups.hasAllDataAccess(user)) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "queued", "You must have all data access privileges to view all queued PACS requests.");
+        }
+
         final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
-        return user ? _queuedRequestService.getAllForUser(getSessionUser(), request) : _queuedRequestService.getPaginated(request);
+        return all ? _queuedRequestService.getPaginated(request) : _queuedRequestService.getAllForUser(user, request);
     }
 
-    @ApiOperation(value = "Get count of all queued DICOM query requests.", notes = "The DICOM query queue count function returns a count of all DICOM queries that are currently queued on the XNAT system.", response = Integer.class)
+    @ApiOperation(value = "Get count of all queued DICOM query requests.", notes = "The DICOM query queue count function returns a count of DICOM queries that are currently queued on the XNAT system. The optional querystring parameter all (available only to system administrators and all data access users) indicates that a count of all queued requests should be returned. Otherwise this is the number of requests made by the current user.", response = Integer.class)
     @ApiResponses({@ApiResponse(code = 200, message = "A count of queued DICOM query requests."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "import/queue/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public long queryQueueCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
-        return user ? _queuedRequestService.getAllForUserCount(getSessionUser()) : _queuedRequestService.getCount();
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/queue/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public long queryQueueCount(@ApiParam("Indicates that all queued requests should be counted instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all) throws InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        if (all && !Groups.hasAllDataAccess(user)) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "queued", "You must have all data access privileges to count all queued PACS requests.");
+        }
+
+        return all ? _queuedRequestService.getCount() : _queuedRequestService.getAllForUserCount(getSessionUser());
     }
 
     @ApiOperation(value = "Deletes queued DICOM query requests with the given IDs.", notes = "Returns true if the queued DICOM query request was successfully deleted. Returns false otherwise.", response = Boolean.class)
@@ -339,19 +356,26 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "import/queue", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public boolean queryQueueDelete(@RequestBody final List<Long> idsToDelete) throws InsufficientPrivilegesException, NotFoundException {
-        final List<Long> idsNotFound = new ArrayList<>();
+    public boolean deleteQueuedRequest(@RequestBody final List<Long> idsToDelete) throws NotFoundException, InsufficientPrivilegesException {
+        final UserI      user         = getSessionUser();
+        final List<Long> idsNotFound  = new ArrayList<>();
+        final List<Long> idsForbidden = new ArrayList<>();
         for (final long idToDelete : idsToDelete) {
             try {
-                queryQueueDelete(idToDelete);
+                deleteQueuedRequest(user, idToDelete);
+            } catch (InsufficientPrivilegesException e) {
+                idsForbidden.add(idToDelete);
             } catch (NotFoundException e) {
                 idsNotFound.add(idToDelete);
             }
         }
-        if (idsNotFound.isEmpty()) {
-            return true;
+        if (!idsNotFound.isEmpty()) {
+            throw new NotFoundException("Deleted " + (idsToDelete.size() - idsNotFound.size()) + " queued requests, but the remaining IDs were not found: " + idsNotFound.stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
-        throw new NotFoundException("Deleted " + (idsToDelete.size() - idsNotFound.size()) + " queued requests, but the remaining IDs were not found: " + idsNotFound.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        if (!idsForbidden.isEmpty()) {
+            throw new InsufficientPrivilegesException("The current user does not have permissions to delete " + idsForbidden.size() + " of the queued PACS requests that were requested to be deleted: " + idsForbidden.stream().map(Object::toString).collect(Collectors.joining(", ")));
+        }
+        return true;
     }
 
     @ApiOperation(value = "Get the specified queued DICOM query request by ID.", notes = "The DICOM query queue function returns information about the queued DICOM query with a given ID.", response = QueuedPacsRequest.class)
@@ -377,42 +401,47 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "import/queue/{id}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Authorizer)
-    public boolean queryQueueDelete(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable final long id) throws NotFoundException, InsufficientPrivilegesException {
-        final UserI user = getSessionUser();
-        try {
-            final QueuedPacsRequest request = _queuedRequestService.get(id);
-            if (!Roles.isSiteAdmin(user) && !StringUtils.equals(request.getUsername(), user.getUsername())) {
-                throw new InsufficientPrivilegesException(user.getUsername(), Long.toString(id));
-            }
-            _queuedRequestService.delete(id);
-            return true;
-        } catch (org.nrg.framework.exceptions.NotFoundException e) {
-            throw new NotFoundException("No queued PACS request with ID " + id + " found");
-        }
+    public boolean deleteQueuedRequest(@ApiParam(value = "ID of the queued query request to delete", required = true) @PathVariable final long id) throws NotFoundException, InsufficientPrivilegesException {
+        deleteQueuedRequest(getSessionUser(), id);
+        return true;
     }
 
-    @ApiOperation(value = "Returns a list of completed DICOM query requests.", notes = "The results can be transformed and filtered using the various query string parameters, which includes user (results should be limited to requests made by the current user), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.", response = Integer.class)
+    @ApiOperation(value = "Returns a list of completed DICOM query requests.",
+                  notes = "The results can be transformed and filtered using the various query string parameters, which includes all (all completed requests should be returned rather than being limited to requests made by the current user; note that this is only available to system administrators and all data access users), sort (sort order, which can be \"asc\" or \"desc\"), page, and pageSize.",
+                  responseContainer = "List", response = ExecutedPacsRequest.class)
     @ApiResponses({@ApiResponse(code = 200, message = "The list of completed DICOM query requests."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "import/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public List<ExecutedPacsRequest> queryHistory(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user,
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/history", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public List<ExecutedPacsRequest> queryHistory(@ApiParam("Indicates that all completed requests should be returned instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all,
                                                   @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
                                                   @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
-                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException {
+                                                  @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize) throws DataFormatException, InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        if (all && !Groups.hasAllDataAccess(user)) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "completed", "You must have all data access privileges to view all completed PACS requests.");
+        }
+
         final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
-        return user ? _executedRequestService.getAllForUser(getSessionUser(), request) : _executedRequestService.getPaginated(request);
+        return all ? _executedRequestService.getPaginated(request) : _executedRequestService.getAllForUser(getSessionUser(), request);
     }
 
-    @ApiOperation(value = "Get count of all DICOM query requests.", notes = "The DICOM query history count function returns a count of all DICOM queries that have ever been made on the XNAT system.", response = Integer.class)
+    @ApiOperation(value = "Get count of all completed DICOM query requests.", notes = "The completed DICOM query requests count function returns a count of DICOM queries that have completed on the XNAT system. The optional querystring parameter all (available only to system administrators and all data access users) indicates that a count of all completed requests should be returned. Otherwise this is the number of requests made by the current user.", response = Integer.class)
     @ApiResponses({@ApiResponse(code = 200, message = "A count of completed DICOM query requests."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the count of DICOM query requests."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
-    @XapiRequestMapping(value = "import/history/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
-    public long queryHistoryCount(@ApiParam("Indicates that the completed requests should be filtered to include only requests made by the current user.") @RequestParam(defaultValue = "false") final boolean user) {
-        return user ? _executedRequestService.getAllForUserCount(getSessionUser()) : _executedRequestService.getCount();
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/history/count", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public long queryHistoryCount(@ApiParam("Indicates that all completed requests should be counted instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all) throws InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        if (all && !Groups.hasAllDataAccess(user)) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "completed", "You must have all data access privileges to count all completed PACS requests.");
+        }
+
+        return all ? _executedRequestService.getCount() : _executedRequestService.getAllForUserCount(getSessionUser());
     }
 
     @ApiOperation(value = "Get DICOM query request by ID.", notes = "The DICOM query history function returns information about the DICOM query with a given ID.", response = ExecutedPacsRequest.class)
@@ -513,7 +542,19 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return _ormStrategies.keySet();
     }
 
-    private PaginatedRequest.SortDir validateSort(final String sort) throws DataFormatException {
+    private void deleteQueuedRequest(final UserI user, final long id) throws InsufficientPrivilegesException, NotFoundException {
+        try {
+            final QueuedPacsRequest request = _queuedRequestService.get(id);
+            if (!Roles.isSiteAdmin(user) && !StringUtils.equals(request.getUsername(), user.getUsername())) {
+                throw new InsufficientPrivilegesException(user.getUsername(), Long.toString(id));
+            }
+            _queuedRequestService.delete(id);
+        } catch (org.nrg.framework.exceptions.NotFoundException e) {
+            throw new NotFoundException("No queued PACS request with ID " + id + " found");
+        }
+    }
+
+    private static PaginatedRequest.SortDir validateSort(final String sort) throws DataFormatException {
         if (!SORT.matcher(sort).matches()) {
             throw new DataFormatException("Invalid value for sort order (must be \"desc\" or \"asc\"): " + sort);
         }

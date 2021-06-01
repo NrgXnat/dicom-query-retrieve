@@ -14,43 +14,50 @@ import org.dcm4che2.data.PersonName;
 import org.nrg.xnatx.dqr.domain.DqrPersonName;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 
+import javax.annotation.Nonnull;
+
 public class BasicPatientNameStrategy implements PatientNameStrategy {
+
+    public static final String REGEX_DELIMITERS   = "^\\s*(?<first>\\S*)\\s*(?<delimiter>[\\^,.']?)\\s*(?<second>.*)$";
+    public static final String REPLACE_DELIMITERS = "${first}${delimiter}${second}";
+
     @Override
     public DqrPersonName dicomPatientNameToDqrPatientName(final String dicomPatientName) {
         return new DqrPersonName(new PersonName(dicomPatientName));
     }
 
     @Override
-    public DicomPersonNameSearchCriteria dqrSearchCriteriaToDicomSearchCriteria(PacsSearchCriteria searchCriteria) {
-        DicomPersonNameSearchCriteria dicomPersonNameSearchCriteria = new DicomPersonNameSearchCriteria();
-        if (StringUtils.isBlank(searchCriteria.getPatientName())) {
+    public DicomPersonNameSearchCriteria dqrSearchCriteriaToDicomSearchCriteria(final PacsSearchCriteria searchCriteria) {
+        final DicomPersonNameSearchCriteria dicomPersonNameSearchCriteria = new DicomPersonNameSearchCriteria();
+        final String                        patientName                   = searchCriteria.getPatientName();
+        if (StringUtils.isBlank(patientName)) {
             dicomPersonNameSearchCriteria.addCriterion("");
         } else {
-            String  patientNameString = myTrim(searchCriteria.getPatientName());
-            boolean isQuoted          = patientNameString.startsWith("\"") & patientNameString.endsWith(("\""));
-            boolean containsCaret     = patientNameString.contains("^");
-            boolean containsComma     = patientNameString.contains(",");
-            boolean containsSpace     = patientNameString.contains(" ");
+            final String  patientNameString = myTrim(patientName);
+            final boolean isQuoted          = patientNameString.startsWith("\"") & patientNameString.endsWith(("\""));
+            final boolean containsCaret     = patientNameString.contains("^");
+            final boolean containsComma     = patientNameString.contains(",");
+            final boolean containsSpace     = patientNameString.contains(" ");
 
-            String processedPatientNameString = patientNameString;
             if (isQuoted) {
-                processedPatientNameString = removeBoundingQuotes(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(removeBoundingQuotes(patientNameString));
             } else if (containsCaret && containsComma && containsSpace) {
-                processedPatientNameString = parseWithCaretCommaSpace(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithCaretCommaSpace(patientNameString));
             } else if (containsCaret && containsComma) {
-                processedPatientNameString = parseWithCaretComma(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithCaretComma(patientNameString));
             } else if (containsCaret && containsSpace) {
-                processedPatientNameString = parseWithCaret(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithCaret(patientNameString));
             } else if (containsComma && containsSpace) {
-                processedPatientNameString = parseWithComma(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithComma(patientNameString));
             } else if (containsCaret) {
-                processedPatientNameString = parseWithCaret(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithCaret(patientNameString));
             } else if (containsComma) {
-                processedPatientNameString = parseWithComma(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithComma(patientNameString));
             } else if (containsSpace) {
-                processedPatientNameString = parseWithSpace(patientNameString);
+                dicomPersonNameSearchCriteria.addCriterion(parseWithSpace(patientNameString));
+            } else {
+                dicomPersonNameSearchCriteria.addCriterion(patientNameString);
             }
-            dicomPersonNameSearchCriteria.addCriterion(processedPatientNameString);
         }
         return dicomPersonNameSearchCriteria;
     }
@@ -59,13 +66,11 @@ public class BasicPatientNameStrategy implements PatientNameStrategy {
         return StringUtils.unwrap(name, "\"");
     }
 
-    private static String myTrim(final String name) {
-        return name.trim()
-                   .replaceAll(" [ ]*", " ")
-                   .replaceAll("[ ]*\\^[ ]*", "^")
-                   .replaceAll("[ ]*,[ ]*", ",")
-                   .replaceAll("[ ]*\\.[ ]*", ".")
-                   .replaceAll("[ ]*'[ ]*", "'");
+    private static String myTrim(@Nonnull final String name) {
+        if (StringUtils.containsAny(name, "^,.'")) {
+            return name.replaceAll(REGEX_DELIMITERS, REPLACE_DELIMITERS);
+        }
+        return name.trim().replaceAll("\\s+", " ");
     }
 
     private static String parseWithCaretCommaSpace(final String name) {

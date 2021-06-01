@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.security;
 
+import com.google.common.collect.ArrayListMultimap;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.nrg.prefs.events.PreferenceHandlerMethod;
@@ -16,9 +17,12 @@ import org.nrg.xapi.authorization.AbstractXapiAuthorization;
 import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
 import org.nrg.xdat.security.XDATUser;
 import org.nrg.xdat.security.helpers.AccessLevel;
+import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.event.listeners.methods.AbstractXnatPreferenceHandlerMethod;
+import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
+import org.nrg.xnatx.dqr.dto.DqrProjectSettingsDTO;
 import org.nrg.xnatx.dqr.dto.PacsImportRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,27 +55,30 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
         if (Roles.isSiteAdmin(user) || ((XDATUser) user).isDataAccess()) {
             return true;
         }
+
         // If not all users can use DQR and this user doesn't have the Dqr role, they can't do whatever it is they're trying to do.
         if (!_allowAllUsersToUseDqr.get() && !Roles.checkRole(user, "Dqr")) {
             return false;
         }
+
         // Are they trying to act on particular projects, subjects, experiments?
-        final Set<String>                       projects       = new HashSet<>(getProjects(joinPoint));
-        final List<? extends PacsImportRequest> importRequests = getParameters(joinPoint, PacsImportRequest.class);
-        if (!importRequests.isEmpty()) {
-            projects.addAll(importRequests.stream().map(PacsImportRequest::getProjectId).filter(Objects::nonNull).collect(Collectors.toList()));
-        }
+        final Set<String> projects = new HashSet<>(getProjects(joinPoint));
+        projects.addAll(getParameters(joinPoint, PacsImportRequest.class).stream().map(PacsImportRequest::getProjectId).filter(Objects::nonNull).collect(Collectors.toSet()));
+        projects.addAll(getParameters(joinPoint, DqrProjectSettings.class).stream().map(DqrProjectSettings::getProjectId).filter(Objects::nonNull).collect(Collectors.toSet()));
+        projects.addAll(getParameters(joinPoint, DqrProjectSettingsDTO.class).stream().map(DqrProjectSettingsDTO::getProjectId).filter(Objects::nonNull).collect(Collectors.toSet()));
+
         final List<String> experiments = getExperiments(joinPoint);
-        // None found, so user can proceed
+
         final boolean hasProjects    = !projects.isEmpty();
         final boolean hasExperiments = !experiments.isEmpty();
+
+        // None found, so user can proceed
         if (!hasProjects && !hasExperiments) {
             return true;
         }
-        if (hasProjects && projects.size() > 1) {
-            throw new InsufficientPrivilegesException("Can't operate on multiple projects at once");
-        }
-        final boolean               isRead     = StringUtils.equalsIgnoreCase("GET", request.getMethod());
+
+        final boolean isRead = StringUtils.equalsIgnoreCase("GET", request.getMethod());
+
         final MapSqlParameterSource parameters = new MapSqlParameterSource("username", user.getUsername()).addValue("action", isRead ? "read" : "edit");
         if (hasExperiments && !hasProjects) {
             final List<String> forbidden = experiments.stream().filter(experiment -> !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY, parameters.addValue("experiment", experiment), Boolean.class)).collect(Collectors.toList());
@@ -80,12 +87,27 @@ public class DqrUserXapiAuthorization extends AbstractXapiAuthorization implemen
             }
             return true;
         }
-        final String project = projects.iterator().next();
-        parameters.addValue("project", project);
-        final List<String> forbidden = experiments.stream().filter(experiment -> !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY_IN_PROJECT, parameters.addValue("experiment", experiment), Boolean.class)).collect(Collectors.toList());
-        if (!forbidden.isEmpty()) {
-            throw new InsufficientPrivilegesException(user.getUsername(), project, forbidden);
+
+        if (!hasExperiments) {
+            final List<String> forbidden = projects.stream().map(project -> (isRead ? Permissions.canReadProject(user, project) : Permissions.canEditProject(user, project)) ? null : project).filter(Objects::nonNull).collect(Collectors.toList());
+            if (forbidden.isEmpty()) {
+                return true;
+            }
+            throw new InsufficientPrivilegesException(user.getUsername(), forbidden);
         }
+
+        final ArrayListMultimap<String, String> allForbidden = ArrayListMultimap.create();
+        for (final String project : projects) {
+            parameters.addValue("project", project);
+            final List<String> forbidden = experiments.stream().filter(experiment -> !_template.queryForObject(QUERY_USER_CAN_ACTION_ENTITY_IN_PROJECT, parameters.addValue("experiment", experiment), Boolean.class)).collect(Collectors.toList());
+            if (!forbidden.isEmpty()) {
+                allForbidden.putAll(project, forbidden);
+            }
+        }
+        if (!allForbidden.isEmpty()) {
+            throw new InsufficientPrivilegesException(user.getUsername(), allForbidden.asMap().entrySet().stream().map(entry -> entry.getKey() + ": " + String.join(", ", entry.getValue())).collect(Collectors.toList()));
+        }
+
         return true;
     }
 
