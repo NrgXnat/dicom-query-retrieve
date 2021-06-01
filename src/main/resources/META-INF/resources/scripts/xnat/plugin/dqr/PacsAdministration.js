@@ -164,7 +164,9 @@ XNAT.app = getObject(XNAT.app || {});
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'label',
-                            label: 'Label'
+                            label: 'Label',
+                            addClass: 'validate',
+                            validation: 'required'
                         }),
                         XNAT.ui.panel.input.text({
                             name: 'queryRetrievePort',
