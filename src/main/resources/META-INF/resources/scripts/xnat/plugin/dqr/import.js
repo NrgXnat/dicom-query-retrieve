@@ -1269,7 +1269,7 @@ var XNAT = getObject(XNAT || {});
             html: 'Clear Search',
             on: [
                 ['click', function(e){
-                    // e.preventDefault();
+                    e.preventDefault();
                     resetResults(true);
                 }]
             ]
@@ -1640,8 +1640,14 @@ var XNAT = getObject(XNAT || {});
         });
 
         // handle CSV import
-        $(document).off('click').on('click', '#import-csv', function(e){
+        $(document).off('click', '#import-csv').on('click', '#import-csv', function(e){
             e.preventDefault();
+            // check for selected PACS
+            if (!$selectPacsMenu.val()) {
+                XNAT.dialog.message('PACS Selection Error','Please select a PACS to query before uploading a CSV file.');
+                return false; 
+            }
+
             // form with file input to render
             var fileForm = spawn('form#csv-upload|name=csv_upload', {
                 style: { padding: '10px', fontSize: '13px' },
