@@ -46,69 +46,40 @@ included and parsed in both JSP and Velocity parent pages.
         </div>
         <div class="panel-body" style="background:#f0f0f0;">
 
-            <style>
-
-                #pacs-search-fields {
-                    width: 100%;
-                }
-
-                .pacs-search-item {
-                    display: block;
-                    min-width: 180px;
-                    float: left;
-                }
-
-                .pacs-search-item b {
-                    display: block;
-                    font-weight: normal;
-                    margin: 8px 2px;
-                }
-
-                #pacs-search-results input.relabel {
-                    width: 90%;
-                }
-
-                /*#pacs-search-results td.accessionNumber:hover,*/
-                /*#pacs-search-results td.patientName:hover,*/
-                /*#pacs-search-results td.studyId:hover,*/
-                /*#pacs-search-results td.studyDate:hover,*/
-                /*#pacs-search-results td.modalitiesInStudy:hover {*/
-                /*cursor: pointer*/
-                /*}*/
-
-                #pacs-search-results div.results-body tr:hover {
-                    cursor: pointer
-                }
-
-            </style>
-
-            <form id="pacs-search-fields" class="pull-left">
-                <div class="pacs-search-item pull-left">
-                    <b>Accession Number</b>
-                    <input type="text" name="accessionNumber" placeholder="All" tabindex="1">
+            <form id="pacs-search-fields">
+                <div class="seach-field-container pull-left" style="max-width: 720px">
+                    <div class="pacs-search-item pull-left">
+                        <b>Accession Number</b>
+                        <input type="text" name="accessionNumber" placeholder="All" tabindex="1">
+                    </div>
+                    <div class="pacs-search-item pull-left">
+                        <b>Patient Name</b>
+                        <input type="text" name="patientName" placeholder="Last, First" data-format="last-first" tabindex="1">
+                        <label style="display: block; font-size: 11px; padding: 4px 0;">
+                            <input type="checkbox" class="pacs-name-format" value="true" /> PACS Name Format?
+                        </label>
+                    </div>
+                    <div class="pacs-search-item pull-left">
+                        <b>Patient ID</b>
+                        <input type="text" name="patientId" placeholder="All" tabindex="1">
+                    </div>
+                    <!--<div class="pacs-search-item pull-left">-->
+                        <!--<b>Study Description</b>-->
+                        <!--<input type="text" name="studyDescription" placeholder="All" tabindex="1">-->
+                    <!--</div>-->
+                    <div class="pacs-search-item pull-left">
+                        <b>Date Range</b>
+                        <label id="study-date-from-container">
+                            <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
+                        </label>
+                        -
+                        <label id="study-date-to-container">
+                            <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
+                        </label>
+                        <!--                    <button class="ignore btn btn-sm" type="button" id="study-date-today" name="!studyDateToday">Today</button>-->
+                    </div>
                 </div>
-                <div class="pacs-search-item pull-left">
-                    <b>Patient Name</b>
-                    <input type="text" name="patientName" placeholder="Last, First" data-format="last-first" tabindex="1">
-                    <label style="display: block; font-size: 11px; padding: 4px 0;">
-                        <input type="checkbox" class="pacs-name-format" value="true" /> PACS Name Format?
-                    </label>
-                </div>
-                <div class="pacs-search-item pull-left">
-                    <b>Patient ID</b>
-                    <input type="text" name="patientId" placeholder="All" tabindex="1">
-                </div>
-                <div class="pacs-search-item pull-left">
-                    <b>Date Range</b>
-                    <label id="study-date-from-container">
-                    <input type="text" class="study-date mono" id="study-date-from" name="studyDateFrom" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
-                    </label>
-                    -
-                    <label id="study-date-to-container">
-                    <input type="text" class="study-date mono" id="study-date-to" name="studyDateTo" size="10" autocomplete="off" tabindex="1" placeholder="YYYY-MM-DD">
-                    </label>
-<!--                    <button class="ignore btn btn-sm" type="button" id="study-date-today" name="!studyDateToday">Today</button>-->
-                </div>
+
                 <div id="pacs-search-submit" class="pacs-search-item pull-right" style="min-width: inherit">
                     <b>&nbsp;</b>
                     <button type="submit" class="btn btn1 ignore" id="submit-pacs-search">Search PACS</button>

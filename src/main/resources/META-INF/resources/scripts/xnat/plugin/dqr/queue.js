@@ -605,7 +605,7 @@ var XNAT = getObject(XNAT || {});
 
             var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
 
-            XNAT.xhr.get(setupQueueUrl(all, page, size)).done(function(queueData){
+            XNAT.xhr.get(3(all, page, size)).done(function(queueData){
 
                 getListSize('queue').done(function(queueSize){
 

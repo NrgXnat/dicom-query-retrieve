@@ -39,6 +39,7 @@ var XNAT = getObject(XNAT || {});
     dqr.canQuery = true;
     dqr.canImport = true;
     dqr.usePacsNameFormatting = false;
+    dqr.pacsObj = {};
 
     // cache DOM elements when script loads for faster access later
     var $selectPacsMenu      = $('#select-pacs');
@@ -61,6 +62,7 @@ var XNAT = getObject(XNAT || {});
     function renderPacsMenu(items){
         var pacsMenu = $selectPacsMenu[0];
         forEach(items || [], function(item, i){
+            dqr.pacsObj[item.id] = item;
             if (item.queryable) {
                 pacsMenu.add(spawn('option', {
                     value: item.id,
@@ -898,6 +900,14 @@ var XNAT = getObject(XNAT || {});
         getStudies(pacsId, studyUIDs).done(function(studies){
             collectScanTypes(studies);
             var scanTypesTable = scanTypesListDisplay();
+
+            // hide loading indicator and reset import button
+            xmodal.loading.close();
+            $(document).find('#import-selected-sessions')
+                .removeClass('disabled')
+                .prop('disabled',false)
+                .data('clicked',false);
+
             XNAT.dialog.open({
                 title: 'Import from PACS',
                 content: scanTypesTable,
@@ -1277,9 +1287,11 @@ var XNAT = getObject(XNAT || {});
 
         var beginImportButton = spawn('button#import-selected-sessions.btn.btn1|type=button', {
             html: 'Begin Import',
+            data: { 'clicked': false },
             on: [
                 ['click', function(e){
                     e.preventDefault();
+                    if ($(this).data('clicked') === 'clicked') return false;
                     var studyUIDs = [];
                     $pacsSearchResults.find('input.select-session:checked').filter(':visible').each(function(){
                         studyUIDs.push(this.value);
@@ -1288,7 +1300,11 @@ var XNAT = getObject(XNAT || {});
                         XNAT.dialog.message(false, 'Please select at least one study to import.');
                         return false;
                     }
+                    // if series are selected, disable search button to prevent repeated clicks and show loading indicator
+                    $(this).prop('disabled','disabled').addClass('disabled').data('clicked','clicked');
                     dqr.selectedPacs = dqr.selectedPacs || $selectPacsMenu.val();
+                    xmodal.loading.open('Querying '+ dqr.pacsObj[dqr.selectedPacs].aeTitle +' for series information');
+
                     scanTypesDialog(dqr.selectedPacs, studyUIDs);
                 }]
             ]
