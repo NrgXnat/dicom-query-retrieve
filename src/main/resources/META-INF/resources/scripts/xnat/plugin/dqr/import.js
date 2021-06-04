@@ -1645,7 +1645,7 @@ var XNAT = getObject(XNAT || {});
             // check for selected PACS
             if (!$selectPacsMenu.val()) {
                 XNAT.dialog.message('PACS Selection Error','Please select a PACS to query before uploading a CSV file.');
-                return false; 
+                return false;
             }
 
             // form with file input to render

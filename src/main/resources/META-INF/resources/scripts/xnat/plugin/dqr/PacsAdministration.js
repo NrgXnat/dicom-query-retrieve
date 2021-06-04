@@ -309,7 +309,6 @@ XNAT.app = getObject(XNAT.app || {});
         // intialize PACS table container and PACS list
         $(constants.PACS_DIV).empty();
         XNAT.app.dqr.pacsList = pacsList = [];
-        // XNAT.app.dqr.pacsObj = pacsObj = {};
 
         var pacsTable = XNAT.table({
             className: 'xnat-table',
@@ -429,6 +428,9 @@ XNAT.app = getObject(XNAT.app || {});
         bindAddButtonHandler();
         bindEditButtonHandler();
         bindDeleteButtonHandler();
+
+        // initialize history table after pacsObj is populated
+        historyTable.init();
 
         closeModalPanel(constants.MODAL_WINDOW_NAME);
     }
@@ -698,12 +700,12 @@ XNAT.app = getObject(XNAT.app || {});
         getObject(XNAT.app.dqr.queryQueue || {});
 
     function getQueryHistoryUrl(id){
-        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
+        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC&all=true';
         return XNAT.url.restUrl('/xapi/dqr/import/history' + appended);
     }
 
     function getQueryQueueUrl(id){
-        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC';
+        var appended = (id) ? '/'+id : '?page=1&pageSize=100&sort=DESC&all=true';
         return XNAT.url.restUrl('/xapi/dqr/import/queue' + appended);
     }
 
@@ -1225,8 +1227,6 @@ XNAT.app = getObject(XNAT.app || {});
         });
 
     };
-
-    historyTable.init();
 
 }));
 
