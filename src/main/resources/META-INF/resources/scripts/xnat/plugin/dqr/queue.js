@@ -464,10 +464,8 @@ var XNAT = getObject(XNAT || {});
                             },
                             order: [
                                 // 'CKBX',
-                                'queue_location',
+                                // 'queue_location',
                                 'id',
-                                // 'priority',
-                                // 'status',
                                 'queued_time',
                                 'patient_name',
                                 'study_date',
@@ -477,8 +475,8 @@ var XNAT = getObject(XNAT || {});
                                 'REMOVE'
                             ],
                             items: {
-                                _id: '~data-id',
-                                _pacsId: '~data-pacs-id',
+                                _qId: '~data-id',
+                                _qPacsId: '~data-pacs-id',
                                 // TODO: select multiple items for deletion
                                 // CKBX: {
                                 //     label: '<input type="checkbox" id="select-all-queue-items" class="selectable-all">',
@@ -502,88 +500,88 @@ var XNAT = getObject(XNAT || {});
                                 //         ])
                                 //     }
                                 // },
-                                id: {
+                                qId: {
                                     label: 'ID',
                                     sort: true,
+                                    filter: true,
                                     th: { style: { width: '80px' } },
-                                    td: { className: 'show-data' },
-                                    apply: function(id){
+                                    td: { className: 'show-data qId' },
+                                    apply: function(){
                                         return spawn('div.center.mono', [
-                                            ['span.hidden.sort.sort-value', zeroPad(id, 8)],
+                                            ['span.hidden.sort.sort-value', zeroPad(this.id, 8)],
                                             ['a.link.show-queue-item-data', {
-                                                attr: { href: '#id=' + id }
-                                            }, id + '']
+                                                attr: { href: '#id=' + this.id }
+                                            }, this.id + '']
                                         ])
                                     }
                                 },
-                                // priority: {
-                                //     label: 'Priority',
-                                //     sort: true,
-                                //     th: { style: { width: '80px' } },
-                                //     td: { className: 'center mono show-data'}
-                                // },
-                                // status: {
-                                //     label: 'Status',
-                                //     sort: true,
-                                //     td: { className: 'center show-data' }
-                                // },
-                                queuedTime: {
+                                qQueuedTime: {
                                     label: 'Queued',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'queued-time show-data queued_time' },
-                                    apply: renderTimeCell
+                                    td: { className: 'queued-time show-data queued_time qQueuedTime' },
+                                    apply: function(){
+                                        return renderTimeCell(this.queuedTime)
+                                    }
                                 },
-                                patientName: {
+                                qPatientName: {
                                     label: 'Patient Name',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'patient-name show-data patient_name' },
-                                    apply: function(name){
-                                        return spawn('div.truncate', name);
+                                    td: { className: 'patient-name show-data patient_name qPatientName' },
+                                    apply: function(){
+                                        return spawn('div.truncate', this.patientName);
                                     }
                                 },
-                                studyDate: {
+                                qStudyDate: {
                                     label: 'Study Date',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'study-date show-data nowrap study_date' },
-                                    apply: renderDayCell
+                                    td: { className: 'study-date show-data nowrap study_date qStudyDate' },
+                                    apply: function(){
+                                        return renderDayCell(this.studyDate)
+                                    }
                                 },
-                                xnatProject: {
+                                qXnatProject: {
                                     label: 'Project',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'show-data xnat_project' }
+                                    td: { className: 'show-data xnat_project qXnatProject' },
+                                    apply: function(){
+                                        return this.xnatProject
+                                    }
                                 },
-                                USER: dqr.adminView ? {
+                                qUSER: dqr.adminView ? {
                                     label: 'User',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'show-data USER' },
+                                    td: { className: 'show-data qUSER' },
                                     apply: function(){
                                         return spawn('div.nowrap', this.username);
                                     }
                                 } : '~!',
-                                pacsId: {
+                                qPacsId: {
                                     label: 'PACS',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'center show-data pacs_id' },
-                                    apply: function(pacsId){
-                                        return spawn('span.pacs-label', resolvePACSLabel(pacsId))
+                                    td: { className: 'center show-data pacs_id qPacsId' },
+                                    apply: function(){
+                                        return spawn('span.pacs-label', resolvePACSLabel(this.pacsId))
                                     }
                                 },
-                                destinationAeTitle: {
+                                qDestinationAeTitle: {
                                     label: 'Dest. AE',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'center show-data destination_ae_title' }
+                                    td: { className: 'center show-data destination_ae_title qDestinationAeTitle' },
+                                    apply: function(){
+                                        return this.destinationAeTitle
+                                    }
                                 },
-                                REMOVE: {
+                                qREMOVE: {
                                     label: 'Remove',
                                     th: { style: { width: '70px' } },
-                                    td: { className: 'center remove-data' },
+                                    td: { className: 'center remove-data qREMOVE' },
                                     apply: function(){
                                         return spawn('a.remove-queue-item.nolink.btn-hover', {
                                             attr: { href: '#id=' + this.id },
@@ -605,7 +603,7 @@ var XNAT = getObject(XNAT || {});
 
             var queueDisplayContainer$ = getById$('pacs-import-queue-display').html('loading...');
 
-            XNAT.xhr.get((all, page, size)).done(function(queueData){
+            XNAT.xhr.get(setupQueueUrl(all, page, size)).done(function(queueData){
 
                 getListSize('queue').done(function(queueSize){
 
@@ -750,17 +748,13 @@ var XNAT = getObject(XNAT || {});
                         // importHistoryTableNav: hasData && historyData.length > SIZE ? setupTableNav('history') : {},
                         importHistoryTable: {
                             kind: 'table.dataTable',
-                            // data: hasData ? sortObjectsNumeric(historyData, 'executedTime') : [],
                             data: historyData || [],
                             apply: function(data){
-                                console.log('history table data');
-                                console.log(data);
                                 return data;
                             },
                             table: {
                                 classes: 'highlight click-rows',
                                 on: [
-                                    // ['click', '.show-history-item-data', showHistoryItemData],
                                     ['click', 'td.show-data', showHistoryItemData]
                                 ]
                             },
@@ -770,6 +764,7 @@ var XNAT = getObject(XNAT || {});
                                 id: {
                                     label: 'ID',
                                     sort: true,
+                                    filter: true,
                                     td: { className: 'show-data' },
                                     apply: function(id){
                                         return spawn('div.center.mono', [
