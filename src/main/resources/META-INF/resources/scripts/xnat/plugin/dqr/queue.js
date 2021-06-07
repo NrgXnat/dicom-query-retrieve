@@ -475,8 +475,8 @@ var XNAT = getObject(XNAT || {});
                                 'REMOVE'
                             ],
                             items: {
-                                _qId: '~data-id',
-                                _qPacsId: '~data-pacs-id',
+                                _id: '~data-id',
+                                _pacsId: '~data-pacs-id',
                                 // TODO: select multiple items for deletion
                                 // CKBX: {
                                 //     label: '<input type="checkbox" id="select-all-queue-items" class="selectable-all">',
@@ -765,7 +765,8 @@ var XNAT = getObject(XNAT || {});
                                     label: 'ID',
                                     sort: true,
                                     filter: true,
-                                    td: { className: 'show-data' },
+                                    th: { style: { width: '80px' } },
+                                    td: { className: 'show-data id' },
                                     apply: function(id){
                                         return spawn('div.center.mono', [
                                             ['span.hidden.sort.sort-value', zeroPad(id, 8)],
