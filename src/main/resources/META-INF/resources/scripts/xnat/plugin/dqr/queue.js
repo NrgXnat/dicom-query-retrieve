@@ -313,8 +313,9 @@ var XNAT = getObject(XNAT || {});
 
 
         function removeQueuedItem(itemId){
+            var url = XNAT.url.csrfUrl('/xapi/dqr/import/queue/' + itemId);
             return XNAT.xhr
-                       .delete('/xapi/dqr/import/queue/' + itemId)
+                       .delete(url)
                        .done(function(){
                            XNAT.ui.banner.top(2000, 'Item removed from queue.', 'success');
                            // re-render queue table

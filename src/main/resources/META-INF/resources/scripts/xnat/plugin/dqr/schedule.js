@@ -306,7 +306,8 @@ console.log('dqr/schedule.js');
                         okLabel: 'Delete',
                         okClose: false,
                         okAction: function(dlg2){
-                            XNAT.xhr.delete('~/xapi/pacs/'+data.pacsId+'/availability/' + id)
+                            var url = XNAT.url.csrfUrl('/xapi/pacs/'+data.pacsId+'/availability/' + id);
+                            XNAT.xhr.delete(url)
                                 .done(function(){
                                     renderDayRows();
                                     XNAT.ui.banner.top(2000, 'Deleted', 'success');
