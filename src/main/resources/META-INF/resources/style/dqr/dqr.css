@@ -48,6 +48,10 @@
     cursor: pointer
 }
 
+.breakspace {
+    white-space: pre-wrap; /* fallback for older browsers */
+    white-space: break-spaces;
+}
 
 table.pacsSessionSearchResults thead input {
     -webkit-box-sizing: border-box;

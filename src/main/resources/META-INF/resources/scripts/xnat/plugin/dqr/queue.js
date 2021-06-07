@@ -114,9 +114,9 @@ var XNAT = getObject(XNAT || {});
 
         // render elements for any 'time' cells
         function renderTimeCell(time){
-            return spawn('div.center.mono.nowrap', [
+            return spawn('div.center.mono.breakspace', [
                 ['span.hidden.time.sort-value', (time + '')],
-                ['span.locale-string', localeDate(time).replace(', ', '<br>')]
+                ['span.locale-string', localeDate(time).replace(', ', '*').replace(' ','&nbsp;').replace('*',' ')]
             ])
         }
 
