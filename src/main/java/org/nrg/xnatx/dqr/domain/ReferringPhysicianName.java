@@ -12,18 +12,13 @@ package org.nrg.xnatx.dqr.domain;
 import org.dcm4che2.data.PersonName;
 
 public class ReferringPhysicianName extends DqrPersonName {
+    private static final long serialVersionUID = 4641995793372862768L;
 
-    private static final long serialVersionUID = 1L;
-
-    public ReferringPhysicianName() {
-
-    }
-
-    public ReferringPhysicianName(PersonName personName) {
+    public ReferringPhysicianName(final PersonName personName) {
         super(personName);
     }
 
-    public ReferringPhysicianName(String firstName, String lastName) {
+    public ReferringPhysicianName(final String firstName, final String lastName) {
         super(firstName, lastName);
     }
 }

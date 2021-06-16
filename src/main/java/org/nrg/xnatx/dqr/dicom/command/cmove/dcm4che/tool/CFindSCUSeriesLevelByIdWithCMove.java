@@ -17,9 +17,7 @@ import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
 public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
-
-    public CFindSCUSeriesLevelByIdWithCMove(final DqrPreferences preferences, DicomConnectionProperties dicomConnectionProperties, CEchoSCU cechoSCU,
-                                            OrmStrategy ormStrategy) {
+    public CFindSCUSeriesLevelByIdWithCMove(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
         super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
@@ -29,7 +27,7 @@ public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
     }
 
     @Override
-    protected DcmQR createDcmQR(String localAETitle) {
+    protected DcmQR createDcmQR(final String localAETitle) {
         return new DqrCMoveDcmQR(localAETitle);
     }
 }

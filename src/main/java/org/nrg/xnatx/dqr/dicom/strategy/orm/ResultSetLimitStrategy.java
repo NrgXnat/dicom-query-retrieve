@@ -14,6 +14,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 
 public interface ResultSetLimitStrategy {
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     boolean searchCriteriaIsSufficientlySpecific(final PacsSearchCriteria searchCriteria);
 
     int getMaxResultsForQueryLevel(final QueryRetrieveLevel level);

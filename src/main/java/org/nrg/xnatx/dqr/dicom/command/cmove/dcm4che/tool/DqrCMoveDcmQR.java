@@ -11,6 +11,7 @@ package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 
 import java.io.IOException;
 import java.util.List;
+
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
 import org.dcm4che2.net.Association;
@@ -19,26 +20,24 @@ import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 
 public class DqrCMoveDcmQR extends DcmQR {
-
     private boolean success;
-
-    private String errorMessage;
+    private String  errorMessage;
 
     public DqrCMoveDcmQR(final String name) {
         super(name);
     }
 
     @Override
-    protected void onMoveRSP(final Association as, final DicomObject cmd, final DicomObject data) {
-        if (!CommandUtils.isPending(cmd)) {
-            if (0 == cmd.getInt(Tag.Status)) {
+    protected void onMoveRSP(final Association association, final DicomObject command, final DicomObject data) {
+        if (!CommandUtils.isPending(command)) {
+            if (0 == command.getInt(Tag.Status)) {
                 setSuccess(true);
             } else {
                 // we're actually in the dcm4che response listener thread,
                 // so don't throw an exception now.
                 // record the error, and then main thread will see it once it's notified
                 setSuccess(false);
-                setErrorMessage(System.getProperty("line.separator") + cmd.toString());
+                setErrorMessage(System.getProperty("line.separator") + command);
             }
         }
     }
@@ -55,7 +54,7 @@ public class DqrCMoveDcmQR extends DcmQR {
         return success;
     }
 
-    public void setSuccess(boolean success) {
+    public void setSuccess(final boolean success) {
         this.success = success;
     }
 
@@ -63,7 +62,7 @@ public class DqrCMoveDcmQR extends DcmQR {
         return errorMessage;
     }
 
-    public void setErrorMessage(String errorMessage) {
+    public void setErrorMessage(final String errorMessage) {
         this.errorMessage = errorMessage;
     }
 }

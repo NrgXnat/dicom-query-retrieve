@@ -45,22 +45,25 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
     public PacsSearchResults<T> cfind(final PacsSearchCriteria searchCriteria) {
+        pingPacs();
+
+        validatePacsSearchCriteria(searchCriteria);
+
+        dcmQR.setCancelAfter(getMaxResults());
+        dcmQR.setQueryLevel(getQueryLevel());
+        dcmQR.addDefReturnKeys();//This needed to be added because between the 2.0.25 and 2.0.29 versions of dcm4che2, this stopped being done by the setQueryLevel method
+
+        if (dcmQR.getKeys().contains(Tag.NumberOfStudyRelatedInstances)) {
+            dcmQR.getKeys().remove(Tag.NumberOfStudyRelatedInstances);
+        }
+        for (final int returnTagPath : getReturnTagPaths()) {
+            dcmQR.addReturnKey(dicomTagPathToArray(returnTagPath));
+        }
+
+        // Counter-intuitive, but this needs to happen *after* the query level is set
+        dcmQR.configureTransferCapability(false);
+
         try {
-            pingPacs();
-
-            validatePacsSearchCriteria(searchCriteria);
-
-            dcmQR.setCancelAfter(getMaxResults());
-            dcmQR.setQueryLevel(getQueryLevel());
-            dcmQR.addDefReturnKeys();//This needed to be added because between the 2.0.25 and 2.0.29 versions of dcm4che2, this stopped being done by the setQueryLevel method
-            if (dcmQR.getKeys().contains(Tag.NumberOfStudyRelatedInstances)) {
-                dcmQR.getKeys().remove(Tag.NumberOfStudyRelatedInstances);
-            }
-            for (int returnTagPath : getReturnTagPaths()) {
-                dcmQR.addReturnKey(dicomTagPathToArray(returnTagPath));
-            }
-            // Counter-intuitive, but this needs to happen *after* the query level is set
-            dcmQR.configureTransferCapability(false);
             dcmQR.open();
 
             final List<DicomObject> dicomResults = setParamsAndSendQuery(searchCriteria);

@@ -13,6 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
 import org.apache.velocity.context.Context;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.InitializationException;
+import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatImagesessiondata;
@@ -27,12 +30,13 @@ import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.exceptions.ProjectNotDqrEnabledException;
 
 @SuppressWarnings("unused")
 @Slf4j
 public class ExportSessionToPacs extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, NotFoundException {
+    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, NotFoundException, ProjectNotDqrEnabledException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException {
         final UserI user = XDAT.getUserDetails();
 
         getPassedPacs(data);
@@ -40,28 +44,34 @@ public class ExportSessionToPacs extends DqrSecureAction {
         final String project = (String) TurbineUtils.GetPassedParameter("project", data);
         if (!getDqrPreferences().getAllowAllProjectsToUseDqr() && !getDqrAdminSettings().isDqrEnabledForProject(project)) {
             //You cannot import into a project that does not have DQR enabled.
-            throw new RuntimeException("You cannot import into a project that does not have DQR enabled.");
+            throw new ProjectNotDqrEnabledException(project);
         }
 
         final String sessionId = (String) TurbineUtils.GetPassedParameter("session", data);
         if (StringUtils.isBlank(sessionId)) {
-            throw new RuntimeException("You must specify a session ID for this operation.");
+            throw new DataFormatException("Invalid session ID specified for export to PACS operation.");
         }
 
         final XnatImagesessiondata session = XnatImagesessiondata.getXnatImagesessiondatasById(sessionId, user, false);
         if (session == null) {
-            throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + sessionId);
+            throw new NotFoundException(XnatImagesessiondata.SCHEMA_ELEMENT_NAME, sessionId);
         }
+        final boolean canRead;
         try {
-            if (!Permissions.canRead(user, session)) {
-                throw new RuntimeException("You do not have access to this session.");
-            }
+            canRead = Permissions.canRead(user, session);
         } catch (Exception e) {
-            throw new RuntimeException("Error checking permissions for session.");
+            throw new InitializationException("Error checking permissions for session.", e);
+        }
+        if (!canRead) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "You do not have access to the session " + sessionId);
         }
         if (!Roles.checkRole(user, "Dqr") && !Roles.checkRole(user, "Administrator") && !getDqrPreferences().getAllowAllUsersToUseDqr()) {
-            throw new RuntimeException("You do not have access to DQR functionality.");
+            throw new InsufficientPrivilegesException(user.getUsername(), "You do not have access to DQR functionality.");
         }
+        if (!getPacs().isStorable()) {
+            throw new PacsNotStorableException(getPacsId());
+        }
+
         final String[] scanIds = (String[]) TurbineUtils.GetPassedObjects("scansToExport", data);
         try {
             data.setScreenTemplate("ExportSessionToPacsRequested.vm");
@@ -70,8 +80,6 @@ public class ExportSessionToPacs extends DqrSecureAction {
                 context.put("numberOfProcessedScans", 0);
                 context.put("sessionId", session.getId());
                 return;
-            }                if (!getPacs().isStorable()) {
-                throw new PacsNotStorableException(getPacsId());
             }
             for (final String scanId : scanIds) {
                 getDicomQueryRetrieveService().exportSeries(user, getPacs(), session.getScanById(scanId));

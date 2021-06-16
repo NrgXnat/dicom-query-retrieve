@@ -8,7 +8,7 @@ import org.nrg.xnatx.dqr.utils.AeTitle;
 @Data
 @Accessors(prefix = "_")
 @EqualsAndHashCode(callSuper = false)
-public abstract class PacsException extends Exception {
+public abstract class PacsException extends DqrException {
     private static final long serialVersionUID = 3019798242092476487L;
 
     protected PacsException(final long pacsId, final String messageFormat) {

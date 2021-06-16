@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Value
 @EqualsAndHashCode(callSuper = false)
 @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "No remapping processors available for this SCP receiver, cannot remap DICOM fields")
-public class DicomReceiverCustomProcessingDisabledException extends Exception {
+public class DicomReceiverCustomProcessingDisabledException extends DqrException {
     private static final long serialVersionUID = -9019140323996317862L;
 
     int    id;

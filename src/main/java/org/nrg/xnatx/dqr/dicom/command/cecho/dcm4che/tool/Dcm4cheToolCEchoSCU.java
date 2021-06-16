@@ -15,6 +15,7 @@ import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmecho.DcmEcho;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
 import java.io.IOException;
@@ -38,8 +39,9 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
             log.debug("Received C-ECHO response from PACS, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost);
         } catch (final Exception e) {
             isInError = true;
-            log.error("There was a problem running the C-ECHO command against the DICOM network connection, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost, e);
-            throw new RuntimeException(e);
+            final String message = String.format("There was a problem running the C-ECHO command against the DICOM network connection, calling from %s to %s:%d on host %s.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost);
+            log.error(message, e);
+            throw new DqrRuntimeException(message, e);
         } finally {
             try {
                 _dcmEcho.close();

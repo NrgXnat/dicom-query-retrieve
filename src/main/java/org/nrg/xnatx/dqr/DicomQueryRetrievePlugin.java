@@ -28,8 +28,6 @@ import org.nrg.xnatx.dqr.dicom.converters.*;
 import org.nrg.xnatx.dqr.dicom.id.OverrideStudyIdExtractor;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.*;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.dcm4chee.Dcm4cheeResultSetLimitStrategy;
-import org.nrg.xnatx.dqr.domain.Patient;
-import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;

@@ -9,10 +9,10 @@
 
 package org.nrg.xnatx.dqr.exceptions;
 
-public class InvalidStudyDateRangeException extends Exception {
+public class InvalidStudyDateRangeException extends DqrException {
     private static final long serialVersionUID = 687971493884085033L;
 
-    public InvalidStudyDateRangeException(String message) {
+    public InvalidStudyDateRangeException(final String message) {
         super(message);
     }
 }

@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
@@ -34,6 +35,7 @@ import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectExceptio
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
 @Slf4j
@@ -122,20 +124,20 @@ public class BasicCStoreSCU implements CStoreSCU {
         }
         final String callingAe = StringUtils.defaultIfBlank(_preferences.getDqrCallingAe(), _dicomConnectionProperties.getLocalAeTitle());
         final NetworkApplicationEntity localAE = new NetworkApplicationEntityBuilder()
-            .setAETitle(callingAe)
-            .setTransferCapability(tcs)
-            .setNetworkConnection(connection).build();
+                .setAETitle(callingAe)
+                .setTransferCapability(tcs)
+                .setNetworkConnection(connection).build();
 
         final NetworkConnectionBuilder builder = new NetworkConnectionBuilder()
-            .setHostname(_dicomConnectionProperties.getRemoteHost())
-            .setPort(_dicomConnectionProperties.getRemoteStoragePort());
+                .setHostname(_dicomConnectionProperties.getRemoteHost())
+                .setPort(_dicomConnectionProperties.getRemoteStoragePort());
         if (null != tlsType) {
             builder.setTls(tlsType).setTlsNeedClientAuth(needsClientAuth);
         }
 
         final NetworkApplicationEntity remoteAE = new NetworkApplicationEntityBuilder()
-            .setNetworkConnection(builder.build())
-            .setAETitle(_dicomConnectionProperties.getRemoteAeTitle()).build();
+                .setNetworkConnection(builder.build())
+                .setAETitle(_dicomConnectionProperties.getRemoteAeTitle()).build();
 
         final DicomSender sender = new DicomSender(localAE, remoteAE);
         if (null != tlsType) {
@@ -144,7 +146,7 @@ public class BasicCStoreSCU implements CStoreSCU {
                 context.init(null, trustManagers, null);
                 sender.setSSLContext(context);
             } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                throw new RuntimeException(e); // programming error
+                throw new DqrRuntimeException(e); // programming error
             }
         }
         return sender;
