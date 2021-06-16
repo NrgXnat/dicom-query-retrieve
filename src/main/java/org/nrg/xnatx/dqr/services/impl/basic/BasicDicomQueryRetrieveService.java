@@ -220,10 +220,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public Map<String, PacsSearchResults<Series>> getSearchResults(final UUID requestId) throws NotFoundException {
-        if (!getSearchStatus(requestId)) {
-            return null;
-        }
-        return _searchCache.remove(requestId).getValue();
+        return getSearchStatus(requestId) ? _searchCache.remove(requestId).getValue() : Collections.emptyMap();
     }
 
     /**
@@ -332,7 +329,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         if (!request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
-        return request.getStudies().stream().map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()))).filter(Objects::nonNull).collect(Collectors.toList());
+        return request.getStudies().stream().map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()))).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
     }
 
     /**
@@ -420,10 +417,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                     searchCriteriaBuilder.patientName(row.getPatientId());
                 }
                 if (row.hasStudyDate()) {
-                    final DqrDateRange dateRange = getDateRange(row.getStudyDate());
-                    if (dateRange != null) {
-                        searchCriteriaBuilder.studyDateRange(dateRange);
-                    }
+                    getDateRange(row.getStudyDate()).ifPresent(searchCriteriaBuilder::studyDateRange);
                 }
                 if (row.hasDob()) {
                     searchCriteriaBuilder.dob(row.getDob());
@@ -488,7 +482,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         R process(final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria, final Collection<Study> results);
     }
 
-    private QueuedPacsRequest queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript) {
+    private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript) {
         final String            studyInstanceUid   = studyInfo.getStudyInstanceUid();
         final List<String>      seriesDescriptions = studyInfo.getSeriesDescriptions();
         final List<String>      seriesInstanceUids = studyInfo.getSeriesInstanceUids();
@@ -503,7 +497,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             results = getSeriesByStudyUid(user, pacs, studyInstanceUid).getResults().stream().filter(includeSeries).collect(Collectors.toList());
         } catch (PacsNotQueryableException e) {
             log.warn("The PACS " + pacs.getId() + " is not currently queryable");
-            return null;
+            return Optional.empty();
         }
 
         if (!results.isEmpty()) {
@@ -518,7 +512,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
                 anonScript.ifPresent(pacsRequest::setRemappingScript);
 
-                return _queuedPacsRequestService.create(pacsRequest);
+                return Optional.of(_queuedPacsRequestService.create(pacsRequest));
             } catch (Exception e) {
                 if (e instanceof CMoveFailureException) {
                     log.error("C-MOVE operation failed: {}", e.getMessage(), e);
@@ -529,7 +523,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                 }
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     @NotNull
@@ -589,9 +583,9 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                 areThereSearchCriteriaForThisRow.set(true);
             }
             if (row.hasStudyDate()) {
-                final DqrDateRange dateRange = getDateRange(row.getStudyDate());
-                if (dateRange != null) {
-                    searchCriteriaBuilder.studyDateRange(dateRange);
+                final Optional<DqrDateRange> dateRange = getDateRange(row.getStudyDate());
+                if (dateRange.isPresent()) {
+                    searchCriteriaBuilder.studyDateRange(dateRange.get());
                     areThereSearchCriteriaForThisRow.set(true);
                 }
             }
@@ -718,23 +712,19 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     private static String removeExtraQuotes(String inputString) {
-        if (inputString != null && StringUtils.equals(inputString, CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER)) {
-            return CLEAR_SIGNIFIER;
-        } else {
-            return inputString;
-        }
+        return StringUtils.equals(inputString, CLEAR_SIGNIFIER_3X) ? CLEAR_SIGNIFIER : inputString;
     }
 
-    private static DqrDateRange getDateRange(final String studyDate) {
+    private static Optional<DqrDateRange> getDateRange(final String studyDate) {
         if (!studyDate.contains("-")) {
-            return new DqrDateRange(studyDate);
+            return Optional.of(new DqrDateRange(studyDate));
         }
 
         final String startDate = StringUtils.substringBefore(studyDate, "-");
         final String endDate   = StringUtils.substringAfter(studyDate, "-");
 
         // If all blank, range is open on both ends so no search criteria should be added.
-        return StringUtils.isAllBlank(startDate, endDate) ? null : new DqrDateRange(startDate, endDate);
+        return StringUtils.isAllBlank(startDate, endDate) ? Optional.empty() : Optional.of(new DqrDateRange(startDate, endDate));
     }
 
     private static Optional<String> getAnonScript(final Map<Integer, String> columns, final List<String> row) {
@@ -888,14 +878,14 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
     private static final String                CLEAR_SIGNIFIER    = "\"\"";
     private static final String                CLEAR_SIGNIFIER_3X = CLEAR_SIGNIFIER + CLEAR_SIGNIFIER + CLEAR_SIGNIFIER;
-    private static final Map<String, String>   HEADER_TO_TAG_MAP  = Stream.of(new String[][] {{"Relabel Accession Number", "(0008,0050)"},
-                                                                                              {"Relabel Study Date", "(0008,0020)"},
-                                                                                              {"Relabel Study ID", "(0020,0010)"},
-                                                                                              {"Relabel Patient ID", "(0010,0020)"},
-                                                                                              {"Relabel Patient Name", "(0010,0010)"},
-                                                                                              {"Relabel Patient Birth Date", "(0010,0030)"},
-                                                                                              {"Subject", "(0010,0010):(0010,0020)"},
-                                                                                              {"Session", "(0020,0010):(0008,0050)"}}).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
+    private static final Map<String, String>   HEADER_TO_TAG_MAP  = Stream.of(new String[][]{{"Relabel Accession Number", "(0008,0050)"},
+                                                                                             {"Relabel Study Date", "(0008,0020)"},
+                                                                                             {"Relabel Study ID", "(0020,0010)"},
+                                                                                             {"Relabel Patient ID", "(0010,0020)"},
+                                                                                             {"Relabel Patient Name", "(0010,0010)"},
+                                                                                             {"Relabel Patient Birth Date", "(0010,0030)"},
+                                                                                             {"Subject", "(0010,0010):(0010,0020)"},
+                                                                                             {"Session", "(0020,0010):(0008,0050)"}}).collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
     private static final RowProcessor<FindRow> FIND_ROW_PROCESSOR = (columnMap, row, criteria, results) -> FindRow.builder().criteria(criteria).relabelMap(columnMap.entrySet().stream()
                                                                                                                                                                     .filter(entry -> StringUtils.isNotBlank(row.get(entry.getKey())))
                                                                                                                                                                     .collect(Collectors.toMap(Map.Entry::getValue, entry -> {

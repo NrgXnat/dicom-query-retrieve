@@ -31,6 +31,7 @@ import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,9 +41,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
      * Performs a C-FIND against the select PACS.
      *
      * @param searchCriteria The search criteria to use for the C-FIND operation.
-     *
      * @return The results of the search.
-     *
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
     public PacsSearchResults<T> cfind(final PacsSearchCriteria searchCriteria) {
@@ -88,7 +87,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     /**
      * @param searchCriteria The search criteria to be validated.
-     *
      * @throws SearchCriteriaTooVagueException Thrown when the search criteria are not well defined.
      */
     protected abstract void validatePacsSearchCriteria(final PacsSearchCriteria searchCriteria) throws SearchCriteriaTooVagueException;
@@ -129,7 +127,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.PatientName), dicomPatientNameSearchCriterion);
         }
         final DqrDateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria).getDateRange();
-        if (null != studyDateRange && studyDateRange.isBounded()) {
+        if (studyDateRange != null && studyDateRange.isBounded()) {
             dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildStudyDateCriterion(studyDateRange));
         }
     }
@@ -146,7 +144,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
                 return results;
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 
     protected PacsSearchResults<T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) {
@@ -175,7 +173,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     @SuppressWarnings("unused")
-    protected CEchoSCU getCechoSCU() {
+    protected CEchoSCU getCEchoSCU() {
         return cechoSCU;
     }
 
@@ -184,8 +182,8 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     protected int[] dicomTagPathToArray(final int dicomTagPath) {
-        return new int[] {
-            dicomTagPath
+        return new int[]{
+                dicomTagPath
         };
     }
 
@@ -203,7 +201,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
     }
 
-    private final static String DICOM_DATE_RANGE_SEPARATOR = "-";
+    private static final String DICOM_DATE_RANGE_SEPARATOR = "-";
 
     private final DcmQR       dcmQR;
     private final CEchoSCU    cechoSCU;

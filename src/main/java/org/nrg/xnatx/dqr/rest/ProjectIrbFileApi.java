@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The project IRB file functionality is not fully supported as of the 1.0 release of the XNAT DQR plugin.
@@ -135,12 +136,12 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
                               @ApiParam(value = "IRB number; required when creating new IRB") @RequestParam(required = false) final String irbNumber,
                               @PathVariable @Project final String projectId) throws InitializationException, ResourceAlreadyExistsException {
         try {
-            final String         fileName = irbFile.getOriginalFilename();
-            final byte[]         bytes    = irbFile.getBytes();
-            final ProjectIrbInfo info     = getProjectIrbInfo(projectId);
-            if (info != null) {
-                _projectIrbInfoEntityService.addIrbFile(info, fileName, bytes);
-                notifyAdminOfCompleteIrbInfo(projectId, info, getSessionUser());
+            final String                   fileName = irbFile.getOriginalFilename();
+            final byte[]                   bytes    = irbFile.getBytes();
+            final Optional<ProjectIrbInfo> info     = getProjectIrbInfo(projectId);
+            if (info.isPresent()) {
+                _projectIrbInfoEntityService.addIrbFile(info.get(), fileName, bytes);
+                notifyAdminOfCompleteIrbInfo(projectId, info.get(), getSessionUser());
             } else {
                 //Create new IRB info object
                 _projectIrbInfoEntityService.createNewIrbInfo(projectId, irbNumber, fileName, bytes);
@@ -152,11 +153,11 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
         return true;
     }
 
-    private ProjectIrbInfo getProjectIrbInfo(final String projectId) {
+    private Optional<ProjectIrbInfo> getProjectIrbInfo(final String projectId) {
         try {
-            return _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
+            return Optional.of(_projectIrbInfoEntityService.findIrbInfoForProject(projectId));
         } catch (NotFoundException e) {
-            return null;
+            return Optional.empty();
         }
     }
 

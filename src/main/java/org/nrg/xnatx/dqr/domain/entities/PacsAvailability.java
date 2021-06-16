@@ -43,6 +43,9 @@ import java.util.regex.Pattern;
 public class PacsAvailability extends AbstractHibernateEntity {
     private static final long serialVersionUID = -5580029561175463693L;
 
+    public static final String BAD_MIDNIGHT  = "24:00";
+    public static final String GOOD_MIDNIGHT = "00:00";
+
     public long getPacsId() {
         return _pacsId;
     }
@@ -108,7 +111,9 @@ public class PacsAvailability extends AbstractHibernateEntity {
     }
 
     public DqrDateRange.Relative relative(final PacsAvailability other) {
-        return new DqrDateRange(getAvailabilityStart(), getAvailabilityEnd()).relative(new DqrDateRange(other.getAvailabilityStart(), other.getAvailabilityEnd()));
+        final DqrDateRange start = new DqrDateRange(getAvailabilityStart(), getAvailabilityEnd());
+        final DqrDateRange end   = new DqrDateRange(other.getAvailabilityStart(), other.getAvailabilityEnd());
+        return start.relative(end);
     }
 
     @Override
@@ -180,8 +185,6 @@ public class PacsAvailability extends AbstractHibernateEntity {
     private static final String  FORMAT            = "{ \"id\": %s, \"pacsId\": %s, \"dayOfWeek\": \"%s\", \"availabilityStart\": \"%s\", \"availabilityEnd\": \"%s\", \"threads\": %d, \"utilizationPercent\": %d }";
     private static final Pattern TIME_OF_DAY       = Pattern.compile("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$");
     private static final Pattern SHORT_TIME_OF_DAY = Pattern.compile("^[0-9]:[0-5][0-9]$");
-    private static final String  BAD_MIDNIGHT      = "24:00";
-    private static final String  GOOD_MIDNIGHT     = "00:00";
 
     private long      _pacsId;
     private DayOfWeek _dayOfWeek;

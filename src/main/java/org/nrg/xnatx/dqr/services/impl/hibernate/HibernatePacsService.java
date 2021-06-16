@@ -45,7 +45,7 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      */
     @Override
     public Optional<Pacs> findDefaultQueryRetrievePacs() {
-        return Optional.ofNullable(getDao().findByDefaultQueryRetrievePacs());
+        return getDao().findByDefaultQueryRetrievePacs();
     }
 
     /**
@@ -53,7 +53,7 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      */
     @Override
     public Optional<Pacs> findDefaultStoragePacs() {
-        return Optional.ofNullable(getDao().findByDefaultStoragePacs());
+        return getDao().findByDefaultStoragePacs();
     }
 
     /**

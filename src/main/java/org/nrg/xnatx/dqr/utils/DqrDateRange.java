@@ -8,12 +8,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
+import javax.annotation.Nonnull;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -26,7 +28,16 @@ import java.util.regex.Pattern;
 @Accessors(prefix = "_")
 @Builder
 public class DqrDateRange {
-    public static final DateTimeFormatter HH_MM_FORMATTER = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
+    public static final DateTimeFormatter HH_MM_FORMATTER   = new DateTimeFormatterBuilder().appendValue(HOUR_OF_DAY, 2).appendLiteral(':').appendValue(MINUTE_OF_HOUR, 2).toFormatter();
+    public static final String            NO_DATE_ERROR     = "An error occurred parsing the date value: should match one of the patterns \"yyyyMMdd\", \"yyyy/MM/dd\", or \"yyyy-MM-dd\", but got an empty string";
+    public static final String            PARSE_ERROR       = "An error occurred parsing the date value \"%s\": should match one of the patterns \"yyyyMMdd\", \"yyyy/MM/dd\", or \"yyyy-MM-dd\"";
+    public static final String            BASE_DATE_PATTERN = "\\d{4}[-/]?\\d{2}[-/]?\\d{2}";
+    public static final String            BASE_TIME_PATTERN = "(([01]?\\d|2[0-3]):?[0-5]\\d|24:?00)";
+    public static final String            CLOSE_PATTERN     = "\\s*$";
+    public static final String            OPEN_PATTERN      = "^\\s*";
+    public static final Pattern           DATE_PATTERN      = Pattern.compile(OPEN_PATTERN + BASE_DATE_PATTERN + CLOSE_PATTERN);
+    public static final Pattern           TIME_PATTERN      = Pattern.compile(OPEN_PATTERN + BASE_TIME_PATTERN + CLOSE_PATTERN);
+    public static final Pattern           DATE_TIME_PATTERN = Pattern.compile(OPEN_PATTERN + BASE_DATE_PATTERN + "\\s+" + BASE_TIME_PATTERN + CLOSE_PATTERN);
 
     /**
      * Used by the {@link #relative(DqrDateRange)} method to indicate the relative position of the availability
@@ -93,11 +104,11 @@ public class DqrDateRange {
      * @param start The start date in text format.
      */
     public DqrDateRange(final String start) {
-        this(convertDateToLocalDateTime(start), convertDateToLocalDateTime(start, 1));
+        this(parse(start), parse(start).plusDays(1));
     }
 
     public DqrDateRange(final String start, final String end) {
-        this(convertDateToLocalDateTime(start), convertDateToLocalDateTime(end));
+        this(parse(start), parse(end));
     }
 
     public DqrDateRange(final LocalTime start, final LocalTime end) {
@@ -115,23 +126,24 @@ public class DqrDateRange {
         _end = _start.isBefore(initialEnd) ? initialEnd : initialEnd.plusDays(1);
     }
 
+    @Nonnull
     public static LocalDateTime parse(final String date) {
         if (StringUtils.isBlank(date)) {
-            return null;
+            throw new DqrRuntimeException(NO_DATE_ERROR);
         }
         try {
-            if (Pattern.matches(SLASHY_PATTERN, date)) {
-                return LocalDate.parse(date, SLASHY_FORMATTER).atStartOfDay();
+            if (DATE_PATTERN.matcher(date).matches()) {
+                return LocalDate.parse(RegExUtils.removeAll(date, "[/-]"), BASIC_DATE_FORMATTER).atStartOfDay();
             }
-            if (Pattern.matches(DASHY_PATTERN, date)) {
-                return LocalDate.parse(date, DASHY_FORMATTER).atStartOfDay();
+            if (TIME_PATTERN.matcher(date).matches()) {
+                return LocalTime.parse(date, BASIC_TIME_FORMATTER).atDate(LocalDate.now());
             }
-            if (Pattern.matches(BASIC_PATTERN, date)) {
-                return LocalDate.parse(date, BASIC_FORMATTER).atStartOfDay();
+            if (DATE_TIME_PATTERN.matcher(date).matches()) {
+                return LocalDateTime.parse(RegExUtils.removeAll(date, "[/-]"), BASIC_DATE_TIME_FORMATTER);
             }
         } catch (DateTimeParseException ignored) {
         }
-        throw new RuntimeException(String.format(PARSE_ERROR, date));
+        throw new DqrRuntimeException(String.format(PARSE_ERROR, date));
     }
 
     public static String formatDate(final LocalDateTime date) {
@@ -143,11 +155,11 @@ public class DqrDateRange {
     }
 
     public static String formatDate(final Date date) {
-        return DASHY_FORMATTER.format(convertDateToLocalDateTime(date));
+        return date == null ? "" : DASHY_DATE_FORMATTER.format(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
 
     public static String formatDicomDate(final LocalDateTime date) {
-        return BASIC_FORMATTER.format(date);
+        return BASIC_DATE_FORMATTER.format(date);
     }
 
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {
@@ -248,26 +260,10 @@ public class DqrDateRange {
         return new HashCodeBuilder(17, 37).appendSuper(super.hashCode()).append(getStart()).append(getEnd()).toHashCode();
     }
 
-    private static LocalDateTime convertDateToLocalDateTime(final Date date) {
-        return date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-    }
-
-    private static LocalDateTime convertDateToLocalDateTime(final String date) {
-        return StringUtils.isBlank(date) ? null : LocalDateTime.of(LocalDate.now(), LocalTime.parse(date));
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    private static LocalDateTime convertDateToLocalDateTime(final String date, final int increment) {
-        return StringUtils.isBlank(date) ? null : LocalDateTime.of(LocalDate.now(), LocalTime.parse(date)).plusDays(increment);
-    }
-
-    private static final DateTimeFormatter BASIC_FORMATTER  = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final DateTimeFormatter SLASHY_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-    private static final DateTimeFormatter DASHY_FORMATTER  = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final String            BASIC_PATTERN    = "^\\d{8}$";
-    private static final String            SLASHY_PATTERN   = "^\\d{4}/\\d{2}/\\d{2}";
-    private static final String            DASHY_PATTERN    = "^\\d{8}-\\d{2}-\\d{2}";
-    private static final String            PARSE_ERROR      = "An error occurred parsing the date value \"%s\": should match one of the patterns \"" + BASIC_PATTERN + "\", \"" + SLASHY_PATTERN + "\", or \"" + DASHY_PATTERN + "\"";
+    private static final DateTimeFormatter BASIC_DATE_FORMATTER      = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final DateTimeFormatter DASHY_DATE_FORMATTER      = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter BASIC_TIME_FORMATTER      = DateTimeFormatter.ofPattern("H:m");
+    private static final DateTimeFormatter BASIC_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd H:m");
 
     private final LocalDateTime _start;
     private final LocalDateTime _end;

@@ -14,6 +14,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xapi.exceptions.NotModifiedException;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xnatx.dqr.domain.daos.DqrProjectSettingsDAO;
 import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
 import org.nrg.xnatx.dqr.dto.DqrProjectSettingsDTO;
@@ -23,6 +24,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -37,6 +40,9 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      */
     @Override
     public boolean isDqrConfigured(final String projectId) throws NotFoundException {
+        if (StringUtils.isBlank(projectId)) {
+            throw new NotFoundException("Can't search for a project with a blank ID");
+        }
         final MapSqlParameterSource parameters = new MapSqlParameterSource("projectId", projectId);
         if (!_template.queryForObject(QUERY_PROJECT_EXISTS, parameters, Boolean.class)) {
             throw new NotFoundException("Project " + projectId + " does not exist");
@@ -48,11 +54,8 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      * {@inheritDoc}
      */
     @Override
-    public DqrProjectSettings getProjectSettings(final String projectId) throws NotFoundException {
-        if (StringUtils.isBlank(projectId) || !isDqrConfigured(projectId)) {
-            return null;
-        }
-        return getDao().findByProjectId(projectId);
+    public Optional<DqrProjectSettings> getProjectSettings(final String projectId) throws NotFoundException {
+        return isDqrConfigured(projectId) ? Optional.of(getDao().findByProjectId(projectId)) : Optional.empty();
     }
 
     /**
@@ -60,19 +63,18 @@ public class HibernateDqrProjectSettingsService extends AbstractHibernateEntityS
      */
     @Override
     public boolean isDqrEnabledForProject(final String projectId) throws NotFoundException {
-        final DqrProjectSettings settings = getProjectSettings(projectId);
-        return settings != null && settings.isDqrEnabled();
+        return getProjectSettings(projectId).orElseThrow(() -> new NotFoundException(XnatProjectdata.SCHEMA_ELEMENT_NAME, projectId)).isDqrEnabled();
     }
 
     @Override
     public DqrProjectSettings update(final DqrProjectSettingsDTO settings) throws NotFoundException, NotModifiedException, DataFormatException {
-        final DqrProjectSettings persisted = getProjectSettings(settings.getProjectId());
+        final DqrProjectSettings persisted = getProjectSettings(settings.getProjectId()).orElseThrow(() -> new NotFoundException(XnatProjectdata.SCHEMA_ELEMENT_NAME, settings.getProjectId()));
         if (settings.getEnabled() == null || persisted.isDqrEnabled() == settings.getEnabled()) {
             throw new NotModifiedException("No changes were provided for project " + settings.getProjectId() + " for DQR settings");
         }
         persisted.setDqrEnabled(settings.getEnabled());
         update(persisted);
-        return getProjectSettings(settings.getProjectId());
+        return getProjectSettings(settings.getProjectId()).orElseThrow(() -> new NotFoundException(XnatProjectdata.SCHEMA_ELEMENT_NAME, settings.getProjectId()));
     }
 
     private static final String QUERY_PROJECT_EXISTS    = "SELECT EXISTS(SELECT id FROM xnat_projectdata WHERE id = :projectId)";

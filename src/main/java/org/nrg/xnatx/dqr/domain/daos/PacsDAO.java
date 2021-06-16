@@ -16,10 +16,10 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class PacsDAO extends AbstractHibernateDAO<Pacs> {
-
     private static final SimpleExpression CRITERIA_ENABLED                     = Restrictions.eq("enabled", true);
     private static final SimpleExpression CRITERIA_DEFAULT_QUERY_RETRIEVE_PACS = Restrictions.eq("defaultQueryRetrievePacs", true);
     private static final SimpleExpression CRITERIA_DEFAULT_STORAGE_PACS        = Restrictions.eq("defaultStoragePacs", true);
@@ -31,9 +31,9 @@ public class PacsDAO extends AbstractHibernateDAO<Pacs> {
      *
      * @return The default query-retrieve PACS if one is marked.
      */
-    public Pacs findByDefaultQueryRetrievePacs() {
+    public Optional<Pacs> findByDefaultQueryRetrievePacs() {
         final List<Pacs> defaultDqrPacs = findByCriteria(CRITERIA_DEFAULT_QUERY_RETRIEVE_PACS, CRITERIA_ENABLED);
-        return defaultDqrPacs.isEmpty() ? null : defaultDqrPacs.get(0);
+        return defaultDqrPacs.isEmpty() ? Optional.empty() : Optional.of(defaultDqrPacs.get(0));
     }
 
     /**
@@ -41,9 +41,9 @@ public class PacsDAO extends AbstractHibernateDAO<Pacs> {
      *
      * @return The default storage PACS if one is marked.
      */
-    public Pacs findByDefaultStoragePacs() {
+    public Optional<Pacs> findByDefaultStoragePacs() {
         final List<Pacs> defaultDqrPacs = findByCriteria(CRITERIA_DEFAULT_STORAGE_PACS, CRITERIA_ENABLED);
-        return defaultDqrPacs.isEmpty() ? null : defaultDqrPacs.get(0);
+        return defaultDqrPacs.isEmpty() ? Optional.empty() : Optional.of(defaultDqrPacs.get(0));
     }
 
     public List<Pacs> findAllBut(final Pacs entity) {

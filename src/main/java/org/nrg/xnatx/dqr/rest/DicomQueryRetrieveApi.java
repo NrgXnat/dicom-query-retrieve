@@ -26,6 +26,7 @@ import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xdat.om.XnatMrsessiondata;
+import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Groups;
 import org.nrg.xdat.security.helpers.Permissions;
@@ -135,8 +136,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @ResponseBody
     public DqrProjectSettings createDqrProjectSettings(@RequestBody final DqrProjectSettings settings) throws NotFoundException, ResourceAlreadyExistsException {
-        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(settings.getProjectId());
-        if (existingSettings == null) {
+        final Optional<DqrProjectSettings> existingSettings = _dqrProjectSettingsService.getProjectSettings(settings.getProjectId());
+        if (!existingSettings.isPresent()) {
             return _dqrProjectSettingsService.create(settings);
         }
         throw new ResourceAlreadyExistsException("DQR project settings", settings.getProjectId());
@@ -148,7 +149,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
     @ResponseBody
     public DqrProjectSettings getDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
-        return _dqrProjectSettingsService.getProjectSettings(projectId);
+        return _dqrProjectSettingsService.getProjectSettings(projectId).orElseThrow(() -> new NotFoundException(XnatProjectdata.SCHEMA_ELEMENT_NAME, projectId));
     }
 
     @ApiOperation(value = "Returns whether project is a project that has been configured to use DQR.", response = Boolean.class)
@@ -190,10 +191,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Edit)
     @ResponseBody
     public boolean deleteDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
-        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(projectId);
-        if (existingSettings == null) {
-            throw new NotFoundException("No DQR settings were found for the project " + projectId);
-        }
+        final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(projectId).orElseThrow(() -> new NotFoundException("No DQR settings were found for the project " + projectId));
         _dqrProjectSettingsService.delete(existingSettings.getId());
         return true;
     }

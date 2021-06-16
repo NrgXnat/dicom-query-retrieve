@@ -9,23 +9,19 @@
 
 package org.nrg.xnatx.dqr.dicom.id;
 
-import static org.nrg.framework.orm.DatabaseHelper.convertPGIntervalToIntSeconds;
-
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
-import org.jetbrains.annotations.Nullable;
 import org.nrg.dcm.Extractor;
 import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnatx.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
+
+import java.util.*;
+
+import static org.nrg.framework.orm.DatabaseHelper.convertPGIntervalToIntSeconds;
 
 @Slf4j
 public class OverrideStudyIdExtractor implements Extractor {
@@ -35,19 +31,19 @@ public class OverrideStudyIdExtractor implements Extractor {
     }
 
     public String extract(final DicomObject dicomObject) {
-        final String  studyId          = StringUtils.defaultIfBlank(dicomObject.getString(Tag.StudyID), dicomObject.getString(Tag.AccessionNumber));
-        final String  studyInstanceUID = dicomObject.getString(Tag.StudyInstanceUID);
-        final String  script           = getStudyScript(studyInstanceUID);
-        final boolean hasStudyId       = StringUtils.isNotBlank(studyId);
+        final String           studyId          = StringUtils.defaultIfBlank(dicomObject.getString(Tag.StudyID), dicomObject.getString(Tag.AccessionNumber));
+        final String           studyInstanceUID = dicomObject.getString(Tag.StudyInstanceUID);
+        final Optional<String> script           = getStudyScript(studyInstanceUID);
+        final boolean          hasStudyId       = script.isPresent();
         if (hasStudyId) {
-            if (StringUtils.contains(script, "(0020,0010)")) {
+            if (StringUtils.contains(script.get(), "(0020,0010)")) {
                 //Study ID has already been relabeled, so even if Study IDs were inconsistent in the source data, they will have already been made consistent.
                 return studyId;
             }
         }
         final List<StudyIdStudyInstanceUidMapping> mappings                        = _service.getAllForStudyInstanceUid(studyInstanceUID);
         final StudyIdStudyInstanceUidMapping       mostRecentMapping               = !mappings.isEmpty() ? mappings.get(0) : null;
-        final Date                                 assumeSameSessionIfArrivedAfter = new Date(System.currentTimeMillis() - (1000 * convertPGIntervalToIntSeconds(_preferences.getAssumeSameSessionIfArrivedWithin())));
+        final Date                                 assumeSameSessionIfArrivedAfter = new Date(System.currentTimeMillis() - 1000L * convertPGIntervalToIntSeconds(_preferences.getAssumeSameSessionIfArrivedWithin()));
         if (mostRecentMapping != null && mostRecentMapping.getCreated() != null && mostRecentMapping.getCreated().after(assumeSameSessionIfArrivedAfter)) {
             //Mapping was added within the assumeSameSessionIfArrivedWithin interval, so this is likely a case of one study with multiple study IDs
             if (hasStudyId && !StringUtils.equals(studyId, mostRecentMapping.getStudyId())) {
@@ -59,14 +55,13 @@ public class OverrideStudyIdExtractor implements Extractor {
         return studyId;
     }
 
-    @Nullable
-    private String getStudyScript(final String studyInstanceUID) {
+    private Optional<String> getStudyScript(final String studyInstanceUID) {
         try {
-            return DefaultAnonUtils.getService().getStudyScript(studyInstanceUID);
+            return Optional.ofNullable(DefaultAnonUtils.getService().getStudyScript(studyInstanceUID));
         } catch (Exception e) {
             log.error("Error checking whether there was a relabel script for incoming data.", e);
         }
-        return null;
+        return Optional.empty();
     }
 
     public SortedSet<Integer> getTags() {

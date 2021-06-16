@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Transactional
 public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest, DAO extends AbstractPacsRequestDAO<R>> extends AbstractHibernateEntityService<R, DAO> implements BasePacsRequestService<R> {
@@ -67,7 +66,7 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public R getByIdForUser(final long id, final UserI user) throws NotFoundException {
-        return Optional.ofNullable(getDao().findByIdAndUser(id, user)).orElseThrow(() -> new NotFoundException(getRequestType(), id));
+        return getDao().findByIdAndUser(id, user).orElseThrow(() -> new NotFoundException(getRequestType(), id));
     }
 
     /**

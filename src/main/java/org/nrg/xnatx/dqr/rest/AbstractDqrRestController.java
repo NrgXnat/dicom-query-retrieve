@@ -49,8 +49,8 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
      *
      * @return The PACS marked as the default query/retrieve PACS or null if no PACS is marked as default.
      */
-    protected Pacs getDefaultQueryablePacs() {
-        return _pacsService.findDefaultQueryRetrievePacs().orElse(null);
+    protected Optional<Pacs> getDefaultQueryablePacs() {
+        return _pacsService.findDefaultQueryRetrievePacs();
     }
 
     /**
@@ -58,16 +58,15 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
      * query/retrieve PACS.
      *
      * @param pacsId The ID of the PACS to retrieve or 0 for the default query/retrieve PACS
-     *
      * @return The requested PACS or the default query/retrieve PACS if the ID is 0
-     *
      * @throws PacsNotFoundException     If the requested PACS can't be found
      * @throws PacsNotQueryableException If the requested PACS is marked as not queryable
      */
     protected Pacs getDefaultQueryablePacs(final long pacsId) throws PacsNotFoundException, PacsNotQueryableException {
-        return pacsId > 0 ? getQueryablePacs(pacsId) : Optional.ofNullable(getDefaultQueryablePacs()).orElseThrow(() -> new PacsNotFoundException(pacsId));
+        return pacsId > 0 ? getQueryablePacs(pacsId) : getDefaultQueryablePacs().orElseThrow(() -> new PacsNotFoundException(pacsId));
     }
 
+    @SuppressWarnings("unused")
     protected Pacs getStorablePacs(final long pacsId) throws PacsNotFoundException, PacsNotStorableException {
         final Pacs pacs = getPacs(pacsId);
         if (pacs.isStorable()) {
@@ -76,6 +75,7 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
         throw new PacsNotStorableException(pacsId);
     }
 
+    @SuppressWarnings("unused")
     protected long validate(final String experimentId, final String scanId) throws NotFoundException {
         try {
             return _template.queryForObject(QUERY_IMAGE_SESSION_AND_SCAN, new MapSqlParameterSource("experimentId", experimentId).addValue("scanId", scanId), Long.class);
@@ -84,6 +84,7 @@ public abstract class AbstractDqrRestController extends AbstractXapiRestControll
         }
     }
 
+    @SuppressWarnings("unused")
     protected void validate(final String experimentId) throws NotFoundException {
         if (!_template.queryForObject(QUERY_IMAGE_SESSION_EXISTS, new MapSqlParameterSource("experimentId", experimentId), Boolean.class)) {
             throw new NotFoundException(String.format(MESSAGE_SESSION_NOT_FOUND, experimentId));
