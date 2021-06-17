@@ -412,7 +412,8 @@ XNAT.app = getObject(XNAT.app || {});
                          .td({ addClass: 'center' }, [ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
                          .td({ addClass: 'center' }, [ showDefault(ae.storable, ae.defaultStoragePacs) ])
                          .td({ addClass: 'center' }, [ pingPacs(ae.id)] )
-                         .td({ addClass: 'center' }, [ editButton(), '&nbsp;', deleteButton()] );
+                         // .td({ addClass: 'center' }, [ editButton(), '&nbsp;', deleteButton()] );
+                         .td({ addClass: 'center' }, [ editButton()] );
             });
 
         }
@@ -427,7 +428,7 @@ XNAT.app = getObject(XNAT.app || {});
 
         bindAddButtonHandler();
         bindEditButtonHandler();
-        bindDeleteButtonHandler();
+        // bindDeleteButtonHandler();
 
         // initialize history table after pacsObj is populated
         historyTable.init();
