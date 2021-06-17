@@ -121,7 +121,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @ApiOperation(value = "Get list of DQR configurations.", notes = "The Dqr configurations function returns a list of all DQR configurations in the XNAT system.", response = DqrProjectSettings.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "Returns a list of all of the currently configured DQR configurations."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = DataAccess)
+    @XapiRequestMapping(value = "settings/project", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public List<DqrProjectSettings> getAllDqrProjectSettings() {
         return _dqrProjectSettingsService.getAll();
@@ -132,8 +132,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 403, message = "Insufficient privileges to create or update the DQR configuration for the project."),
                    @ApiResponse(code = 404, message = "The project for the new DQR configuration wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @AuthDelegate(DqrUserXapiAuthorization.class)
-    @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
+    @XapiRequestMapping(value = "settings/project", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
     @ResponseBody
     public DqrProjectSettings createDqrProjectSettings(@RequestBody final DqrProjectSettings settings) throws NotFoundException, ResourceAlreadyExistsException {
         final Optional<DqrProjectSettings> existingSettings = _dqrProjectSettingsService.getProjectSettings(settings.getProjectId());
@@ -146,7 +145,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @ApiOperation(value = "Get DQR configuration for the specified project.", notes = "This function returns the DQR settings for the specified project.", response = DqrProjectSettings.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Returns DQR configuration for the project."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Read)
+    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Admin)
     @ResponseBody
     public DqrProjectSettings getDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
         return _dqrProjectSettingsService.getProjectSettings(projectId).orElseThrow(() -> new NotFoundException(XnatProjectdata.SCHEMA_ELEMENT_NAME, projectId));
@@ -167,7 +166,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the DQR settings for the specified project."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Edit)
+    @XapiRequestMapping(value = "settings/project/{projectId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
     @ResponseBody
     public DqrProjectSettings getDqrProjectSettings(@PathVariable @Project final String projectId, @RequestBody final DqrProjectSettingsDTO settings) throws NotFoundException, DataFormatException, NotModifiedException {
         // This validation is only worthwhile until we add settings besides enabled at the project level. But for
@@ -188,7 +187,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 403, message = "Insufficient privileges to delete the DQR configuration for the project."),
                    @ApiResponse(code = 404, message = "The requested DQR configuration for the project wasn't found."),
                    @ApiResponse(code = 500, message = "An unexpected or unknown error occurred.")})
-    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Edit)
+    @XapiRequestMapping(value = "settings/project/{projectId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.DELETE, restrictTo = Admin)
     @ResponseBody
     public boolean deleteDqrProjectSettings(@PathVariable @Project final String projectId) throws NotFoundException {
         final DqrProjectSettings existingSettings = _dqrProjectSettingsService.getProjectSettings(projectId).orElseThrow(() -> new NotFoundException("No DQR settings were found for the project " + projectId));
