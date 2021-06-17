@@ -107,8 +107,21 @@ public class DqrDateRange {
         this(parse(start), parse(start).plusDays(1));
     }
 
+    /**
+     * Creates a new date range that starts with the date contained in the <b>start</b>
+     * parameter and ends with the date contained in the <b>end</b> parameter. You can
+     * pass a blank string or <b>null</b> for either of these parameters as well:
+     *
+     * <ul>
+     *     <li>When <b>start</b> is blank or <b>null</b>, the start date is set to <b>LocalDateTime.MIN</b></li>
+     *     <li>When <b>end</b> is blank or <b>null</b>, the start date is set to <b>LocalDateTime.MAX</b></li>
+     * </ul>
+     *
+     * @param start The start date in text format.
+     * @param end   The end date in text format.
+     */
     public DqrDateRange(final String start, final String end) {
-        this(parse(start), parse(end));
+        this(parse(start, LocalDateTime.MIN), parse(end, LocalDateTime.MAX));
     }
 
     public DqrDateRange(final LocalTime start, final LocalTime end) {
@@ -130,6 +143,14 @@ public class DqrDateRange {
     public static LocalDateTime parse(final String date) {
         if (StringUtils.isBlank(date)) {
             throw new DqrRuntimeException(NO_DATE_ERROR);
+        }
+        return parse(date, LocalDateTime.MIN);
+    }
+
+    @Nonnull
+    public static LocalDateTime parse(final String date, final LocalDateTime defaultValue) {
+        if (StringUtils.isBlank(date)) {
+            return defaultValue;
         }
         try {
             if (DATE_PATTERN.matcher(date).matches()) {
