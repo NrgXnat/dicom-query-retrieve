@@ -21,11 +21,19 @@ import java.util.Map;
 public interface BasePacsRequestService<R extends PacsRequest> extends BaseHibernateService<R> {
     long getAllForUserCount(final UserI user);
 
+    long getAllForUserCount(final String username);
+
     List<R> getAllForUser(final UserI user);
+
+    List<R> getAllForUser(final String username);
 
     List<R> getAllForUser(final UserI user, final PaginatedPacsRequest request);
 
+    List<R> getAllForUser(final String username, final PaginatedPacsRequest request);
+
     R getByIdForUser(final long id, final UserI user) throws NotFoundException;
+
+    R getByIdForUser(final long id, final String username) throws NotFoundException;
 
     List<R> getAllOrderedByDate();
 
@@ -40,6 +48,8 @@ public interface BasePacsRequestService<R extends PacsRequest> extends BaseHiber
 
     // TODO: What is this Object nonsense here?
     List<Map<String, Object>> getAllWithOrderForUser(final UserI user);
+
+    List<Map<String, Object>> getAllWithOrderForUser(final String username);
 
     List<R> getAllForPacsOrderedByPriorityAndDate(final long pacsId);
 

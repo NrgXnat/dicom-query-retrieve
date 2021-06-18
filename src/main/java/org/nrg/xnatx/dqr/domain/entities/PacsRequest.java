@@ -9,6 +9,8 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import java.io.Serializable;
@@ -38,21 +40,21 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     }
 
     public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
-        _username = username;
-        _pacsId = pacsId;
-        _xnatProject = xnatProject;
-        _studyInstanceUid = studyInstanceUid;
-        _seriesIds = new ArrayList<>(seriesIds);
-        _remappingScript = remappingScript;
+        _username           = username;
+        _pacsId             = pacsId;
+        _xnatProject        = xnatProject;
+        _studyInstanceUid   = studyInstanceUid;
+        _seriesIds          = new ArrayList<>(seriesIds);
+        _remappingScript    = remappingScript;
         _destinationAeTitle = destinationAeTitle;
-        _status = status;
-        _priority = priority;
-        _queuedTime = queuedTime;
-        _studyDate = studyDate;
-        _studyId = studyId;
-        _accessionNumber = accessionNumber;
-        _patientId = patientId;
-        _patientName = patientName;
+        _status             = status;
+        _priority           = priority;
+        _queuedTime         = queuedTime;
+        _studyDate          = studyDate;
+        _studyId            = studyId;
+        _accessionNumber    = accessionNumber;
+        _patientId          = patientId;
+        _patientName        = patientName;
     }
 
     @Transient
@@ -98,6 +100,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     }
 
     @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
+    @Fetch(FetchMode.SUBSELECT)
     public List<String> getSeriesIds() {
         return _seriesIds;
     }

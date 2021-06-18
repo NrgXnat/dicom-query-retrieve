@@ -42,7 +42,15 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public long getAllForUserCount(final UserI user) {
-        return getAllForUser(user).size();
+        return getAllForUserCount(user.getUsername());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getAllForUserCount(final String username) {
+        return getAllForUser(username).size();
     }
 
     /**
@@ -50,7 +58,15 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public List<R> getAllForUser(final UserI user) {
-        return getDao().findAllByUser(user);
+        return getAllForUser(user.getUsername());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<R> getAllForUser(final String username) {
+        return getDao().findAllByUsername(username);
     }
 
     /**
@@ -58,7 +74,15 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public List<R> getAllForUser(final UserI user, final PaginatedPacsRequest request) {
-        return getDao().findAllByUser(user, request);
+        return getAllForUser(user.getUsername(), request);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<R> getAllForUser(final String username, final PaginatedPacsRequest request) {
+        return getDao().findAllByUsername(username, request);
     }
 
     /**
@@ -66,7 +90,15 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public R getByIdForUser(final long id, final UserI user) throws NotFoundException {
-        return getDao().findByIdAndUser(id, user).orElseThrow(() -> new NotFoundException(getRequestType(), id));
+        return getByIdForUser(id, user.getUsername());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public R getByIdForUser(final long id, final String username) throws NotFoundException {
+        return getDao().findByIdAndUsername(id, username).orElseThrow(() -> new NotFoundException(getRequestType(), id));
     }
 
     /**
@@ -114,7 +146,15 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
      */
     @Override
     public List<Map<String, Object>> getAllWithOrderForUser(final UserI user) {
-        return _template.queryForList(QUERY_QUEUE_WITH_LOCATION_FOR_USER, new MapSqlParameterSource("user", user.getUsername()));
+        return getAllWithOrderForUser(user.getUsername());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<Map<String, Object>> getAllWithOrderForUser(final String username) {
+        return _template.queryForList(QUERY_QUEUE_WITH_LOCATION_FOR_USER, new MapSqlParameterSource("user", username));
     }
 
     /**

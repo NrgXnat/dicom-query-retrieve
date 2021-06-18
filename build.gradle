@@ -60,17 +60,14 @@ sourceSets {
 
 configurations {
     all {
-        exclude group: "edu.ucar", module: "netcdf"
-        exclude group: "jakarta-regexp"
-        exclude group: "net.sf.saxon", module: "Saxon-B"
-        exclude group: "org.apache.geronimo.specs"
-        exclude module: "pipelineCNDAXNAT"
-        exclude module: "xnat-pipeline"
-        exclude group: "jamon"
-        exclude group: "org.codehaus.jackson"
         exclude group: "junit"
+        exclude group: "log4j"
+        exclude group: "net.logstash.logback"
+        exclude group: "org.nrg.xnat.pipeline"
+        exclude group: "org.slf4j", module: "jcl-over-slf4j"
+        exclude group: "org.slf4j", module: "log4j-over-slf4j"
         exclude group: "org.slf4j", module: "slf4j-log4j12"
-        exclude group: "ch.qos.logback"
+        exclude group: "org.slf4j", module: "slf4j-simple"
     }
     implementation.extendsFrom(implementAndInclude)
 }
@@ -89,6 +86,9 @@ test {
         includeEngines "junit-jupiter"
         excludeEngines "junit-vintage"
     }
+
+    minHeapSize = "512m"
+    maxHeapSize = "4g"
 }
 
 dependencyManagement {
@@ -151,6 +151,7 @@ dependencies {
     testImplementation "com.h2database:h2"
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+    testRuntimeOnly "ch.qos.logback:logback-classic"
 }
 
 // Pulls in the Jenkins BUILD_NUMBER environment variable if available.

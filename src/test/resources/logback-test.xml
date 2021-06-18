@@ -11,15 +11,18 @@
 <configuration>
     <appender name="dqr" class="ch.qos.logback.core.FileAppender">
         <append>false</append>
-        <file>dqr-test.log</file>
+        <file>build/test-results/dqr-test.log</file>
         <encoder>
             <pattern>%d [%t] %-5p %c - %m%n</pattern>
         </encoder>
     </appender>
-    <logger name="org.nrg.dqr" additivity="false" level="DEBUG">
+    <logger name="org.nrg.xnatx.dqr" additivity="false" level="DEBUG">
         <appender-ref ref="dqr"/>
     </logger>
-    <logger name="com.fasterxml.jackson" additivity="false" level="DEBUG">
+    <logger name="com.fasterxml.jackson" additivity="false" level="INFO">
+        <appender-ref ref="dqr"/>
+    </logger>
+    <logger name="org.hibernate" additivity="false" level="INFO">
         <appender-ref ref="dqr"/>
     </logger>
 </configuration>
