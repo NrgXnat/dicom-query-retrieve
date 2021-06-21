@@ -21,10 +21,17 @@ import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.framework.constants.Scope;
 import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xft.event.EventMetaI;
+import org.nrg.xft.event.EventUtils;
+import org.nrg.xft.event.persist.PersistentWorkflowI;
+import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
@@ -39,6 +46,7 @@ import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.BasicCStoreSCU;
+import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreFailureException;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -55,6 +63,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyImportInformation;
 import org.nrg.xnatx.dqr.exceptions.*;
 import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
+import org.nrg.xnatx.dqr.messaging.PacsSessionExportRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.nrg.xnatx.dqr.services.PacsService;
@@ -81,17 +90,17 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     public BasicDicomQueryRetrieveService(final DqrPreferences preferences, final DicomSCPManager dicomSCPManager, final QueuedPacsRequestService queuedPacsRequestService, final ConfigService configService, final StudyRoutingService studyRoutingService, final PacsService pacsService, final JmsTemplate jmsTemplate, final ArchiveProcessorInstanceService archiveProcessorInstanceService, final XnatUserProvider primaryAdminUserProvider, final Map<String, OrmStrategy> ormStrategies) {
-        _preferences = preferences;
-        _dicomSCPManager = dicomSCPManager;
-        _queuedPacsRequestService = queuedPacsRequestService;
-        _configService = configService;
-        _studyRoutingService = studyRoutingService;
-        _pacsService = pacsService;
-        _jmsTemplate = jmsTemplate;
+        _preferences                     = preferences;
+        _dicomSCPManager                 = dicomSCPManager;
+        _queuedPacsRequestService        = queuedPacsRequestService;
+        _configService                   = configService;
+        _studyRoutingService             = studyRoutingService;
+        _pacsService                     = pacsService;
+        _jmsTemplate                     = jmsTemplate;
         _archiveProcessorInstanceService = archiveProcessorInstanceService;
-        _xnatUserProvider = primaryAdminUserProvider;
-        _ormStrategies = ormStrategies;
-        _searchCache = new HashMap<>();
+        _xnatUserProvider                = primaryAdminUserProvider;
+        _ormStrategies                   = ormStrategies;
+        _searchCache                     = new HashMap<>();
     }
 
     /**
@@ -264,12 +273,25 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
     }
 
+    @Override
+    public Integer exportSession(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final List<String> scanIds) throws InitializationException {
+        final Integer workflowId = createExportWorkflow(user, pacs, session, scanIds);
+        _jmsTemplate.convertAndSend("pacsSessionExportRequest", PacsSessionExportRequest.builder().requestingUser(user.getUsername()).pacs(pacs).dateRequested(new Date()).sessionId(session.getId()).scanIds(scanIds).workflowId(workflowId).build());
+        return workflowId;
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
-        buildCStoreSCU(pacs).cstoreSeries(series);
+    public boolean exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
+        try {
+            buildCStoreSCU(pacs).cstoreSeries(series);
+            return true;
+        } catch (CStoreFailureException e) {
+            log.error("An error occurred trying to export series {} from image session {} to PACS {}", series.getId(), series.getImageSessionId(), pacs.getId(), e);
+            return false;
+        }
     }
 
     /**
@@ -555,6 +577,19 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
     }
 
+    private Integer createExportWorkflow(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final List<String> scanIds) throws InitializationException {
+        try {
+            final PersistentWorkflowI workflow = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session.getId(), session.getProject(), EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST", null, "Pacs: " + pacs.getId() + ", session: " + session.getId() + ", scans: " + String.join(", ", scanIds)));
+            assert workflow != null;
+            workflow.setStatus("Queued");
+            final EventMetaI event = workflow.buildEvent();
+            PersistentWorkflowUtils.save(workflow, event);
+            return workflow.getWorkflowId();
+        } catch (Exception e) {
+            throw new InitializationException("An error occurred trying to create a workflow for request by user " + user.getUsername() + " to export session " + session.getId() + " to PACS " + pacs.getId() + ": " + String.join(", ", scanIds));
+        }
+    }
+
     private <R> List<R> _extractImportRequestFromCsv(final UserI user, final File csv, final long pacsId, final boolean allowRowThatGetsAllStudiesOnPacs, final boolean isNewRequest, final RowProcessor<R> processor) throws Exception {
         final Pacs pacs = _pacsService.retrieve(pacsId);
         if (pacs == null) {
@@ -698,8 +733,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         private final boolean      _isFilteredBySeriesDescriptions;
 
         IncludeSeries(final List<String> seriesInstanceUids, final List<String> seriesDescriptions) {
-            _seriesInstanceUids = seriesInstanceUids;
-            _seriesDescriptions = seriesDescriptions;
+            _seriesInstanceUids             = seriesInstanceUids;
+            _seriesDescriptions             = seriesDescriptions;
             _isFilteredBySeriesInstanceUids = !CollectionUtils.isEmpty(seriesInstanceUids);
             _isFilteredBySeriesDescriptions = !CollectionUtils.isEmpty(seriesDescriptions);
         }
@@ -787,12 +822,12 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         Row(final List<String> values, final List<String> columnHeaders) {
             super(values);
             accessionNumberIndex = columnHeaders.indexOf("Accession Number");
-            studyDateIndex = columnHeaders.indexOf("Study Date");
-            patientIdIndex = columnHeaders.indexOf("Patient ID");
-            lastNameIndex = columnHeaders.indexOf("Last Name");
-            firstNameIndex = columnHeaders.indexOf("First Name");
-            dobIndex = columnHeaders.indexOf("DOB");
-            modalityIndex = columnHeaders.indexOf("Modality");
+            studyDateIndex       = columnHeaders.indexOf("Study Date");
+            patientIdIndex       = columnHeaders.indexOf("Patient ID");
+            lastNameIndex        = columnHeaders.indexOf("Last Name");
+            firstNameIndex       = columnHeaders.indexOf("First Name");
+            dobIndex             = columnHeaders.indexOf("DOB");
+            modalityIndex        = columnHeaders.indexOf("Modality");
         }
 
         public boolean hasAccessionNumber() {

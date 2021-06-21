@@ -11,8 +11,10 @@ package org.nrg.xnatx.dqr.services;
 
 import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -234,13 +236,27 @@ public interface DicomQueryRetrieveService {
     void importFromPacsRequest(ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
 
     /**
+     * Export the indicated {@link XnatImagescandata scans} from {@link XnatImagesessiondata session} to the specified PACS.
+     *
+     * @param user    The The user requesting the export operation.
+     * @param pacs    The PACS to which the user wants to export.
+     * @param session The session to be exported to the PACS.
+     * @param scanIds The IDs of the scans from the session to be exported to the PACS.
+     *
+     * @return The workflow ID associated with the export operation.
+     */
+    Integer exportSession(UserI user, Pacs pacs, final XnatImagesessiondata session, final List<String> scanIds) throws InitializationException;
+
+    /**
      * Export the indicated {@link XnatImagescandata series} to the specified PACS.
      *
      * @param user   The The user requesting the export operation.
      * @param pacs   The PACS to which the user wants to export.
      * @param series The series to be exported to the PACS.
+     *
+     * @return The result boolean result of the operation as a future.
      */
-    void exportSeries(UserI user, Pacs pacs, XnatImagescandata series);
+    boolean exportSeries(UserI user, Pacs pacs, XnatImagescandata series);
 
     /**
      * Indicates whether the specified DICOM receiver supports C-STORE operations.

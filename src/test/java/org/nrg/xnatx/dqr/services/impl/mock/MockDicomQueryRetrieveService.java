@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.services.impl.mock;
 
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.*;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
@@ -112,7 +113,12 @@ public class MockDicomQueryRetrieveService implements DicomQueryRetrieveService 
     }
 
     @Override
-    public void exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
+    public Integer exportSession(UserI user, Pacs pacs, XnatImagesessiondata session, List<String> scanIds) {
+        throw new RuntimeException("method not implemented");
+    }
+
+    @Override
+    public boolean exportSeries(final UserI user, final Pacs pacs, final XnatImagescandata series) {
         throw new RuntimeException("method not implemented");
     }
 

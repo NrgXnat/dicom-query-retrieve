@@ -9,11 +9,9 @@
 
 package org.nrg.xnatx.dqr.rest;
 
-import static org.nrg.xdat.security.helpers.AccessLevel.*;
-import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
-
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.ajax.PaginatedRequest;
@@ -23,9 +21,6 @@ import org.nrg.xapi.exceptions.*;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Project;
 import org.nrg.xapi.rest.XapiRequestMapping;
-import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Groups;
@@ -33,10 +28,6 @@ import org.nrg.xdat.security.helpers.Permissions;
 import org.nrg.xdat.security.helpers.Roles;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
-import org.nrg.xft.event.EventDetails;
-import org.nrg.xft.event.EventUtils;
-import org.nrg.xft.event.persist.PersistentWorkflowI;
-import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
@@ -44,9 +35,11 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.*;
+import org.nrg.xnatx.dqr.exceptions.PacsNotAvailableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
+import org.nrg.xnatx.dqr.messaging.PacsSessionExportRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.*;
@@ -71,6 +64,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.nrg.xdat.security.helpers.AccessLevel.*;
+import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
+
 @Api("Dicom Query Retrieve API")
 @XapiRestController
 @Slf4j
@@ -79,13 +75,13 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @Autowired
     public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final DqrProjectSettingsService dqrProjectSettingsService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final NamedParameterJdbcTemplate template) {
         super(pacsService, template, userManagementService, roleHolder);
-        _preferences = preferences;
-        _executedRequestService = requestService;
-        _queuedRequestService = queuedRequestService;
-        _dqrService = dqrService;
+        _preferences               = preferences;
+        _executedRequestService    = requestService;
+        _queuedRequestService      = queuedRequestService;
+        _dqrService                = dqrService;
         _dqrProjectSettingsService = dqrProjectSettingsService;
-        _ormStrategies = ormStrategies;
-        _siteConfigPreferences = siteConfigPreferences;
+        _ormStrategies             = ormStrategies;
+        _siteConfigPreferences     = siteConfigPreferences;
     }
 
     @ApiOperation(value = "Returns the full map of DQR settings for this XNAT application.", notes = "Complex objects may be returned as encapsulated JSON strings.", response = String.class, responseContainer = "Map")
@@ -478,56 +474,37 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "export", method = RequestMethod.PUT, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public Map<String, Object> export(@ApiParam("ID of PACS to send to.") @RequestParam final long pacsId,
-                                      @ApiParam("XNAT session to send.") @RequestParam final String session,
-                                      @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws Exception {
-        final Pacs _pacs = getPacsService().retrieve(pacsId);
-        if (_pacs == null) {
+                                      @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String sessionId,
+                                      @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws PacsNotFoundException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException, NotFoundException, PacsNotAvailableException {
+        if (StringUtils.isBlank(sessionId)) {
+            throw new DataFormatException("You must specify a session ID for this operation.");
+        }
+        if (CollectionUtils.isEmpty(scansToExport)) {
+            throw new DataFormatException("You must specify one or more IDs of scans from the session " + sessionId + " to export.");
+        }
+
+        final Pacs pacs = getPacsService().retrieve(pacsId);
+        if (pacs == null) {
             throw new PacsNotFoundException(pacsId);
         }
-
-        if (StringUtils.isBlank(session)) {
-            throw new RuntimeException("You must specify a session ID for this operation.");
+        if (!pacs.isStorable()) {
+            throw new PacsNotStorableException(pacsId);
         }
 
-        final UserI                user         = getSessionUser();
-        final XnatImagesessiondata imageSession = XnatImagesessiondata.getXnatImagesessiondatasById(session, user, false);
-        if (imageSession == null) {
-            throw new RuntimeException("Couldn't find a session corresponding to the submitted session ID: " + session);
+        final UserI user = getSessionUser();
+
+        if (!_dqrService.canConnect(user, pacs)) {
+            throw new PacsNotAvailableException(pacsId);
         }
-        if (!Permissions.canRead(user, imageSession)) {
-            throw new InsufficientPrivilegesException(user.getUsername(), imageSession.getId());
-        }
+
+        final Integer workflowId = _dqrService.exportSession(user, pacs, PacsSessionExportRequest.getSession(user, sessionId), scansToExport);
 
         final Map<String, Object> dataToSend = new HashMap<>();
-        dataToSend.put("session", session);
-        try {
-            if (scansToExport == null) {
-                throw new RuntimeException("No scan IDs found to export, returning.");
-            } else {
-                ArrayList<String> scans = new ArrayList<>();
-                if (_pacs.isStorable()) {
-                    for (String scanId : scansToExport) {
-                        final XnatImagescandata scan = imageSession.getScanById(scanId);
-                        scans.add(scanId);
-                        new Thread(() -> _dqrService.exportSeries(user, _pacs, scan)).start();
-                        log.info("Exported series {} from session {}", scanId, imageSession.getId());
-                    }
-                    final EventDetails eventDetails;
-                    eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "EXPORT_TO_PACS_REQUEST");
-                    eventDetails.setComment("Pacs: " + pacsId);
-                    PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, session, imageSession.getProject(), eventDetails);
-                    assert wrk != null;
-                    PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                } else {
-                    throw new PacsNotStorableException(pacsId);
-                }
-                dataToSend.put("scans", scans);
+        dataToSend.put("session", sessionId);
+        dataToSend.put("scans", scansToExport);
+        dataToSend.put("workflow", workflowId);
 
-                log.debug("User {} exported {} scans from session {}", user.getLogin(), scansToExport.size(), imageSession.getId());
-            }
-        } catch (Exception exception) {
-            throw new InitializationException(exception);
-        }
+        log.debug("User {} requested to export {} scans from session {}, tracking workflow {}", user.getLogin(), scansToExport.size(), sessionId, workflowId);
 
         return dataToSend;
     }
