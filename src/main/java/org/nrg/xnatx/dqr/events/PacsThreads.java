@@ -54,7 +54,7 @@ public class PacsThreads {
     public boolean hasAvailable(final long pacsId, final int threads) {
         final int current = get(pacsId);
         log.debug("PACS {} currently has {} threads, with {} available", pacsId, current, threads);
-        return current <= threads;
+        return current < threads;
     }
 
     private final static Object THREAD_COUNT_LOCK = new Object();

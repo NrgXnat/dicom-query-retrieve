@@ -427,6 +427,9 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
             indexes.forEach(row -> {
                 final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder = PacsSearchCriteria.builder();
+                if (row.hasStudyInstanceUid()) {
+                    searchCriteriaBuilder.studyInstanceUid(row.getStudyInstanceUid());
+                }
                 if (row.hasAccessionNumber()) {
                     searchCriteriaBuilder.accessionNumber(row.getAccessionNumber());
                 }
@@ -596,12 +599,16 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             throw new PacsNotFoundException(pacsId);
         }
 
-        final RowManager           indexes   = new RowManager(FileUtils.CSVFileToArrayList(csv));
+        final RowManager           indexes   = new RowManager(FileUtils.CSVFileToArrayList(csv).stream().filter(list -> !list.isEmpty()).collect(Collectors.toList()));
         final Map<Integer, String> columnMap = indexes.getColumnMap(isNewRequest);
 
         return indexes.stream().map(row -> {
             final AtomicBoolean                                areThereSearchCriteriaForThisRow = new AtomicBoolean();
             final PacsSearchCriteria.PacsSearchCriteriaBuilder searchCriteriaBuilder            = PacsSearchCriteria.builder();
+            if (row.hasStudyInstanceUid()) {
+                searchCriteriaBuilder.studyInstanceUid(isNewRequest ? removeExtraQuotes(row.getStudyInstanceUid()) : row.getStudyInstanceUid());
+                areThereSearchCriteriaForThisRow.set(true);
+            }
             if (row.hasAccessionNumber()) {
                 searchCriteriaBuilder.accessionNumber(isNewRequest ? removeExtraQuotes(row.getAccessionNumber()) : row.getAccessionNumber());
                 areThereSearchCriteriaForThisRow.set(true);
@@ -811,6 +818,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     private static class Row extends ArrayList<String> {
         private static final long serialVersionUID = 6044778440958597758L;
 
+        private final int studyInstanceUidIndex;
         private final int accessionNumberIndex;
         private final int studyDateIndex;
         private final int patientIdIndex;
@@ -821,13 +829,22 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
         Row(final List<String> values, final List<String> columnHeaders) {
             super(values);
-            accessionNumberIndex = columnHeaders.indexOf("Accession Number");
-            studyDateIndex       = columnHeaders.indexOf("Study Date");
-            patientIdIndex       = columnHeaders.indexOf("Patient ID");
-            lastNameIndex        = columnHeaders.indexOf("Last Name");
-            firstNameIndex       = columnHeaders.indexOf("First Name");
-            dobIndex             = columnHeaders.indexOf("DOB");
-            modalityIndex        = columnHeaders.indexOf("Modality");
+            studyInstanceUidIndex = columnHeaders.indexOf("Study Instance UID");
+            accessionNumberIndex  = columnHeaders.indexOf("Accession Number");
+            studyDateIndex        = columnHeaders.indexOf("Study Date");
+            patientIdIndex        = columnHeaders.indexOf("Patient ID");
+            lastNameIndex         = columnHeaders.indexOf("Last Name");
+            firstNameIndex        = columnHeaders.indexOf("First Name");
+            dobIndex              = columnHeaders.indexOf("DOB");
+            modalityIndex         = columnHeaders.indexOf("Modality");
+        }
+
+        public boolean hasStudyInstanceUid() {
+            return studyInstanceUidIndex >= 0 && StringUtils.isNotBlank(getStudyInstanceUid());
+        }
+
+        String getStudyInstanceUid() {
+            return get(studyInstanceUidIndex);
         }
 
         public boolean hasAccessionNumber() {
