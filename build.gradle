@@ -1,7 +1,7 @@
 /*
  * dicom-query-retrieve: build.gradle
  * XNAT http://www.xnat.org
- * Copyright (c) 2005-2020, Washington University School of Medicine
+ * Copyright (c) 2005-2021, Washington University School of Medicine
  * All Rights Reserved
  *
  * Released under the Simplified BSD.
@@ -33,10 +33,9 @@ description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
     mavenLocal()
-    maven { url "https://www.dcm4che.org/maven2" }
-    mavenCentral()
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-release" }
     maven { url "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot" }
+    mavenCentral()
     maven { url "https://jitpack.io" }
 }
 
