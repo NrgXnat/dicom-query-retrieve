@@ -45,6 +45,8 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
         } finally {
             try {
                 _dcmEcho.close();
+            } catch (NullPointerException ignored) {
+                // DcmEcho throws these intermittently when closing the association, for unknown reasons
             } catch (final Exception e) {
                 // We'll only log an error here if we haven't already run into an error: if we have, this new error is
                 // probably just a by-product of the initial error and is hiding that error.
@@ -72,6 +74,8 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
         } finally {
             try {
                 _dcmEcho.close();
+            } catch (NullPointerException ignored) {
+                // DcmEcho throws these intermittently when closing the association, for unknown reasons
             } catch (InterruptedException e) {
                 log.warn("Tried to close the connection to AE {}:{} on host {} but the connection was interrupted", _remoteAeTitle, _remoteQrPort, _remoteHost, e);
             }

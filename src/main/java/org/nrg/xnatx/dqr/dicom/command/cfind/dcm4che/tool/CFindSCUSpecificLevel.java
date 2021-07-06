@@ -9,6 +9,8 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
@@ -35,13 +37,37 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Getter(AccessLevel.PROTECTED)
 @Slf4j
 public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
+    /**
+     * Creates a new instance of the class.
+     *
+     * @param preferences               DQR preferences
+     * @param dicomConnectionProperties The connection properties for the external AE
+     * @param cechoSCU                  Used to test connectivity to the external AE
+     * @param ormStrategy               The ORM strategy to use
+     */
+    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
+        dcmQR = createDcmQR(StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
+        dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
+        dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
+        dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
+        dcmQR.setNoExtNegotiation(!dicomConnectionProperties.getSupportsExtendedNegotiations());
+        if (cMoveRequestedOnResults()) {
+            dcmQR.setMoveDest(dicomConnectionProperties.getLocalAeTitle());
+        }
+        this.cechoSCU    = cechoSCU;
+        this.ormStrategy = ormStrategy;
+    }
+
     /**
      * Performs a C-FIND against the select PACS.
      *
      * @param searchCriteria The search criteria to use for the C-FIND operation.
+     *
      * @return The results of the search.
+     *
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
     public PacsSearchResults<T> cfind(final PacsSearchCriteria searchCriteria) {
@@ -56,9 +82,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         if (dcmQR.getKeys().contains(Tag.NumberOfStudyRelatedInstances)) {
             dcmQR.getKeys().remove(Tag.NumberOfStudyRelatedInstances);
         }
-        for (final int returnTagPath : getReturnTagPaths()) {
-            dcmQR.addReturnKey(dicomTagPathToArray(returnTagPath));
-        }
+        getReturnTagPaths().stream().map(this::dicomTagPathToArray).forEach(dcmQR::addReturnKey);
 
         // Counter-intuitive, but this needs to happen *after* the query level is set
         dcmQR.configureTransferCapability(false);
@@ -89,7 +113,11 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     /**
+     * Validates the submitted search criteria. If the criteria are valid, this method returns quietly.
+     * Otherwise, it throws {@link SearchCriteriaTooVagueException}.
+     *
      * @param searchCriteria The search criteria to be validated.
+     *
      * @throws SearchCriteriaTooVagueException Thrown when the search criteria are not well defined.
      */
     protected abstract void validatePacsSearchCriteria(final PacsSearchCriteria searchCriteria) throws SearchCriteriaTooVagueException;
@@ -97,30 +125,39 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     /**
      * These are in addition to whatever DcmQR returns.
      *
-     * @return The paths
+     * @return The paths to be returned.
      */
     protected abstract List<Integer> getReturnTagPaths();
 
+    /**
+     * Indicates the query/retrieve level for the particular implementation. This can be any valid value for
+     * <b>QueryRetrieveLevel</b>: <b>PATIENT</b>, <b>STUDY</b>, <b>SERIES</b>, or <b>IMAGE</b>.
+     *
+     * @return The query/retrieve level for the particular implementation.
+     */
     protected abstract QueryRetrieveLevel getQueryLevel();
 
-    protected abstract T mapDicomObjectToDomainObject(final DicomObject d);
+    /**
+     * Maps the DICOM object returned from the PACS to the domain object for the particular implementation.
+     *
+     * @param dicomObject The DICOM object returned from the PACS.
+     *
+     * @return An instance of the domain object for this implementation, populated from the DICOM object.
+     */
+    protected abstract T mapDicomObjectToDomainObject(final DicomObject dicomObject);
 
+    /**
+     * Wraps the populated domain objects in a {@link PacsSearchResults} instance.
+     *
+     * @param results                    The results from the query (usually created by {@link #mapDicomObjectToDomainObject(DicomObject)}
+     * @param hasLimitedResults          Indicates whether the results were limited (e.g. paged)
+     * @param studyDateRangeLimitResults Indicates whether the results were limited by a date range
+     *
+     * @return Returns the {@link PacsSearchResults} instance.
+     */
     protected abstract PacsSearchResults<T> wrapResults(final Collection<T> results, final boolean hasLimitedResults, final StudyDateRangeLimitResults studyDateRangeLimitResults);
 
-    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        dcmQR = createDcmQR(StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
-        dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
-        dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
-        dcmQR.setCalledAET(dicomConnectionProperties.getRemoteAeTitle(), true);
-        dcmQR.setNoExtNegotiation(!dicomConnectionProperties.getSupportsExtendedNegotiations());
-        if (cMoveRequestedOnResults()) {
-            dcmQR.setMoveDest(dicomConnectionProperties.getLocalAeTitle());
-        }
-        this.cechoSCU = cechoSCU;
-        this.ormStrategy = ormStrategy;
-    }
-
-    protected DcmQR createDcmQR(String localAETitle) {
+    protected DcmQR createDcmQR(final String localAETitle) {
         return new DcmQR(localAETitle);
     }
 
@@ -136,16 +173,18 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     protected List<DicomObject> setParamsAndSendQuery(final PacsSearchCriteria searchCriteria) throws IOException, InterruptedException {
-        for (final String dicomPatientNameSearchCriterion : ormStrategy.getPatientNameStrategy().dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
-            setSearchCriteriaInQuery(searchCriteria, dicomPatientNameSearchCriterion);
-            log.debug("Trying query with patient name criterion {}: {}", dicomPatientNameSearchCriterion, dcmQR.getKeys());
+        log.debug("Querying PACS {} with search criteria: {}", searchCriteria.getPacsId(), searchCriteria);
+        for (final String criterion : ormStrategy.getPatientNameStrategy().dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
+            setSearchCriteriaInQuery(searchCriteria, criterion);
+            log.debug("Querying PACS {} with criterion {}: {}", searchCriteria.getPacsId(), criterion, dcmQR.getKeys());
             final List<DicomObject> results = dcmQR.query();
             if (!results.isEmpty()) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Query with patient name criterion {} got results:\n{}", dicomPatientNameSearchCriterion, results.stream().map(Object::toString).collect(Collectors.joining("\n")));
+                    log.debug("Query with criterion {} got results:\n{}", criterion, results.stream().map(Object::toString).collect(Collectors.joining("\n")));
                 }
                 return results;
             }
+            log.debug("Query with criterion {} got no results", criterion);
         }
         return Collections.emptyList();
     }
@@ -154,7 +193,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         return wrapResults(dicomResults.stream().map(this::mapDicomObjectToDomainObject).collect(Collectors.toList()), dicomResults.size() == getMaxResults(), getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria));
     }
 
-    protected void performCMoveOnResults(PacsSearchCriteria searchCriteria, List<DicomObject> dicomResults) throws IOException, InterruptedException {
+    protected void performCMoveOnResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) throws IOException, InterruptedException {
         if (dicomResults.isEmpty()) {
             reportCMoveTargetNotFound(searchCriteria);
         } else {
@@ -166,22 +205,8 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         return false;
     }
 
-    protected void reportCMoveTargetNotFound(PacsSearchCriteria searchCriteria) {
+    protected void reportCMoveTargetNotFound(final PacsSearchCriteria searchCriteria) {
         throw new CMoveTargetNotFoundException(searchCriteria.toString());
-    }
-
-    @SuppressWarnings("unused")
-    protected DcmQR getDcmQR() {
-        return dcmQR;
-    }
-
-    @SuppressWarnings("unused")
-    protected CEchoSCU getCEchoSCU() {
-        return cechoSCU;
-    }
-
-    protected OrmStrategy getOrmStrategy() {
-        return ormStrategy;
     }
 
     protected int[] dicomTagPathToArray(final int dicomTagPath) {
