@@ -135,7 +135,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         try {
             return buildCFindSCU(pacs).cfindStudiesByExample(criteria);
         } catch (DqrRuntimeException e) {
-            throw new DataFormatException("A DQR run-time exception occurred, which usually indicates a problem performing a query to the PACS: " + e.getMessage());
+            throw new DataFormatException("A DQR run-time exception occurred, which usually indicates a problem performing a query to the PACS: " + Optional.ofNullable(e.getCause()).orElse(e).getMessage() + "\n\nThe search criteria for this query is: " + criteria, e);
         }
     }
 
