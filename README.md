@@ -27,7 +27,7 @@ Full documentation on using and administering this plugin can be found here: htt
 You can build the jar for this, including required dependencies by doing:
 
 ```bash
-./gradlew xnatPluginJar
+./gradlew fatJar
 ```
 
 Instructions on installing XNAT plugins can be found here: https://wiki.xnat.org/documentation/xnat-developer-documentation/working-with-xnat-plugins/developing-xnat-plugins
