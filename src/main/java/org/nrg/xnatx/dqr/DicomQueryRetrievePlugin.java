@@ -12,17 +12,11 @@ package org.nrg.xnatx.dqr;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.extern.slf4j.Slf4j;
-import org.dcm4che2.data.Tag;
-import org.nrg.dcm.TextExtractor;
-import org.nrg.dcm.id.ClassicDicomObjectIdentifier;
-import org.nrg.dcm.id.CompositeDicomObjectIdentifier;
-import org.nrg.dcm.id.RoutedStudyDicomProjectIdentifier;
+import org.nrg.dcm.id.DicomObjectIdentifierFactory;
 import org.nrg.framework.annotations.XnatPlugin;
-import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.services.StudyRoutingService;
-import org.nrg.xnat.DicomObjectIdentifier;
 import org.nrg.xnatx.dqr.dicom.converters.*;
-import org.nrg.xnatx.dqr.dicom.id.OverrideStudyIdExtractor;
+import org.nrg.xnatx.dqr.dicom.id.DqrDicomObjectIdentifierFactory;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.*;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.dcm4chee.Dcm4cheeResultSetLimitStrategy;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
@@ -31,9 +25,6 @@ import org.nrg.xnatx.dqr.services.StudyIdStudyInstanceUidMappingService;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-
-import java.util.Arrays;
-import java.util.Collections;
 
 @XnatPlugin(value = "dicom-query-retrieve",
             name = "DICOM Query Retrieve Plugin",
@@ -68,11 +59,8 @@ public class DicomQueryRetrievePlugin {
     }
 
     @Bean
-    public DicomObjectIdentifier<XnatProjectdata> dqrObjectIdentifier(final StudyRoutingService studyRoutingService, final StudyIdStudyInstanceUidMappingService mappingService, final DqrPreferences preferences) {
-        return new CompositeDicomObjectIdentifier(new RoutedStudyDicomProjectIdentifier(studyRoutingService),
-                                                  Collections.singletonList(new TextExtractor(Tag.PatientName)),
-                                                  Collections.singletonList(new OverrideStudyIdExtractor(mappingService, preferences)),
-                                                  ClassicDicomObjectIdentifier.getAAExtractors());
+    public DicomObjectIdentifierFactory dqrDicomObjectIdentifierFactory(final StudyRoutingService studyRoutingService, final StudyIdStudyInstanceUidMappingService mappingService, final DqrPreferences preferences) {
+        return new DqrDicomObjectIdentifierFactory( studyRoutingService, mappingService, preferences);
     }
 
     @Bean

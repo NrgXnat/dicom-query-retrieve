@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class ArchiveProcessorsNotAvailableException extends DqrException {
     private static final long serialVersionUID = 2291079889933081769L;
 
-    int    _id;
+    long   _id;
     String _aeTitle;
     int    _port;
 
