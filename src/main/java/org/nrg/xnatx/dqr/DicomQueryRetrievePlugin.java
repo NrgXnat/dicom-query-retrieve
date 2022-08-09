@@ -17,9 +17,6 @@ import org.nrg.dcm.TextExtractor;
 import org.nrg.dcm.id.ClassicDicomObjectIdentifier;
 import org.nrg.dcm.id.CompositeDicomObjectIdentifier;
 import org.nrg.dcm.id.RoutedStudyDicomProjectIdentifier;
-import org.nrg.dcm.xnat.AttributeMapXnatImagesessiondataBeanFactory;
-import org.nrg.dcm.xnat.ModalityMapXnatImagesessiondataBeanFactory;
-import org.nrg.dcm.xnat.SOPMapXnatImagesessiondataBeanFactory;
 import org.nrg.framework.annotations.XnatPlugin;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xdat.services.StudyRoutingService;
@@ -37,7 +34,6 @@ import org.springframework.context.annotation.ComponentScan;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 @XnatPlugin(value = "dicom-query-retrieve",
             name = "DICOM Query Retrieve Plugin",
@@ -77,11 +73,6 @@ public class DicomQueryRetrievePlugin {
                                                   Collections.singletonList(new TextExtractor(Tag.PatientName)),
                                                   Collections.singletonList(new OverrideStudyIdExtractor(mappingService, preferences)),
                                                   ClassicDicomObjectIdentifier.getAAExtractors());
-    }
-
-    @Bean
-    public List<Class<? extends AttributeMapXnatImagesessiondataBeanFactory>> sessionDataFactoryClasses() {
-        return Arrays.asList(SOPMapXnatImagesessiondataBeanFactory.class, ModalityMapXnatImagesessiondataBeanFactory.class);
     }
 
     @Bean

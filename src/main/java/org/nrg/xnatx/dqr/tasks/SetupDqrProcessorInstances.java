@@ -12,7 +12,8 @@ package org.nrg.xnatx.dqr.tasks;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import org.nrg.xnat.archive.operations.ProcessorGradualDicomImportOperation;
+
+import org.nrg.xnat.archive.GradualDicomImporter;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.initialization.tasks.AbstractInitializingTask;
 import org.nrg.xnat.initialization.tasks.InitializingTaskException;
@@ -43,7 +44,7 @@ public class SetupDqrProcessorInstances extends AbstractInitializingTask {
             if (dqrProcessors == null || dqrProcessors.size() == 0) {
                 //The processor instances table is new. Add default processor instances.
                 ArchiveProcessorInstance defaultUpdateRequestStatusProcessor = new ArchiveProcessorInstance();
-                defaultUpdateRequestStatusProcessor.setLocation(ProcessorGradualDicomImportOperation.NAME_OF_LOCATION_AT_BEGINNING_AFTER_DICOM_OBJECT_IS_READ);
+                defaultUpdateRequestStatusProcessor.setLocation(GradualDicomImporter.NAME_OF_LOCATION_AT_BEGINNING_AFTER_DICOM_OBJECT_IS_READ);
                 defaultUpdateRequestStatusProcessor.setLabel("Update Request");
                 defaultUpdateRequestStatusProcessor.setPriority(10);
                 defaultUpdateRequestStatusProcessor.setProcessorClass(UpdateRequestStatusArchiveProcessor.class.getCanonicalName());
