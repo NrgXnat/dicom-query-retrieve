@@ -24,4 +24,6 @@ public class PacsSettings implements Serializable {
     private Boolean defaultQueryRetrievePacs;
     private String  ormStrategySpringBeanId;
     private Boolean supportsExtendedNegotiations;
+    private Boolean dicomWebEnabled;
+    private String dicomWebRootUrl;
 }

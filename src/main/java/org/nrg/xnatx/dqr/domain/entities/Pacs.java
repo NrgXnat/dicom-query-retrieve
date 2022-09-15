@@ -56,6 +56,8 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private boolean _defaultQueryRetrievePacs;
     private String  _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
+    private boolean _dicomWebEnabled;
+    private String _dicomWebRootUrl;
 
     public Pacs(final PacsSettings settings) {
         copySettings(settings);
@@ -168,17 +170,36 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     public void setSupportsExtendedNegotiations(final boolean supportsExtendedNegotiations) {
         _supportsExtendedNegotiations = supportsExtendedNegotiations;
     }
+    @NotNull
+    @Column(columnDefinition = "boolean default false")
+    public boolean isDicomWebEnabled() {
+        return _dicomWebEnabled;
+    }
+
+    public void setDicomWebEnabled(boolean dicomWebEnabled) {
+        this._dicomWebEnabled = dicomWebEnabled;
+    }
+
+    public String getDicomWebRootUrl() {
+        return _dicomWebRootUrl;
+    }
+
+    public void setDicomWebRootUrl(String dicomWebRootUrl) {
+        this._dicomWebRootUrl = dicomWebRootUrl;
+    }
 
     @Override
     public String toString() {
         return "{ aeTitle: \"" + _aeTitle + "\", "
-               + "host: \"" + _host + "\", "
-               + "label: \"" + _label + "\", "
-               + "queryable: " + _queryable + ", "
-               + "queryRetrievePort: " + _queryRetrievePort + ", "
-               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
-               + "storable: " + _storable + ", "
-               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
-               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + " }";
+                + "host: \"" + _host + "\", "
+                + "label: \"" + _label + "\", "
+                + "queryable: " + _queryable + ", "
+                + "queryRetrievePort: " + _queryRetrievePort + ", "
+                + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+                + "storable: " + _storable + ", "
+                + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+                + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + ", "
+                + "Dicom-web Enabled: " + _dicomWebEnabled + ", "
+                + "Dicom-Web Root Url: " + _dicomWebRootUrl + " }";
     }
 }

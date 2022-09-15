@@ -70,14 +70,13 @@ XNAT.app = getObject(XNAT.app || {});
     var PacsAdministration, pacsObj, pacsList;
 
     XNAT.app.dqr = getObject(XNAT.app.dqr || {});
-
     XNAT.app.dqr.pacsObj = pacsObj = {};
     XNAT.app.dqr.pacsList = pacsList = [];
 
     XNAT.app.dqr.PacsAdministration = PacsAdministration =
         getObject(XNAT.app.dqr.PacsAdministration);
 
-
+    let dicomWebEnabled = false;
 
     var constants = {
         "MODAL_WINDOW_NAME": "loadData",
@@ -199,9 +198,37 @@ XNAT.app = getObject(XNAT.app || {});
                             label: 'Default Storage AE',
                             onText: 'Yes',
                             offText: 'No'
-                        })
+                        }),
+                        spawn('div.dicom-web', [
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'dicomWebEnabled',
+                                label: 'DicomWeb Enabled',
+                                onText: 'Yes',
+                                offText: 'No'
+                            }),
+                            XNAT.ui.panel.input.text({
+                                name: 'dicomWebRootUrl',
+                                label: 'DicomWeb Root Url',
+                                addClass: 'validate',
+                                validation: 'url',
+                                description: 'eg: http://www.orthanc.com:8042/dicom-web/'
+                            })
+                        ])
                     ])
                 );
+
+                XNAT.xhr.getJSON({
+                    url: XNAT.url.restUrl('/xapi/dqr/settings'),
+                    fail: function (e) {
+                        console.log('Could not get DQR settings', e)
+                    },
+                    success: function (data) {
+                        dicomWebEnabled = Boolean(data.dicomWebEnabled);
+                        if (dicomWebEnabled) {
+                            $(document).find('.dicom-web').show();
+                        }
+                    }
+                });
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
@@ -387,7 +414,9 @@ XNAT.app = getObject(XNAT.app || {});
                     storable: ae.storable,
                     defaultStoragePacs: ae.defaultStoragePacs,
                     ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
-                    supportsExtendedNegotiations: ae.supportsExtendedNegotiations
+                    supportsExtendedNegotiations: ae.supportsExtendedNegotiations,
+                    dicomWebEnabled: ae.dicomWebEnabled,
+                    dicomWebRootUrl: ae.dicomWebRootUrl
                 };
 
                 // populate table row

@@ -265,3 +265,7 @@ body button.ui-datepicker-trigger {
     background: #fff;
     text-align: center;
 }
+
+.dicom-web {
+    display: none;
+}
