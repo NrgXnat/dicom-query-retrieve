@@ -76,7 +76,7 @@ XNAT.app = getObject(XNAT.app || {});
     XNAT.app.dqr.PacsAdministration = PacsAdministration =
         getObject(XNAT.app.dqr.PacsAdministration);
 
-    let dicomWebEnabled = false;
+    let showDicomWeb = false;
 
     var constants = {
         "MODAL_WINDOW_NAME": "loadData",
@@ -223,8 +223,8 @@ XNAT.app = getObject(XNAT.app || {});
                         console.log('Could not get DQR settings', e)
                     },
                     success: function (data) {
-                        dicomWebEnabled = Boolean(data.dicomWebEnabled);
-                        if (dicomWebEnabled) {
+                        showDicomWeb = Boolean(data.dicomWebEnabled);
+                        if (showDicomWeb) {
                             $(document).find('.dicom-web').show();
                         }
                     }
@@ -246,6 +246,10 @@ XNAT.app = getObject(XNAT.app || {});
                     action: function(obj){
                         var $form = obj.$modal.find('form');
                         var invalidFields = [];
+
+                        if ($form.find('input[name=dicomWebEnabled]').val().toLowerCase() != 'true') {
+                            $form.find('input[name=dicomWebRootUrl]').removeClass('validate');
+                        }
 
                         $form.find('.validate').each(function(){
                             if (!XNAT.validate($(this)).check()) {
