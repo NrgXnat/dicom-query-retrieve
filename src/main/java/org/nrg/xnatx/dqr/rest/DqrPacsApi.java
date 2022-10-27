@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.rest;
 
 import static org.nrg.xdat.security.helpers.AccessLevel.*;
+import static org.springframework.http.HttpStatus.OK;
 
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
@@ -23,19 +24,19 @@ import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
+import org.nrg.xnat.eventservice.exceptions.UnauthorizedException;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsPing;
+import org.nrg.xnatx.dqr.dto.PacsDicomWebPing;
 import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
-import org.nrg.xnatx.dqr.services.PacsAvailabilityService;
-import org.nrg.xnatx.dqr.services.PacsService;
-import org.nrg.xnatx.dqr.services.PacsPingService;
-import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
+import org.nrg.xnatx.dqr.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,6 +44,7 @@ import java.time.DayOfWeek;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Api("XNAT PACS Management API")
 @XapiRestController
@@ -50,11 +52,20 @@ import java.util.Map;
 @RequestMapping(value = "/pacs")
 public class DqrPacsApi extends AbstractDqrRestController {
     @Autowired
-    public DqrPacsApi(final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final DicomQueryRetrieveService dqrService, final PacsAvailabilityService pacsAvailabilityService, final PacsPingService pacsPingService, final PacsService pacsService, final NamedParameterJdbcTemplate template) {
+    public DqrPacsApi(
+            final UserManagementServiceI userManagementService,
+            final RoleHolder roleHolder,
+            final DicomQueryRetrieveService dqrService,
+            final PacsAvailabilityService pacsAvailabilityService,
+            final PacsPingService pacsPingService,
+            final PacsService pacsService,
+            final NamedParameterJdbcTemplate template,
+            final PacsDicomWebService pacsDicomWebService) {
         super(pacsService, template, userManagementService, roleHolder);
         _dqrService = dqrService;
         _pacsAvailabilityService = pacsAvailabilityService;
         _pacsPingService = pacsPingService;
+        _pacsDicomWebService = pacsDicomWebService;
     }
 
     @ApiOperation(value = "Get list of all existing PACS systems.", notes = "This API call accepts two optional query-string parameters that can limit the scope of the PACS returned.", response = ExecutedPacsRequest.class, responseContainer = "List")
@@ -273,7 +284,21 @@ public class DqrPacsApi extends AbstractDqrRestController {
         return _pacsAvailabilityService.findAllByPacsIdGroupedByDayOfWeek(pacsId);
     }
 
+    @ApiOperation(value = "Check the dicomWeb status.", notes = "", response = String.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "Whether the DicomWeb was responsive."),
+            @ApiResponse(code = 401, message = "Pacs needs to be authenticated."),
+            @ApiResponse(code = 404, message = "HTTP host connection error or URL not found."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to check the status DicomWeb."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @XapiRequestMapping(value = "/dicom-web/status", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
+    public ResponseEntity<String> dicomWebPing(@RequestBody final PacsDicomWebPing params) throws UnauthorizedException {
+        return Objects.isNull(_pacsDicomWebService.dicomWebPing(params.getAeTitle(), params.getRootUrl()))
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(OK.toString());
+    }
+
     private final DicomQueryRetrieveService _dqrService;
     private final PacsPingService           _pacsPingService;
     private final PacsAvailabilityService _pacsAvailabilityService;
+    private final PacsDicomWebService _pacsDicomWebService;
 }

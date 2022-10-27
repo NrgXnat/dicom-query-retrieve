@@ -211,7 +211,11 @@ XNAT.app = getObject(XNAT.app || {});
                                 label: 'DicomWeb Root Url',
                                 addClass: 'validate',
                                 validation: 'url',
-                                description: 'eg: http://www.orthanc.com:8042/dicom-web/'
+                                description: 'eg: http://www.orthanc.com:8042/dicom-web/',
+                                element: {
+                                    style: "margin-right:10px;"
+                                },
+                                afterElement: '<button type="button" id="dicomWebTest" class="btn btn-sm">Test</button>'
                             })
                         ])
                     ])
@@ -695,6 +699,41 @@ XNAT.app = getObject(XNAT.app || {});
     };
 
     PacsAdministration.ormStrategies = ormStrategies;
+
+    PacsAdministration.checkDicomWebStatus = function () {
+        let jsonData = {
+            rootUrl: $(document).find('input[name=dicomWebRootUrl]').val(),
+            aeTitle: $(document).find('input[name=aeTitle]').val()
+        };
+
+        function showError(errorObj) {
+            xmodal.loading.close();
+            console.log('Error: DicomWeb does not work', errorObj);
+            XNAT.ui.banner.top(3000, 'Error: DicomWeb does not work', 'error');
+        }
+
+        function showStatus() {
+            xmodal.loading.close();
+            XNAT.ui.banner.top(3000, 'DicomWeb Status: Up', 'success');
+        }
+
+        xmodal.loading.open({title: 'Checking DicomWeb Status'})
+        XNAT.xhr.postJSON({
+            url: XNAT.url.csrfUrl('/xapi/pacs/dicom-web/status'),
+            data: JSON.stringify(jsonData),
+            fail: function (e) {
+                showError(e)
+            },
+            success: function () {
+                showStatus()
+            }
+        });
+    };
+
+    $(document).on('click', '#dicomWebTest', function () {
+        XNAT.app.dqr.PacsAdministration.checkDicomWebStatus();
+    });
+
 
     $(document).on('click','.ping-pacs', function() {
         var id = $(this).data('pacs-id');
