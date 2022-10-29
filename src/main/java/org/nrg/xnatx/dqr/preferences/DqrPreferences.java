@@ -172,4 +172,19 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
             log.error("Invalid preference name 'leavePacsAuditTrail': something is very wrong here.", e);
         }
     }
+
+    @NrgPreference(defaultValue = "false")
+    public boolean getDicomWebEnabled() {
+        return getBooleanValue("dicomWebEnabled");
+    }
+
+    @SuppressWarnings("unused")
+    public void setDicomWebEnabled(final boolean dicomWebEnabled) {
+        try {
+            setBooleanValue(dicomWebEnabled, "dicomWebEnabled");
+        } catch (InvalidPreferenceName e) {
+            log.error("Invalid preference name 'dicomWebEnabled': something is very wrong here.", e);
+        }
+    }
+
 }
