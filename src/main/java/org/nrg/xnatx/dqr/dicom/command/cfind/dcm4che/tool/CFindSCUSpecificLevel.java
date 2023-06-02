@@ -15,8 +15,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
+import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
@@ -29,6 +31,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.IOException;
@@ -48,7 +51,11 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
      * @param cechoSCU                  Used to test connectivity to the external AE
      * @param ormStrategy               The ORM strategy to use
      */
-    protected CFindSCUSpecificLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
+    protected CFindSCUSpecificLevel(final DqrPreferences preferences,
+                                    final DicomConnectionProperties dicomConnectionProperties,
+                                    final CEchoSCU cechoSCU,
+                                    final OrmStrategy ormStrategy,
+                                    final SeriesRetrievalStatusService seriesRetrievalStatusService) {
         dcmQR = createDcmQR(StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
         dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
         dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
@@ -59,18 +66,20 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         }
         this.cechoSCU    = cechoSCU;
         this.ormStrategy = ormStrategy;
+        this.seriesRetrievalStatusService = seriesRetrievalStatusService;
     }
 
     /**
      * Performs a C-FIND against the select PACS.
      *
+     * @param user The requesting XNAT user.
      * @param searchCriteria The search criteria to use for the C-FIND operation.
      *
      * @return The results of the search.
      *
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
-    public PacsSearchResults<T> cfind(final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<T> cfind(final UserI user, final PacsSearchCriteria searchCriteria) {
         pingPacs();
 
         validatePacsSearchCriteria(searchCriteria);
@@ -89,17 +98,21 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
         try {
             dcmQR.open();
-
+        } catch (ConfigurationException | IOException | InterruptedException e) {
+            throw new DqrRuntimeException("unable to open association", e);
+        }
+        try {
             final List<DicomObject> dicomResults = setParamsAndSendQuery(searchCriteria);
 
             if (cMoveRequestedOnResults()) {
+                seriesRetrievalStatusService.createFromCFindResults(user.getUsername(), getDestinationProject(), dicomResults);
                 performCMoveOnResults(searchCriteria, dicomResults);
             }
 
             return mapDicomResultsToDomainResults(searchCriteria, dicomResults);
-        } catch (DqrRuntimeException e) {
+        } catch (RuntimeException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             throw new DqrRuntimeException(e);
         } finally {
             try {
@@ -173,20 +186,29 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     }
 
     protected List<DicomObject> setParamsAndSendQuery(final PacsSearchCriteria searchCriteria) throws IOException, InterruptedException {
-        log.debug("Querying PACS {} with search criteria: {}", searchCriteria.getPacsId(), searchCriteria);
-        for (final String criterion : ormStrategy.getPatientNameStrategy().dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
-            setSearchCriteriaInQuery(searchCriteria, criterion);
-            log.debug("Querying PACS {} with criterion {}: {}", searchCriteria.getPacsId(), criterion, dcmQR.getKeys());
-            final List<DicomObject> results = dcmQR.query();
-            if (!results.isEmpty()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Query with criterion {} got results:\n{}", criterion, results.stream().map(Object::toString).collect(Collectors.joining("\n")));
+        log.trace("Querying PACS {} with search criteria: {}", searchCriteria.getPacsId(), searchCriteria);
+        try {
+            for (final String criterion : ormStrategy.getPatientNameStrategy().dqrSearchCriteriaToDicomSearchCriteria(searchCriteria).getCriteriaInOrderOfPreference()) {
+                setSearchCriteriaInQuery(searchCriteria, criterion);
+                log.trace("Querying PACS {} with criterion [{}] keys:\n{}", searchCriteria.getPacsId(), criterion, dcmQR.getKeys());
+                final List<DicomObject> results = dcmQR.query();
+                if (!results.isEmpty()) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Query result:\n{}", results.stream()
+                                .map(Object::toString).collect(Collectors.joining("\n")));
+                    }
+                    return results;
                 }
-                return results;
+                log.debug("Query returned no results");
             }
-            log.debug("Query with criterion {} got no results", criterion);
+            return Collections.emptyList();
+        } catch (IOException e) {
+            log.error("C-FIND failed", e);
+            throw e;
+        } catch (InterruptedException e) {
+            log.error("C-FIND interrupted", e);
+            throw e;
         }
-        return Collections.emptyList();
     }
 
     protected PacsSearchResults<T> mapDicomResultsToDomainResults(final PacsSearchCriteria searchCriteria, final List<DicomObject> dicomResults) {
@@ -197,12 +219,21 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         if (dicomResults.isEmpty()) {
             reportCMoveTargetNotFound(searchCriteria);
         } else {
+            log.debug("Starting C-MOVE for {}", dicomResults);
             dcmQR.move(dicomResults);
         }
     }
 
     protected boolean cMoveRequestedOnResults() {
         return false;
+    }
+
+    /**
+     * Destination XNAT project, used only for series retrieval records.
+     * @return destination project name for C-MOVE, or null if not applicable
+     */
+    protected String getDestinationProject() {
+        return null;
     }
 
     protected void reportCMoveTargetNotFound(final PacsSearchCriteria searchCriteria) {
@@ -234,4 +265,5 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     private final DcmQR       dcmQR;
     private final CEchoSCU    cechoSCU;
     private final OrmStrategy ormStrategy;
+    private final SeriesRetrievalStatusService seriesRetrievalStatusService;
 }

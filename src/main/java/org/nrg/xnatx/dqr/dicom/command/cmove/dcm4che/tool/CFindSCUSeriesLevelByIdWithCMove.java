@@ -15,15 +15,30 @@ import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevelByI
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
 
 public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
-    public CFindSCUSeriesLevelByIdWithCMove(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
+    private final String destinationProject;
+
+    public CFindSCUSeriesLevelByIdWithCMove(final DqrPreferences preferences,
+                                            final DicomConnectionProperties dicomConnectionProperties,
+                                            final CEchoSCU cechoSCU,
+                                            final OrmStrategy ormStrategy,
+                                            final SeriesRetrievalStatusService seriesRetrievalStatusService,
+                                            final String destinationProject
+    ) {
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalStatusService);
+        this.destinationProject = destinationProject;
     }
 
     @Override
     protected boolean cMoveRequestedOnResults() {
         return true;
+    }
+
+    @Override
+    protected String getDestinationProject() {
+        return destinationProject;
     }
 
     @Override

@@ -20,7 +20,7 @@ import java.io.Serializable;
 @Builder
 @EqualsAndHashCode
 public class Series implements DqrDomainObject, Serializable {
-    private static final long serialVersionUID = 8880479205274075901L;
+    private static final long serialVersionUID = 8880479205274075902L;
 
     @Override
     public String getUniqueIdentifier() {
@@ -38,7 +38,9 @@ public class Series implements DqrDomainObject, Serializable {
                "studyId: " + studyId + ", " +
                "accessionNumber: " + accessionNumber + ", " +
                "patientId: " + patientId + ", " +
-               "patientName: " + patientName + "}";
+               "patientName: " + patientName + ", " +
+               "numberOfRelatedInstances: " + ((null == numberOfRelatedInstances) ? "unknown" : Integer.toString(numberOfRelatedInstances))
+                + "}";
     }
 
     @NonNull
@@ -52,4 +54,5 @@ public class Series implements DqrDomainObject, Serializable {
     String  accessionNumber;
     String  patientId;
     String  patientName;
+    Integer numberOfRelatedInstances;
 }

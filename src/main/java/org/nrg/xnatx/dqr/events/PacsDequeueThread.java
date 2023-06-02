@@ -141,7 +141,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     _executedPacsRequestService.create(pacsRequest);
 
                     final StopWatch stopWatch = StopWatch.createStarted();
-                    _dqrService.importFromPacsRequest(pacsRequest);
+                    _dqrService.importFromPacsRequest(user, pacsRequest);
                     stopWatch.stop();
                     requestTimeInMilliseconds.set(stopWatch.getTime());
 

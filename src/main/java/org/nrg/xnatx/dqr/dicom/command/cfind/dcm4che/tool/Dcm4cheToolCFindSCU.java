@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
 import org.apache.commons.lang3.StringUtils;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
@@ -21,35 +22,53 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
+import org.nrg.xnatx.dqr.utils.OptionalString;
 
 import java.util.Optional;
 
 public class Dcm4cheToolCFindSCU implements CFindSCU {
-    public Dcm4cheToolCFindSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
+    public Dcm4cheToolCFindSCU(final DqrPreferences preferences,
+                               final UserI user,
+                               final DicomConnectionProperties dicomConnectionProperties,
+                               final OrmStrategy ormStrategy,
+                               final SeriesRetrievalStatusService seriesRetrievalStatusService) {
         _preferences = preferences;
+        _user = user;
         _dicomConnectionProperties = dicomConnectionProperties;
         _cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
         _ormStrategy = ormStrategy;
+        _seriesRetrievalStatusService = seriesRetrievalStatusService;
     }
 
     @Override
     public PacsSearchResults<Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria) {
-        return new CFindSCUPatientLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
+        return new CFindSCUPatientLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                .cfind(_user, searchCriteria);
     }
 
     @Override
     public Optional<Patient> cfindPatientById(final String patientId) {
-        return StringUtils.isBlank(patientId) ? Optional.empty() : new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build()).getFirstResult();
+        return OptionalString.of(patientId)
+                .flatMap(pid ->
+                        new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                                .cfind(_user, PacsSearchCriteria.builder().patientId(pid).build())
+                                .getFirstResult());
     }
 
     @Override
     public PacsSearchResults<Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria) {
-        return new CFindSCUStudyLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
+        return new CFindSCUStudyLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                .cfind(_user, searchCriteria);
     }
 
     @Override
     public Optional<Study> cfindStudyById(final String studyInstanceUid) {
-        return StringUtils.isBlank(studyInstanceUid) ? Optional.empty() : new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyInstanceUid).build()).getFirstResult();
+        return OptionalString.of(studyInstanceUid)
+                .flatMap(uid ->
+                        new CFindSCUStudyLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                                .cfind(_user, PacsSearchCriteria.builder().studyInstanceUid(uid).build())
+                                .getFirstResult());
     }
 
     @Override
@@ -59,12 +78,20 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
 
     @Override
     public PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid) {
-        return StringUtils.isBlank(studyUid) ? PacsSearchResults.emptyResults() : new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyUid).build());
+        return OptionalString.of(studyUid)
+                .map(uid ->
+                        new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                                .cfind(_user, PacsSearchCriteria.builder().studyInstanceUid(uid).build()))
+                .orElse(PacsSearchResults.emptyResults());
     }
 
     @Override
     public Optional<Series> cfindSeriesById(final String seriesInstanceUid) {
-        return StringUtils.isBlank(seriesInstanceUid) ? Optional.empty() : new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build()).getFirstResult();
+        return OptionalString.of(seriesInstanceUid)
+                .flatMap(uid ->
+                        new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy, _seriesRetrievalStatusService)
+                                .cfind(_user, PacsSearchCriteria.builder().seriesInstanceUid(uid).build())
+                                .getFirstResult());
     }
 
     /**
@@ -74,8 +101,10 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
         return _ormStrategy;
     }
 
-    private final DicomConnectionProperties _dicomConnectionProperties;
-    private final CEchoSCU                  _cechoSCU;
-    private final OrmStrategy               _ormStrategy;
-    private final DqrPreferences            _preferences;
+    private final DicomConnectionProperties    _dicomConnectionProperties;
+    private final UserI                        _user;
+    private final CEchoSCU                     _cechoSCU;
+    private final OrmStrategy                  _ormStrategy;
+    private final DqrPreferences               _preferences;
+    private final SeriesRetrievalStatusService _seriesRetrievalStatusService;
 }

@@ -22,10 +22,15 @@ import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
 
 public abstract class CFindSCUPatientLevel extends CFindSCUSpecificLevel<Patient> {
-    public CFindSCUPatientLevel(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
+    public CFindSCUPatientLevel(final DqrPreferences preferences,
+                                final DicomConnectionProperties dicomConnectionProperties,
+                                final CEchoSCU cechoSCU,
+                                final OrmStrategy ormStrategy,
+                                final SeriesRetrievalStatusService seriesRetrievalStatusService) {
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalStatusService);
     }
 
     @Override

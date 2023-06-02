@@ -35,6 +35,7 @@ public class Dcm4cheToolCEchoSCU implements CEchoSCU {
         boolean isInError = false;
         try {
             _dcmEcho.open();
+            log.debug("Association made to PACS {}:{} {} for C-ECHO", _remoteHost, _remoteQrPort, _remoteAeTitle);
             _dcmEcho.echo();
             log.debug("Received C-ECHO response from PACS, calling from {} to {}:{} on host {}.", _aeTitle, _remoteAeTitle, _remoteQrPort, _remoteHost);
         } catch (final Exception e) {

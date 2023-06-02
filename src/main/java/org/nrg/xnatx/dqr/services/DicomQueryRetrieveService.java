@@ -233,7 +233,7 @@ public interface DicomQueryRetrieveService {
      *
      * @param request The completed request from which data should be imported.
      */
-    void importFromPacsRequest(ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
+    void importFromPacsRequest(UserI user, ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
 
     /**
      * Export the indicated {@link XnatImagescandata scans} from {@link XnatImagesessiondata session} to the specified PACS.

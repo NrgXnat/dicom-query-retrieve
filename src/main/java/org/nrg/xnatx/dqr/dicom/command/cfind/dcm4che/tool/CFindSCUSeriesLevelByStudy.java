@@ -16,12 +16,16 @@ import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
 
 public class CFindSCUSeriesLevelByStudy extends CFindSCUSeriesLevel {
 
-    public CFindSCUSeriesLevelByStudy(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties,
-                                      final CEchoSCU cechoSCU, final OrmStrategy ormStrategy) {
-        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
+    public CFindSCUSeriesLevelByStudy(final DqrPreferences preferences,
+                                      final DicomConnectionProperties dicomConnectionProperties,
+                                      final CEchoSCU cechoSCU,
+                                      final OrmStrategy ormStrategy,
+                                      final SeriesRetrievalStatusService seriesRetrievalStatusService) {
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalStatusService);
     }
 
     @Override

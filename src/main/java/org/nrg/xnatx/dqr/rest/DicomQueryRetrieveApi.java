@@ -73,15 +73,27 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @RequestMapping("/dqr")
 public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @Autowired
-    public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final DqrProjectSettingsService dqrProjectSettingsService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final NamedParameterJdbcTemplate template) {
+    public DicomQueryRetrieveApi(final DqrPreferences preferences,
+                                 final UserManagementServiceI userManagementService,
+                                 final RoleHolder roleHolder,
+                                 final ExecutedPacsRequestService requestService,
+                                 final QueuedPacsRequestService queuedRequestService,
+                                 final DicomQueryRetrieveService dqrService,
+                                 final PacsService pacsService,
+                                 final DqrProjectSettingsService dqrProjectSettingsService,
+                                 final SeriesRetrievalStatusService seriesRetrievalStatusService,
+                                 final Map<String, OrmStrategy> ormStrategies,
+                                 final SiteConfigPreferences siteConfigPreferences,
+                                 final NamedParameterJdbcTemplate template) {
         super(pacsService, template, userManagementService, roleHolder);
-        _preferences               = preferences;
-        _executedRequestService    = requestService;
-        _queuedRequestService      = queuedRequestService;
-        _dqrService                = dqrService;
-        _dqrProjectSettingsService = dqrProjectSettingsService;
-        _ormStrategies             = ormStrategies;
-        _siteConfigPreferences     = siteConfigPreferences;
+        _preferences                  = preferences;
+        _executedRequestService       = requestService;
+        _queuedRequestService         = queuedRequestService;
+        _dqrService                   = dqrService;
+        _dqrProjectSettingsService    = dqrProjectSettingsService;
+        _seriesRetrievalStatusService = seriesRetrievalStatusService;
+        _ormStrategies                = ormStrategies;
+        _siteConfigPreferences        = siteConfigPreferences;
     }
 
     @ApiOperation(value = "Returns the full map of DQR settings for this XNAT application.", notes = "Complex objects may be returned as encapsulated JSON strings.", response = String.class, responseContainer = "Map")
@@ -261,7 +273,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException, DataFormatException {
         final long  pacsId = criteria.getPacsId();
         final UserI user   = getSessionUser();
-        log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user, criteria);
+        log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user.getLogin(), criteria);
         final PacsSearchResults<Study> studies = _dqrService.getStudiesByExample(user, getDefaultQueryablePacs(pacsId), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
@@ -457,6 +469,28 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         }
     }
 
+    @ApiOperation(value = "Returns a list of DICOM query series statuses.",
+            responseContainer = "List", response = SeriesRetrievalStatus.class)
+    @ApiResponses({@ApiResponse(code = 200, message = "The list of DICOM query series statuses."),
+            @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
+            @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the requested DICOM query requests."),
+            @ApiResponse(code = 500, message = "An unexpected error occurred.")})
+    @AuthDelegate(DqrUserXapiAuthorization.class)
+    @XapiRequestMapping(value = "import/status", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
+    public List<SeriesRetrievalStatus> seriesRetrievalStatuses(@ApiParam("Indicates that all series statuses should be returned instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all,
+                                                               @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
+                                                               @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
+                                                               @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize
+    ) throws DataFormatException, InsufficientPrivilegesException {
+        final UserI user = getSessionUser();
+        if (all && !Groups.hasAllDataAccess(user)) {
+            throw new InsufficientPrivilegesException(user.getUsername(), "completed", "You must have all data access privileges to view all series retrieval statuses.");
+        }
+
+        final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
+        return all ? _seriesRetrievalStatusService.getPaginated(request) : _seriesRetrievalStatusService.getAllForUser(user, request);
+    }
+
     @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Scans sent to PACS."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -541,11 +575,12 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
 
     private static final Pattern SORT = Pattern.compile("^(DESC|ASC)$", Pattern.CASE_INSENSITIVE);
 
-    private final DicomQueryRetrieveService  _dqrService;
-    private final ExecutedPacsRequestService _executedRequestService;
-    private final QueuedPacsRequestService   _queuedRequestService;
-    private final DqrProjectSettingsService  _dqrProjectSettingsService;
-    private final DqrPreferences             _preferences;
-    private final Map<String, OrmStrategy>   _ormStrategies;
-    private final SiteConfigPreferences      _siteConfigPreferences;
+    private final DicomQueryRetrieveService    _dqrService;
+    private final ExecutedPacsRequestService   _executedRequestService;
+    private final QueuedPacsRequestService     _queuedRequestService;
+    private final DqrProjectSettingsService    _dqrProjectSettingsService;
+    private final SeriesRetrievalStatusService _seriesRetrievalStatusService;
+    private final DqrPreferences               _preferences;
+    private final Map<String, OrmStrategy>     _ormStrategies;
+    private final SiteConfigPreferences        _siteConfigPreferences;
 }

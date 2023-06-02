@@ -108,7 +108,7 @@ public class MockDicomQueryRetrieveService implements DicomQueryRetrieveService 
     }
 
     @Override
-    public void importFromPacsRequest(final ExecutedPacsRequest request) {
+    public void importFromPacsRequest(final UserI user, final ExecutedPacsRequest request) {
         throw new RuntimeException("method not implemented");
     }
 

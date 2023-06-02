@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 
+import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
@@ -18,17 +19,23 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
 
 public class Dcm4cheToolCMoveSCU implements CMoveSCU {
-    public Dcm4cheToolCMoveSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
+    public Dcm4cheToolCMoveSCU(final DqrPreferences preferences,
+                               final DicomConnectionProperties dicomConnectionProperties,
+                               final OrmStrategy ormStrategy,
+                               final SeriesRetrievalStatusService seriesRetrievalStatusService
+                               ) {
         _dicomConnectionProperties = dicomConnectionProperties;
         _cEchoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
         _ormStrategy = ormStrategy;
         _preferences = preferences;
+        _seriesRetrievalStatusService = seriesRetrievalStatusService;
     }
 
     @Override
-    public void cmoveSeries(final Study study, final Series series) {
+    public void cmoveSeries(final UserI user, final Study study, final Series series) {
         final PacsSearchCriteria.PacsSearchCriteriaBuilder builder = PacsSearchCriteria.builder();
         if (study != null) {
             builder.studyInstanceUid(study.getStudyInstanceUid());
@@ -36,11 +43,13 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
         if (series != null) {
             builder.seriesInstanceUid(series.getSeriesInstanceUid());
         }
-        new CMoveSCUSeriesLevel(_preferences, _dicomConnectionProperties, _cEchoSCU, _ormStrategy).cmove(builder.build());
+        new CMoveSCUSeriesLevel(_preferences, _dicomConnectionProperties, _cEchoSCU, _ormStrategy, _seriesRetrievalStatusService, study.getProjectId())
+                .cmove(user, builder.build());
     }
 
     private final DicomConnectionProperties _dicomConnectionProperties;
     private final CEchoSCU                  _cEchoSCU;
     private final OrmStrategy               _ormStrategy;
     private final DqrPreferences            _preferences;
+    private final SeriesRetrievalStatusService _seriesRetrievalStatusService;
 }
