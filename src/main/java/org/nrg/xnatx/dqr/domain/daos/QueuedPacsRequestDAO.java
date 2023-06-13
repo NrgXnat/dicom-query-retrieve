@@ -11,7 +11,6 @@ package org.nrg.xnatx.dqr.domain.daos;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.ajax.PaginatedRequest;
 import org.nrg.framework.ajax.hibernate.HibernateFilter;
 import org.nrg.xft.security.UserI;
@@ -21,6 +20,8 @@ import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+
+import static org.nrg.xnatx.dqr.domain.entities.PacsAvailability.PROP_PACS_ID;
 
 /**
  * Created by mike on 1/19/18.
@@ -33,7 +34,7 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
     }
 
     public List<QueuedPacsRequest> findAllForUser(final UserI user) {
-        return findByCriteria(Restrictions.eq("username", user.getUsername()));
+        return findByProperty("username", user.getUsername());
     }
 
     public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId) {
@@ -42,10 +43,10 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
 
     public List<QueuedPacsRequest> findQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
         return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
-                                        .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
+                                        .filter(PROP_PACS_ID, HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
                                         .filter("status", HibernateFilter.builder().operator(HibernateFilter.Operator.IN).values(FAILED_OR_QUEUED).build())
-                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
+                                        .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "priority"))
+                                        .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "queuedTime")).build());
     }
 
     private static final String[] FAILED_OR_QUEUED = {PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT};

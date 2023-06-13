@@ -9,31 +9,29 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import org.hibernate.criterion.Restrictions;
-import org.hibernate.criterion.SimpleExpression;
+import com.google.common.collect.ImmutableMap;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
+import org.nrg.framework.orm.hibernate.QueryBuilder;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_DEFAULT_QUERY_RETRIEVE_PACS;
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_DEFAULT_STORAGE_PACS;
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_QUERYABLE;
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_STORABLE;
+
 @Repository
 public class PacsDAO extends AbstractHibernateDAO<Pacs> {
-    private static final SimpleExpression CRITERIA_ENABLED                     = Restrictions.eq("enabled", true);
-    private static final SimpleExpression CRITERIA_DEFAULT_QUERY_RETRIEVE_PACS = Restrictions.eq("defaultQueryRetrievePacs", true);
-    private static final SimpleExpression CRITERIA_DEFAULT_STORAGE_PACS        = Restrictions.eq("defaultStoragePacs", true);
-    private static final SimpleExpression CRITERIA_STORABLE                    = Restrictions.eq("storable", true);
-    private static final SimpleExpression CRITERIA_QUERYABLE                   = Restrictions.eq("queryable", true);
-
     /**
      * Finds the PACS marked as the default query-retrieve PACS.
      *
      * @return The default query-retrieve PACS if one is marked.
      */
     public Optional<Pacs> findByDefaultQueryRetrievePacs() {
-        final List<Pacs> defaultDqrPacs = findByCriteria(CRITERIA_DEFAULT_QUERY_RETRIEVE_PACS, CRITERIA_ENABLED);
-        return defaultDqrPacs.isEmpty() ? Optional.empty() : Optional.of(defaultDqrPacs.get(0));
+        return Optional.ofNullable(findByUniqueProperty(PROP_DEFAULT_QUERY_RETRIEVE_PACS, true));
     }
 
     /**
@@ -42,23 +40,24 @@ public class PacsDAO extends AbstractHibernateDAO<Pacs> {
      * @return The default storage PACS if one is marked.
      */
     public Optional<Pacs> findByDefaultStoragePacs() {
-        final List<Pacs> defaultDqrPacs = findByCriteria(CRITERIA_DEFAULT_STORAGE_PACS, CRITERIA_ENABLED);
-        return defaultDqrPacs.isEmpty() ? Optional.empty() : Optional.of(defaultDqrPacs.get(0));
+        return Optional.ofNullable(findByUniqueProperty(PROP_DEFAULT_STORAGE_PACS, true));
     }
 
     public List<Pacs> findAllBut(final Pacs entity) {
-        return findByCriteria(Restrictions.ne("id", entity.getId()));
+        QueryBuilder<Pacs> builder = newQueryBuilder();
+        builder.where(builder.ne("id", entity.getId()));
+        return builder.getResults();
     }
 
     public List<Pacs> findAllStorable() {
-        return findByCriteria(CRITERIA_STORABLE, CRITERIA_ENABLED);
+        return findByProperty(PROP_STORABLE, true);
     }
 
     public List<Pacs> findAllQueryable() {
-        return findByCriteria(CRITERIA_QUERYABLE, CRITERIA_ENABLED);
+        return findByProperty(PROP_QUERYABLE, true);
     }
 
     public List<Pacs> findAllQueryableAndStorable() {
-        return findByCriteria(CRITERIA_STORABLE, CRITERIA_QUERYABLE, CRITERIA_ENABLED);
+        return findByProperties(ImmutableMap.of(PROP_STORABLE, true, PROP_QUERYABLE, true));
     }
 }

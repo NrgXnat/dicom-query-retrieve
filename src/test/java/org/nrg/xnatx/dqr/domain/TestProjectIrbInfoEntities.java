@@ -9,8 +9,6 @@
 
 package org.nrg.xnatx.dqr.domain;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
 import com.google.common.io.BaseEncoding;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -28,10 +26,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -40,13 +38,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_LABEL;
+
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = TestProjectIrbInfoEntitiesConfig.class)
 public class TestProjectIrbInfoEntities {
     @Autowired
     public TestProjectIrbInfoEntities(final ProjectIrbInfoEntityService service) {
         _service = service;
-        _bytes = IntStream.range(0, 10).mapToObj(index -> RandomUtils.nextBytes(20)).collect(Collectors.toList());
+        _bytes   = IntStream.range(0, 10).mapToObj(index -> RandomUtils.nextBytes(20)).collect(Collectors.toList());
     }
 
     @Test
@@ -66,7 +67,7 @@ public class TestProjectIrbInfoEntities {
         final FileStoreInfo  file    = found.getProjectIrbFiles().get(0);
         assertThat(created).hasFieldOrPropertyWithValue("projectId", "foo").hasFieldOrPropertyWithValue("irbNumber", "bar");
         assertThat(found).hasFieldOrPropertyWithValue("projectId", "foo").hasFieldOrPropertyWithValue("irbNumber", "bar").isEqualTo(created);
-        assertThat(file).hasFieldOrPropertyWithValue("label", "foo-bar.txt").hasFieldOrPropertyWithValue("coordinates", "foo/bar/foo-bar.txt").hasFieldOrPropertyWithValue("checksum", checksum(getBytes(file.getStoreUri())));
+        assertThat(file).hasFieldOrPropertyWithValue(PROP_LABEL, "foo-bar.txt").hasFieldOrPropertyWithValue("coordinates", "foo/bar/foo-bar.txt").hasFieldOrPropertyWithValue("checksum", checksum(getBytes(file.getStoreUri())));
         assertThat(file.getStoreUri().toString().endsWith(StringUtils.join(BaseEncoding.base16().encode(MessageDigest.getInstance("SHA-256").digest(file.getCoordinates().getBytes())).split("(?<=\\G.{8})"), "/")));
     }
 
@@ -82,7 +83,7 @@ public class TestProjectIrbInfoEntities {
         final String prefix = "A/B/";
         for (final FileStoreInfo file : found.getProjectIrbFiles()) {
             final String label = file.getLabel();
-            assertThat(file).hasFieldOrPropertyWithValue("label", label).hasFieldOrPropertyWithValue("coordinates", prefix + label).hasFieldOrPropertyWithValue("size", 20L);
+            assertThat(file).hasFieldOrPropertyWithValue(PROP_LABEL, label).hasFieldOrPropertyWithValue("coordinates", prefix + label).hasFieldOrPropertyWithValue("size", 20L);
             assertThat(file.getStoreUri().toString().endsWith(StringUtils.join(BaseEncoding.base16().encode(MessageDigest.getInstance("SHA-256").digest(file.getCoordinates().getBytes())).split("(?<=\\G.{8})"), "/")));
         }
     }
@@ -96,7 +97,7 @@ public class TestProjectIrbInfoEntities {
     }
 
     private static byte[] getBytes(final URI storeUri) {
-        try (final InputStream input = new FileInputStream(Paths.get(storeUri).toFile())) {
+        try (final InputStream input = Files.newInputStream(Paths.get(storeUri).toFile().toPath())) {
             return IOUtils.readFully(input, 20);
         } catch (IOException e) {
             throw new RuntimeException(e);

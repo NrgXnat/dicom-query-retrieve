@@ -29,7 +29,7 @@ public class ArchiveProcessorsNotAvailableException extends DqrException {
 
     public ArchiveProcessorsNotAvailableException(final DicomSCPInstance instance) {
         super("The specified DICOM receiver (" + instance.getId() + ") at " + instance.getAeTitle() + ":" + instance.getPort() + " does not have custom processing enabled");
-        _id = instance.getId();
+        _id = (int) instance.getId();
         _aeTitle = instance.getAeTitle();
         _port = instance.getPort();
     }

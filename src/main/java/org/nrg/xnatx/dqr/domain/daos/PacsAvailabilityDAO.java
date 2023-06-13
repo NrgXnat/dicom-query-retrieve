@@ -12,9 +12,7 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
-import org.nrg.framework.generics.GenericUtils;
+import com.google.common.collect.ImmutableMap;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.springframework.stereotype.Repository;
@@ -22,16 +20,16 @@ import org.springframework.stereotype.Repository;
 import java.time.DayOfWeek;
 import java.util.List;
 
+import static org.nrg.xnatx.dqr.domain.entities.PacsAvailability.PROP_DAY_OF_WEEK;
+import static org.nrg.xnatx.dqr.domain.entities.PacsAvailability.PROP_PACS_ID;
+
 @Repository
 public class PacsAvailabilityDAO extends AbstractHibernateDAO<PacsAvailability> {
     public List<PacsAvailability> findAllByPacsId(final long pacsId) {
-        return findByCriteria(Restrictions.eq("pacsId", pacsId));
+        return findByProperty(PROP_PACS_ID, pacsId);
     }
 
     public List<PacsAvailability> findAllByPacsIdAndDayOfWeek(final long pacsId, final DayOfWeek day) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("pacsId", pacsId));
-        criteria.add(Restrictions.eq("dayOfWeek", day));
-        return GenericUtils.convertToTypedList(criteria.list(), PacsAvailability.class);
+        return findByProperties(ImmutableMap.of(PROP_PACS_ID, pacsId, PROP_DAY_OF_WEEK, day));
     }
 }

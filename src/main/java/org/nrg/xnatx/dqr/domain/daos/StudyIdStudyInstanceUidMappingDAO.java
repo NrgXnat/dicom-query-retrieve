@@ -10,10 +10,14 @@
 package org.nrg.xnatx.dqr.domain.daos;
 
 import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
+import org.nrg.framework.ajax.PaginatedRequest;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
+import org.nrg.framework.orm.hibernate.QueryBuilder;
 import org.nrg.xnatx.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
 import org.springframework.stereotype.Repository;
 
@@ -23,9 +27,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class StudyIdStudyInstanceUidMappingDAO extends AbstractHibernateDAO<StudyIdStudyInstanceUidMapping> {
     public List<StudyIdStudyInstanceUidMapping> findAllForStudyInstanceUid(final String studyInstanceUid) {
-        final Criteria criteria = getCriteriaForType();
-        criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
-        criteria.addOrder(Order.desc("created"));
-        return checked(criteria.list());
+        QueryBuilder<StudyIdStudyInstanceUidMapping> builder = newQueryBuilder();
+        builder.where(builder.eq("studyInstanceUid", studyInstanceUid));
+        builder.orderBy(Pair.of(PaginatedRequest.SortDir.DESC, "created"));
+        return builder.getResults();
     }
 }

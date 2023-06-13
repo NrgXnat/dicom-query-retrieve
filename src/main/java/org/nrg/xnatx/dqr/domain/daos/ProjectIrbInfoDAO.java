@@ -9,7 +9,6 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xnat.entities.FileStoreInfo;
@@ -18,17 +17,14 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
 public class ProjectIrbInfoDAO extends AbstractHibernateDAO<ProjectIrbInfo> {
     @Nonnull
     public ProjectIrbInfo findIrbInfoForProject(final String projectId) throws NotFoundException {
-        final ProjectIrbInfo projectIrbInfo = instance(findByCriteria(Restrictions.eq("projectId", projectId)));
-        if (projectIrbInfo == null) {
-            throw new NotFoundException(projectId);
-        }
-        return projectIrbInfo;
+        return Optional.ofNullable(findByUniqueProperty("projectId", projectId)).orElseThrow(() -> new NotFoundException(projectId));
     }
 
     public String findIrbNumberForProject(final String projectId) throws NotFoundException {

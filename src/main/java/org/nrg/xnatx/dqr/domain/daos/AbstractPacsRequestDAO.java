@@ -11,19 +11,18 @@ package org.nrg.xnatx.dqr.domain.daos;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.ajax.PaginatedRequest;
 import org.nrg.framework.ajax.hibernate.HibernateFilter;
-import org.nrg.framework.generics.GenericUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
+import org.nrg.framework.orm.hibernate.QueryBuilder;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Optional;
+
+import static org.nrg.xnatx.dqr.domain.entities.PacsAvailability.PROP_PACS_ID;
 
 public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends AbstractHibernateDAO<E> {
     protected abstract String getTimeSortProperty();
@@ -33,8 +32,7 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     }
 
     public List<E> findAllOrderedByDate(final @Nonnull PaginatedPacsRequest request) {
-        final PaginatedPacsRequest sorted = request.toBuilder().sortBy(Pair.of(getTimeSortProperty(), PaginatedRequest.SortDir.ASC)).build();
-        return findPaginated(sorted);
+        return findPaginated(request.toBuilder().sortBy(Pair.of(PaginatedRequest.SortDir.ASC, getTimeSortProperty())).build());
     }
 
     public List<E> findAllByUsername(final String username) {
@@ -51,17 +49,17 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     }
 
     public List<E> findByPacsIdOrderedByMostRecent(final long pacsId) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("pacsId", pacsId));
-        criteria.addOrder(Order.desc(getTimeSortProperty()));
-        return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
+        QueryBuilder<E> builder = newQueryBuilder();
+        builder.where(builder.eq(PROP_PACS_ID, pacsId));
+        builder.orderBy(Pair.of(PaginatedRequest.SortDir.DESC, getTimeSortProperty()));
+        return builder.getResults();
     }
 
     public List<E> findByStudyInstanceUidOrderedByMostRecent(final String studyInstanceUid) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("studyInstanceUid", studyInstanceUid));
-        criteria.addOrder(Order.desc(getTimeSortProperty()));
-        return GenericUtils.convertToTypedList(criteria.list(), getParameterizedType());
+        QueryBuilder<E> builder = newQueryBuilder();
+        builder.where(builder.eq("studyInstanceUid", studyInstanceUid));
+        builder.orderBy(Pair.of(PaginatedRequest.SortDir.DESC, getTimeSortProperty()));
+        return builder.getResults();
     }
 
     @SuppressWarnings("unused")
@@ -72,7 +70,7 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     public List<E> findByPacsIdForUsername(final long pacsId, final String username, final @Nonnull PaginatedPacsRequest request) {
         return findPaginated(request.toBuilder()
                                     .clearFiltersMap()
-                                    .filter("pacsId", getFilter(pacsId))
+                                    .filter(PROP_PACS_ID, getFilter(pacsId))
                                     .filter("username", getFilter(username)).build());
     }
 
@@ -83,8 +81,8 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     public List<E> findAllForPacsOrderedByPriorityAndDate(final long pacsId, final @Nonnull PaginatedPacsRequest request) {
         return findPaginated(request.toBuilder().clearFiltersMap().clearSortBys()
                                     .filter("pacsId", getFilter(pacsId))
-                                    .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                    .sortBy(Pair.of(getTimeSortProperty(), PaginatedRequest.SortDir.ASC)).build());
+                                    .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "priority"))
+                                    .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, getTimeSortProperty())).build());
     }
 
     private static PaginatedPacsRequest getUnpaginatedRequest() {

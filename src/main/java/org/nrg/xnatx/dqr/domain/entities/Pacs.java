@@ -34,7 +34,7 @@ import java.io.Serializable;
 import java.util.stream.Stream;
 
 @Entity
-@Table(uniqueConstraints = {@UniqueConstraint(columnNames = "label"), @UniqueConstraint(columnNames = {"host", "queryRetrievePort", "aeTitle"})})
+@Table(uniqueConstraints = {@UniqueConstraint(columnNames = Pacs.PROP_LABEL), @UniqueConstraint(columnNames = {Pacs.PROP_HOST, Pacs.PROP_QUERY_RETRIEVE_PORT, Pacs.PROP_AE_TITLE})})
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @PortNotNullIfDefaultPacs
 @EqualsAndHashCode(callSuper = false)
@@ -44,6 +44,16 @@ import java.util.stream.Stream;
 @Accessors(prefix = "_")
 public class Pacs extends AbstractHibernateEntity implements Serializable {
     private static final long serialVersionUID = 3741269782521664702L;
+
+    public static final String PROP_DEFAULT_QUERY_RETRIEVE_PACS = "defaultQueryRetrievePacs";
+    public static final String PROP_DEFAULT_STORAGE_PACS        = "defaultStoragePacs";
+    public static final String PROP_HOST                        = "host";
+    public static final String PROP_AE_TITLE                    = "aeTitle";
+    public static final String PROP_LABEL                       = "label";
+    public static final String PROP_QUERY_RETRIEVE_PORT         = "queryRetrievePort";
+    public static final String PROP_ORM_STRATEGY_SPRING_BEAN_ID = "ormStrategySpringBeanId";
+    public static final String PROP_STORABLE                    = "storable";
+    public static final String PROP_QUERYABLE                   = "queryable";
 
     private String  _aeTitle;
     private String  _host;
@@ -57,7 +67,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private String  _ormStrategySpringBeanId;
     private boolean _supportsExtendedNegotiations;
     private boolean _dicomWebEnabled;
-    private String _dicomWebRootUrl;
+    private String  _dicomWebRootUrl;
 
     public Pacs(final PacsSettings settings) {
         copySettings(settings);
@@ -170,6 +180,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     public void setSupportsExtendedNegotiations(final boolean supportsExtendedNegotiations) {
         _supportsExtendedNegotiations = supportsExtendedNegotiations;
     }
+
     @NotNull
     @Column(columnDefinition = "boolean default false")
     public boolean isDicomWebEnabled() {
@@ -177,7 +188,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     }
 
     public void setDicomWebEnabled(boolean dicomWebEnabled) {
-        this._dicomWebEnabled = dicomWebEnabled;
+        _dicomWebEnabled = dicomWebEnabled;
     }
 
     public String getDicomWebRootUrl() {
@@ -185,21 +196,21 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     }
 
     public void setDicomWebRootUrl(String dicomWebRootUrl) {
-        this._dicomWebRootUrl = dicomWebRootUrl;
+        _dicomWebRootUrl = dicomWebRootUrl;
     }
 
     @Override
     public String toString() {
         return "{ aeTitle: \"" + _aeTitle + "\", "
-                + "host: \"" + _host + "\", "
-                + "label: \"" + _label + "\", "
-                + "queryable: " + _queryable + ", "
-                + "queryRetrievePort: " + _queryRetrievePort + ", "
-                + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
-                + "storable: " + _storable + ", "
-                + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
-                + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + ", "
-                + "Dicom-web Enabled: " + _dicomWebEnabled + ", "
-                + "Dicom-Web Root Url: " + _dicomWebRootUrl + " }";
+               + "host: \"" + _host + "\", "
+               + "label: \"" + _label + "\", "
+               + "queryable: " + _queryable + ", "
+               + "queryRetrievePort: " + _queryRetrievePort + ", "
+               + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
+               + "storable: " + _storable + ", "
+               + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
+               + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + ", "
+               + "Dicom-web Enabled: " + _dicomWebEnabled + ", "
+               + "Dicom-Web Root Url: " + _dicomWebRootUrl + " }";
     }
 }

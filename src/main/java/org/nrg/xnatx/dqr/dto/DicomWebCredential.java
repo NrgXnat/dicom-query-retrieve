@@ -2,8 +2,10 @@ package org.nrg.xnatx.dqr.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_AE_TITLE;
+
 public class DicomWebCredential {
-    @JsonProperty("aeTitle")
+    @JsonProperty(PROP_AE_TITLE)
     private String aeTitle;
 
     @JsonProperty("username")

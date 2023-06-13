@@ -12,6 +12,7 @@ package org.nrg.xnatx.dqr.domain;
 import static org.mockito.Mockito.when;
 
 import org.mockito.Mockito;
+import org.nrg.framework.configuration.SerializerConfig;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
 import org.nrg.framework.test.OrmTestConfiguration;
 import org.nrg.prefs.services.NrgPreferenceService;
@@ -30,7 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Configuration
-@Import(OrmTestConfiguration.class)
+@Import({OrmTestConfiguration.class, SerializerConfig.class})
 @ComponentScan({"org.nrg.xnatx.dqr.domain.daos", "org.nrg.xnatx.dqr.services.impl.hibernate"})
 @TestPropertySource(locations = "classpath:/test.properties")
 public class TestProjectIrbInfoEntitiesConfig {

@@ -9,8 +9,6 @@
 
 package org.nrg.xnatx.dqr.domain.daos;
 
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Restrictions;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
 import org.springframework.stereotype.Repository;
@@ -21,8 +19,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class DqrProjectSettingsDAO extends AbstractHibernateDAO<DqrProjectSettings> {
     public DqrProjectSettings findByProjectId(final String projectId) {
-        final Criteria criteria = getSession().createCriteria(getParameterizedType());
-        criteria.add(Restrictions.eq("projectId", projectId));
-        return instance(checked(criteria.list()));
+        return findByUniqueProperty("projectId", projectId);
     }
 }

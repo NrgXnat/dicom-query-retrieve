@@ -27,6 +27,8 @@ import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 
+import static org.nrg.xnatx.dqr.domain.entities.PacsAvailability.PROP_PACS_ID;
+
 @Getter(AccessLevel.PROTECTED)
 @Setter(AccessLevel.PROTECTED)
 @Accessors(prefix = "_")
@@ -103,7 +105,7 @@ public abstract class DqrSecureAction extends SecureAction {
 
     private static long getPassedPacsId(final RunData data) throws PacsNotFoundException {
         try {
-            return Long.parseLong((String) TurbineUtils.GetPassedParameter("pacsId", data));
+            return Long.parseLong((String) TurbineUtils.GetPassedParameter(PROP_PACS_ID, data));
         } catch (NumberFormatException e) {
             throw new PacsNotFoundException(0);
         }

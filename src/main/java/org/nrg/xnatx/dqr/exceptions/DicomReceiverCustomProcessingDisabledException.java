@@ -27,7 +27,7 @@ public class DicomReceiverCustomProcessingDisabledException extends DqrException
 
     public DicomReceiverCustomProcessingDisabledException(final DicomSCPInstance instance) {
         super("No remapping processors available for the DICOM receiver (" + instance.getId() + ") at " + instance.getAeTitle() + ":" + instance.getPort() + ", cannot remap DICOM fields");
-        id = instance.getId();
+        id = (int) instance.getId();
         aeTitle = instance.getAeTitle();
         port = instance.getPort();
     }

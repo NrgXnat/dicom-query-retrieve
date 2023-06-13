@@ -10,17 +10,16 @@
 package org.nrg.xnatx.dqr.domain;
 
 import org.hibernate.SessionFactory;
-import org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory;
-import org.hibernate.cache.spi.RegionFactory;
-import org.hibernate.cfg.ImprovedNamingStrategy;
+import org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyHbmImpl;
+import org.hibernate.boot.model.naming.PhysicalNamingStrategy;
+import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.framework.orm.DatabaseHelper;
 import org.nrg.framework.orm.hibernate.AggregatedAnnotationSessionFactoryBean;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
-import org.nrg.framework.orm.hibernate.PrefixedTableNamingStrategy;
+import org.nrg.framework.orm.hibernate.PrefixedPhysicalNamingStrategy;
 import org.postgresql.Driver;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +34,7 @@ import org.springframework.transaction.support.ResourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
@@ -49,6 +49,7 @@ public class DqrOrmTestConfiguration {
     @Bean
     public DataSource dataSource() {
         final SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
+        //noinspection VulnerableCodeUsages
         dataSource.setDriverClass(Driver.class);
         dataSource.setUrl("jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         dataSource.setUsername("sa");
@@ -57,8 +58,8 @@ public class DqrOrmTestConfiguration {
     }
 
     @Bean
-    public ImprovedNamingStrategy namingStrategy() {
-        return new PrefixedTableNamingStrategy("xhbm");
+    public PhysicalNamingStrategy physicalNamingStrategy() {
+        return new PrefixedPhysicalNamingStrategy("xhbm");
     }
 
     @Bean
@@ -78,22 +79,19 @@ public class DqrOrmTestConfiguration {
     }
 
     @Bean
-    public RegionFactory regionFactory(@Qualifier("hibernateProperties") final Properties properties) {
-        return new SingletonEhCacheRegionFactory(properties);
-    }
-
-    @Bean
-    public FactoryBean<SessionFactory> sessionFactory(final RegionFactory factory,
-                                                      final DataSource dataSource,
-                                                      @Qualifier("hibernateProperties") final Properties properties,
-                                                      final ImprovedNamingStrategy namingStrategy,
-                                                      @Autowired(required = false) final List<HibernateEntityPackageList> packageLists) {
+    public FactoryBean<SessionFactory> sessionFactory(@Autowired(required = false) final List<HibernateEntityPackageList> packageLists) {
+        final Properties properties;
+        try {
+            properties = hibernateProperties().getObject();
+        } catch (IOException e) {
+            throw new NrgServiceRuntimeException("An error occurred trying to get the Hibernate properties", e);
+        }
         final AggregatedAnnotationSessionFactoryBean bean = new AggregatedAnnotationSessionFactoryBean();
-        bean.setEntityPackageLists(packageLists);
-        bean.setCacheRegionFactory(factory);
-        bean.setDataSource(dataSource);
+        bean.setDataSource(dataSource());
         bean.setHibernateProperties(properties);
-        bean.setNamingStrategy(namingStrategy);
+        bean.setEntityPackageLists(packageLists);
+        bean.setImplicitNamingStrategy(new ImplicitNamingStrategyLegacyHbmImpl());
+        bean.setPhysicalNamingStrategy(physicalNamingStrategy());
         return bean;
     }
 

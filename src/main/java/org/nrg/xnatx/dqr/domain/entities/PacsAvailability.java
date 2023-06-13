@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"pacsId", "dayOfWeek", "availabilityStart"}))
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {PacsAvailability.PROP_PACS_ID, PacsAvailability.PROP_DAY_OF_WEEK, PacsAvailability.PROP_AVAILABILITY_START}))
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @AllArgsConstructor
 @NoArgsConstructor
@@ -43,8 +43,14 @@ import java.util.regex.Pattern;
 public class PacsAvailability extends AbstractHibernateEntity {
     private static final long serialVersionUID = -5580029561175463693L;
 
-    public static final String BAD_MIDNIGHT  = "24:00";
-    public static final String GOOD_MIDNIGHT = "00:00";
+    public static final String PROP_PACS_ID             = "pacsId";
+    public static final String PROP_DAY_OF_WEEK         = "dayOfWeek";
+    public static final String PROP_AVAILABILITY_START  = "availabilityStart";
+    public static final String PROP_AVAILABILITY_END    = "availabilityEnd";
+    public static final String PROP_THREADS             = "threads";
+    public static final String PROP_UTILIZATION_PERCENT = "utilizationPercent";
+    public static final String BAD_MIDNIGHT             = "24:00";
+    public static final String GOOD_MIDNIGHT            = "00:00";
 
     public long getPacsId() {
         return _pacsId;

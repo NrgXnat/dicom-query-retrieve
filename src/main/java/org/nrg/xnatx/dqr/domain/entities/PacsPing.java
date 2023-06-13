@@ -29,6 +29,8 @@ public class PacsPing extends AbstractHibernateEntity implements Serializable {
     private static final long   serialVersionUID = 4404214285524614283L;
     private static final String TO_STRING_FORMAT = "{\n  pacsId: %d,\n  successful: %b,\n  pingTime: %Tc\n}";
 
+    public static final String PROP_PACS_ID = "pacsId";
+
     protected Long    _pacsId;
     protected boolean _successful;
     protected Date    _pingTime;

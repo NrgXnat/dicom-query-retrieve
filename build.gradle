@@ -9,7 +9,8 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.3"
+        vXnat = "1.8.9-SNAPSHOT"
+        vXnatDev = "1.8.9-CACHING-SNAPSHOT"
     }
 }
 
@@ -19,16 +20,16 @@ plugins {
     id "jacoco"
     id "java"
     id "maven-publish"
-    id "com.dorongold.task-tree" version "1.5"
-    id "com.palantir.git-version" version "0.12.1"
-    id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "com.dorongold.task-tree" version "2.1.1"
+    id "com.palantir.git-version" version "3.0.0"
+    id "io.franzbecker.gradle-lombok" version "5.0.0"
+    id "io.spring.dependency-management" version "1.1.0"
     id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
 group "org.nrg.xnatx.plugins"
-version "1.0.5-SNAPSHOT"
+version "1.0.5-CACHING-SNAPSHOT"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
@@ -39,8 +40,12 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-sourceCompatibility = 8
-targetCompatibility = 8
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withJavadocJar()
+    withSourcesJar()
+}
 
 compileJava {
     options.fork = false
@@ -74,9 +79,9 @@ configurations {
 jacocoTestReport {
     dependsOn test
     reports {
-        xml.enabled = false
-        csv.enabled = true
-        html.enabled = true
+        xml.required = false
+        csv.required = true
+        html.required = true
     }
 }
 
@@ -92,7 +97,7 @@ test {
 
 dependencyManagement {
     imports {
-        mavenBom "org.nrg:parent:${vXnat}"
+        mavenBom "org.nrg:parent:${vXnatDev}"
     }
     generatedPomCustomization {
         enabled = false
@@ -120,7 +125,7 @@ dependencies {
     implementation "dcm4che:dcm4che-net"
     implementation "org.hibernate:hibernate-core"
     implementation "org.hibernate:hibernate-envers"
-    implementation "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
+    implementation "org.glassfish:jakarta.el"
     implementation "com.fasterxml.jackson.core:jackson-core"
     implementation "com.fasterxml.jackson.core:jackson-annotations"
     implementation "com.fasterxml.jackson.core:jackson-databind"
@@ -207,37 +212,13 @@ Building artifacts with manifest attributes:
  * Implementation-Dirty:    ${isDirty}
 """
 
-task sourceJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
-    manifest {
-        from gitManifest
-    }
-    from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar) {
-    classifier "javadoc"
-    manifest {
-        from gitManifest
-    }
-    from javadoc.destinationDir
-}
-
 jar {
-    dependsOn test, sourceJar, javadocJar
-    enabled = true
-    manifest {
-        from gitManifest
-    }
+    dependsOn test, sourcesJar, javadocJar
 }
 
-task xnatPluginJar(type: Jar) {
-    dependsOn test, sourceJar, javadocJar
-    zip64 true
+tasks.register('xnatPluginJar', Jar) {
+    dependsOn test, sourcesJar, javadocJar
     archiveClassifier.set "xpl"
-    manifest {
-        from gitManifest
-    }
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
     exclude "**/resources/**/*-dev**"
@@ -252,11 +233,19 @@ task xnatPluginJar(type: Jar) {
     with jar
 }
 
+tasks.withType(Jar).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 true
+    manifest {
+        from gitManifest
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
             artifacts {
-                artifact sourceJar
+                artifact sourcesJar
                 artifact javadocJar
                 artifact xnatPluginJar
             }

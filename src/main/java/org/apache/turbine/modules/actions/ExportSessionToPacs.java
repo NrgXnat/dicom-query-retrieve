@@ -32,6 +32,9 @@ import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.exceptions.ProjectNotDqrEnabledException;
 
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_AE_TITLE;
+import static org.nrg.xnatx.dqr.domain.entities.Pacs.PROP_HOST;
+
 @SuppressWarnings("unused")
 @Slf4j
 public class ExportSessionToPacs extends DqrSecureAction {
@@ -104,8 +107,8 @@ public class ExportSessionToPacs extends DqrSecureAction {
         } catch (Exception exception) {
             context.put("sessionId", session.getId());
             context.put("scanIds", StringUtils.join(scanIds, ", "));
-            context.put("host", getPacs().getHost());
-            context.put("aeTitle", getPacs().getAeTitle());
+            context.put(PROP_HOST, getPacs().getHost());
+            context.put(PROP_AE_TITLE, getPacs().getAeTitle());
             try {
                 final Integer queryRetrievePort = getPacs().getQueryRetrievePort();
                 context.put("qrPort", queryRetrievePort == null ? "N/A" : queryRetrievePort.toString());
