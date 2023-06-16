@@ -19,19 +19,19 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 
 public class Dcm4cheToolCMoveSCU implements CMoveSCU {
     public Dcm4cheToolCMoveSCU(final DqrPreferences preferences,
                                final DicomConnectionProperties dicomConnectionProperties,
                                final OrmStrategy ormStrategy,
-                               final SeriesRetrievalStatusService seriesRetrievalStatusService
+                               final SeriesRetrievalRequestService seriesRetrievalRequestService
                                ) {
         _dicomConnectionProperties = dicomConnectionProperties;
         _cEchoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
         _ormStrategy = ormStrategy;
         _preferences = preferences;
-        _seriesRetrievalStatusService = seriesRetrievalStatusService;
+        _seriesRetrievalRequestService = seriesRetrievalRequestService;
     }
 
     @Override
@@ -43,7 +43,7 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
         if (series != null) {
             builder.seriesInstanceUid(series.getSeriesInstanceUid());
         }
-        new CMoveSCUSeriesLevel(_preferences, _dicomConnectionProperties, _cEchoSCU, _ormStrategy, _seriesRetrievalStatusService, study.getProjectId())
+        new CMoveSCUSeriesLevel(_preferences, _dicomConnectionProperties, _cEchoSCU, _ormStrategy, _seriesRetrievalRequestService, study.getProjectId())
                 .cmove(user, builder.build());
     }
 
@@ -51,5 +51,5 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
     private final CEchoSCU                  _cEchoSCU;
     private final OrmStrategy               _ormStrategy;
     private final DqrPreferences            _preferences;
-    private final SeriesRetrievalStatusService _seriesRetrievalStatusService;
+    private final SeriesRetrievalRequestService _seriesRetrievalRequestService;
 }

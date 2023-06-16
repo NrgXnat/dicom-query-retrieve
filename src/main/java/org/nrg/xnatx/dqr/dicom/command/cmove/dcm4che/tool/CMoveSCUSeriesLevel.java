@@ -15,20 +15,20 @@ import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 
 public class CMoveSCUSeriesLevel {
-    private CFindSCUSeriesLevelByIdWithCMove cfindSCU;
+    private final CFindSCUSeriesLevelByIdWithCMove cfindSCU;
 
     public CMoveSCUSeriesLevel(final DqrPreferences preferences,
                                final DicomConnectionProperties dicomConnectionProperties,
                                final CEchoSCU cechoSCU,
                                final OrmStrategy ormStrategy,
-                               final SeriesRetrievalStatusService seriesRetrievalStatusService,
+                               final SeriesRetrievalRequestService seriesRetrievalRequestService,
                                final String destinationProject
 
     ) {
-        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalStatusService, destinationProject);
+        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalRequestService, destinationProject);
     }
 
     public void cmove(final UserI user, final PacsSearchCriteria searchCriteria) {

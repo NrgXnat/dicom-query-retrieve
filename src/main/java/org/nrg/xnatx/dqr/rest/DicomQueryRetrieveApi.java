@@ -32,6 +32,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
+import org.nrg.xnatx.dqr.domain.SeriesRetrievalStatus;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.*;
@@ -81,7 +82,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                                  final DicomQueryRetrieveService dqrService,
                                  final PacsService pacsService,
                                  final DqrProjectSettingsService dqrProjectSettingsService,
-                                 final SeriesRetrievalStatusService seriesRetrievalStatusService,
+                                 final SeriesRetrievalRequestService seriesRetrievalRequestService,
+                                 final ArchivedRequestedSeriesService archivedRequestedSeriesService,
                                  final Map<String, OrmStrategy> ormStrategies,
                                  final SiteConfigPreferences siteConfigPreferences,
                                  final NamedParameterJdbcTemplate template) {
@@ -91,7 +93,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         _queuedRequestService         = queuedRequestService;
         _dqrService                   = dqrService;
         _dqrProjectSettingsService    = dqrProjectSettingsService;
-        _seriesRetrievalStatusService = seriesRetrievalStatusService;
+        _seriesRetrievalRequestService = seriesRetrievalRequestService;
+        _archivedRequestedSeriesService = archivedRequestedSeriesService;
         _ormStrategies                = ormStrategies;
         _siteConfigPreferences        = siteConfigPreferences;
     }
@@ -488,7 +491,10 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         }
 
         final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
-        return all ? _seriesRetrievalStatusService.getPaginated(request) : _seriesRetrievalStatusService.getAllForUser(user, request);
+
+        return _seriesRetrievalRequestService.findReverseChronological(all ? null : user, request).stream()
+                .map(srr -> new SeriesRetrievalStatus(srr, _archivedRequestedSeriesService.latestMatching(srr).orElse(null)))
+                .collect(Collectors.toList());
     }
 
     @ApiOperation(value = "Sends selected scans to PACS.", response = String.class)
@@ -579,7 +585,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     private final ExecutedPacsRequestService   _executedRequestService;
     private final QueuedPacsRequestService     _queuedRequestService;
     private final DqrProjectSettingsService    _dqrProjectSettingsService;
-    private final SeriesRetrievalStatusService _seriesRetrievalStatusService;
+    private final SeriesRetrievalRequestService _seriesRetrievalRequestService;
+    private final ArchivedRequestedSeriesService _archivedRequestedSeriesService;
     private final DqrPreferences               _preferences;
     private final Map<String, OrmStrategy>     _ormStrategies;
     private final SiteConfigPreferences        _siteConfigPreferences;

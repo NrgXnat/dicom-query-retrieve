@@ -68,7 +68,7 @@ import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalStatusService;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 import org.nrg.xnatx.dqr.utils.AeTitle;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
@@ -99,7 +99,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                                           final JmsTemplate jmsTemplate,
                                           final ArchiveProcessorInstanceService archiveProcessorInstanceService,
                                           final XnatUserProvider primaryAdminUserProvider,
-                                          final SeriesRetrievalStatusService seriesRetrievalStatusService,
+                                          final SeriesRetrievalRequestService seriesRetrievalRequestService,
                                           final Map<String, OrmStrategy> ormStrategies) {
         _preferences                     = preferences;
         _dicomSCPManager                 = dicomSCPManager;
@@ -110,7 +110,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         _jmsTemplate                     = jmsTemplate;
         _archiveProcessorInstanceService = archiveProcessorInstanceService;
         _xnatUserProvider                = primaryAdminUserProvider;
-        _seriesRetrievalStatusService    = seriesRetrievalStatusService;
+        _seriesRetrievalStatusService    = seriesRetrievalRequestService;
         _ormStrategies                   = ormStrategies;
         _searchCache                     = new HashMap<>();
     }
@@ -962,7 +962,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     private final JmsTemplate                                                                _jmsTemplate;
     private final ArchiveProcessorInstanceService                                            _archiveProcessorInstanceService;
     private final XnatUserProvider                                                           _xnatUserProvider;
-    private final SeriesRetrievalStatusService                                               _seriesRetrievalStatusService;
+    private final SeriesRetrievalRequestService                                              _seriesRetrievalStatusService;
     private final Map<String, OrmStrategy>                                                   _ormStrategies;
     private final Map<UUID, Pair<PacsSearchRequest, Map<String, PacsSearchResults<Series>>>> _searchCache;
 }

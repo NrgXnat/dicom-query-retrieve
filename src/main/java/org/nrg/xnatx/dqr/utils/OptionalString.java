@@ -10,8 +10,8 @@ import java.util.Optional;
 public class OptionalString {
     /**
      * Make an Optional from a CharSequence.
-     * @param cs
-     * @return Optional.of(cs) if cs is non-blank, Optional.empty() otherwise.
+     * @param cs character sequence
+     * @return Optional.of(cs) if cs is non-blank, Optional::empty otherwise.
      */
     public static <T extends CharSequence> Optional<T> of(final T cs) {
         return StringUtils.isBlank(cs) ? Optional.empty() : Optional.of(cs);

@@ -32,7 +32,6 @@ import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 @XnatPlugin(value = "dicom-query-retrieve",
