@@ -103,7 +103,7 @@ public class MockDicomQueryRetrieveService implements DicomQueryRetrieveService 
     }
 
     @Override
-    public void importSeries(final RequestContext context, final Pacs pacs, final Study study, final Series series, final String ae) {
+    public void importSeries(final DimseRequestContext context, final Pacs pacs, final Study study, final Series series, final String ae) {
         throw new RuntimeException("method not implemented");
     }
 

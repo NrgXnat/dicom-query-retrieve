@@ -25,7 +25,7 @@ import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.DicomPersonNameSearchCriteria;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.DqrDomainObject;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
@@ -75,7 +75,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
     public PacsSearchResults<T> cfind(
-            final RequestContext context, final PacsSearchCriteria searchCriteria
+            final DimseRequestContext context, final PacsSearchCriteria searchCriteria
     ) {
         pingPacs();
 

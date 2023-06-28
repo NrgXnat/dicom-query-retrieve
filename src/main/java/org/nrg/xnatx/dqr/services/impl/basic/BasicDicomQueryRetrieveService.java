@@ -50,8 +50,9 @@ import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreFailureException;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.xnatx.dqr.domain.CMoveRequestContext;
 import org.nrg.xnatx.dqr.domain.Patient;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
@@ -112,7 +113,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         _jmsTemplate                     = jmsTemplate;
         _archiveProcessorInstanceService = archiveProcessorInstanceService;
         _xnatUserProvider                = primaryAdminUserProvider;
-        _seriesRetrievalStatusService    = seriesRetrievalRequestService;
+        _seriesRetrievalRequestService   = seriesRetrievalRequestService;
         _ormStrategies                   = ormStrategies;
         _searchCache                     = new HashMap<>();
     }
@@ -130,7 +131,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public PacsSearchResults<Patient> getPatientsByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindPatientsByExample(criteria);
     }
 
@@ -139,7 +140,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public Optional<Patient> getPatientById(final UserI user, final Pacs pacs, final String patientId) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindPatientById(patientId);
     }
 
@@ -148,7 +149,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public PacsSearchResults<Study> getStudiesByExample(final UserI user, final Pacs pacs, final PacsSearchCriteria criteria) throws PacsNotQueryableException, DataFormatException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         try {
             return buildCFindSCU(context, pacs).cfindStudiesByExample(criteria);
         } catch (DqrRuntimeException e) {
@@ -161,7 +162,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public Optional<Study> getStudyById(final UserI user, final Pacs pacs, final String studyInstanceUid) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindStudyById(studyInstanceUid);
     }
 
@@ -170,7 +171,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public PacsSearchResults<Series> getSeriesByStudy(final UserI user, final Pacs pacs, final Study study) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindSeriesByStudy(study);
     }
 
@@ -179,7 +180,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public PacsSearchResults<Series> getSeriesByStudyUid(final UserI user, final Pacs pacs, final String studyUid) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindSeriesByStudyUid(studyUid);
     }
 
@@ -188,7 +189,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(final UserI user, final Pacs pacs, final List<String> studyUids) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         final CFindSCU findSCU = buildCFindSCU(context, pacs);
         return studyUids.stream().collect(Collectors.toMap(Function.identity(), findSCU::cfindSeriesByStudyUid));
     }
@@ -258,7 +259,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public Optional<Series> getSeriesById(final UserI user, final Pacs pacs, final String seriesInstanceUid) throws PacsNotQueryableException {
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, null);
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, null);
         return buildCFindSCU(context, pacs).cfindSeriesById(seriesInstanceUid);
     }
 
@@ -266,7 +267,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public void importSeries(final RequestContext context, final Pacs pacs, final Study study, final Series series, final String ae) {
+    public void importSeries(final DimseRequestContext context, final Pacs pacs, final Study study, final Series series, final String ae) {
         buildCMoveSCU(pacs, ae).cmoveSeries(context, study, series);
     }
 
@@ -284,7 +285,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             throw new PacsNotStorableException(new AeTitle(aeAndPort));
         }
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
-        final RequestContext context = _seriesRetrievalStatusService.makeCMoveContext(user, request.getUserDefinedId());
+        final DimseRequestContext context = new CMoveRequestContext(_seriesRetrievalRequestService, user, request.getUserDefinedId());
         try {
             final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
             for (final String seriesId : request.getSeriesIds()) {
@@ -694,7 +695,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         return new Dcm4cheToolCEchoSCU(_preferences, buildDicomConnectionProperties(pacs));
     }
 
-    private CFindSCU buildCFindSCU(final RequestContext context, final Pacs pacs) throws PacsNotQueryableException {
+    private CFindSCU buildCFindSCU(final DimseRequestContext context, final Pacs pacs) throws PacsNotQueryableException {
         if (!pacs.isQueryable()) {
             throw new PacsNotQueryableException(pacs.getId());
         }
@@ -974,7 +975,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     private final JmsTemplate                                                                _jmsTemplate;
     private final ArchiveProcessorInstanceService                                            _archiveProcessorInstanceService;
     private final XnatUserProvider                                                           _xnatUserProvider;
-    private final SeriesRetrievalRequestService                                              _seriesRetrievalStatusService;
+    private final SeriesRetrievalRequestService _seriesRetrievalRequestService;
     private final Map<String, OrmStrategy>                                                   _ormStrategies;
     private final Map<UUID, Pair<PacsSearchRequest, Map<String, PacsSearchResults<Series>>>> _searchCache;
 }

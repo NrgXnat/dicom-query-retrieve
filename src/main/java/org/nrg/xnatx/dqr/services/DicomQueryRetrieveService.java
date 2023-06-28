@@ -17,7 +17,7 @@ import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
@@ -228,7 +228,7 @@ public interface DicomQueryRetrieveService {
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
-    void importSeries(RequestContext context, Pacs pacs, Study study, Series series, String ae);
+    void importSeries(DimseRequestContext context, Pacs pacs, Study study, Series series, String ae);
 
     /**
      * Import data found in the {@link ExecutedPacsRequest completed PACS request} to this XNAT instance.

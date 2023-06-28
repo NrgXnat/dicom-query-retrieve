@@ -16,7 +16,8 @@ import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.CMoveRequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +44,7 @@ public class PacsStudyImportRequestListener extends AbstractPacsRequestListener<
             final UserI user = Users.getUser(request.getRequestingUser());
             //Study import requests are not currently set up to allow users to specify which AE to send the data to
             log.info("Listener received study import request from user {}", user.getUsername());
-            final RequestContext context = seriesRetrievalRequestService.makeCMoveContext(user, request.getUserDefinedId());
+            final DimseRequestContext context = new CMoveRequestContext(seriesRetrievalRequestService, user, request.getUserDefinedId());
             for (final PacsScanImportRequest scanImportRequest : request.getScans()) {
                 getDqrService().importSeries(context, request.getPacs(), scanImportRequest.getStudy(), scanImportRequest.getSeries(), null);
             }

@@ -9,8 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cmove;
 
-import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 
@@ -23,5 +22,5 @@ public interface CMoveSCU {
      * @param study  The study to which the desired series belongs.
      * @param series The desired series.
      */
-    void cmoveSeries(RequestContext context, Study study, Series series);
+    void cmoveSeries(DimseRequestContext context, Study study, Series series);
 }

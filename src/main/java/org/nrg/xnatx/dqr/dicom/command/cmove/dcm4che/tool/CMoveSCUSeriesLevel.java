@@ -12,7 +12,7 @@ package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
@@ -27,7 +27,7 @@ public class CMoveSCUSeriesLevel {
         cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, destinationProject);
     }
 
-    public void cmove(final RequestContext context, final PacsSearchCriteria searchCriteria) {
+    public void cmove(final DimseRequestContext context, final PacsSearchCriteria searchCriteria) {
         cfindSCU.cfind(context, searchCriteria);
     }
 }

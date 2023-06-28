@@ -15,8 +15,7 @@ import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
-import org.nrg.xnatx.dqr.domain.RequestContext;
-import org.nrg.xnatx.dqr.domain.RequestorId;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
@@ -28,7 +27,7 @@ import java.util.Optional;
 
 public class Dcm4cheToolCFindSCU implements CFindSCU {
     public Dcm4cheToolCFindSCU(final DqrPreferences preferences,
-                               final RequestContext context,
+                               final DimseRequestContext context,
                                final DicomConnectionProperties dicomConnectionProperties,
                                final OrmStrategy ormStrategy) {
         _preferences = preferences;
@@ -99,7 +98,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     private final DicomConnectionProperties    _dicomConnectionProperties;
-    private final RequestContext               _context;
+    private final DimseRequestContext _context;
     private final CEchoSCU                     _cechoSCU;
     private final OrmStrategy                  _ormStrategy;
     private final DqrPreferences               _preferences;

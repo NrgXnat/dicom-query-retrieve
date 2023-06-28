@@ -14,7 +14,7 @@ import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
-import org.nrg.xnatx.dqr.domain.RequestContext;
+import org.nrg.xnatx.dqr.domain.DimseRequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
@@ -31,7 +31,7 @@ public class Dcm4cheToolCMoveSCU implements CMoveSCU {
     }
 
     @Override
-    public void cmoveSeries(final RequestContext context, final Study study, final Series series) {
+    public void cmoveSeries(final DimseRequestContext context, final Study study, final Series series) {
         final PacsSearchCriteria.PacsSearchCriteriaBuilder builder = PacsSearchCriteria.builder();
         if (study != null) {
             builder.studyInstanceUid(study.getStudyInstanceUid());

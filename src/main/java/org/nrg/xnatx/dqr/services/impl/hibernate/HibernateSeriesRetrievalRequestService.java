@@ -6,7 +6,6 @@ import org.dcm4che2.data.Tag;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.domain.daos.SeriesRetrievalRequestDAO;
 import org.nrg.xnatx.dqr.domain.entities.ArchivedRequestedSeries;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
@@ -25,12 +24,6 @@ import java.util.function.Consumer;
 public class HibernateSeriesRetrievalRequestService
         extends AbstractHibernateEntityService<SeriesRetrievalRequest, SeriesRetrievalRequestDAO>
         implements SeriesRetrievalRequestService {
-    @Override
-    public RequestContext makeCMoveContext(final UserI user, final @Nullable String userDefinedId) {
-        return (xnatProjectName, requestParameters) -> createFromCFindResult(user, xnatProjectName, userDefinedId, requestParameters);
-    }
-
-    @Override
     public List<SeriesRetrievalRequest> findForArchivedSeries(
             final ArchivedRequestedSeries series,
             final @Nullable String username
@@ -40,7 +33,6 @@ public class HibernateSeriesRetrievalRequestService
         );
     }
 
-    @Override
     public SeriesRetrievalRequest createFromCFindResult(
             final UserI user,
             final String destinationProject,

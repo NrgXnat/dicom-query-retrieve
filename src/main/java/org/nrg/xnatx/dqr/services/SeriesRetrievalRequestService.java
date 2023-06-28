@@ -4,7 +4,6 @@ import org.dcm4che2.data.DicomObject;
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xdat.model.XnatImagesessiondataI;
 import org.nrg.xft.security.UserI;
-import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.domain.entities.ArchivedRequestedSeries;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.SeriesRetrievalRequest;
@@ -13,8 +12,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public interface SeriesRetrievalRequestService extends BaseHibernateService<SeriesRetrievalRequest> {
-    RequestContext makeCMoveContext(UserI user, @Nullable String userDefinedId);
-
     /**
      * Returns all stored series retrieval requests for the provided series identifiers and requesting user.
      * @param series record of an archived series
