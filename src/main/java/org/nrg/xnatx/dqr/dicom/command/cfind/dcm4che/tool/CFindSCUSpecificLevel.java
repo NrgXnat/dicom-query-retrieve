@@ -18,7 +18,6 @@ import org.dcm4che2.data.Tag;
 import org.dcm4che2.net.ConfigurationException;
 import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
-import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
@@ -26,12 +25,12 @@ import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.DicomPersonNameSearchCriteria;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.DqrDomainObject;
+import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.IOException;
@@ -54,8 +53,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     protected CFindSCUSpecificLevel(final DqrPreferences preferences,
                                     final DicomConnectionProperties dicomConnectionProperties,
                                     final CEchoSCU cechoSCU,
-                                    final OrmStrategy ormStrategy,
-                                    final SeriesRetrievalRequestService seriesRetrievalRequestService) {
+                                    final OrmStrategy ormStrategy) {
         dcmQR = createDcmQR(StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle()));
         dcmQR.setRemoteHost(dicomConnectionProperties.getRemoteHost());
         dcmQR.setRemotePort(dicomConnectionProperties.getRemoteQueryRetrievePort());
@@ -66,20 +64,19 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         }
         this.cechoSCU    = cechoSCU;
         this.ormStrategy = ormStrategy;
-        this.seriesRetrievalRequestService = seriesRetrievalRequestService;
     }
 
     /**
      * Performs a C-FIND against the select PACS.
      *
-     * @param user The requesting XNAT user.
+     * @param context Request context in which this operation occurs.
      * @param searchCriteria The search criteria to use for the C-FIND operation.
-     *
      * @return The results of the search.
-     *
      * @see DicomPersonNameSearchCriteria for an explanation of why we (potentially) query more than once.
      */
-    public PacsSearchResults<T> cfind(final UserI user, final PacsSearchCriteria searchCriteria) {
+    public PacsSearchResults<T> cfind(
+            final RequestContext context, final PacsSearchCriteria searchCriteria
+    ) {
         pingPacs();
 
         validatePacsSearchCriteria(searchCriteria);
@@ -106,20 +103,16 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
             try {
                 dicomResults = setParamsAndSendQuery(searchCriteria);
             } catch (IOException | InterruptedException e) {
-                throw new DqrRuntimeException(String.format("C-FIND failed for %s: %s",
-                        user.getUsername(), searchCriteria
-                ), e);
+                throw new DqrRuntimeException(String.format("C-FIND failed for %s: %s", context, searchCriteria), e);
             }
 
             if (cMoveRequestedOnResults()) {
-                dicomResults.forEach(result ->
-                        seriesRetrievalRequestService.createFromCFindResult(user, getDestinationProject(), result)
-                );
+                dicomResults.forEach(result -> context.recordRequest(getDestinationProject(), result));
                 try {
                     performCMoveOnResults(searchCriteria, dicomResults);
                 } catch (IOException | InterruptedException e) {
                     throw new DqrRuntimeException(String.format("C-MOVE failed for %s: %d series into %s",
-                            user.getUsername(), dicomResults.size(), getDestinationProject()
+                            context, dicomResults.size(), getDestinationProject()
                     ), e);
                 }
             }
@@ -276,5 +269,4 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
     private final DcmQR       dcmQR;
     private final CEchoSCU    cechoSCU;
     private final OrmStrategy ormStrategy;
-    private final SeriesRetrievalRequestService seriesRetrievalRequestService;
 }

@@ -15,7 +15,6 @@ import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevelByI
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 
 public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
     private final String destinationProject;
@@ -24,10 +23,9 @@ public class CFindSCUSeriesLevelByIdWithCMove extends CFindSCUSeriesLevelById {
                                             final DicomConnectionProperties dicomConnectionProperties,
                                             final CEchoSCU cechoSCU,
                                             final OrmStrategy ormStrategy,
-                                            final SeriesRetrievalRequestService seriesRetrievalRequestService,
                                             final String destinationProject
     ) {
-        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalRequestService);
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
         this.destinationProject = destinationProject;
     }
 

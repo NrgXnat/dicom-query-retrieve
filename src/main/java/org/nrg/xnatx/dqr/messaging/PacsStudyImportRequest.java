@@ -28,6 +28,7 @@ public class PacsStudyImportRequest implements Serializable {
     Study  study;
     Date   dateRequested;
     String requestingUser;
+    String userDefinedId;
     @Singular
     List<PacsScanImportRequest> scans;
 }

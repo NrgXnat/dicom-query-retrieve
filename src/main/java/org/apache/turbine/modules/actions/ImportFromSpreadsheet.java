@@ -74,7 +74,7 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         }
 
         final String ae = (String) TurbineUtils.GetPassedParameter("ae", data);
-        getDicomQueryRetrieveService().processSpreadsheetImport(user, temp, ae, projectId, pacs.getId());
+        getDicomQueryRetrieveService().processSpreadsheetImport(user, null, temp, ae, projectId, pacs.getId());
 
         temp.delete();
         fileItem.delete();

@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.dicom.command.cmove;
 
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 
@@ -18,9 +19,9 @@ public interface CMoveSCU {
     /**
      * Sends a C-MOVE request to retrieve a series.
      *
-     * @param user The XNAT user making the request.
+     * @param context Request context in which this operation occurs.
      * @param study  The study to which the desired series belongs.
      * @param series The desired series.
      */
-    void cmoveSeries(UserI user, Study study, Series series);
+    void cmoveSeries(RequestContext context, Study study, Series series);
 }

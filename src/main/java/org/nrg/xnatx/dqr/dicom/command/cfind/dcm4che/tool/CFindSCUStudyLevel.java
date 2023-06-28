@@ -24,7 +24,6 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,9 +34,8 @@ public abstract class CFindSCUStudyLevel extends CFindSCUSpecificLevel<Study> {
     public CFindSCUStudyLevel(final DqrPreferences preferences,
                               final DicomConnectionProperties dicomConnectionProperties,
                               final CEchoSCU cechoSCU,
-                              final OrmStrategy ormStrategy,
-                              final SeriesRetrievalRequestService seriesRetrievalRequestService) {
-        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalRequestService);
+                              final OrmStrategy ormStrategy) {
+        super(preferences, dicomConnectionProperties, cechoSCU, ormStrategy);
     }
 
     /**

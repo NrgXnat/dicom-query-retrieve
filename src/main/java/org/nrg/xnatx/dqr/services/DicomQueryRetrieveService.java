@@ -17,6 +17,7 @@ import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
+import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
@@ -30,6 +31,7 @@ import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -220,13 +222,13 @@ public interface DicomQueryRetrieveService {
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.
      *
-     * @param user   The The user requesting the import operation.
+     * @param context   Request context in which this operation occurs.
      * @param pacs   The PACS from which the user wants to import.
      * @param study  The study containing the desired series.
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
-    void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae);
+    void importSeries(RequestContext context, Pacs pacs, Study study, Series series, String ae);
 
     /**
      * Import data found in the {@link ExecutedPacsRequest completed PACS request} to this XNAT instance.
@@ -282,12 +284,13 @@ public interface DicomQueryRetrieveService {
      * @throws PacsNotQueryableException                      When the specified PACS isn't queryable..
      * @throws UnknownDicomScpInstanceException               When the specified DICOM receiver doesn't exist.
      */
-    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException;
+    List<QueuedPacsRequest> importFromPacs(UserI user, @Nullable String userDefinedId, PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException;
 
     /**
      * Processes CSV import operations.
      *
      * @param user                              The user requesting the import operation.
+     * @param userDefinedId                     Label defined by user for request identification.
      * @param rows                              The rows to be imported.
      * @param ae                                The AE receiving the data to be imported.
      * @param project                           The project to which the data should be imported.
@@ -298,7 +301,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws Exception When an unexpected error occurs.
      */
-    boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
+    boolean processSpreadsheetImportFromRows(UserI user, @Nullable String userDefinedId, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) throws Exception;
 
     /**
      * Processes CSV import operations.
@@ -311,7 +314,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotFoundException When no PACS with the specified ID is known.
      */
-    void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException;
+    void processSpreadsheetImport(UserI user, @Nullable String userDefinedId, File csv, String ae, String project, long pacsId) throws PacsNotFoundException;
 
     /**
      * Extracts rows from the CSV file.

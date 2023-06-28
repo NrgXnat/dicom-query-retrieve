@@ -26,6 +26,7 @@ public class SeriesRetrievalStatus {
     private final String modality;
     private final String seriesNumber;
     private final String requestingUser;
+    private final @Nullable String userDefinedId;
     private final @Nullable Integer expectedInstances;
     private final int instancesArchived;
     private final long bytesArchived;
@@ -33,6 +34,7 @@ public class SeriesRetrievalStatus {
     public SeriesRetrievalStatus(final SeriesRetrievalRequest request, final @Nullable ArchivedRequestedSeries archived) {
         created = request.getCreated();
         requestingUser = request.getRequestingUser();
+        userDefinedId = request.getUserDefinedId();
         studyInstanceUid = request.getStudyInstanceUid();
         patientId = request.getPatientId();
         studyId = request.getStudyId();

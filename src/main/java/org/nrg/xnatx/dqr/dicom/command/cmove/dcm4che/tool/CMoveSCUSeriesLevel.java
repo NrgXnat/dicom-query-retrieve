@@ -9,13 +9,12 @@
 
 package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 
-import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
+import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
-import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 
 public class CMoveSCUSeriesLevel {
     private final CFindSCUSeriesLevelByIdWithCMove cfindSCU;
@@ -24,14 +23,11 @@ public class CMoveSCUSeriesLevel {
                                final DicomConnectionProperties dicomConnectionProperties,
                                final CEchoSCU cechoSCU,
                                final OrmStrategy ormStrategy,
-                               final SeriesRetrievalRequestService seriesRetrievalRequestService,
-                               final String destinationProject
-
-    ) {
-        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, seriesRetrievalRequestService, destinationProject);
+                               final String destinationProject) {
+        cfindSCU = new CFindSCUSeriesLevelByIdWithCMove(preferences, dicomConnectionProperties, cechoSCU, ormStrategy, destinationProject);
     }
 
-    public void cmove(final UserI user, final PacsSearchCriteria searchCriteria) {
-        cfindSCU.cfind(user, searchCriteria);
+    public void cmove(final RequestContext context, final PacsSearchCriteria searchCriteria) {
+        cfindSCU.cfind(context, searchCriteria);
     }
 }

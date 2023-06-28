@@ -103,7 +103,7 @@ public class MockDicomQueryRetrieveService implements DicomQueryRetrieveService 
     }
 
     @Override
-    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
+    public void importSeries(final RequestContext context, final Pacs pacs, final Study study, final Series series, final String ae) {
         throw new RuntimeException("method not implemented");
     }
 
@@ -128,17 +128,17 @@ public class MockDicomQueryRetrieveService implements DicomQueryRetrieveService 
     }
 
     @Override
-    public List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) {
+    public List<QueuedPacsRequest> importFromPacs(final UserI user, final String userDefinedId, final PacsImportRequest request) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public boolean processSpreadsheetImportFromRows(UserI user, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) {
+    public boolean processSpreadsheetImportFromRows(UserI user, String userDefinedId, List<CsvRow> rows, String ae, String project, long pacsId, boolean importEvenIfCustomProcessingIsOff) {
         throw new RuntimeException("method not implemented");
     }
 
     @Override
-    public void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) {
+    public void processSpreadsheetImport(UserI user, String userDefinedId, File csv, String ae, String project, long pacsId) {
         throw new RuntimeException("method not implemented");
     }
 

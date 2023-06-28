@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
+import javax.annotation.Nullable;
 import javax.persistence.Entity;
 
 /**
@@ -24,6 +25,7 @@ import javax.persistence.Entity;
 @Getter @Setter
 public class SeriesRetrievalRequest extends AbstractHibernateEntity {
     private String requestingUser;
+    private @Nullable String userDefinedId;
     private String studyInstanceUid;
     private String seriesInstanceUid;
     private String destinationProject;
@@ -31,5 +33,5 @@ public class SeriesRetrievalRequest extends AbstractHibernateEntity {
     private String studyId;
     private String modality;
     private String seriesNumber;
-    private Integer expectedInstances;
+    private @Nullable Integer expectedInstances;
 }

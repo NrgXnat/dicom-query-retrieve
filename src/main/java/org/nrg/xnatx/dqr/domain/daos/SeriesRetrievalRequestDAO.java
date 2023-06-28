@@ -72,19 +72,39 @@ public class SeriesRetrievalRequestDAO extends AbstractHibernateDAO<SeriesRetrie
     /**
      * Find all series requests for the named user, newest first.
      * @param username requesting user; if null, return all series requests
+     * @param userDefinedId custom identifier; if provided, use to constrain returned records
      * @param request pagination parameters
      * @return List of matching series requests, newest first.
      */
-    public List<SeriesRetrievalRequest> findReverseChronological(final @Nullable String username, final PaginatedPacsRequest request) {
+    public List<SeriesRetrievalRequest> findReverseChronological(final @Nullable String username,
+                                                                 final @Nullable String userDefinedId,
+                                                                 final PaginatedPacsRequest request) {
         final PaginatedPacsRequest.PaginatedPacsRequestBuilder builder = ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest())
                 .toBuilder()
                 .clearFiltersMap().clearSortBys();
-        if (null != username) {
-            builder.filter("requestingUser", HibernateFilter.builder()
-                    .operator(HibernateFilter.Operator.EQ).value(username).build());
-        }
+        addEqConstraint(builder, "requestingUser", username);
+        addEqConstraint(builder, "userDefinedId", userDefinedId);
         //noinspection unchecked
         builder.sortBy(Pair.of("created", PaginatedRequest.SortDir.DESC));
         return findPaginated(builder.build());
+    }
+
+    /**
+     * If the provided value is non-null, add an EQ constraint to the paginated builder.
+     * @param builder paginated request builder
+     * @param key constraint field
+     * @param value constraint value: if non-null, add EQ constraint
+     */
+    private void addEqConstraint(
+            final PaginatedPacsRequest.PaginatedPacsRequestBuilder builder,
+            final String key,
+            final @Nullable String value
+    ) {
+        if (StringUtils.isNotEmpty(value)) {
+            builder.filter(key, HibernateFilter.builder()
+                    .operator(HibernateFilter.Operator.EQ)
+                    .value(value)
+                    .build());
+        }
     }
 }

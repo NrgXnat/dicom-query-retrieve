@@ -18,6 +18,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.annotation.Nullable;
 import javax.persistence.*;
 
 /**
@@ -39,8 +40,9 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         super();
     }
 
-    public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
+    public PacsRequest(final String username, final @Nullable String userDefinedId, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
         _username           = username;
+        _userDefinedId      = userDefinedId;
         _pacsId             = pacsId;
         _xnatProject        = xnatProject;
         _studyInstanceUid   = studyInstanceUid;
@@ -74,6 +76,10 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     public void setUsername(final String username) {
         _username = username;
     }
+
+    public @Nullable String getUserDefinedId() { return _userDefinedId; }
+
+    public void setUserDefinedId(final @Nullable String userDefinedId) { _userDefinedId = userDefinedId; }
 
     public Long getPacsId() {
         return _pacsId;
@@ -194,6 +200,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     @Override
     public String toString() {
         return "{ username: " + getUsername() + ", "
+                + "userDefinedId: " + getUserDefinedId() + ", "
                + "pacsId: " + getPacsId() + ", "
                + "xnatProject: " + getXnatProject() + ", "
                + "studyInstanceUid: " + getStudyInstanceUid() + ", "
@@ -211,6 +218,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     }
 
     private String       _username;
+    private @Nullable String _userDefinedId;
     private Long         _pacsId;
     private String       _xnatProject;
     private String       _studyInstanceUid;

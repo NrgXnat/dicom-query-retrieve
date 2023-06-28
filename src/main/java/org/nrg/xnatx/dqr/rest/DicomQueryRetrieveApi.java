@@ -314,14 +314,17 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "Unexpected error")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "import", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
-    public List<QueuedPacsRequest> importFromPacs(@RequestBody final PacsImportRequest request) throws Exception {
+    public List<QueuedPacsRequest> importFromPacs(
+            @ApiParam("User-defined label to identify request") @RequestParam(defaultValue = "false") final String userDefinedId,
+            @RequestBody final PacsImportRequest request
+    ) throws Exception {
         final UserI user = getSessionUser();
         //You cannot import into a project that does not have DQR enabled.
         final String projectId = request.getProjectId();
         if (!_preferences.getAllowAllProjectsToUseDqr() && !_dqrProjectSettingsService.isDqrEnabledForProject(projectId) || !Permissions.canEditProject(user, projectId) && !Roles.checkRole(user, "Administrator") && !Groups.hasAllDataAccess(user)) {
             throw new InsufficientPrivilegesException(user.getUsername(), projectId);
         }
-        return _dqrService.importFromPacs(getSessionUser(), request);
+        return _dqrService.importFromPacs(getSessionUser(), userDefinedId, request);
     }
 
     @ApiOperation(value = "Returns a list of queued DICOM query requests.",
@@ -480,7 +483,8 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
             @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "import/status", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
-    public List<SeriesRetrievalStatus> seriesRetrievalStatuses(@ApiParam("Indicates that all series statuses should be returned instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all,
+    public List<SeriesRetrievalStatus> seriesRetrievalStatuses(@ApiParam("User-defined identifier for classifying requests") @RequestParam(required = false) final String userDefinedId,
+                                                               @ApiParam("Indicates that all series statuses should be returned instead of just requests made by the current user.") @RequestParam(defaultValue = "false") final boolean all,
                                                                @ApiParam("Indicates the sort order to use") @RequestParam(defaultValue = "desc") final String sort,
                                                                @ApiParam("Indicates the page to return") @RequestParam(defaultValue = "1") final int page,
                                                                @ApiParam("Indicates the number of results in a page") @RequestParam(defaultValue = "100") final int pageSize
@@ -492,7 +496,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
 
         final PaginatedPacsRequest request = PaginatedPacsRequest.builder().sortDir(validateSort(sort)).pageNumber(page).pageSize(pageSize).build();
 
-        return _seriesRetrievalRequestService.findReverseChronological(all ? null : user, request).stream()
+        return _seriesRetrievalRequestService.findReverseChronological(all ? null : user, userDefinedId, request).stream()
                 .map(srr -> new SeriesRetrievalStatus(srr, _archivedRequestedSeriesService.latestMatching(srr).orElse(null)))
                 .collect(Collectors.toList());
     }

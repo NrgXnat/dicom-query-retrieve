@@ -16,7 +16,9 @@ import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnatx.dqr.domain.RequestContext;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
+import org.nrg.xnatx.dqr.services.SeriesRetrievalRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
@@ -24,9 +26,15 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class PacsStudyImportRequestListener extends AbstractPacsRequestListener<PacsStudyImportRequest> {
+    private final SeriesRetrievalRequestService seriesRetrievalRequestService;
+
     @Autowired
-    public PacsStudyImportRequestListener(final DicomQueryRetrieveService dqrService, final SiteConfigPreferences siteConfigPreferences, final MailService mailService) {
+    public PacsStudyImportRequestListener(final DicomQueryRetrieveService dqrService,
+                                          final SiteConfigPreferences siteConfigPreferences,
+                                          final MailService mailService,
+                                          final SeriesRetrievalRequestService seriesRetrievalRequestService) {
         super(dqrService, siteConfigPreferences, mailService);
+        this.seriesRetrievalRequestService = seriesRetrievalRequestService;
     }
 
     @JmsListener(id = "pacsStudyImportRequest", destination = "pacsStudyImportRequest")
@@ -35,8 +43,9 @@ public class PacsStudyImportRequestListener extends AbstractPacsRequestListener<
             final UserI user = Users.getUser(request.getRequestingUser());
             //Study import requests are not currently set up to allow users to specify which AE to send the data to
             log.info("Listener received study import request from user {}", user.getUsername());
+            final RequestContext context = seriesRetrievalRequestService.makeCMoveContext(user, request.getUserDefinedId());
             for (final PacsScanImportRequest scanImportRequest : request.getScans()) {
-                getDqrService().importSeries(user, request.getPacs(), scanImportRequest.getStudy(), scanImportRequest.getSeries(), null);
+                getDqrService().importSeries(context, request.getPacs(), scanImportRequest.getStudy(), scanImportRequest.getSeries(), null);
             }
             getMailService().sendMessage(getAdminEmail(), user.getEmail(),
                                          "[" + TurbineUtils.GetSystemName() + "] PACS Study Import Request Complete",
