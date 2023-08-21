@@ -177,8 +177,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     context.put("pacs", _pacsService.retrieve(_pacsId));
                     if (_dqrPreferences.getNotifyAdminOnImport()) {
                         _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
-                    } else {
-                        _mailService.sendHtmlMessage(adminEmail, user.getEmail(), String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
                     }
                 } catch (Exception exception) {
                     log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", username, exception);
