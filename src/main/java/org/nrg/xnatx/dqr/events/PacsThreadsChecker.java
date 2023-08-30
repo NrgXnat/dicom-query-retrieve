@@ -78,6 +78,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                                 final int           currentThreadsForThisPacs = _threads.get(pacsId);
                                 final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
                                 for (final QueuedPacsRequest request : requests) {
+                                    _threads.add(pacsId);
                                     new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
                                     if (added.incrementAndGet() >= newThreadsAllowed) {
                                         break;
