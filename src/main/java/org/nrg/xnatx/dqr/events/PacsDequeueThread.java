@@ -79,8 +79,16 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     break;
                 }
                 final PacsAvailability availability = getAvailability.get();
-                if (!_threads.hasAvailable(_pacsId, availability.getThreads())) {
-                    break;
+                if (_threads.isOversubscribed(_pacsId, availability.getThreads())) {
+                    synchronized (OVERSUBSCRIBED_THREADS_LOCK) {
+                        // Double-checked locking to avoid race condition
+                        // Maybe this thread was blocked at the sync point for a while, and in the meantime another
+                        //  thread has already stopped itself and we are no longer oversubscribed.
+                        if (_threads.isOversubscribed(_pacsId, availability.getThreads())) {
+                            log.debug("PACS {} is oversubscribed. Stopping thread.", _pacsId);
+                            break;
+                        }
+                    }
                 }
                 final UserI admin      = _primaryAdminUserProvider.get();
                 boolean     canConnect = _dqrService.canConnect(admin, _pacsService.retrieve(_pacsId));
@@ -189,10 +197,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
                 TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeInMilliseconds.get() * 1000));
 
-                //sync number of thread checks so we dont close too many
-                //check current threads for pacs and if there aren't too many running, pull another study from pacs
-                //make syncing pacs specific instead of over all pacs
-                //...
             }
         } catch (Throwable exception) {
             log.error("Error executing a PACS request from the queue.", exception);
@@ -202,6 +206,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     }
 
     private final static Object QUEUE_LOCK     = new Object();
+    private final static Object OVERSUBSCRIBED_THREADS_LOCK     = new Object();
     private final static String SUBJECT_FORMAT = "[" + TurbineUtils.GetSystemName() + "] %d selected DICOM series requested";
 
     private final Long                       _pacsId;

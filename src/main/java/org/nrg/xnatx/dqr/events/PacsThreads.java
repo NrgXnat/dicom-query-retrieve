@@ -51,10 +51,18 @@ public class PacsThreads {
         return _threadsPerPacs.getOrDefault(pacsId, 0);
     }
 
-    public boolean hasAvailable(final long pacsId, final int threads) {
+    public int numAvailable(final long pacsId, final int maxAvailable) {
         final int current = get(pacsId);
-        log.debug("PACS {} currently has {} threads, with {} available", pacsId, current, threads);
-        return current < threads;
+        log.debug("PACS {} currently has {} threads running with {} available", pacsId, current, maxAvailable);
+        return maxAvailable - current;
+    }
+
+    public boolean isOversubscribed(final long pacsId, final int maxAvailable) {
+        return numAvailable(pacsId, maxAvailable) < 0;
+    }
+
+    public boolean hasAvailable(final long pacsId, final int maxAvailable) {
+        return numAvailable(pacsId, maxAvailable) > 0;
     }
 
     private final static Object THREAD_COUNT_LOCK = new Object();

@@ -74,13 +74,15 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         try {
                             final UserI admin = _primaryAdminUserProvider.get();
                             if (_dqrService.canConnect(admin, pacs)) {
-                                final AtomicInteger added                     = new AtomicInteger();
-                                final int           currentThreadsForThisPacs = _threads.get(pacsId);
-                                final long          newThreadsAllowed         = availability.getThreads() - currentThreadsForThisPacs;
+                                final int startingThreads = _threads.get(pacsId);
                                 for (final QueuedPacsRequest request : requests) {
-                                    _threads.add(pacsId);
-                                    new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
-                                    if (added.incrementAndGet() >= newThreadsAllowed) {
+                                    if (_threads.hasAvailable(pacsId, availability.getThreads())) {
+                                        _threads.add(pacsId);
+                                        new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                        log.debug("Created new PacsDequeueThread. Current {} Max allowed {}", _threads.get(pacsId), availability.getThreads());
+                                    } else {
+                                        final int current = _threads.get(pacsId);
+                                        log.debug("Finished creating threads. Added {} Current {} Max allowed {}", current - startingThreads, current, availability.getThreads());
                                         break;
                                     }
                                 }
