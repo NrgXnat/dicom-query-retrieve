@@ -195,7 +195,14 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                 PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
                 assert wrk != null;
                 PersistentWorkflowUtils.complete(wrk, wrk.buildEvent());
-                TimeUnit.MICROSECONDS.sleep((long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeInMilliseconds.get() * 1000));
+
+                final long requestTimeMicroseconds = requestTimeInMilliseconds.get() * 1000;
+                final long sleepTimeMicroseconds = (long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeMicroseconds);
+                final long effectiveUtilizationPercent = (long) (100.0d * requestTimeMicroseconds / (sleepTimeMicroseconds + requestTimeMicroseconds));
+                log.debug("PACS {} - Ran for {} µs. Sleeping for {} µs. Effective utilization {}%",
+                        _pacsId, requestTimeMicroseconds, sleepTimeMicroseconds, effectiveUtilizationPercent);
+                TimeUnit.MICROSECONDS.sleep(sleepTimeMicroseconds);
+                log.debug("PACS {} - Slept for {} µs", _pacsId, sleepTimeMicroseconds);
 
             }
         } catch (Throwable exception) {
