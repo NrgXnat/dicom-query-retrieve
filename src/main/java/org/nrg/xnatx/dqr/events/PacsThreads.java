@@ -9,51 +9,38 @@
 
 package org.nrg.xnatx.dqr.events;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
 public class PacsThreads {
-    public void add(final long pacsId) {
-        final int current;
-        final int updated;
-        synchronized (THREAD_COUNT_LOCK) {
-            current = get(pacsId);
-            updated = current + 1;
-            _threadsPerPacs.put(pacsId, updated);
-        }
-        log.debug("Updated thread count for PACS {} from {} to {}", pacsId, current, updated);
+    public void increment(final long pacsId) {
+        final int updated = _get(pacsId).incrementAndGet();
+        log.debug("PACS {} Updated thread count to {}", pacsId, updated);
     }
 
-    public void remove(final long pacsId) {
-        if (!_threadsPerPacs.containsKey(pacsId)) {
-            log.warn("Tried to decrement thread count for PACS {} but that's not in the thread table", pacsId);
-            return;
-        }
-        final int current;
-        final int updated;
-        synchronized (THREAD_COUNT_LOCK) {
-            current = get(pacsId);
-            if (current == 0) {
-                log.warn("Tried to decrement thread count for PACS {} but that's already set to 0", pacsId);
-                return;
-            }
-            updated = current - 1;
-            _threadsPerPacs.put(pacsId, updated);
-        }
-        log.debug("Updated thread count for PACS {} from {} to {}", pacsId, current, updated);
+    public void decrement(final long pacsId) {
+        // Only decrement if greater than 0
+        final int updated = _get(pacsId).updateAndGet(i -> i > 0 ? i - 1 : i); ;
+        log.debug("PACS {} Updated thread count to {}", pacsId, updated);
+    }
+
+    private AtomicInteger _get(final long pacsId) {
+        return _threadsPerPacs.computeIfAbsent(pacsId, key -> new AtomicInteger(0));
     }
 
     public int get(final long pacsId) {
-        return _threadsPerPacs.getOrDefault(pacsId, 0);
+        return _get(pacsId).get();
     }
 
     public int numAvailable(final long pacsId, final int maxAvailable) {
         final int current = get(pacsId);
-        log.debug("PACS {} currently has {} threads running with {} available", pacsId, current, maxAvailable);
+        log.debug("PACS {} has {}/{} threads running", pacsId, current, maxAvailable);
         return maxAvailable - current;
     }
 
@@ -65,7 +52,5 @@ public class PacsThreads {
         return numAvailable(pacsId, maxAvailable) > 0;
     }
 
-    private final static Object THREAD_COUNT_LOCK = new Object();
-
-    private final Map<Long, Integer> _threadsPerPacs = new HashMap<>();
+    private final Map<Long, AtomicInteger> _threadsPerPacs = new ConcurrentHashMap<>();
 }

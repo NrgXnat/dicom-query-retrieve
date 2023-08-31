@@ -27,7 +27,6 @@ import org.nrg.xnatx.dqr.services.*;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by mike on 1/23/18.
@@ -77,7 +76,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                                 final int startingThreads = _threads.get(pacsId);
                                 for (final QueuedPacsRequest request : requests) {
                                     if (_threads.hasAvailable(pacsId, availability.getThreads())) {
-                                        _threads.add(pacsId);
+                                        _threads.increment(pacsId);
                                         new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
                                         log.debug("Created new PacsDequeueThread. Current {} Max allowed {}", _threads.get(pacsId), availability.getThreads());
                                     } else {

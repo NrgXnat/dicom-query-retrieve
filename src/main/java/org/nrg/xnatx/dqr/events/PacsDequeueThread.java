@@ -166,7 +166,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     try {
                         _queuedPacsRequestService.delete(request.getId());
                     } catch (Exception e) {
-                        log.error("Error removing PACS import request from queue.", e);
+                        log.error("Error removing PACS {} import request from queue.", _pacsId, e);
                     }
                 }
 
@@ -176,9 +176,9 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                 try {
                     if (StringUtils.isBlank(projectId)) {
-                        log.debug("Completed DICOM request for study {} with no project assignment.", studyInstanceUid);
+                        log.debug("Completed DICOM request from PACS {} for study {} with no project assignment.", _pacsId, studyInstanceUid);
                     } else {
-                        log.debug("Completed DICOM request for study {}  assigned to project {}.", studyInstanceUid, projectId);
+                        log.debug("Completed DICOM request from PACS {} for study {}  assigned to project {}.", _pacsId, studyInstanceUid, projectId);
                     }
                     final String adminEmail = _siteConfigPreferences.getAdminEmail();
                     context.put("adminEmail", adminEmail);
@@ -187,7 +187,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
                     }
                 } catch (Exception exception) {
-                    log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", username, exception);
+                    log.warn("User {} requested one or more DICOM series from PACS {}, but an error occurred sending the notification email.", username, _pacsId, exception);
                 }
 
                 final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
@@ -199,9 +199,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
             }
         } catch (Throwable exception) {
-            log.error("Error executing a PACS request from the queue.", exception);
+            log.error("Error executing a request for PACS {} from the queue.", _pacsId, exception);
         } finally {
-            _threads.remove(_pacsId);
+            log.debug("Ending PacsDequeueThread for PACS {}", _pacsId);
+            _threads.decrement(_pacsId);
         }
     }
 
