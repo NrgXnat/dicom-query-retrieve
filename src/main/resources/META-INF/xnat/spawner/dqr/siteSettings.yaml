@@ -92,6 +92,22 @@ dqrOtherPreferencePanel:
                 configured than are currently open, additional threads will be opened (if there are more threads open
                 than are currently configured, they will be ended once they complete their current PACS request). Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+        dqrMaxPacsCMOVEAttempts:
+            kind: panel.input.text
+            size: 10
+            name: dqrMaxPacsCMOVEAttempts
+            label: Maximum Connection Attempts (CMOVE)
+            placeholder: 5
+            description: Maximum number of connection attempts to make to a PACS.
+            validation: number
+        dqrWaitToRetryCMOVETimeInSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dqrWaitToRetryCMOVETimeInSeconds
+            label: Retry Wait Period (CMOVE)
+            placeholder: 300
+            description: Number of seconds to wait to retry the connection to a PACS.
+            validation: number
         allowAllUsersToUseDqr:
             kind: panel.input.switchbox
             name: allowAllUsersToUseDqr
@@ -129,6 +145,7 @@ dqrOtherPreferencePanel:
                 get split up into multiple sessions. However, if you're more worried about avoiding remapping issues
                 when requesting the same session repeatedly in quick succession, this should be set to 0. Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
+
 
 #### DQR History Tab ####
 

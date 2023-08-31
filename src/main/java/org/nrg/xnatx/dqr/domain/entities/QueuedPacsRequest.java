@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
+import javax.persistence.Column;
 import lombok.Builder;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
@@ -32,4 +33,16 @@ public class QueuedPacsRequest extends PacsRequest {
     public QueuedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
         super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName);
     }
+
+
+    @Column(columnDefinition = "int default 0")
+    public Integer getRetries() {
+        return _retries;
+    }
+
+    public void setRetries(final Integer retries) {
+        _retries = retries;
+    }
+
+    private Integer _retries;
 }

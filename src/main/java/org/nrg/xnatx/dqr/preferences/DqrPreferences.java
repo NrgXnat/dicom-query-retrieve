@@ -62,6 +62,34 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         }
     }
 
+    @NrgPreference(defaultValue = "5")
+    public String getDqrMaxPacsCMOVEAttempts() {
+        return getValue("dqrMaxPacsCMOVEAttempts");
+    }
+
+    @SuppressWarnings("unused")
+    public void setDqrMaxPacsCMOVEAttempts(final String dqrMaxPacsCMOVEAttempts) {
+        try {
+            set(dqrMaxPacsCMOVEAttempts, "dqrMaxPacsCMOVEAttempts");
+        } catch (InvalidPreferenceName e) {
+            log.error("Invalid preference name 'dqrMaxPacsCMOVEAttempts': something is very wrong here.", e);
+        }
+    }
+
+    @NrgPreference(defaultValue = "300")
+    public String getDqrWaitToRetryCMOVETimeInSeconds() {
+        return getValue("dqrWaitToRetryCMOVETimeInSeconds");
+    }
+
+    @SuppressWarnings("unused")
+    public void setDqrWaitToRetryCMOVETimeInSeconds(final String dqrWaitToRetryCMOVETimeInSeconds) {
+        try {
+            set(dqrWaitToRetryCMOVETimeInSeconds, "dqrWaitToRetryCMOVETimeInSeconds");
+        } catch (InvalidPreferenceName e) {
+            log.error("Invalid preference name 'dqrWaitToRetryCMOVETimeInSeconds': something is very wrong here.", e);
+        }
+    }
+
     @NrgPreference(defaultValue = "false")
     public boolean getNotifyAdminOnImport() {
         return getBooleanValue("notifyAdminOnImport");
