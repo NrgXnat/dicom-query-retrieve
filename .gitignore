@@ -1,7 +1,36 @@
-*.log
+# Ignore Gradle project-specific cache directory
 .gradle
-build/
-dep*.txt
-out/
 .idea
+
+# Ignore Gradle build output directory
+build/
+out/
+
+# Eclipse
+.classpath
+.project
+.settings
+bin
+
+# Emacs
+*~
+
+# ViM
+.*.sw*
+
+# jenv
+.java-version
+
+# Mac
+.DS_Store
+
+# IntelliJ
 *.iml
+*.iws
+*.ipr
+
+# Logs + Deps
+dep*.txt
+*.log
+logs
+
