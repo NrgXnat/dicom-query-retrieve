@@ -270,6 +270,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             }
         } catch (final CMoveTargetNotFoundException exception) {
             log.warn("C-MOVE target not found somehow: PACS {}", pacs, exception);
+            throw exception;
         }
     }
 
@@ -351,7 +352,11 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         if (!request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
-        return request.getStudies().stream().map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()))).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+        return studies.stream()
+                .map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid())))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     /**
