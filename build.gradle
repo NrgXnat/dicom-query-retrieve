@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "1.0.5-SNAPSHOT"
+version "1.1.0-RC-SNAPSHOT"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
