@@ -526,9 +526,10 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
 
         if (!results.isEmpty()) {
+            final String ae = port == 0 ? aeTitle : aeTitle + ":" + port;
             try {
                 final Series            first       = results.get(0);
-                final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, aeTitle + ":" + port, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
+                final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
                 pacsRequest.setStudyDate(first.getStudyDate());
                 pacsRequest.setStudyId(first.getStudyId());
                 pacsRequest.setAccessionNumber(first.getAccessionNumber());
