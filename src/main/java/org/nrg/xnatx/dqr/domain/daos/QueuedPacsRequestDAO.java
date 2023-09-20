@@ -48,5 +48,13 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
                                         .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
     }
 
+    public boolean isQueuedForStudyInstanceUidAndRequestId(final String requestId, final String studyInstanceUid) {
+        final Object result = getSession().getNamedQuery(QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID_AND_REQUEST_ID)
+                .setParameter("studyInstanceUid", studyInstanceUid)
+                .setParameter("requestId", requestId)
+                .uniqueResult();
+        return Boolean.TRUE.equals(result);
+    }
+
     private static final String[] FAILED_OR_QUEUED = {PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT};
 }

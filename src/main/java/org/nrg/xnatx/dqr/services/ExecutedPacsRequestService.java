@@ -16,4 +16,6 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
  */
 public interface ExecutedPacsRequestService extends BasePacsRequestService<ExecutedPacsRequest> {
     String TYPE = "executed";
+
+    ExecutedPacsRequest getMostRecentForRequestIdAndStudyInstanceUid(String requestId, String studyInstanceUid);
 }

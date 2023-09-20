@@ -25,4 +25,6 @@ public interface QueuedPacsRequestService extends BasePacsRequestService<QueuedP
     List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId);
 
     List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request);
+
+    boolean isQueued(String requestId, final String studyInstanceUid);
 }
