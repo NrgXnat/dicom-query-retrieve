@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class DicomReceiverCustomProcessingDisabledException extends DqrException {
     private static final long serialVersionUID = -9019140323996317862L;
 
-    int    id;
+    long   id;
     String aeTitle;
     int    port;
 

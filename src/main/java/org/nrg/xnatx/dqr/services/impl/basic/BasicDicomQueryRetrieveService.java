@@ -270,6 +270,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             }
         } catch (final CMoveTargetNotFoundException exception) {
             log.warn("C-MOVE target not found somehow: PACS {}", pacs, exception);
+            throw exception;
         }
     }
 
@@ -351,7 +352,11 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         if (!request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
-        return request.getStudies().stream().map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()))).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+        return studies.stream()
+                .map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()), request.getRequestId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -394,7 +399,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             }
 
             try {
-                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle.toString(), project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList())));
+                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle.toString(), project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), null));
                 valueToReturn.set(false);
             } catch (Exception e) {
                 if (e instanceof CMoveFailureException) {
@@ -475,7 +480,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
             final String studyInstanceUid = study.getStudyInstanceUid();
             try {
-                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
+                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), null);
                 request.setRemappingScript(anonScript);
                 _queuedPacsRequestService.create(request);
             } catch (PacsNotQueryableException e) {
@@ -507,7 +512,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         R process(final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria, final Collection<Study> results);
     }
 
-    private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript) {
+    private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId) {
         final String            studyInstanceUid   = studyInfo.getStudyInstanceUid();
         final List<String>      seriesDescriptions = studyInfo.getSeriesDescriptions();
         final List<String>      seriesInstanceUids = studyInfo.getSeriesInstanceUids();
@@ -529,7 +534,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             final String ae = port == 0 ? aeTitle : aeTitle + ":" + port;
             try {
                 final Series            first       = results.get(0);
-                final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()));
+                final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId);
                 pacsRequest.setStudyDate(first.getStudyDate());
                 pacsRequest.setStudyId(first.getStudyId());
                 pacsRequest.setAccessionNumber(first.getAccessionNumber());
@@ -553,7 +558,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     @NotNull
-    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds) {
+    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds, final String requestId) {
         return QueuedPacsRequest.builder()
                                 .pacsId(pacsId)
                                 .username(user.getUsername())
@@ -563,6 +568,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                                 .destinationAeTitle(ae)
                                 .priority(multiStudy ? PacsRequest.STANDARD_PRIORITY : PacsRequest.HIGH_PRIORITY)
                                 .status(PacsRequest.QUEUED_STATUS_TEXT)
+                                .requestId(requestId)
                                 .queuedTime(new Date()).build();
     }
 

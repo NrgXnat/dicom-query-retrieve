@@ -45,4 +45,9 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     public List<QueuedPacsRequest> getQueuedOrFailedForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request) {
         return getDao().findQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId, request);
     }
+
+    @Override
+    public boolean isQueued(String requestId, final String studyInstanceUid) {
+        return getDao().isQueuedForStudyInstanceUidAndRequestId(requestId, studyInstanceUid);
+    }
 }

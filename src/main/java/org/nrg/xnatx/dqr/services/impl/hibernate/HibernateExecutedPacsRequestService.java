@@ -32,4 +32,9 @@ public class HibernateExecutedPacsRequestService extends AbstractHibernatePacsRe
     protected String getRequestType() {
         return TYPE;
     }
+
+    @Override
+    public ExecutedPacsRequest getMostRecentForRequestIdAndStudyInstanceUid(String requestId, String studyInstanceUid) {
+        return getDao().getByRequestIdAndStudyInstanceUidOrderedByMostRecent(requestId, studyInstanceUid);
+    }
 }

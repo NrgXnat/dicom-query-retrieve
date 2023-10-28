@@ -38,6 +38,7 @@ import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.*;
 
@@ -134,6 +135,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .studyId(request.getStudyId())
                                                                            .accessionNumber(request.getAccessionNumber())
                                                                            .patientName(request.getPatientName())
+                                                                           .requestId(request.getRequestId())
                                                                            .build();
                 try {
                     final String adminUsername = admin.getUsername();
@@ -156,7 +158,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     final StopWatch stopWatch = StopWatch.createStarted();
                     try {
                         _dqrService.importFromPacsRequest(pacsRequest);
-                    }finally{
+                    } catch (DqrRuntimeException e) {
+                        // Rethrow as non-runtime exception so we can catch it and retry
+                        throw new Exception(e);
+                    } finally {
                         stopWatch.stop();
                         requestTimeInMilliseconds.set(stopWatch.getTime());
                     }
@@ -167,16 +172,17 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     closeRequest(request);
                 } catch (Exception e) {
                     log.error("REQ {} - Error executing PACS import request.", request.getId(), e);
-                    failed=true;
+                    failed = true;
 
                     pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                    pacsRequest.setErrorMessage(e.getMessage());
                     _executedPacsRequestService.update(pacsRequest);
 
                     final Integer retries = Optional.ofNullable(request.getRetries()).orElse(0);
 
                     final Integer maxRetries = Integer.parseInt(_dqrPreferences.getDqrMaxPacsCMOVEAttempts());
 
-                    if(retries < maxRetries){
+                    if (retries < maxRetries){
                         log.debug("REQ {} - Retry CMOVE request ({} of {} attempts)", request.getId(), retries, maxRetries);
 
                         //rollback to prior state
@@ -196,7 +202,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         }
 
                         return;
-                    }else{
+                    } else {
                         log.debug("REQ {} - Failing CMOVE request after {} retries", request.getId(), retries);
                         closeRequest(request);
                     }
@@ -208,7 +214,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     log.debug("Completed DICOM request for study {}  assigned to project {}.", studyInstanceUid, projectId);
                 }
 
-                if(!failed) {
+                if (!failed) {
                     //this seemed like it was notifying success no matter what
                     sendNotification(user, seriesIds);
                 }

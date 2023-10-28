@@ -18,18 +18,26 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.util.Date;
 import java.util.List;
 import javax.persistence.Entity;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @Entity
 @Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
 @NoArgsConstructor
+@NamedQueries({
+        @NamedQuery(name = ExecutedPacsRequest.GET_BY_STUDY_INSTANCE_UID_AND_REQUEST_ID_ORDERED_BY_MOST_RECENT,
+                query = "SELECT r FROM ExecutedPacsRequest r WHERE r.studyInstanceUid = :studyInstanceUid AND r.requestId = :requestId ORDER BY r.executedTime DESC"),
+})
 public class ExecutedPacsRequest extends PacsRequest {
     private static final long serialVersionUID = -2942642818163500573L;
 
+    public static final String GET_BY_STUDY_INSTANCE_UID_AND_REQUEST_ID_ORDERED_BY_MOST_RECENT = "ExecutedPacsRequest.getByStudyInstanceUidAndRequestIdOrderedByMostRecent";
+
     @Builder
-    public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
-        super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName);
+    public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId) {
+        super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName, errorMessage, requestId);
         _executedTime = executedTime;
     }
 
@@ -58,7 +66,9 @@ public class ExecutedPacsRequest extends PacsRequest {
                + "studyId: " + getStudyId() + ", "
                + "accessionNumber: " + getAccessionNumber() + ", "
                + "patientId: " + getPatientId() + ", "
-               + "patientName: " + getPatientName() + "}";
+               + "patientName: " + getPatientName() + ", "
+               + "errorMessage: " + getErrorMessage() + ", "
+               + "requestId: " + getRequestId() + "}";
     }
 
     @Temporal(TemporalType.TIMESTAMP)

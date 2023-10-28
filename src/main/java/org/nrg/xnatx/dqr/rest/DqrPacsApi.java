@@ -25,7 +25,6 @@ import org.nrg.xapi.rest.XapiRequestMapping;
 import org.nrg.xdat.security.services.RoleHolder;
 import org.nrg.xdat.security.services.UserManagementServiceI;
 import org.nrg.xnat.eventservice.exceptions.UnauthorizedException;
-import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsPing;
@@ -68,7 +67,7 @@ public class DqrPacsApi extends AbstractDqrRestController {
         _pacsDicomWebService = pacsDicomWebService;
     }
 
-    @ApiOperation(value = "Get list of all existing PACS systems.", notes = "This API call accepts two optional query-string parameters that can limit the scope of the PACS returned.", response = ExecutedPacsRequest.class, responseContainer = "List")
+    @ApiOperation(value = "Get list of all existing PACS systems.", notes = "This API call accepts two optional query-string parameters that can limit the scope of the PACS returned.", response = Pacs.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of PACS configured in this system."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to access the list of PACS."),

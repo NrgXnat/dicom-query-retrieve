@@ -39,7 +39,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         super();
     }
 
-    public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName) {
+    public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId) {
         _username           = username;
         _pacsId             = pacsId;
         _xnatProject        = xnatProject;
@@ -55,6 +55,8 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _accessionNumber    = accessionNumber;
         _patientId          = patientId;
         _patientName        = patientName;
+        _errorMessage       = errorMessage;
+        _requestId          = requestId;
     }
 
     @Transient
@@ -191,6 +193,23 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _patientName = patientName;
     }
 
+    @Column(columnDefinition = "TEXT")
+    public String getErrorMessage() {
+        return _errorMessage;
+    }
+
+    public void setErrorMessage(final String errorMessage) {
+        _errorMessage = errorMessage;
+    }
+
+    public String getRequestId() {
+        return _requestId;
+    }
+
+    public void setRequestId(final String requestId) {
+        _requestId = requestId;
+    }
+
     @Override
     public String toString() {
         return "{ username: " + getUsername() + ", "
@@ -207,7 +226,9 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
                + "studyId: " + getStudyId() + ", "
                + "accessionNumber: " + getAccessionNumber() + ", "
                + "patientId: " + getPatientId() + ", "
-               + "patientName: " + getPatientName() + "}";
+               + "patientName: " + getPatientName() + ", "
+               + "errorMessage: " + getErrorMessage() + ", "
+               + "requestId: " + getRequestId() + "}";
     }
 
     private String       _username;
@@ -225,4 +246,6 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     private String       _accessionNumber;
     private String       _patientId;
     private String       _patientName;
+    private String       _errorMessage;
+    private String       _requestId;
 }

@@ -41,6 +41,11 @@ public class PacsImportRequest implements Serializable {
      */
     String projectId;
 
+    /**
+     * An identifier for this request
+     */
+    String requestId;
+
     @Builder.Default
     boolean forceImport = false;
 
