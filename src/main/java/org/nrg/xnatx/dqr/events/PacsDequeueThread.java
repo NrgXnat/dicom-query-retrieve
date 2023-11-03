@@ -178,15 +178,15 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     pacsRequest.setErrorMessage(e.getMessage());
                     _executedPacsRequestService.update(pacsRequest);
 
-                    final Integer retries = Optional.ofNullable(request.getRetries()).orElse(0);
+                    final Integer attempts = Optional.ofNullable(request.getRetries()).orElse(0) + 1;
 
-                    final Integer maxRetries = Integer.parseInt(_dqrPreferences.getDqrMaxPacsCMOVEAttempts());
+                    final Integer maxAttempts = Integer.parseInt(_dqrPreferences.getDqrMaxPacsCMOVEAttempts());
 
-                    if (retries < maxRetries){
-                        log.debug("REQ {} - Retry CMOVE request ({} of {} attempts)", request.getId(), retries, maxRetries);
+                    if (attempts < maxAttempts){
+                        log.debug("REQ {} - Retry CMOVE request ({} of {} attempts)", request.getId(), attempts, maxAttempts);
 
                         //rollback to prior state
-                        request.setRetries(retries + 1);
+                        request.setRetries(attempts);
                         request.setStatus(priorStatus);
                         _queuedPacsRequestService.update(request);
 
@@ -203,7 +203,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                         return;
                     } else {
-                        log.debug("REQ {} - Failing CMOVE request after {} retries", request.getId(), retries);
+                        log.debug("REQ {} - Failing CMOVE request after {} attempts", request.getId(), attempts);
                         closeRequest(request);
                     }
                 }
