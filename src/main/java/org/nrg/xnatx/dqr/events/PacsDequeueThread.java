@@ -46,7 +46,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by mike on 1/23/18.
@@ -113,7 +112,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     _queuedPacsRequestService.update(request);
                 }
 
-                final AtomicLong   requestTimeInMilliseconds = new AtomicLong();
+                      long         requestTimeInMilliseconds = 0;
                 final String       studyInstanceUid          = request.getStudyInstanceUid();
                 final List<String> seriesIds                 = request.getSeriesIds();
                 final String       projectId                 = request.getXnatProject();
@@ -163,7 +162,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         throw new Exception(e);
                     } finally {
                         stopWatch.stop();
-                        requestTimeInMilliseconds.set(stopWatch.getTime());
+                        requestTimeInMilliseconds = stopWatch.getTime();
                     }
 
                     request.setStatus(PacsRequest.ISSUED_STATUS_TEXT);
@@ -190,16 +189,12 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         request.setStatus(priorStatus);
                         _queuedPacsRequestService.update(request);
 
-                        try {
-                            final Long secondsBeforeRetry = Long.parseLong(_dqrPreferences.getDqrWaitToRetryCMOVETimeInSeconds());
-                            long sleepTimeSeconds = TimeUnit.SECONDS.convert(calculateTimeToSleepBasedOnLoad(requestTimeInMilliseconds, availability), TimeUnit.MICROSECONDS);
-                            sleepTimeSeconds = max(secondsBeforeRetry, sleepTimeSeconds);
-                            TimeUnit.SECONDS.sleep(sleepTimeSeconds);
-                            log.debug("PACS {} - Slept for {}s", _pacsId, sleepTimeSeconds);
-                        } catch (InterruptedException ex) {
-                            Thread.currentThread().interrupt();
-                            throw new NrgServiceRuntimeException("Thread interrupted while performing pacs operation.", ex);
-                        }
+                        final long sleepTimeMillisecondsFromAvailability = calculateSleepTimeMillisecondsFromAvailability(requestTimeInMilliseconds, availability);
+                        final long sleepTimeMillisecondsFromDqrSettings = TimeUnit.MILLISECONDS.convert(Long.parseLong(_dqrPreferences.getDqrWaitToRetryCMOVETimeInSeconds()), TimeUnit.SECONDS);
+                        log.debug("PACS {} - Will sleep for max of {} ms from availability and {} ms from DQR CMOVE retry setting",
+                                _pacsId, sleepTimeMillisecondsFromAvailability, sleepTimeMillisecondsFromDqrSettings);
+
+                        sleep(max(sleepTimeMillisecondsFromAvailability, sleepTimeMillisecondsFromDqrSettings));
 
                         return;
                     } else {
@@ -221,9 +216,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                 saveWorkflowEntry(user,seriesIds,studyInstanceUid,projectId,failed);
 
-                final long sleepTimeMicroseconds = calculateTimeToSleepBasedOnLoad(requestTimeInMilliseconds, availability);
-                TimeUnit.MICROSECONDS.sleep(sleepTimeMicroseconds);
-                log.debug("PACS {} - Slept for {} µs", _pacsId, sleepTimeMicroseconds);
+                final long sleepTimeMillisecondsFromAvailability = calculateSleepTimeMillisecondsFromAvailability(requestTimeInMilliseconds, availability);
+                sleep(sleepTimeMillisecondsFromAvailability);
             }
         } catch (Throwable exception) {
             log.error("Error executing a request for PACS {} from the queue.", _pacsId, exception);
@@ -233,15 +227,26 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
-    private long calculateTimeToSleepBasedOnLoad(final AtomicLong   requestTimeInMilliseconds, final PacsAvailability availability){
-        final long         requestTimeMicroseconds   = requestTimeInMilliseconds.get() * 1000;
-        final long         sleepTimeMicroseconds     = (long) ((((double) 100 / (double) availability.getUtilizationPercent()) - 1) * requestTimeMicroseconds);
-        final long         effectiveUtilizationPercent = (long) (100.0d * requestTimeMicroseconds / (sleepTimeMicroseconds + requestTimeMicroseconds));
+    private long calculateSleepTimeMillisecondsFromAvailability(final long requestTimeMilliseconds, final PacsAvailability availability) {
+        final long nominalUtilizationPercent = availability.getUtilizationPercent();
+        final long sleepTimeMillisecondsFromAvailability = (long) ((((double) 100 / (double) nominalUtilizationPercent) - 1) * requestTimeMilliseconds);
 
-        log.debug("PACS {} - Ran for {} µs. Sleeping for {} µs. Effective utilization {}%",
-            _pacsId, requestTimeMicroseconds, sleepTimeMicroseconds, effectiveUtilizationPercent);
+        log.debug("PACS {} - Ran for {} ms. Should sleep for {} ms to maintain {}% utilization",
+                _pacsId, requestTimeMilliseconds, sleepTimeMillisecondsFromAvailability, nominalUtilizationPercent);
 
-        return sleepTimeMicroseconds;
+        return sleepTimeMillisecondsFromAvailability;
+    }
+
+    private void sleep(final long sleepTimeMilliseconds) {
+        log.debug("PACS {} - Sleeping for {} ms", _pacsId, sleepTimeMilliseconds);
+        try {
+            TimeUnit.MILLISECONDS.sleep(sleepTimeMilliseconds);
+        } catch (InterruptedException ex) {
+            log.debug("PACS {} - Thread interrupted while sleeping.", _pacsId);
+            Thread.currentThread().interrupt();
+            throw new NrgServiceRuntimeException("Thread interrupted while sleeping.", ex);
+        }
+        log.debug("PACS {} - Slept for {} ms", _pacsId, sleepTimeMilliseconds);
     }
 
     private void closeRequest(final QueuedPacsRequest request){
