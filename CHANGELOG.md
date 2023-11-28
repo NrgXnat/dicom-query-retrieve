@@ -9,7 +9,18 @@ also send image data from XNAT to the PACS.
 
 ### 1.2.x Versions
 
-[1.2.0](#1.2.0)
+[1.2.0](#1.2.0) [1.2.1](#1.2.1)
+
+### <a name="1.2.1"></a>DQR Plugin Version: 1.2.1
+
+#### 1.2.1 - General Improvements
+
+   * [PLUGINS-92](https://radiologics.atlassian.net/browse/PLUGINS-92) DICOM web: support preemptive auth
+
+#### 1.2.1 - Fixes
+   * [PLUGINS-89](https://radiologics.atlassian.net/browse/PLUGINS-89) DQR: code refactor to clarify wait times for utilization and retrying
+   * [PLUGINS-90](https://radiologics.atlassian.net/browse/PLUGINS-90) DQR: count "attempts" rather than "retries"
+
 
 ### <a name="1.2.0"></a>DQR Plugin Version: 1.2.0
 
