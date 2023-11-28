@@ -56,5 +56,12 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
         return Boolean.TRUE.equals(result);
     }
 
+    public boolean isQueuedForStudyInstanceUid(final String studyInstanceUid) {
+        final Object result = getSession().getNamedQuery(QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID)
+                .setParameter("studyInstanceUid", studyInstanceUid)
+                .uniqueResult();
+        return Boolean.TRUE.equals(result);
+    }
+
     private static final String[] FAILED_OR_QUEUED = {PacsRequest.FAILED_STATUS_TEXT, PacsRequest.QUEUED_STATUS_TEXT};
 }

@@ -50,4 +50,9 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     public boolean isQueued(String requestId, final String studyInstanceUid) {
         return getDao().isQueuedForStudyInstanceUidAndRequestId(requestId, studyInstanceUid);
     }
+
+    @Override
+    public boolean isQueued(final String studyInstanceUid) {
+        return getDao().isQueuedForStudyInstanceUid(studyInstanceUid);
+    }
 }
