@@ -33,19 +33,23 @@ import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
+import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
+import org.nrg.xnat.helpers.prearchive.SessionData;
+import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
-import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by mike on 1/23/18.
@@ -157,9 +161,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     final StopWatch stopWatch = StopWatch.createStarted();
                     try {
                         _dqrService.importFromPacsRequest(pacsRequest);
-                    } catch (DqrRuntimeException e) {
-                        // Rethrow as non-runtime exception so we can catch it and retry
-                        throw new Exception(e);
                     } finally {
                         stopWatch.stop();
                         requestTimeInMilliseconds = stopWatch.getTime();
@@ -176,6 +177,9 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
                     pacsRequest.setErrorMessage(e.getMessage());
                     _executedPacsRequestService.update(pacsRequest);
+
+                    // Remove any existing session data from prearchive
+                    deleteStudyDataFromPrearchive(studyInstanceUid, projectId);
 
                     final Integer attempts = Optional.ofNullable(request.getRetries()).orElse(0) + 1;
 
@@ -268,7 +272,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             context.put("adminEmail", adminEmail);
             context.put("pacs", _pacsService.retrieve(_pacsId));
             if (_dqrPreferences.getNotifyAdminOnImport()) {
-                _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, String.format(SUBJECT_FORMAT, seriesIds.size()), AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
+                final String subject = String.format(SUBJECT_FORMAT, TurbineUtils.GetSystemName(), seriesIds.size());
+                _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, subject, AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
             }
         } catch (Exception exception) {
             log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", user.getUsername(), exception);
@@ -287,9 +292,48 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
+    private void deleteStudyDataFromPrearchive(final String studyInstanceUid, final String project) {
+        if (StringUtils.isBlank(project)) {
+            log.warn("Not attempting to remove prearchive session for study {} because no project was specified. This may lead to incomplete data being archived.", studyInstanceUid);
+            return;
+        }
+        try {
+            // Find session to delete by study instance UID and project
+            final List<SessionDataTriple> prearcSessions = PrearcDatabase.getSessionByUID(studyInstanceUid)
+                    .stream()
+                    .filter(sessionData -> StringUtils.equals(project, sessionData.getProject()))
+                    .map(SessionData::getSessionDataTriple)
+                    .collect(Collectors.toList());
+
+            if (prearcSessions.isEmpty()) {
+                return;
+            } else if (prearcSessions.size() > 1) {
+                log.warn("Not attempting to remove prearchive sessions for study {} and project {} because {} were found. This may lead to incomplete data being archived.", studyInstanceUid, project, prearcSessions.size());
+                return;
+            }
+
+            log.debug("Removing prearchive session {} for study {}.", prearcSessions.get(0), studyInstanceUid);
+
+            // Attempt to delete session
+            final Map<SessionDataTriple, Boolean> deletionStatus = PrearcDatabase.deleteSession(prearcSessions);
+
+            // Log deletion results
+            for (final Map.Entry<SessionDataTriple, Boolean> statusEntry : deletionStatus.entrySet()) {
+                final SessionDataTriple sessionDataTriple = statusEntry.getKey();
+                if (Boolean.FALSE.equals(statusEntry.getValue())) {
+                    log.warn("Failed to remove prearchive session {} for study {}", sessionDataTriple, studyInstanceUid);
+                } else {
+                    log.debug("Removed prearchive session {} for study {}", sessionDataTriple, studyInstanceUid);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to remove prearchive sessions for study {}", studyInstanceUid, e);
+        }
+    }
+
     private final static Object QUEUE_LOCK     = new Object();
     private final static Object OVERSUBSCRIBED_THREADS_LOCK     = new Object();
-    private final static String SUBJECT_FORMAT = "[" + TurbineUtils.GetSystemName() + "] %d selected DICOM series requested";
+    private final static String SUBJECT_FORMAT = "[%s] %d selected DICOM series requested";
 
     private final Long                       _pacsId;
     private final PacsThreads               _threads;

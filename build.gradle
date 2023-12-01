@@ -102,8 +102,13 @@ dependencyManagement {
 def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
 def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
 
+// Use Mockito >= 3.x for mocking statics with JUnit 5 (where PowerMock is not available)
+def vMockito = "4.+"
+
 dependencies {
-    implementation enforcedPlatform("org.nrg:parent:${vXnat}")
+    implementation enforcedPlatform("org.nrg:parent:${vXnat}") {
+        exclude group: "org.mockito"
+    }
 
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
@@ -145,7 +150,8 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
     testImplementation "com.github.sbrannen:spring-test-junit5"
-    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.mockito:mockito-core:${vMockito}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${vMockito}"
     testImplementation "org.assertj:assertj-core"
     testImplementation "com.h2database:h2"
 
