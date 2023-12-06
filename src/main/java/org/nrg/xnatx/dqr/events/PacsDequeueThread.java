@@ -20,6 +20,7 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.mail.services.MailService;
+import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Users;
@@ -32,10 +33,12 @@ import org.nrg.xft.event.EventUtils;
 import org.nrg.xft.event.persist.PersistentWorkflowI;
 import org.nrg.xft.event.persist.PersistentWorkflowUtils;
 import org.nrg.xft.security.UserI;
+import org.nrg.xnat.archive.Operation;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
 import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
+import org.nrg.xnat.services.messaging.prearchive.PrearchiveOperationRequest;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
@@ -170,6 +173,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     _queuedPacsRequestService.update(request);
 
                     closeRequest(request);
+
+                    submitPrearchiveSessionRebuildRequest(studyInstanceUid, projectId, user);
                 } catch (Exception e) {
                     log.error("REQ {} - Error executing PACS import request.", request.getId(), e);
                     failed = true;
@@ -292,18 +297,21 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
+    private List<SessionDataTriple> findPrearchiveSessions(final String studyInstanceUid, final String project) throws Exception {
+        return PrearcDatabase.getSessionByUID(studyInstanceUid)
+                .stream()
+                .filter(sessionData -> StringUtils.equals(project, sessionData.getProject()))
+                .map(SessionData::getSessionDataTriple)
+                .collect(Collectors.toList());
+    }
+
     private void deleteStudyDataFromPrearchive(final String studyInstanceUid, final String project) {
         if (StringUtils.isBlank(project)) {
             log.warn("Not attempting to remove prearchive session for study {} because no project was specified. This may lead to incomplete data being archived.", studyInstanceUid);
             return;
         }
         try {
-            // Find session to delete by study instance UID and project
-            final List<SessionDataTriple> prearcSessions = PrearcDatabase.getSessionByUID(studyInstanceUid)
-                    .stream()
-                    .filter(sessionData -> StringUtils.equals(project, sessionData.getProject()))
-                    .map(SessionData::getSessionDataTriple)
-                    .collect(Collectors.toList());
+            final List<SessionDataTriple> prearcSessions = findPrearchiveSessions(studyInstanceUid, project);
 
             if (prearcSessions.isEmpty()) {
                 return;
@@ -328,6 +336,30 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             }
         } catch (Exception e) {
             log.warn("Failed to remove prearchive sessions for study {}", studyInstanceUid, e);
+        }
+    }
+
+    private void submitPrearchiveSessionRebuildRequest(final String studyInstanceUid, final String project, final UserI user) {
+        if (StringUtils.isBlank(project)) {
+            log.debug("Not attempting to rebuild session for study {} because no project was specified.", studyInstanceUid);
+            return;
+        }
+        try {
+            final List<SessionDataTriple> prearcSessions = findPrearchiveSessions(studyInstanceUid, project);
+
+            if (prearcSessions.size() != 1) {
+                log.warn("Cannot build session. {} prearchive sessions found for study {} in project {}.", prearcSessions.size(), studyInstanceUid, project);
+                return;
+            }
+
+            final SessionDataTriple prearcSession = prearcSessions.get(0);
+
+            log.debug("Submitting request to rebuild prearchive session {} for study {} in project {}", prearcSession, studyInstanceUid, project);
+
+            final PrearchiveOperationRequest request = new PrearchiveOperationRequest(user, Operation.Rebuild, prearcSession);
+            XDAT.sendJmsRequest(request);
+        } catch (Exception e) {
+            log.warn("Failed to submit request to rebuild prearchive session for study {} in project {}", studyInstanceUid, project, e);
         }
     }
 
