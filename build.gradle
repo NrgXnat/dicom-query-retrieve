@@ -146,6 +146,12 @@ dependencies {
     implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
         transitive = false
     }
+    implementAndInclude("org.dcm4che:dcm4che-net") {
+        transitive = false
+    }
+    implementAndInclude("org.dcm4che:dcm4che-json") {
+        transitive = false
+    }
 
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
