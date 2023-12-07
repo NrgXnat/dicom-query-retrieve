@@ -133,6 +133,9 @@ dependencies {
     implementation "org.aspectj:aspectjweaver"
     implementation "javax.validation:validation-api"
     implementation "org.restlet:org.restlet"
+    implementation 'javax.json:javax.json-api:1.1.4'
+    implementation "org.dcm4che:dcm4che-core"
+
     implementation("turbine:turbine") {
         transitive = false
     }
@@ -153,6 +156,8 @@ dependencies {
         transitive = false
     }
 
+    compileOnly "javax.interceptor:javax.interceptor-api"
+
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
     testImplementation "com.github.sbrannen:spring-test-junit5"
@@ -160,6 +165,8 @@ dependencies {
     testImplementation "org.mockito:mockito-junit-jupiter:${vMockito}"
     testImplementation "org.assertj:assertj-core"
     testImplementation "com.h2database:h2"
+    testImplementation "org.dcm4che:dcm4che-json"
+
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
     testRuntimeOnly "ch.qos.logback:logback-classic"
