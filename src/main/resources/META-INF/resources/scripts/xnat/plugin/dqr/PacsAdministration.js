@@ -76,8 +76,6 @@ XNAT.app = getObject(XNAT.app || {});
     XNAT.app.dqr.PacsAdministration = PacsAdministration =
         getObject(XNAT.app.dqr.PacsAdministration);
 
-    let showDicomWeb = false;
-
     var constants = {
         "MODAL_WINDOW_NAME": "loadData",
         "PACS_DIV": "#pacsDiv",
@@ -96,6 +94,8 @@ XNAT.app = getObject(XNAT.app || {});
 
     var currentOperation;
 
+    let dicomWebEnabled = false;
+
     function AddOperation(pButton) {
         this.button = pButton;
         this.type = constants.OPERATION_CREATE;
@@ -108,12 +108,24 @@ XNAT.app = getObject(XNAT.app || {});
         this.type = pType;
     }
 
-
     ModifyOperation.prototype.disable = function () {
         $(this.image).removeClass(this.imageCssClass);
     };
+
     ModifyOperation.prototype.enable = function () {
         $(this.image).addClass(this.imageCssClass);
+    };
+
+    function getDicomWebEnabled() {
+        XNAT.xhr.getJSON({
+            url: XNAT.url.restUrl('/xapi/dqr/settings'),
+            fail: function (e) {
+                console.log('Could not get DQR settings', e)
+            },
+            success: function (data) {
+                dicomWebEnabled = Boolean(data.dicomWebEnabled);
+            }
+        });
     };
 
     function editPacsDialog(pacs) {
@@ -215,24 +227,34 @@ XNAT.app = getObject(XNAT.app || {});
                                 element: {
                                     style: "margin-right:10px;"
                                 },
-                                afterElement: '<button type="button" id="dicomWebTest" class="btn btn-sm">Test</button>'
+                                afterElement: '<button disabled type="button" class="ping-pacs-dicom-web" class="btn btn-sm">Test</button>'
                             })
                         ])
                     ])
                 );
 
-                XNAT.xhr.getJSON({
-                    url: XNAT.url.restUrl('/xapi/dqr/settings'),
-                    fail: function (e) {
-                        console.log('Could not get DQR settings', e)
-                    },
-                    success: function (data) {
-                        showDicomWeb = Boolean(data.dicomWebEnabled);
-                        if (showDicomWeb) {
-                            $(document).find('.dicom-web').show();
-                        }
-                    }
-                });
+                let $dcmWebRootUrl = $form.find('input[name=dicomWebRootUrl]');
+                if (!dicomWebEnabled) {
+                    $dcmWebRootUrl.removeClass('validate');
+                } else {
+                    let $aeTitle       = $form.find('input[name=aeTitle]');
+                    let $dcmWebPingBtn = $form.find("button.ping-pacs-dicom-web");
+                    let disabled       = !$aeTitle.val() || !$dcmWebRootUrl.val();
+
+                    $dcmWebPingBtn.prop("disabled", disabled);
+
+                    $aeTitle.on('change', function() {
+                        let disabled = !this.value || !$dcmWebRootUrl.val();
+                        $dcmWebPingBtn.prop("disabled", disabled);
+                    });
+
+                    $dcmWebRootUrl.on('change', function(){
+                        let disabled = !this.value || !$aeTitle.val();
+                        $dcmWebPingBtn.prop("disabled", disabled);
+                    });
+
+                    $(document).find('.dicom-web').show();
+                }
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
@@ -251,8 +273,11 @@ XNAT.app = getObject(XNAT.app || {});
                         var $form = obj.$modal.find('form');
                         var invalidFields = [];
 
-                        if ($form.find('input[name=dicomWebEnabled]').val().toLowerCase() != 'true') {
-                            $form.find('input[name=dicomWebRootUrl]').removeClass('validate');
+                        let $dcmWebEnabledCheckbox = $form.find('input[name=dicomWebEnabled]');
+                        let $dcmWebRootUrl         = $form.find('input[name=dicomWebRootUrl]');
+
+                        if (!$dcmWebEnabledCheckbox.checked() && $dcmWebRootUrl.val() == '') {
+                            $dcmWebRootUrl.removeClass('validate');
                         }
 
                         $form.find('.validate').each(function(){
@@ -675,9 +700,61 @@ XNAT.app = getObject(XNAT.app || {});
         });
     };
 
+    PacsAdministration.checkPacsDicomWebStatus = function (id, button) {
+        let $dcmWebRootUrl = $(document).find('input[name=dicomWebRootUrl]');
+        if(!XNAT.validate($dcmWebRootUrl).check()) {
+            $dcmWebRootUrl.addClass('invalid');
+            return;
+        }
+
+        let $aeTitle = $(document).find('input[name=aeTitle]');
+        if(!XNAT.validate($aeTitle).check()) {
+            $aeTitle.addClass('invalid');
+            return;
+        }
+
+        $dcmWebRootUrl.removeClass('invalid');
+        $aeTitle.removeClass('invalid');
+
+        xmodal.loading.open({title: 'Checking DicomWeb Status'});
+        let jsonData = {
+            rootUrl: $dcmWebRootUrl.val(),
+            aeTitle: $aeTitle.val()
+        };
+
+        XNAT.xhr.postJSON({
+            url: XNAT.url.csrfUrl('/xapi/pacs/dicom-web/status'),
+            data: JSON.stringify(jsonData),
+            fail: function (e) {
+                xmodal.loading.close();
+                console.log('Error: Could not check PACS dicom-web status', e);
+                XNAT.ui.banner.top(3000, 'Error: Could not check dicom-web status', 'error');
+            },
+            success: function (response) {
+                xmodal.loading.close();
+                if(response.successful) {
+                    XNAT.ui.banner.top(3000, 'Dicom-web Status: Up', 'success');
+                    return;
+                }
+
+                let reason = "";
+                if (response.httpStatus && response.reason) {
+                    reason = "(" + response.httpStatus + " " + response.reason + ")";
+                } else if(response.httpStatus && !response.reason) {
+                    reason = "(" + response.httpStatus + ")";
+                } else if(!response.httpStatus && response.reason) {
+                    reason = "(" + response.reason + ")";
+                }
+                XNAT.ui.banner.top(3000, 'Dicom-web Status: Down ' + reason, 'alert');
+                return;
+            }
+        });
+    };
+
     PacsAdministration.init = function() {
         getAllPacs();
         populateIdentifierTable();
+        getDicomWebEnabled();
     };
 
     PacsAdministration.cancelCurrentOperation = function() {
@@ -700,38 +777,8 @@ XNAT.app = getObject(XNAT.app || {});
 
     PacsAdministration.ormStrategies = ormStrategies;
 
-    PacsAdministration.checkDicomWebStatus = function () {
-        let jsonData = {
-            rootUrl: $(document).find('input[name=dicomWebRootUrl]').val(),
-            aeTitle: $(document).find('input[name=aeTitle]').val()
-        };
-
-        function showError(errorObj) {
-            xmodal.loading.close();
-            console.log('Error: DicomWeb does not work', errorObj);
-            XNAT.ui.banner.top(3000, 'Error: DicomWeb does not work', 'error');
-        }
-
-        function showStatus() {
-            xmodal.loading.close();
-            XNAT.ui.banner.top(3000, 'DicomWeb Status: Up', 'success');
-        }
-
-        xmodal.loading.open({title: 'Checking DicomWeb Status'})
-        XNAT.xhr.postJSON({
-            url: XNAT.url.csrfUrl('/xapi/pacs/dicom-web/status'),
-            data: JSON.stringify(jsonData),
-            fail: function (e) {
-                showError(e)
-            },
-            success: function () {
-                showStatus()
-            }
-        });
-    };
-
-    $(document).on('click', '#dicomWebTest', function () {
-        XNAT.app.dqr.PacsAdministration.checkDicomWebStatus();
+    $(document).on('click', '.ping-pacs-dicom-web', function () {
+        XNAT.app.dqr.PacsAdministration.checkPacsDicomWebStatus();
     });
 
 

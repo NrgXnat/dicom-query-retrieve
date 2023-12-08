@@ -16,12 +16,16 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
     private static final DqrPreferences dqrPreferences
             = XDAT.getContextService().getBeanSafely(DqrPreferences.class);
 
-    private final Pacs pacs;
+    private final String pacsName;
     private final int maxRetries;
     private final long secondsBeforeRetry;
 
     public RetryablePacsOperation(final Pacs pacs) {
-        this.pacs = pacs;
+        this(pacs.getAeTitle());
+    }
+
+    public RetryablePacsOperation(final String pacsName) {
+        this.pacsName = pacsName;
 
         maxRetries         = Integer.parseInt(dqrPreferences.getDqrMaxPacsCMOVEAttempts());
         secondsBeforeRetry = Long.parseLong(dqrPreferences.getDqrWaitToRetryCMOVETimeInSeconds());
@@ -41,10 +45,10 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
                         Thread.currentThread().interrupt();
                         throw new NrgServiceRuntimeException("Thread interrupted while performing pacs operation.", ex);
                     }
-                    log.debug("Retrying Pacs: {}@{}.  Retry attempt: {}/{}", pacs.getAeTitle(), pacs.getHost(), attempt + 1, maxRetries);
+                    log.debug("Retrying Pacs: {}.  Retry attempt: {}/{}", pacsName, attempt + 1, maxRetries);
                     continue;
                 }
-                throw new PacsConnectionException("Unable to make a connection to pacs: " + pacs.getAeTitle() + "@" + pacs.getHost()
+                throw new PacsConnectionException("Unable to make a connection to pacs: " + pacsName
                         + ". Exceeded the maximum number of retry attempts (" + maxRetries + " attempts).", e);
             }
         }
@@ -54,7 +58,7 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
 
     public abstract T doOperationWithRetry() throws PacsConnectionException;
 
-    public Pacs getPacs() {
-        return pacs;
+    public String getPacsName() {
+        return pacsName;
     }
 }

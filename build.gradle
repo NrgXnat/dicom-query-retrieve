@@ -226,6 +226,11 @@ Building artifacts with manifest attributes:
  * Implementation-Dirty:    ${isDirty}
 """
 
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
+}
+
 task sourceJar(type: Jar, dependsOn: classes) {
     classifier "sources"
     manifest {

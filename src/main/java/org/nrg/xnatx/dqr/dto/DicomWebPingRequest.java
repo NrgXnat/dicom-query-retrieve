@@ -5,11 +5,9 @@ import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
 @Value
-@Builder
 @Jacksonized
-public class DicomWebCredential {
+@Builder
+public class DicomWebPingRequest {
     String aeTitle;
-    String username;
-    String password;
-    boolean preemptiveAuth;
+    String rootUrl;
 }
