@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import org.mockito.Mockito;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
+import org.nrg.framework.services.SerializerService;
 import org.nrg.framework.test.OrmTestConfiguration;
 import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xnat.preferences.FileStorePreferences;
@@ -61,5 +62,10 @@ public class TestProjectIrbInfoEntitiesConfig {
     @Bean
     public FileStore fileStore() throws IOException {
         return new HibernateFileStoreService(fileStorePreferences());
+    }
+
+    @Bean
+    public SerializerService serializerService() {
+        return Mockito.mock(SerializerService.class);
     }
 }

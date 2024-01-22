@@ -10,7 +10,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.nrg.config.services.ConfigService;
 import org.nrg.mail.services.MailService;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xdat.security.user.XnatUserProvider;
@@ -23,7 +22,6 @@ import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
 import org.nrg.xnat.helpers.prearchive.PrearcUtils;
 import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
-import org.nrg.xnat.services.messaging.prearchive.PrearchiveOperationRequest;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -333,8 +331,7 @@ class PacsDequeueThreadTest {
         try (MockedStatic<PrearcDatabase> prearcDbMock = mockStatic(PrearcDatabase.class);
              MockedStatic<PrearcUtils> prearcUtilsMock = mockStatic(PrearcUtils.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
-             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class);
-             MockedStatic<XDAT> xdatMock = mockStatic(XDAT.class)) {
+             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class)) {
             // This is an uninteresting bit which we must mock so other parts of the code under test don't break
             usersMock.when(() -> Users.getUser(username)).thenReturn(user);
             workflowUtilsMock.when(() -> PersistentWorkflowUtils.buildOpenWorkflow(eq(user), any(), eq(studyInstanceUid), eq(project), any()))
@@ -357,15 +354,13 @@ class PacsDequeueThreadTest {
             // Verify that the session rebuild request was submitted
             // It would be nice if we could verify this by building an expected PrearchiveOperationRequest object and passing it directly to verify(),
             //  but that doesn't work because PrearchiveOperationRequest doesn't implement equals()
-            xdatMock.verify(() -> XDAT.sendJmsRequest(argThat(actualObj -> {
-                final PrearchiveOperationRequest actual = (PrearchiveOperationRequest) actualObj;
-                return StringUtils.equals(username, actual.getUsername())
-                        && Operation.Rebuild.equals(actual.getOperation())
-                        && sessionDataSameProject.equals(actual.getSessionData())
-                        && prearcSessionDir.equals(actual.getSessionDir())
-                        && Collections.emptyMap().equals(actual.getParameters())
-                        && null == actual.getListenerId();
-            })), times(1));
+            prearcUtilsMock.verify(() -> PrearcUtils.queuePrearchiveOperation(argThat(actualObj ->
+                    StringUtils.equals(username, actualObj.getUsername())
+                        && Operation.Rebuild.equals(actualObj.getOperation())
+                        && sessionDataSameProject.equals(actualObj.getSessionData())
+                        && prearcSessionDir.equals(actualObj.getSessionDir())
+                        && Collections.emptyMap().equals(actualObj.getParameters())
+                        && null == actualObj.getListenerId())), times(1));
         }
     }
 
@@ -412,9 +407,9 @@ class PacsDequeueThreadTest {
                 .thenReturn(Collections.emptyList());  // This will break the loop in the method under test after one iteration
 
         try (MockedStatic<PrearcDatabase> prearcDbMock = mockStatic(PrearcDatabase.class);
+             MockedStatic<PrearcUtils> prearcUtilsMock = mockStatic(PrearcUtils.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
-             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class);
-             MockedStatic<XDAT> xdatMock = mockStatic(XDAT.class)) {
+             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class)) {
             // This is an uninteresting bit which we must mock so other parts of the code under test don't break
             usersMock.when(() -> Users.getUser(username)).thenReturn(user);
             workflowUtilsMock.when(() -> PersistentWorkflowUtils.buildOpenWorkflow(eq(user), any(), eq(studyInstanceUid), eq(project), any()))
@@ -433,7 +428,7 @@ class PacsDequeueThreadTest {
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
 
             // Verify that the session rebuild request was not submitted
-            xdatMock.verify(() -> XDAT.sendJmsRequest(any()), times(0));
+            prearcUtilsMock.verify(() -> PrearcUtils.queuePrearchiveOperation(any()), times(0));
         }
     }
 
@@ -467,9 +462,9 @@ class PacsDequeueThreadTest {
                 .thenReturn(Collections.emptyList());  // This will break the loop in the method under test after one iteration
 
         try (MockedStatic<PrearcDatabase> prearcDbMock = mockStatic(PrearcDatabase.class);
+             MockedStatic<PrearcUtils> prearcUtilsMock = mockStatic(PrearcUtils.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
-             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class);
-             MockedStatic<XDAT> xdatMock = mockStatic(XDAT.class)) {
+             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class)) {
             // This is an uninteresting bit which we must mock so other parts of the code under test don't break
             usersMock.when(() -> Users.getUser(username)).thenReturn(user);
             workflowUtilsMock.when(() -> PersistentWorkflowUtils.buildOpenWorkflow(eq(user), any(), eq(studyInstanceUid), eq(project), any()))
@@ -485,7 +480,7 @@ class PacsDequeueThreadTest {
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(0));
 
             // Verify that the session rebuild request was not submitted
-            xdatMock.verify(() -> XDAT.sendJmsRequest(any()), times(0));
+            prearcUtilsMock.verify(() -> PrearcUtils.queuePrearchiveOperation(any()), times(0));
         }
     }
 }
