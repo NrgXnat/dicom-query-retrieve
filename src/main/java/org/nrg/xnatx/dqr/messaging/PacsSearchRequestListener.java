@@ -15,7 +15,6 @@ import org.nrg.mail.services.MailService;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Users;
 import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
-import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;

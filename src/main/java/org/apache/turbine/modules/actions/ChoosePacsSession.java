@@ -17,15 +17,14 @@ import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
-import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
+import org.nrg.xnatx.dqr.exceptions.PacsException;
 
 import java.util.Optional;
 
 @SuppressWarnings("unused")
 public class ChoosePacsSession extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, PacsNotQueryableException, NotFoundException {
+    public void doPerform(final RunData data, final Context context) throws PacsException, NotFoundException {
         final Pacs            pacs             = getPassedPacs(data);
         final String          studyInstanceUid = (String) TurbineUtils.GetPassedParameter("studyInstanceUid", data);
         final Optional<Study> study            = getDicomQueryRetrieveService().getStudyById(XDAT.getUserDetails(), pacs, studyInstanceUid);

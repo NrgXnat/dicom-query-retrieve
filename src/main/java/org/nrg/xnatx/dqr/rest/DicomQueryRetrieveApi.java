@@ -35,6 +35,7 @@ import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.*;
 import org.nrg.xnatx.dqr.dto.*;
+import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotAvailableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
@@ -198,7 +199,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @AuthDelegate(DqrUserXapiAuthorization.class)
     @XapiRequestMapping(value = "query/series", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
-    public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam("A PACS series search request") @RequestBody final PacsSeriesSearchRequest request) throws NoContentException, PacsNotQueryableException {
+    public Map<String, PacsSearchResults<Series>> getSeries(@ApiParam("A PACS series search request") @RequestBody final PacsSeriesSearchRequest request) throws NoContentException, PacsException {
         if (request.getStudyInstanceUids().isEmpty()) {
             throw new NoContentException("No study instance UIDs specified for query on PACS " + request.getPacsId());
         }
@@ -207,7 +208,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         final Pacs  pacs = getPacsService().retrieve(request.getPacsId());
         try {
             return _dqrService.getSeriesByStudyUid(user, pacs, request.getStudyInstanceUids());
-        } catch (PacsNotQueryableException e) {
+        } catch (PacsException e) {
             log.error("An error occurred trying to retrieve series for user {} from PACS {} for study instance UIDs {}", user.getUsername(), request.getPacsId(), String.join(", ", request.getStudyInstanceUids()), e);
             throw e;
         }
@@ -242,7 +243,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/patients", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsSearchResults<Patient> searchForPatients(final @ApiParam("Search criteria for the patient search.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException {
+    public PacsSearchResults<Patient> searchForPatients(final @ApiParam("Search criteria for the patient search.") @RequestBody PacsSearchCriteria criteria) throws PacsException, NoContentException {
         final Pacs                       pacs     = getDefaultQueryablePacs(criteria.getPacsId());
         final PacsSearchResults<Patient> patients = _dqrService.getPatientsByExample(getSessionUser(), pacs, criteria);
         if (patients.getResults().isEmpty()) {
@@ -258,7 +259,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "query/studies", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsNotFoundException, NoContentException, PacsNotQueryableException, DataFormatException {
+    public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsException, NoContentException, DataFormatException {
         final long  pacsId = criteria.getPacsId();
         final UserI user   = getSessionUser();
         log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user, criteria);

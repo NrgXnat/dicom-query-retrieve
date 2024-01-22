@@ -26,7 +26,6 @@ import org.nrg.xnatx.dqr.dto.PacsImportRequest;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.*;
-import org.nrg.xnatx.dqr.messaging.PacsSearchRequest;
 import org.nrg.xnatx.dqr.utils.CsvRow;
 import org.nrg.xnatx.dqr.utils.FindRow;
 
@@ -59,21 +58,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
-    PacsSearchResults<Patient> getPatientsByExample(UserI user, Pacs pacs, PacsSearchCriteria criteria) throws PacsNotQueryableException;
-
-    /**
-     * Searches for a patient on the specified PACS with the indicated ID. This is a simplified version of the
-     * {@link #getPatientsByExample(UserI, Pacs, PacsSearchCriteria)} method.
-     *
-     * @param user      The user requesting the query.
-     * @param pacs      The PACS to query.
-     * @param patientId The ID of the patient.
-     *
-     * @return The patient with the indicated ID if found.
-     *
-     * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
-     */
-    Optional<Patient> getPatientById(UserI user, Pacs pacs, String patientId) throws PacsNotQueryableException;
+    PacsSearchResults<Patient> getPatientsByExample(UserI user, Pacs pacs, PacsSearchCriteria criteria) throws PacsException;
 
     /**
      * Searches for studies on the specified PACS that match the given criteria.
@@ -86,7 +71,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
-    PacsSearchResults<Study> getStudiesByExample(UserI user, Pacs pacs, PacsSearchCriteria criteria) throws DataFormatException, PacsNotQueryableException;
+    PacsSearchResults<Study> getStudiesByExample(UserI user, Pacs pacs, PacsSearchCriteria criteria) throws PacsException, DataFormatException;
 
     /**
      * Searches for a study on the specified PACS with the indicated study instance UID. This is a simplified version of the
@@ -100,34 +85,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
-    Optional<Study> getStudyById(UserI user, Pacs pacs, String studyInstanceUid) throws PacsNotQueryableException;
-
-    /**
-     * Searches for series from the submitted study on the specified PACS.
-     *
-     * @param user  The user requesting the query.
-     * @param pacs  The PACS to query.
-     * @param study The study on which to search.
-     *
-     * @return Returns series from the specified study if found.
-     *
-     * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
-     */
-    PacsSearchResults<Series> getSeriesByStudy(UserI user, Pacs pacs, Study study) throws PacsNotQueryableException;
-
-    /**
-     * Searches for the series on the specified PACS with the indicated series instance UID.
-     *
-     * @param user              The user requesting the query.
-     * @param pacs              The PACS to query.
-     * @param seriesInstanceUid The series instance UID on which to search.
-     *
-     * @return Returns the specified series if found.
-     *
-     * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
-     */
-    @SuppressWarnings("unused")
-    Optional<Series> getSeriesById(UserI user, Pacs pacs, String seriesInstanceUid) throws PacsNotQueryableException;
+    Optional<Study> getStudyById(UserI user, Pacs pacs, String studyInstanceUid) throws PacsException;
 
     /**
      * Runs a synchronous query against the specified PACS to find a study with the indicated study instance UID.
@@ -140,7 +98,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
-    PacsSearchResults<Series> getSeriesByStudyUid(UserI user, Pacs pacs, String studyUid) throws PacsNotQueryableException;
+    PacsSearchResults<Series> getSeriesByStudyUid(UserI user, Pacs pacs, String studyUid) throws PacsException;
 
     /**
      * Runs a synchronous query against the specified PACS to find studies with the indicated study instance UIDs.
@@ -153,23 +111,7 @@ public interface DicomQueryRetrieveService {
      *
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
-    Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(UserI user, Pacs pacs, List<String> studyUids) throws PacsNotQueryableException;
-
-    /**
-     * Starts an asynchronous query against the specified PACS to find studies with the indicated study instance UIDs.
-     * Compare with {@link #getSeriesByStudyUid(UserI, Pacs, String)} and {@link #getSeriesByStudyUid(UserI, Pacs, List)}:
-     * the core functionality is the same, but those synchronous calls require staying connected for the duration of
-     * the query operation.
-     *
-     * @param user      The user requesting the query.
-     * @param pacs      The PACS to query.
-     * @param studyUids The study instance UIDs to search on.
-     *
-     * @return The UUID of the queued query.
-     *
-     * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
-     */
-    UUID getSeriesByStudyUidAsync(UserI user, Pacs pacs, List<String> studyUids) throws PacsNotQueryableException;
+    Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(UserI user, Pacs pacs, List<String> studyUids) throws PacsException;
 
     /**
      * Indicates whether the specified search request has completed.
@@ -181,17 +123,6 @@ public interface DicomQueryRetrieveService {
      * @throws NotFoundException Thrown when the specified search request ID is not found.
      */
     boolean getSearchStatus(UUID requestId) throws NotFoundException;
-
-    /**
-     * Returns the parameters for the specified search request.
-     *
-     * @param requestId The ID of the search request.
-     *
-     * @return The {@link PacsSearchRequest request object} for the specified search.
-     *
-     * @throws NotFoundException Thrown when the specified search request ID is not found.
-     */
-    PacsSearchRequest getSearchRequest(UUID requestId) throws NotFoundException;
 
     /**
      * Updates the specified search request, adding the submitted {@link PacsSearchResults results object} to the stored results.
@@ -254,18 +185,9 @@ public interface DicomQueryRetrieveService {
      * @param pacs   The PACS to which the user wants to export.
      * @param series The series to be exported to the PACS.
      *
-     * @return The result boolean result of the operation as a future.
+     * @return The boolean result of the operation
      */
     boolean exportSeries(UserI user, Pacs pacs, XnatImagescandata series);
-
-    /**
-     * Indicates whether the specified DICOM receiver supports C-STORE operations.
-     *
-     * @param ae The AE title and optional port of the DICOM receiver to check.
-     *
-     * @return Returns <b>true</b> if the receiver supports C-STORE operations and <b>false</b> otherwise.
-     */
-    boolean isAeStorable(String ae);
 
     /**
      * Processes CSV import operations.
@@ -312,20 +234,6 @@ public interface DicomQueryRetrieveService {
      * @throws PacsNotFoundException When no PACS with the specified ID is known.
      */
     void processSpreadsheetImport(UserI user, File csv, String ae, String project, long pacsId) throws PacsNotFoundException;
-
-    /**
-     * Extracts rows from the CSV file.
-     *
-     * @param user                             The user requesting CSV processing.
-     * @param csv                              The CSV file to import.
-     * @param pacsId                           The PACS from which the data should be imported.
-     * @param allowRowThatGetsAllStudiesOnPacs Allow row that retrieves all data from target PACS.
-     *
-     * @return A list of rows from the CSV file.
-     *
-     * @throws Exception When an unexpected error occurs.
-     */
-    List<CsvRow> extractImportRequestFromCsv(UserI user, File csv, long pacsId, boolean allowRowThatGetsAllStudiesOnPacs) throws Exception;
 
     /**
      * Extracts import request rows from the CSV file.

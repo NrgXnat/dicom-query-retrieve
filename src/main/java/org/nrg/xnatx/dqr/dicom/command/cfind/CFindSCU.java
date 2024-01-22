@@ -21,15 +21,9 @@ public interface CFindSCU {
 
     PacsSearchResults<Patient> cfindPatientsByExample(final PacsSearchCriteria searchCriteria);
 
-    Optional<Patient> cfindPatientById(final String patientId);
-
     PacsSearchResults<Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria);
 
     Optional<Study> cfindStudyById(final String studyInstanceUid);
 
-    PacsSearchResults<Series> cfindSeriesByStudy(final Study Study);
-
-    PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid);
-
-    Optional<Series> cfindSeriesById(final String seriesInstanceUid);
+    PacsSearchResults<Series> cfindSeriesByExample(final PacsSearchCriteria searchCriteria);
 }
