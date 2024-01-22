@@ -36,6 +36,7 @@ import org.nrg.xft.security.UserI;
 import org.nrg.xnat.archive.Operation;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
+import org.nrg.xnat.helpers.prearchive.PrearcUtils;
 import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
 import org.nrg.xnat.services.messaging.prearchive.PrearchiveOperationRequest;
@@ -357,7 +358,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             log.debug("Submitting request to rebuild prearchive session {} for study {} in project {}", prearcSession, studyInstanceUid, project);
 
             final PrearchiveOperationRequest request = new PrearchiveOperationRequest(user, Operation.Rebuild, prearcSession);
-            XDAT.sendJmsRequest(request);
+            PrearcUtils.queuePrearchiveOperation(request);
         } catch (Exception e) {
             log.warn("Failed to submit request to rebuild prearchive session for study {} in project {}", studyInstanceUid, project, e);
         }
