@@ -2,22 +2,18 @@ package org.nrg.xnatx.dqr.services;
 
 import org.dcm4che3.data.Attributes;
 import org.nrg.xapi.exceptions.DataFormatException;
-import org.nrg.xdat.model.XnatImagescandataI;
 import org.nrg.xdat.om.XnatImagescandata;
-import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
-import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 
-import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public interface PacsClientService {
     /**
@@ -77,10 +73,60 @@ public interface PacsClientService {
      */
     PacsSearchResults<Series> querySeries(Pacs pacs, PacsSearchCriteria searchCriteria) throws PacsException;
 
-    // New versions using dcm4che >2
-    Collection<Patient> queryPatients(Pacs pacs, Attributes searchCriteria) throws PacsException;
-    Collection<Study> queryStudies(Pacs pacs, Attributes searchCriteria) throws PacsException;
-    Collection<Series> querySeries(Pacs pacs, Attributes searchCriteria) throws PacsException;
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchKeys The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    void queryPatients(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchKeys The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    void queryStudies(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchKeys The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    void querySeries(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchKeys The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    void queryInstance(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchCriteria The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    void query(Pacs pacs, Attributes searchCriteria, Consumer<Attributes> callback) throws PacsException;
 
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.
@@ -91,6 +137,17 @@ public interface PacsClientService {
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
     void importSeries(Pacs pacs, Study study, Series series, String ae);
+
+    /**
+     * Import the specified series from the indicated PACS to this XNAT instance.
+     *
+     * @param pacs              The PACS from which the user wants to import.
+     * @param studyInstanceUid  The study containing the desired instance.
+     * @param seriesInstanceUid The series containing the desired instance.
+     * @param sopInstanceUid    The instance to be imported.
+     * @param destinationAe     The AE title the PACS should use when sending the instance back to XNAT.
+     */
+    void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) throws PacsException;
 
     /**
      * Export the indicated {@link XnatImagescandata series} to the specified PACS.

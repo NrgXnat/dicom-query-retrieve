@@ -11,6 +11,20 @@ import org.nrg.xnatx.dqr.utils.AeTitle;
 public abstract class PacsException extends DqrException {
     private static final long serialVersionUID = 3019798242092476487L;
 
+    protected PacsException(final String message) {
+        super(message);
+        _pacsId = 0;
+        _aeTitle = AeTitle.EMPTY;
+        _messageFormat = message;
+    }
+
+    protected PacsException(final String message, final Exception cause) {
+        super(message, cause);
+        _pacsId = 0;
+        _aeTitle = AeTitle.EMPTY;
+        _messageFormat = message;
+    }
+
     protected PacsException(final long pacsId, final String messageFormat) {
         _pacsId = pacsId;
         _aeTitle = AeTitle.EMPTY;

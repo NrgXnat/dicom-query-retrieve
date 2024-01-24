@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.dcm4che3.data.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.nrg.config.services.ConfigService;
 import org.nrg.dcm.scp.DicomSCPInstance;
@@ -71,6 +72,7 @@ import org.nrg.xnatx.dqr.services.PacsService;
 import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
 import org.nrg.xnatx.dqr.utils.AeTitle;
 import org.nrg.xnatx.dqr.utils.CsvRow;
+import org.nrg.xnatx.dqr.utils.Dcm4cheUtils;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 import org.nrg.xnatx.dqr.utils.FindRow;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -156,6 +158,30 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<String> findStudyInstanceUids(final Pacs pacs, final Map<Integer, String> keys) throws PacsException {
+        if (log.isDebugEnabled()) {
+            log.debug("Preparing to query PACS {} {} for studies matching keys:\n * {}", pacs.getId(), pacs.getLabel(),
+                    keys.entrySet().stream().map(entry -> Dcm4cheUtils.getTagName(entry.getKey()) + "=" + entry.getValue()).collect(Collectors.joining("\n * ")));
+        }
+
+        final Map<Integer, String> searchKeys = new HashMap<>(keys);
+        searchKeys.putIfAbsent(Tag.StudyInstanceUID, null);
+
+        final List<String> studyInstanceUids = new ArrayList<>();
+        _pacsClientRoutingService.getPacsClientService(pacs)
+                .queryStudies(pacs, searchKeys, attributes -> studyInstanceUids.add(attributes.getString(Tag.StudyInstanceUID)));
+
+        if (log.isDebugEnabled()) {
+            log.debug("Found {} study instance UIDs on PACS {} {}: {}", studyInstanceUids.size(), pacs.getId(), pacs.getLabel(), String.join(", ", studyInstanceUids));
+        }
+        return studyInstanceUids;
+    }
+
+
+    /**
      * Searches for series from the submitted study on the specified PACS.
      *
      * @param user  The user requesting the query.
@@ -189,6 +215,45 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             results.put(studyUid, pacsClientService.querySeries(pacs, PacsSearchCriteria.builder().studyInstanceUid(studyUid).build()));
         }
         return results;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<String> findSeriesInstanceUids(final Pacs pacs, final String studyInstanceUid) throws PacsException {
+        log.debug("Preparing to query PACS {} {} for series instance UIDs matching study instance UID {}",
+                pacs.getId(), pacs.getLabel(), studyInstanceUid);
+
+        final Map<Integer, String> keys = new HashMap<>();
+        keys.put(Tag.StudyInstanceUID, studyInstanceUid);
+        keys.put(Tag.SeriesInstanceUID, null);
+
+        final List<String> seriesInstanceUids = new ArrayList<>();
+        _pacsClientRoutingService.getPacsClientService(pacs)
+                .querySeries(pacs, keys, attributes -> seriesInstanceUids.add(attributes.getString(Tag.SeriesInstanceUID)));
+
+        if (log.isDebugEnabled()) {
+            log.debug("Found {} series instance UIDs from PACS {} {} matching study instance UID {}: {}",
+                    seriesInstanceUids.size(), pacs.getId(), pacs.getLabel(), studyInstanceUid,
+                    String.join(", ", seriesInstanceUids));
+        }
+        return seriesInstanceUids;
+    }
+
+    @Override
+    public List<String> findSopInstanceUids(Pacs pacs, String studyInstanceUid, String seriesInstanceUid) throws PacsException {
+        final Map<Integer, String> keys = new HashMap<>();
+        keys.put(Tag.StudyInstanceUID, studyInstanceUid);
+        keys.put(Tag.SeriesInstanceUID, seriesInstanceUid);
+        keys.put(Tag.SOPInstanceUID, null);
+
+        final List<String> sopInstanceUids = new ArrayList<>();
+
+        _pacsClientRoutingService.getPacsClientService(pacs)
+                .queryInstance(pacs, keys, (attributes) -> sopInstanceUids.add(attributes.getString(Tag.SOPInstanceUID)));
+
+        return sopInstanceUids;
     }
 
     /**
@@ -229,6 +294,11 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     @Override
     public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
         _pacsClientRoutingService.getPacsClientService(pacs).importSeries(pacs, study, series, ae);
+    }
+
+    @Override
+    public void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) throws PacsException {
+        _pacsClientRoutingService.getPacsClientService(pacs).importInstance(pacs, studyInstanceUid, seriesInstanceUid, sopInstanceUid, destinationAe);
     }
 
     /**
@@ -709,21 +779,6 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                                   final String   assign = StringUtils.equalsAny(value, CLEAR_SIGNIFIER, CLEAR_SIGNIFIER_3X) ? " := \"\"" : " := \"" + value + "\"";
                                   return Arrays.stream(tags).map(tag -> tag + assign).collect(Collectors.toList());
                               }).flatMap(Collection::stream).collect(Collectors.joining(System.lineSeparator())));
-    }
-
-    @Value
-    @Builder
-    private static class StudyInfo {
-        @Builder.Default
-        String studyDate       = null;
-        @Builder.Default
-        String studyId         = null;
-        @Builder.Default
-        String accessionNumber = null;
-        @Builder.Default
-        String patientId       = null;
-        @Builder.Default
-        String patientName     = null;
     }
 
     @Data

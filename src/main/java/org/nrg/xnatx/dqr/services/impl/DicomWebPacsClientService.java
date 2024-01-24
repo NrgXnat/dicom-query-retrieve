@@ -12,8 +12,9 @@ import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.services.PacsClientService;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
 public class DicomWebPacsClientService implements PacsClientService {
@@ -46,22 +47,37 @@ public class DicomWebPacsClientService implements PacsClientService {
     }
 
     @Override
-    public Collection<Patient> queryPatients(Pacs pacs, Attributes searchCriteria) throws PacsException {
-        return null;
+    public void queryPatients(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+
     }
 
     @Override
-    public Collection<Study> queryStudies(Pacs pacs, Attributes searchCriteria) throws PacsException {
-        return null;
+    public void queryStudies(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+
     }
 
     @Override
-    public Collection<Series> querySeries(Pacs pacs, Attributes searchCriteria) throws PacsException {
-        return null;
+    public void querySeries(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+
+    }
+
+    @Override
+    public void queryInstance(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+
+    }
+
+    @Override
+    public void query(Pacs pacs, Attributes searchCriteria, final Consumer<Attributes> callback) throws PacsException {
+
     }
 
     @Override
     public void importSeries(Pacs pacs, Study study, Series series, String ae) {
+
+    }
+
+    @Override
+    public void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) {
 
     }
 

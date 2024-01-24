@@ -88,6 +88,18 @@ public interface DicomQueryRetrieveService {
     Optional<Study> getStudyById(UserI user, Pacs pacs, String studyInstanceUid) throws PacsException;
 
     /**
+     * Finds all study instance UIDs on the indicated PACS that match the specified keys.
+     *
+     * @param pacs The PACS to be searched
+     * @param keys The criteria for filtering studies
+     *
+     * @return A list of study instance UIDs matching the specified keys.
+     *
+     * @throws PacsException When an error occurs connecting to the PACS
+     */
+    List<String> findStudyInstanceUids(Pacs pacs, Map<Integer, String> keys) throws PacsException;
+
+    /**
      * Runs a synchronous query against the specified PACS to find a study with the indicated study instance UID.
      *
      * @param user     The user requesting the query.
@@ -112,6 +124,31 @@ public interface DicomQueryRetrieveService {
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
     Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(UserI user, Pacs pacs, List<String> studyUids) throws PacsException;
+
+    /**
+     * Finds all series instance UIDs on the indicated PACS that match the specified study instance UID.
+     *
+     * @param pacs The PACS to be searched
+     * @param studyInstanceUid The study instance UID on which to filter the series
+     *
+     * @return A list of series instance UIDs matching the specified study instance UID.
+     *
+     * @throws PacsException When an error occurs connecting to the PACS
+     */
+    List<String> findSeriesInstanceUids(Pacs pacs, String studyInstanceUid) throws PacsException;
+
+    /**
+     * Finds all series instance UIDs on the indicated PACS that match the specified study instance UID.
+     *
+     * @param pacs The PACS to be searched
+     * @param studyInstanceUid The study instance UID on which to filter the instances
+     * @param seriesInstanceUid The series instance UID on which to filter the instances
+     *
+     * @return A list of series instance UIDs matching the specified study instance UID.
+     *
+     * @throws PacsException When an error occurs connecting to the PACS
+     */
+    List<String> findSopInstanceUids(Pacs pacs, String studyInstanceUid, String seriesInstanceUid) throws PacsException;
 
     /**
      * Indicates whether the specified search request has completed.
@@ -158,6 +195,18 @@ public interface DicomQueryRetrieveService {
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
     void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae);
+
+    /**
+     * Import a single instance from the specified series
+     *
+     * @param pacs              The PACS to be searched
+     * @param studyInstanceUid  The study instance UID on which to filter the series
+     * @param seriesInstanceUid The series instance UID on which to filter the DICOM instances
+     * @param sopInstanceUid    The instance to import
+     * @param destinationAe     The AE title the PACS should use when sending the instance back to XNAT.
+     * @throws PacsException When an error occurs connecting to the PACS
+     */
+    void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) throws PacsException;
 
     /**
      * Import data found in the {@link ExecutedPacsRequest completed PACS request} to this XNAT instance.
