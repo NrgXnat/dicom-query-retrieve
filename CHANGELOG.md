@@ -5,6 +5,26 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="1.3"></a>XNAT DQR Version 1.3 Release Notes
+
+### 1.3.x Versions
+
+[1.3.0](#1.3.0)
+
+### <a name="1.3.0"></a>DQR Plugin Version: 1.3.0
+
+This release updates the minimum supported XNAT version from 1.8.5 to 1.8.10.
+
+#### 1.3.0 - General Improvements
+
+   * [PLUGINS-22](https://radiologics.atlassian.net/browse/PLUGINS-22) Trigger session building and archiving when all study data is received, bypassing default archive timeout.
+   * [PLUGINS-91](https://radiologics.atlassian.net/browse/PLUGINS-91) Delete partially received study data from the prearchive when an import request fails
+   * [PLUGINS-93](https://radiologics.atlassian.net/browse/PLUGINS-93) Add internal API to find queued requests by study instance UID
+   * [PLUGINS-100](https://radiologics.atlassian.net/browse/PLUGINS-100) [PLUGINS-102](https://radiologics.atlassian.net/browse/PLUGINS-102) Refactor internal service APIs to prepare for more substantial DICOMweb support
+
+#### 1.3.0 - Fixes
+   * [PLUGINS-94](https://radiologics.atlassian.net/browse/PLUGINS-94) DICOMweb: Fix Ping button in PACS configuration UI
+
 ## <a name="1.2"></a>XNAT DQR Version 1.2 Release Notes
 
 ### 1.2.x Versions
