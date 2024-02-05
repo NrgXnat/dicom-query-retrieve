@@ -18,6 +18,13 @@ public abstract class PacsException extends DqrException {
         _messageFormat = message;
     }
 
+    protected PacsException(final Exception cause) {
+        super(cause);
+        _pacsId = 0;
+        _aeTitle = AeTitle.EMPTY;
+        _messageFormat = "";
+    }
+
     protected PacsException(final String message, final Exception cause) {
         super(message, cause);
         _pacsId = 0;

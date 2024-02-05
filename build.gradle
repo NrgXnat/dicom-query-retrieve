@@ -155,6 +155,9 @@ dependencies {
     implementAndInclude("org.dcm4che:dcm4che-json") {
         transitive = false
     }
+    implementAndInclude("org.dcm4che:dcm4che-mime") {
+        transitive = false
+    }
 
     compileOnly "javax.interceptor:javax.interceptor-api"
 

@@ -194,7 +194,7 @@ public interface DicomQueryRetrieveService {
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
-    void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae);
+    void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae) throws DqrException;
 
     /**
      * Import a single instance from the specified series
@@ -213,7 +213,7 @@ public interface DicomQueryRetrieveService {
      *
      * @param request The completed request from which data should be imported.
      */
-    void importFromPacsRequest(ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
+    void importFromPacsRequest(ExecutedPacsRequest request) throws DqrException;
 
     /**
      * Export the indicated {@link XnatImagescandata scans} from {@link XnatImagesessiondata session} to the specified PACS.

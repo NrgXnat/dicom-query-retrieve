@@ -40,7 +40,6 @@ public class PacsThreads {
 
     public int numAvailable(final long pacsId, final int maxAvailable) {
         final int current = get(pacsId);
-        log.debug("PACS {} has {}/{} threads running", pacsId, current, maxAvailable);
         return maxAvailable - current;
     }
 

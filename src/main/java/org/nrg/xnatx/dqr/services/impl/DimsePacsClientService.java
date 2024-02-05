@@ -14,6 +14,7 @@ import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
+import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.BasicCStoreSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
@@ -26,6 +27,7 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
+import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
@@ -104,38 +106,52 @@ public class DimsePacsClientService implements PacsClientService {
 
     @Override
     public void queryPatients(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
-        query(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.PATIENT), callback);
+        doCFind(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.PATIENT), callback);
     }
 
     @Override
     public void queryStudies(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
-        query(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.STUDY), callback);
+        doCFind(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.STUDY), callback);
     }
 
     @Override
     public void querySeries(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
-        query(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.SERIES), callback);
+        doCFind(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.SERIES), callback);
+    }
+
+    @Override
+    public void querySeries(Pacs pacs, String studyInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+        final Map<Integer, String> keys = new HashMap<>(searchKeys);
+        keys.putIfAbsent(Tag.StudyInstanceUID, studyInstanceUid);
+        keys.putIfAbsent(Tag.SeriesInstanceUID, null);
+        querySeries(pacs, keys, callback);
     }
 
     @Override
     public void queryInstance(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
-        query(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.IMAGE), callback);
+        doCFind(pacs, buildQuery(searchKeys, QrClient.QueryRetrieveLevel.IMAGE), callback);
+    }
+
+    @Override
+    public void queryInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+        final Map<Integer, String> keys = new HashMap<>(searchKeys);
+        keys.putIfAbsent(Tag.StudyInstanceUID, studyInstanceUid);
+        keys.putIfAbsent(Tag.SeriesInstanceUID, seriesInstanceUid);
+        keys.putIfAbsent(Tag.SOPInstanceUID, null);
+        queryInstance(pacs, keys, callback);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void query(Pacs pacs, Attributes searchCriteria, Consumer<Attributes> callback) throws PacsException {
-        doCFind(pacs, searchCriteria, callback);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void importSeries(final Pacs pacs, final Study study, final Series series, final String ae) {
-        buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
+    public void importSeries(final Pacs pacs, final Study study, final Series series, final String ae) throws DqrException {
+        try {
+            buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
+        } catch (final CMoveTargetNotFoundException exception) {
+            log.warn("C-MOVE target not found somehow: PACS {}", pacs, exception);
+            throw new DqrException(exception);
+        }
     }
 
     @Override

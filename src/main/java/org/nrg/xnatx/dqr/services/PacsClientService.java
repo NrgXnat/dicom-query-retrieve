@@ -9,6 +9,7 @@ import org.nrg.xnatx.dqr.domain.Study;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
+import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 
 import java.util.Map;
@@ -115,18 +116,29 @@ public interface PacsClientService {
      *
      * @throws PacsException Thrown when the PACS can't be queried.
      */
+    void querySeries(Pacs pacs, String studyInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
+     * Execute a query on the specified PACS
+     *
+     * @param pacs      The PACS to query.
+     * @param searchKeys The criteria on which to search.
+     * @param callback  The callback method to execute on each dataset retrieved
+     *
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
     void queryInstance(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
 
     /**
      * Execute a query on the specified PACS
      *
      * @param pacs      The PACS to query.
-     * @param searchCriteria The criteria on which to search.
+     * @param searchKeys The criteria on which to search.
      * @param callback  The callback method to execute on each dataset retrieved
      *
      * @throws PacsException Thrown when the PACS can't be queried.
      */
-    void query(Pacs pacs, Attributes searchCriteria, Consumer<Attributes> callback) throws PacsException;
+    void queryInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
 
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.
@@ -136,7 +148,7 @@ public interface PacsClientService {
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
-    void importSeries(Pacs pacs, Study study, Series series, String ae);
+    void importSeries(Pacs pacs, Study study, Series series, String ae) throws DqrException;
 
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.

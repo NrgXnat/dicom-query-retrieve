@@ -59,6 +59,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyImportInformation;
 import org.nrg.xnatx.dqr.exceptions.ArchiveProcessorsNotAvailableException;
 import org.nrg.xnatx.dqr.exceptions.DicomReceiverCustomProcessingDisabledException;
+import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
@@ -225,13 +226,9 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         log.debug("Preparing to query PACS {} {} for series instance UIDs matching study instance UID {}",
                 pacs.getId(), pacs.getLabel(), studyInstanceUid);
 
-        final Map<Integer, String> keys = new HashMap<>();
-        keys.put(Tag.StudyInstanceUID, studyInstanceUid);
-        keys.put(Tag.SeriesInstanceUID, null);
-
         final List<String> seriesInstanceUids = new ArrayList<>();
         _pacsClientRoutingService.getPacsClientService(pacs)
-                .querySeries(pacs, keys, attributes -> seriesInstanceUids.add(attributes.getString(Tag.SeriesInstanceUID)));
+                .querySeries(pacs, studyInstanceUid, Collections.emptyMap(), attributes -> seriesInstanceUids.add(attributes.getString(Tag.SeriesInstanceUID)));
 
         if (log.isDebugEnabled()) {
             log.debug("Found {} series instance UIDs from PACS {} {} matching study instance UID {}: {}",
@@ -243,15 +240,9 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
     @Override
     public List<String> findSopInstanceUids(Pacs pacs, String studyInstanceUid, String seriesInstanceUid) throws PacsException {
-        final Map<Integer, String> keys = new HashMap<>();
-        keys.put(Tag.StudyInstanceUID, studyInstanceUid);
-        keys.put(Tag.SeriesInstanceUID, seriesInstanceUid);
-        keys.put(Tag.SOPInstanceUID, null);
-
         final List<String> sopInstanceUids = new ArrayList<>();
-
         _pacsClientRoutingService.getPacsClientService(pacs)
-                .queryInstance(pacs, keys, (attributes) -> sopInstanceUids.add(attributes.getString(Tag.SOPInstanceUID)));
+                .queryInstance(pacs, studyInstanceUid, seriesInstanceUid, Collections.emptyMap(), (attributes) -> sopInstanceUids.add(attributes.getString(Tag.SOPInstanceUID)));
 
         return sopInstanceUids;
     }
@@ -292,7 +283,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) {
+    public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) throws DqrException {
         _pacsClientRoutingService.getPacsClientService(pacs).importSeries(pacs, study, series, ae);
     }
 
@@ -305,7 +296,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public void importFromPacsRequest(final ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException {
+    public void importFromPacsRequest(final ExecutedPacsRequest request) throws DqrException {
         final Pacs pacs = _pacsService.retrieve(request.getPacsId());
         if (!pacs.isQueryable()) {
             throw new PacsNotQueryableException(request.getPacsId());
@@ -317,14 +308,9 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
         final PacsClientService pacsClientService = _pacsClientRoutingService.getPacsClientService(pacs);
         final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
-        try {
-            for (final String seriesId : request.getSeriesIds()) {
-                log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
-                pacsClientService.importSeries(pacs, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);
-            }
-        } catch (final CMoveTargetNotFoundException exception) {
-            log.warn("C-MOVE target not found somehow: PACS {}", pacs, exception);
-            throw exception;
+        for (final String seriesId : request.getSeriesIds()) {
+            log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
+            pacsClientService.importSeries(pacs, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);
         }
     }
 

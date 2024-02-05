@@ -52,7 +52,6 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
     @Override
     public void runTask() {
         try {
-            log.debug("Executing PACS threads checker function");
             final List<Pacs> pacsList = _pacsService.findAllQueryable();
             if (pacsList != null) {
                 for (final Pacs pacs : pacsList) {
