@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.services;
 
+import org.dcm4che3.data.Attributes;
 import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.InitializationException;
@@ -124,6 +125,19 @@ public interface DicomQueryRetrieveService {
      * @throws PacsNotQueryableException Thrown when the PACS can't be queried.
      */
     Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(UserI user, Pacs pacs, List<String> studyUids) throws PacsException;
+
+    /**
+     * Get instance metadata from the PACS.
+     *
+     * @param pacs              The PACS to query.
+     * @param studyInstanceUid  Study instance UID
+     * @param seriesInstanceUid Series instance UID
+     * @param sopInstanceUid    SOP instance UID
+     * @param searchKeys
+     * @return Returns instance attributes
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException;
 
     /**
      * Finds all series instance UIDs on the indicated PACS that match the specified study instance UID.

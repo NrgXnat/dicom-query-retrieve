@@ -10,15 +10,14 @@
 package org.nrg.xnatx.dqr.services.impl.basic;
 
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.nrg.config.services.ConfigService;
@@ -44,7 +43,6 @@ import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreFailureException;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -216,6 +214,12 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             results.put(studyUid, pacsClientService.querySeries(pacs, PacsSearchCriteria.builder().studyInstanceUid(studyUid).build()));
         }
         return results;
+    }
+
+    @Override
+    public Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException {
+        return _pacsClientRoutingService.getPacsClientService(pacs)
+                .getInstanceMetadata(pacs, studyInstanceUid, seriesInstanceUid, sopInstanceUid, searchKeys);
     }
 
     /**

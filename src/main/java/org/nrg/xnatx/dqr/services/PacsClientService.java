@@ -141,6 +141,18 @@ public interface PacsClientService {
     void queryInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
 
     /**
+     * Get instance metadata attributes from the PACS
+     *
+     * @param pacs              The PACS to query.
+     * @param studyInstanceUid  Study instance UID
+     * @param seriesInstanceUid Series instance UID
+     * @param sopInstanceUid    SOP instance UID
+     * @param searchKeys
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException;
+
+    /**
      * Import the specified series from the indicated PACS to this XNAT instance.
      *
      * @param pacs   The PACS from which the user wants to import.

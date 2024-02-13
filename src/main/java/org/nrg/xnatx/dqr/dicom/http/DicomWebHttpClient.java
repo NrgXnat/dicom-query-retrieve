@@ -27,7 +27,6 @@ import org.dcm4che3.mime.MultipartInputStream;
 import org.dcm4che3.mime.MultipartParser;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.xnatx.dqr.dicom.json.DicomCorrectingJsonParser;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.DicomWebCredential;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
 import org.nrg.xnatx.dqr.exceptions.DqrException;
@@ -50,6 +49,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +62,7 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class DicomWebHttpClient implements AutoCloseable {
+    private static final Attributes EMPTY_ATTRIBUTES = new Attributes(false, 0);
     private static final DateFormat STUDY_DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
     private static final String STUDIES = "studies?StudyDate=";
 
@@ -73,10 +74,6 @@ public class DicomWebHttpClient implements AutoCloseable {
     private final HttpClientContext context;
     private final String rootUrl;
     private final URL rootUrlObj;
-
-    public DicomWebHttpClient(final Pacs pacs, @Nullable final DicomWebCredential credentials) {
-        this(pacs.getDicomWebRootUrl(), credentials);
-    }
 
     public DicomWebHttpClient(final String rootUrl, @Nullable final DicomWebCredential credentials) {
         this.rootUrl = StringUtils.appendIfMissing(rootUrl, "/");
@@ -112,49 +109,28 @@ public class DicomWebHttpClient implements AutoCloseable {
         }
     }
 
-    public void getAttributes(final String urlPath, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsConnectionException {
-        final URI uri = buildUri(urlPath, searchKeys);
-
-        new RetryablePacsOperation<Void>(rootUrl) {
-            @Override
-            @Nullable
-            public Void doOperationWithRetry() throws PacsConnectionException {
-                doGet(uri, callback);
-                return null;
-            }
-        }.call();
+    public void getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsConnectionException {
+        _getAttributes(pathSegments, searchKeys, callback);
     }
 
-    public void getAttributes(final String url, final Consumer<Attributes> callback) throws PacsConnectionException {
-        new RetryablePacsOperation<Void>(rootUrl) {
-            @Override
-            @Nullable
-            public Void doOperationWithRetry() throws PacsConnectionException {
-                try {
-                    doGet(url, callback);
-                } catch (IOException e) {
-                    throw new PacsConnectionException("Failed to connect to dicom-web endpoint: " + rootUrl, e);
-                }
-                return null;
-            }
-        }.call();
+    public Attributes getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys) throws PacsConnectionException {
+        return _getAttributes(pathSegments, searchKeys, null).orElse(EMPTY_ATTRIBUTES);
     }
 
-    public Optional<Attributes> getAttributes(final String url) throws PacsConnectionException {
+    private Optional<Attributes> _getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsConnectionException {
+        final URI uri = buildUri(pathSegments, searchKeys);
+
         return new RetryablePacsOperation<Optional<Attributes>>(rootUrl) {
             @Override
+            @Nullable
             public Optional<Attributes> doOperationWithRetry() throws PacsConnectionException {
-                try {
-                    return doGet(url);
-                } catch (IOException e) {
-                    throw new PacsConnectionException("Failed to connect to dicom-web endpoint: " + rootUrl, e);
-                }
+                return doGet(uri, callback);
             }
         }.call();
     }
 
-    public void getItem(final String path, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsConnectionException {
-        final URI uri = buildUri(path, queryParamsByTag);
+    public void getItem(final List<String> pathSegments, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsConnectionException {
+        final URI uri = buildUri(pathSegments, queryParamsByTag);
         new RetryablePacsOperation<Void>(rootUrl) {
             @Override
             public Void doOperationWithRetry() throws PacsConnectionException {
@@ -188,16 +164,6 @@ public class DicomWebHttpClient implements AutoCloseable {
                     .reason("Unable to establish connection")
                     .build();
         }
-    }
-
-    private Optional<Attributes> doGet(final String url)
-            throws IOException {
-        return doGet(url, null);
-    }
-
-    private Optional<Attributes> doGet(final String url, @Nullable final Consumer<Attributes> callback)
-            throws IOException {
-        return doGet(URI.create(url), callback);
     }
 
     private Optional<Attributes> doGet(final URI uri, @Nullable final Consumer<Attributes> callback) {
@@ -277,10 +243,10 @@ public class DicomWebHttpClient implements AutoCloseable {
         }
     }
 
-    private URI buildUri(final String path, final Map<Integer, String> searchKeys) throws PacsConnectionException {
-        final List<String> pathSegments = Stream.concat(
+    private URI buildUri(final Collection<String> pathSegments, final Map<Integer, String> searchKeys) throws PacsConnectionException {
+        final List<String> combinedPathSegments = Stream.concat(
                         Arrays.stream(rootUrlObj.getPath().split("/")),
-                        Arrays.stream(path.split("/"))
+                        pathSegments.stream()
                 )
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toList());
@@ -289,7 +255,7 @@ public class DicomWebHttpClient implements AutoCloseable {
                 .setScheme(rootUrlObj.getProtocol())
                 .setHost(rootUrlObj.getHost())
                 .setPort(rootUrlObj.getPort())
-                .setPathSegments(pathSegments);
+                .setPathSegments(combinedPathSegments);
 
         final List<String> includeFields = new ArrayList<>();
         for (final Map.Entry<Integer, String> entry : searchKeys.entrySet()) {

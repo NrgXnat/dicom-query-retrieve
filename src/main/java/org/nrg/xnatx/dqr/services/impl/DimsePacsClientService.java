@@ -141,6 +141,16 @@ public class DimsePacsClientService implements PacsClientService {
         queryInstance(pacs, keys, callback);
     }
 
+    @Override
+    public Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException {
+        final Map<Integer, String> keys = new HashMap<>(searchKeys);
+        keys.put(Tag.SOPInstanceUID, sopInstanceUid);
+
+        final Attributes attributes = new Attributes();
+        queryInstance(pacs, studyInstanceUid, seriesInstanceUid, keys, attributes::addAll);
+        return attributes;
+    }
+
     /**
      * {@inheritDoc}
      */

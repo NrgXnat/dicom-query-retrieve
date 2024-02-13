@@ -22,6 +22,7 @@ import org.nrg.xnatx.dqr.services.PacsClientService;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -83,7 +84,7 @@ public class DicomWebPacsClientService implements PacsClientService {
     public void queryStudies(Pacs pacs, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
         log.debug("Querying for studies matching {}", searchKeys);
         searchKeys = new HashMap<>(searchKeys);
-        getDicomWebHttpClient(pacs).getAttributes(STUDIES_ENDPOINT, searchKeys, callback);
+        getDicomWebHttpClient(pacs).getAttributes(Collections.singletonList(STUDIES_ENDPOINT), searchKeys, callback);
     }
 
     @Override
@@ -95,10 +96,10 @@ public class DicomWebPacsClientService implements PacsClientService {
     public void querySeries(Pacs pacs, String studyInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
         log.debug("Querying for series matching studyInstanceUid {} {}", studyInstanceUid, searchKeys);
         Objects.requireNonNull(studyInstanceUid, "studyInstanceUid is required");
-        final String path = StringUtils.joinWith("/", STUDIES_ENDPOINT, studyInstanceUid, SERIES_ENDPOINT);
+        final List<String> pathSegments = Arrays.asList(STUDIES_ENDPOINT, studyInstanceUid, SERIES_ENDPOINT);
         searchKeys = new HashMap<>(searchKeys);
         searchKeys.remove(Tag.StudyInstanceUID);
-        getDicomWebHttpClient(pacs).getAttributes(path, searchKeys, callback);
+        getDicomWebHttpClient(pacs).getAttributes(pathSegments, searchKeys, callback);
     }
 
     @Override
@@ -111,20 +112,38 @@ public class DicomWebPacsClientService implements PacsClientService {
         log.debug("Querying for instances matching studyInstanceUid {} seriesInstanceUid {} {}", studyInstanceUid, seriesInstanceUid, searchKeys);
         Objects.requireNonNull(studyInstanceUid, "studyInstanceUid is required");
         Objects.requireNonNull(seriesInstanceUid, "seriesInstanceUid is required");
-        final String path = StringUtils.joinWith("/", STUDIES_ENDPOINT, studyInstanceUid, SERIES_ENDPOINT, seriesInstanceUid, INSTANCES_ENDPOINT);
+        final List<String> pathSegments = Arrays.asList(
+                STUDIES_ENDPOINT, studyInstanceUid, SERIES_ENDPOINT, seriesInstanceUid, INSTANCES_ENDPOINT
+        );
         searchKeys = new HashMap<>(searchKeys);
         searchKeys.remove(Tag.StudyInstanceUID);
         searchKeys.remove(Tag.SeriesInstanceUID);
-        getDicomWebHttpClient(pacs).getAttributes(path, searchKeys, callback);
+        getDicomWebHttpClient(pacs).getAttributes(pathSegments, searchKeys, callback);
+    }
+
+    @Override
+    public Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException {
+        log.debug("Getting instance metadata for studyInstanceUid {} seriesInstanceUid {} sopInstanceUid {} search keys {}", studyInstanceUid, seriesInstanceUid, sopInstanceUid, searchKeys);
+        Objects.requireNonNull(studyInstanceUid, "studyInstanceUid is required");
+        Objects.requireNonNull(seriesInstanceUid, "seriesInstanceUid is required");
+        Objects.requireNonNull(sopInstanceUid, "sopInstanceUid is required");
+        final List<String> pathSegments = Arrays.asList(
+                STUDIES_ENDPOINT, studyInstanceUid, SERIES_ENDPOINT, seriesInstanceUid, INSTANCES_ENDPOINT, sopInstanceUid, META_DATA_ENDPOINT
+        );
+        searchKeys = new HashMap<>(searchKeys);
+        searchKeys.remove(Tag.StudyInstanceUID);
+        searchKeys.remove(Tag.SeriesInstanceUID);
+        searchKeys.remove(Tag.SOPInstanceUID);
+        return getDicomWebHttpClient(pacs).getAttributes(pathSegments, searchKeys);
     }
 
     @Override
     public void importSeries(Pacs pacs, Study study, Series series, String ae) throws DqrException {
         log.debug("Importing study {} series {}", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
-        final String path = StringUtils.joinWith("/",
+        final List<String> pathSegments = Arrays.asList(
                 STUDIES_ENDPOINT, study.getStudyInstanceUid(), SERIES_ENDPOINT, series.getSeriesInstanceUid()
         );
-        getDicomWebHttpClient(pacs).getItem(path, Collections.emptyMap(), this::importSeriesFromMultipartDicom);
+        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), this::importSeriesFromMultipartDicom);
         log.info("Series {} imported", series.getSeriesInstanceUid());
     }
 
