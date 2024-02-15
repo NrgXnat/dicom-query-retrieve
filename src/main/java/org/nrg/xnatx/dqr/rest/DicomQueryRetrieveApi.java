@@ -56,7 +56,6 @@ import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.PacsSeriesSearchRequest;
 import org.nrg.xnatx.dqr.exceptions.CsvPacsRequestTooManyRowsException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotAvailableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.messaging.PacsSessionExportRequest;
@@ -518,7 +517,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @XapiRequestMapping(value = "export", method = RequestMethod.PUT, produces = MediaType.APPLICATION_JSON_VALUE, restrictTo = Authorizer)
     public Map<String, Object> export(@ApiParam("ID of PACS to send to.") @RequestParam final long pacsId,
                                       @ApiParam("XNAT session to send.") @RequestParam(name = "session") final String sessionId,
-                                      @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws PacsNotFoundException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException, NotFoundException, PacsNotAvailableException {
+                                      @ApiParam("Array of scans in the session to send.") @RequestParam final List<String> scansToExport) throws PacsNotFoundException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException, NotFoundException {
         if (StringUtils.isBlank(sessionId)) {
             throw new DataFormatException("You must specify a session ID for this operation.");
         }
@@ -535,10 +534,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         }
 
         final UserI user = getSessionUser();
-
-        if (!_dqrService.ping(user, pacs)) {
-            throw new PacsNotAvailableException(pacsId);
-        }
 
         final Integer workflowId = _dqrService.exportSession(user, pacs, PacsSessionExportRequest.getSession(user, sessionId), scansToExport);
 
