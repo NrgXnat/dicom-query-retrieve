@@ -27,8 +27,8 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
     public RetryablePacsOperation(final String pacsName) {
         this.pacsName = pacsName;
 
-        maxRetries         = Integer.parseInt(dqrPreferences.getDqrMaxPacsCMOVEAttempts());
-        secondsBeforeRetry = Long.parseLong(dqrPreferences.getDqrWaitToRetryCMOVETimeInSeconds());
+        maxRetries         = Integer.parseInt(dqrPreferences.getDqrMaxPacsRequestAttempts());
+        secondsBeforeRetry = Long.parseLong(dqrPreferences.getDqrWaitToRetryRequestInSeconds());
     }
 
     @Override

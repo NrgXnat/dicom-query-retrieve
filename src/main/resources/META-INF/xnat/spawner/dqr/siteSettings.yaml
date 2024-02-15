@@ -96,17 +96,17 @@ dqrOtherPreferencePanel:
             kind: panel.input.text
             size: 10
             name: dqrMaxPacsCMOVEAttempts
-            label: Maximum Connection Attempts (CMOVE)
+            label: Maximum Retrieve Attempts
             placeholder: 5
-            description: Maximum number of connection attempts to make to a PACS.
+            description: Maximum number of attempts to make when retrieving data from a PACS.
             validation: number
         dqrWaitToRetryCMOVETimeInSeconds:
             kind: panel.input.text
             size: 10
             name: dqrWaitToRetryCMOVETimeInSeconds
-            label: Retry Wait Period (CMOVE)
+            label: Retrieve Retry Wait Period
             placeholder: 300
-            description: Number of seconds to wait to retry the connection to a PACS.
+            description: Number of seconds to wait before retrying a failed attempt to retrieve data from a PACS.
             validation: number
         allowAllUsersToUseDqr:
             kind: panel.input.switchbox

@@ -32,6 +32,7 @@ import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
+import org.nrg.xnatx.dqr.exceptions.PacsQueryException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.PacsClientService;
 import org.nrg.xnatx.dqr.utils.RetryablePacsOperation;
@@ -101,7 +102,11 @@ public class DimsePacsClientService implements PacsClientService {
      */
     @Override
     public PacsSearchResults<Series> querySeries(Pacs pacs, PacsSearchCriteria searchCriteria) throws PacsException {
-        return buildCFindSCU(pacs).cfindSeriesByExample(searchCriteria);
+        try {
+            return buildCFindSCU(pacs).cfindSeriesByExample(searchCriteria);
+        } catch (DqrRuntimeException e) {
+            throw new PacsQueryException("Could not find series", e);
+        }
     }
 
     @Override

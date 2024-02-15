@@ -63,28 +63,28 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     }
 
     @NrgPreference(defaultValue = "5")
-    public String getDqrMaxPacsCMOVEAttempts() {
+    public String getDqrMaxPacsRequestAttempts() {
         return getValue("dqrMaxPacsCMOVEAttempts");
     }
 
     @SuppressWarnings("unused")
-    public void setDqrMaxPacsCMOVEAttempts(final String dqrMaxPacsCMOVEAttempts) {
+    public void setDqrMaxPacsRequestAttempts(final String dqrMaxPacsRequestAttempts) {
         try {
-            set(dqrMaxPacsCMOVEAttempts, "dqrMaxPacsCMOVEAttempts");
+            set(dqrMaxPacsRequestAttempts, "dqrMaxPacsCMOVEAttempts");
         } catch (InvalidPreferenceName e) {
             log.error("Invalid preference name 'dqrMaxPacsCMOVEAttempts': something is very wrong here.", e);
         }
     }
 
     @NrgPreference(defaultValue = "300")
-    public String getDqrWaitToRetryCMOVETimeInSeconds() {
+    public String getDqrWaitToRetryRequestInSeconds() {
         return getValue("dqrWaitToRetryCMOVETimeInSeconds");
     }
 
     @SuppressWarnings("unused")
-    public void setDqrWaitToRetryCMOVETimeInSeconds(final String dqrWaitToRetryCMOVETimeInSeconds) {
+    public void setDqrWaitToRetryRequestInSeconds(final String dqrWaitToRetryRequestInSeconds) {
         try {
-            set(dqrWaitToRetryCMOVETimeInSeconds, "dqrWaitToRetryCMOVETimeInSeconds");
+            set(dqrWaitToRetryRequestInSeconds, "dqrWaitToRetryCMOVETimeInSeconds");
         } catch (InvalidPreferenceName e) {
             log.error("Invalid preference name 'dqrWaitToRetryCMOVETimeInSeconds': something is very wrong here.", e);
         }

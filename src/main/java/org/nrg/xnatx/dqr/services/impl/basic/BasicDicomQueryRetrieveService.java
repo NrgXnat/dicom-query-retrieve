@@ -42,7 +42,6 @@ import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreFailureException;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -429,18 +428,24 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                 _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
             }
 
+            final List<String> seriesInstanceUids;
             try {
-                _queuedPacsRequestService.create(createQueuedPacsRequest(user, aeTitle.toString(), project, pacsId, multiStudy, studyId, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), null));
-                valueToReturn.set(false);
-            } catch (Exception e) {
-                if (e instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getMessage(), e);
-                } else if (e.getCause() instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
-                } else {
-                    log.error("An unexpected error occurred", e);
-                }
+                seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
+            } catch (PacsException e) {
+                log.error("Could not query PACS {} for series", pacs.getId(), e);
+                continue;
             }
+            final QueuedPacsRequest queuedPacsRequest = createQueuedPacsRequest(
+                    user,
+                    aeTitle.toString(),
+                    project,
+                    pacsId,
+                    multiStudy,
+                    studyId,
+                    seriesInstanceUids,
+                    null);
+            _queuedPacsRequestService.create(queuedPacsRequest);
+            valueToReturn.set(false);
         }
         return valueToReturn.get();
     }
@@ -510,21 +515,24 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             final String anonScript = entry.getValue();
 
             final String studyInstanceUid = study.getStudyInstanceUid();
+            final List<String> seriesInstanceUids;
             try {
-                final QueuedPacsRequest request = createQueuedPacsRequest(user, ae, project, pacsId, multiStudy, studyInstanceUid, getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), null);
-                request.setRemappingScript(anonScript);
-                _queuedPacsRequestService.create(request);
-            } catch (PacsNotQueryableException e) {
-                log.warn("The PACS {} is not queryable, request not created for the study {}", pacs.getLabel(), studyInstanceUid, e);
-            } catch (CMoveFailureException e) {
-                log.error("C-MOVE operation failed: {}", e.getMessage(), e);
-            } catch (Exception e) {
-                if (e.getCause() instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
-                } else {
-                    log.error("An unexpected error occurred", e);
-                }
+                seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
+            } catch (PacsException e) {
+                log.error("Could not query PACS {} for series", pacs.getId(), e);
+                continue;
             }
+            final QueuedPacsRequest queuedPacsRequest = createQueuedPacsRequest(
+                    user,
+                    ae,
+                    project,
+                    pacsId,
+                    multiStudy,
+                    studyInstanceUid,
+                    seriesInstanceUids,
+                    null);
+            queuedPacsRequest.setRemappingScript(anonScript);
+            _queuedPacsRequestService.create(queuedPacsRequest);
         }
     }
 
@@ -563,27 +571,17 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
         if (!results.isEmpty()) {
             final String ae = port == 0 ? aeTitle : aeTitle + ":" + port;
-            try {
-                final Series            first       = results.get(0);
-                final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId);
-                pacsRequest.setStudyDate(first.getStudyDate());
-                pacsRequest.setStudyId(first.getStudyId());
-                pacsRequest.setAccessionNumber(first.getAccessionNumber());
-                pacsRequest.setPatientId(first.getPatientId());
-                pacsRequest.setPatientName(first.getPatientName());
+            final Series            first       = results.get(0);
+            final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId);
+            pacsRequest.setStudyDate(first.getStudyDate());
+            pacsRequest.setStudyId(first.getStudyId());
+            pacsRequest.setAccessionNumber(first.getAccessionNumber());
+            pacsRequest.setPatientId(first.getPatientId());
+            pacsRequest.setPatientName(first.getPatientName());
 
-                anonScript.ifPresent(pacsRequest::setRemappingScript);
+            anonScript.ifPresent(pacsRequest::setRemappingScript);
 
-                return Optional.of(_queuedPacsRequestService.create(pacsRequest));
-            } catch (Exception e) {
-                if (e instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getMessage(), e);
-                } else if (e.getCause() instanceof CMoveFailureException) {
-                    log.error("C-MOVE operation failed: {}", e.getCause().getMessage(), e.getCause());
-                } else {
-                    log.error("An unexpected error occurred", e);
-                }
-            }
+            return Optional.of(_queuedPacsRequestService.create(pacsRequest));
         }
         return Optional.empty();
     }
