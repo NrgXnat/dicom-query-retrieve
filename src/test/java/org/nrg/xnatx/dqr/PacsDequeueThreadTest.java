@@ -72,7 +72,6 @@ class PacsDequeueThreadTest {
     @Mock MailService mailService;
     @Mock XnatUserProvider primaryAdminUserProvider;
     @Mock PacsAvailability pacsAvailability;
-    @Mock UserI admin;
     @Mock UserI user;
     @Mock Pacs pacs;
     @Mock PersistentWorkflowI workflow;
@@ -113,8 +112,6 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
-        when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -184,8 +181,6 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
-        when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -239,8 +234,6 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
-        when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -306,9 +299,7 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(admin.getUsername()).thenReturn("admin");
         when(user.getUsername()).thenReturn(username);
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -384,9 +375,7 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
                 .seriesIds(Collections.emptyList())
@@ -438,9 +427,7 @@ class PacsDequeueThreadTest {
         when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
         when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
-        when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
                 .seriesIds(Collections.emptyList())

@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.context.Context;
+import org.nrg.config.exceptions.ConfigServiceException;
 import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
@@ -99,7 +100,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         }
                     }
                 }
-                final UserI admin      = _primaryAdminUserProvider.get();
 
                 boolean failed = false;
                 final String priorStatus;//maintain prior status in case the operation fails and we need to roll back.
@@ -140,20 +140,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .requestId(request.getRequestId())
                                                                            .build();
                 try {
-                    final String adminUsername = admin.getUsername();
-                    final String studyId       = request.getStudyInstanceUid();
-                    final String anonScript    = request.getRemappingScript();
-                    final String path          = "/studies/" + studyId;
-                    log.debug("User {} is setting {} script for project {}", adminUsername, DicomEdit.ToolName, studyId);
-                    if (anonScript != null) {
-                        if (studyId == null) {
-                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript);
-                        } else {
-                            _studyRoutingService.close(studyId);
-                            _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript, Scope.Site, studyId);
-                            _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
-                        }
-                    }
+                    setAnonScript(request);
 
                     _executedPacsRequestService.create(pacsRequest);
 
@@ -229,6 +216,23 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         } finally {
             log.debug("Ending PacsDequeueThread for PACS {}", _pacsId);
             _threads.decrement(_pacsId);
+        }
+    }
+
+    private void setAnonScript(final QueuedPacsRequest request) throws ConfigServiceException {
+        final String anonScript    = request.getRemappingScript();
+        if (anonScript != null) {
+            final String adminUsername = _primaryAdminUserProvider.get().getUsername();
+            final String studyId       = request.getStudyInstanceUid();
+            final String path          = "/studies/" + studyId;
+            log.debug("User {} is setting {} script for project {}", adminUsername, DicomEdit.ToolName, studyId);
+            if (studyId == null) {
+                _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript);
+            } else {
+                _studyRoutingService.close(studyId);
+                _configService.replaceConfig(adminUsername, "", DicomEdit.ToolName, path, anonScript, Scope.Site, studyId);
+                _configService.enable(adminUsername, "", DicomEdit.ToolName, path, Scope.Site, studyId);
+            }
         }
     }
 
