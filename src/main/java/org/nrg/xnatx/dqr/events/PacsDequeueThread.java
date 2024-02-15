@@ -100,10 +100,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     }
                 }
                 final UserI admin      = _primaryAdminUserProvider.get();
-                boolean     canConnect = _dqrService.ping(admin, _pacsService.retrieve(_pacsId));
-                if (!canConnect) {
-                    break;
-                }
 
                 boolean failed = false;
                 final String priorStatus;//maintain prior status in case the operation fails and we need to roll back.

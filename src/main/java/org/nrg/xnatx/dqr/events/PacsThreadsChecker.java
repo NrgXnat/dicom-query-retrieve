@@ -69,27 +69,17 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         if (requests.isEmpty()) {
                             continue;
                         }
-                        try {
-                            final UserI admin = _primaryAdminUserProvider.get();
-                            if (_dqrService.ping(admin, pacs)) {
-                                final int startingThreads = _threads.get(pacsId);
-                                for (final QueuedPacsRequest request : requests) {
-                                    if (_threads.hasAvailable(pacsId, availability.getThreads())) {
-                                        _threads.increment(pacsId);
-                                        new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
-                                        log.debug("Created new PacsDequeueThread. Current {} Max allowed {}", _threads.get(pacsId), availability.getThreads());
-                                    } else {
-                                        final int current = _threads.get(pacsId);
-                                        log.debug("Finished creating threads. Added {} Current {} Max allowed {}", current - startingThreads, current, availability.getThreads());
-                                        break;
-                                    }
-                                }
-                            }
-                        } catch (NrgServiceRuntimeException e) {
-                            if (e.getServiceError() == NrgServiceError.UserServiceError) {
-                                log.info("Got a user service error trying to retrieve admin user, which usually means we're starting up.");
+
+                        final int startingThreads = _threads.get(pacsId);
+                        for (final QueuedPacsRequest request : requests) {
+                            if (_threads.hasAvailable(pacsId, availability.getThreads())) {
+                                _threads.increment(pacsId);
+                                new Thread(new PacsDequeueThread(request.getPacsId(), _threads, _dqrService, _pacsService, _queuedPacsRequestService, _executedPacsRequestService, _pacsAvailabilityService, _studyRoutingService, _dqrPreferences, _siteConfigPreferences, _configService, _mailService, _primaryAdminUserProvider)).start();
+                                log.debug("Created new PacsDequeueThread. Current {} Max allowed {}", _threads.get(pacsId), availability.getThreads());
                             } else {
-                                log.error("Got a service runtime exception", e);
+                                final int current = _threads.get(pacsId);
+                                log.debug("Finished creating threads. Added {} Current {} Max allowed {}", current - startingThreads, current, availability.getThreads());
+                                break;
                             }
                         }
                     } catch (Exception e) {
