@@ -25,6 +25,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
 import org.dcm4che3.json.JSONReader;
 import org.dcm4che3.mime.MultipartInputStream;
 import org.dcm4che3.mime.MultipartParser;
@@ -52,12 +53,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,8 +71,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class DicomWebHttpClient implements AutoCloseable {
     private static final Attributes EMPTY_ATTRIBUTES = new Attributes(false, 0);
-    private static final DateFormat STUDY_DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
-    private static final String STUDIES = "studies?StudyDate=";
+    private static final DateTimeFormatter STUDY_DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final String STUDIES = "studies";
 
     private static final String BOUNDARY = "boundary";
     private static final String APPLICATION_DICOM_JSON = "application/dicom+json";
@@ -181,8 +182,20 @@ public class DicomWebHttpClient implements AutoCloseable {
     }
 
     public DicomWebPingResult ping() {
-        final String requestUrl = rootUrl + STUDIES + STUDY_DATE_FORMATTER.format(new Date());
-        final HttpUriRequest request = new HttpGet(requestUrl);
+        // We don't actually want to query for a study, we just want to see if the server is up
+        final String tomorrow = LocalDate.now().plusDays(1).atStartOfDay().format(STUDY_DATE_FORMATTER);
+
+        final URI uri;
+        try {
+            uri = buildUri(Collections.singletonList(STUDIES), Collections.singletonMap(Tag.StudyDate, tomorrow));
+        } catch (PacsConnectionException e) {
+            return DicomWebPingResult.builder()
+                    .successful(false)
+                    .reason("Invalid DICOMweb URI")
+                    .build();
+        }
+
+        final HttpUriRequest request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
 
         try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
@@ -193,7 +206,7 @@ public class DicomWebHttpClient implements AutoCloseable {
                     .reason(status.getReasonPhrase())
                     .build();
         } catch (IOException e) {
-            log.error("Failed to connect to dicom-web endpoint: {}", requestUrl, e);
+            log.error("Failed to connect to dicom-web endpoint: {}", uri, e);
             return DicomWebPingResult.builder()
                     .successful(false)
                     .reason("Unable to establish connection")
