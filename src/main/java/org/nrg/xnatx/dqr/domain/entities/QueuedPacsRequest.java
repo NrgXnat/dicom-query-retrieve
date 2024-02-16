@@ -27,11 +27,14 @@ import java.util.List;
 @NamedQueries({
         @NamedQuery(name = QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID_AND_REQUEST_ID,
                 query = "SELECT (count(q.id) > 0) FROM QueuedPacsRequest q WHERE q.studyInstanceUid = :studyInstanceUid AND q.requestId = :requestId"),
+        @NamedQuery(name = QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID,
+                query = "SELECT (count(q.id) > 0) FROM QueuedPacsRequest q WHERE q.studyInstanceUid = :studyInstanceUid"),
 })
 public class QueuedPacsRequest extends PacsRequest {
     private static final long serialVersionUID = 7081993254603730636L;
 
     public static final String IS_QUEUED_FOR_STUDY_INSTANCE_UID_AND_REQUEST_ID = "QueuedPacsRequest.isQueuedForStudyInstanceUidAndRequestId";
+    public static final String IS_QUEUED_FOR_STUDY_INSTANCE_UID = "QueuedPacsRequest.isQueuedForStudyInstanceUid";
 
     public QueuedPacsRequest() {
         super();

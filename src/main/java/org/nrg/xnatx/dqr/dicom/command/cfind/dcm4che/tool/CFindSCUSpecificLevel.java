@@ -19,6 +19,7 @@ import org.dcm4che2.tool.dcmqr.DcmQR;
 import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
+import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.DicomPersonNameSearchCriteria;
@@ -94,6 +95,9 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
             if (cMoveRequestedOnResults()) {
                 performCMoveOnResults(searchCriteria, dicomResults);
+                if (dcmQR.getFailed() > 0) {
+                    throw new CMoveFailureException("C-MOVE failed for " + dcmQR.getFailed() + " objects");
+                }
             }
 
             return mapDicomResultsToDomainResults(searchCriteria, dicomResults);

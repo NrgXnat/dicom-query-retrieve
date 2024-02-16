@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.8.5"
+        vXnat = "1.8.10-SNAPSHOT"
     }
 }
 
@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "1.2.1"
+version "1.3.0-RC-SNAPSHOT"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
@@ -102,8 +102,13 @@ dependencyManagement {
 def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
 def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
 
+// Use Mockito >= 3.x for mocking statics with JUnit 5 (where PowerMock is not available)
+def vMockito = "4.+"
+
 dependencies {
-    implementation enforcedPlatform("org.nrg:parent:${vXnat}")
+    implementation enforcedPlatform("org.nrg:parent:${vXnat}") {
+        exclude group: "org.mockito"
+    }
 
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
@@ -128,6 +133,9 @@ dependencies {
     implementation "org.aspectj:aspectjweaver"
     implementation "javax.validation:validation-api"
     implementation "org.restlet:org.restlet"
+    implementation 'javax.json:javax.json-api:1.1.4'
+    implementation "org.dcm4che:dcm4che-core"
+
     implementation("turbine:turbine") {
         transitive = false
     }
@@ -141,13 +149,24 @@ dependencies {
     implementAndInclude("commons-cli:commons-cli:${vCommonsCli}") {
         transitive = false
     }
+    implementAndInclude("org.dcm4che:dcm4che-net") {
+        transitive = false
+    }
+    implementAndInclude("org.dcm4che:dcm4che-json") {
+        transitive = false
+    }
+
+    compileOnly "javax.interceptor:javax.interceptor-api"
 
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
     testImplementation "com.github.sbrannen:spring-test-junit5"
-    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.mockito:mockito-core:${vMockito}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${vMockito}"
     testImplementation "org.assertj:assertj-core"
     testImplementation "com.h2database:h2"
+    testImplementation "org.dcm4che:dcm4che-json"
+
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
     testRuntimeOnly "ch.qos.logback:logback-classic"
@@ -206,6 +225,11 @@ Building artifacts with manifest attributes:
  * Implementation-CleanTag: ${isCleanTag}
  * Implementation-Dirty:    ${isDirty}
 """
+
+lombok {
+    version = dependencyManagement.importedProperties["lombok.version"] as String
+    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
+}
 
 task sourceJar(type: Jar, dependsOn: classes) {
     classifier "sources"

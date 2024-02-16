@@ -38,11 +38,6 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public Optional<Patient> cfindPatientById(final String patientId) {
-        return StringUtils.isBlank(patientId) ? Optional.empty() : new CFindSCUPatientLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().patientId(patientId).build()).getFirstResult();
-    }
-
-    @Override
     public PacsSearchResults<Study> cfindStudiesByExample(final PacsSearchCriteria searchCriteria) {
         return new CFindSCUStudyLevelByExample(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
     }
@@ -53,25 +48,8 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     }
 
     @Override
-    public PacsSearchResults<Series> cfindSeriesByStudy(final Study study) {
-        return study == null ? PacsSearchResults.emptyResults() : cfindSeriesByStudyUid(study.getStudyInstanceUid());
-    }
-
-    @Override
-    public PacsSearchResults<Series> cfindSeriesByStudyUid(final String studyUid) {
-        return StringUtils.isBlank(studyUid) ? PacsSearchResults.emptyResults() : new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().studyInstanceUid(studyUid).build());
-    }
-
-    @Override
-    public Optional<Series> cfindSeriesById(final String seriesInstanceUid) {
-        return StringUtils.isBlank(seriesInstanceUid) ? Optional.empty() : new CFindSCUSeriesLevelById(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(PacsSearchCriteria.builder().seriesInstanceUid(seriesInstanceUid).build()).getFirstResult();
-    }
-
-    /**
-     * Post-construction get made available for unit testing hackage.
-     */
-    public OrmStrategy getOrmStrategy() {
-        return _ormStrategy;
+    public PacsSearchResults<Series> cfindSeriesByExample(final PacsSearchCriteria searchCriteria) {
+        return new CFindSCUSeriesLevelByStudy(_preferences, _dicomConnectionProperties, _cechoSCU, _ormStrategy).cfind(searchCriteria);
     }
 
     private final DicomConnectionProperties _dicomConnectionProperties;
