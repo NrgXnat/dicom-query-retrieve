@@ -195,7 +195,7 @@ public class DimsePacsClientService implements PacsClientService {
                 .remoteAe(pacs.getAeTitle())
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
-                .localAe(getLocalAETitle());
+                .localAe(getCallingAETitle());
 
         new RetryablePacsOperation<Void>(pacs) {
             @Override
@@ -215,7 +215,7 @@ public class DimsePacsClientService implements PacsClientService {
                 .remoteAe(pacs.getAeTitle())
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
-                .localAe(getLocalAETitle())
+                .localAe(getCallingAETitle())
                 .destination(destination);
 
         new RetryablePacsOperation<Void>(pacs) {
@@ -282,8 +282,8 @@ public class DimsePacsClientService implements PacsClientService {
         return new BasicCStoreSCU(preferences, buildDicomConnectionProperties(pacs));
     }
 
-    private String getLocalAETitle() {
-        return dicomSCPManager.getDicomSCPInstances().values().iterator().next().getAeTitle();
+    private String getCallingAETitle() {
+        return preferences.getDqrCallingAe();
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {
@@ -291,8 +291,7 @@ public class DimsePacsClientService implements PacsClientService {
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs, final String receiverAETitle) {
-        final String localAeTitle = StringUtils.isNotBlank(receiverAETitle) ? receiverAETitle : getLocalAETitle();
-        return new DicomConnectionProperties(localAeTitle, pacs);
+        return new DicomConnectionProperties(receiverAETitle, pacs);
     }
 
     private OrmStrategy getOrmStrategy(final Pacs pacs) {

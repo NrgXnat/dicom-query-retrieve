@@ -14,6 +14,7 @@ import org.nrg.mail.services.MailService;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
+import org.nrg.xnat.condition.OnPrimaryNodeCondition;
 import org.nrg.xnat.event.listeners.methods.AbstractScheduledXnatPreferenceHandlerMethod;
 import org.nrg.xnat.task.AbstractXnatRunnable;
 import org.nrg.xnatx.dqr.events.PacsThreads;
@@ -21,6 +22,7 @@ import org.nrg.xnatx.dqr.events.PacsThreadsChecker;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.scheduling.Trigger;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.PeriodicTrigger;
@@ -34,6 +36,7 @@ import org.springframework.stereotype.Component;
 @Getter(PROTECTED)
 @Setter(PRIVATE)
 @Accessors(prefix = "_")
+@Conditional(OnPrimaryNodeCondition.class)
 public class PacsAvailabilityCheckerHandlerMethod extends AbstractScheduledXnatPreferenceHandlerMethod {
     @Autowired
     public PacsAvailabilityCheckerHandlerMethod(final DqrPreferences preferences, final ThreadPoolTaskScheduler scheduler, final PacsService pacsService, final DicomQueryRetrieveService dqrService, final PacsAvailabilityService pacsAvailabilityService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService, final StudyRoutingService studyRoutingService, final DqrPreferences dqrPreferences, final PacsThreads threads, final SiteConfigPreferences siteConfigPreferences, final ConfigService configService, final MailService mailService, final XnatUserProvider primaryAdminUserProvider) {
