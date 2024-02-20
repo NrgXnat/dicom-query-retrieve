@@ -26,193 +26,174 @@ import org.springframework.beans.factory.annotation.Autowired;
                    toolName = "XNAT DQR Preferences",
                    description = "Manages preferences and settings for the dicom query retrieve plugin.")
 @Slf4j
+@SuppressWarnings("unused")
 public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
+    public static final String INVALID_PREFERENCE_NAME_TEMPLATE = "Invalid preference name {}: something is very wrong here.";
     public static final String DQR_TOOL_ID = "dqr";
+
+    public static final String DQR_CALLING_AE = "dqrCallingAe";
+    public static final String DQR_CALLING_AE_DEFAULT_VALUE = "XNAT";
+    public static final String PACS_AVAILABILITY_CHECK_FREQUENCY = "pacsAvailabilityCheckFrequency";
+    public static final String PACS_AVAILABILITY_CHECK_FREQUENCY_DEFAULT_VALUE = "1 minute";
+    public static final String DQR_MAX_PACS_REQUEST_ATTEMPTS = "dqrMaxPacsRequestAttempts";
+    public static final String DQR_MAX_PACS_REQUEST_ATTEMPTS_DEFAULT_VALUE = "5";
+    public static final String DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS = "dqrWaitToRetryRequestInSeconds";
+    public static final String DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_DEFAULT_VALUE = "300";
+    public static final String NOTIFY_ADMIN_ON_IMPORT = "notifyAdminOnImport";
+    public static final String NOTIFY_ADMIN_ON_IMPORT_DEFAULT_VALUE = "false";
+    public static final String ASSUME_SAME_SESSION_IF_ARRIVED_WITHIN = "assumeSameSessionIfArrivedWithin";
+    public static final String ASSUME_SAME_SESSION_IF_ARRIVED_WITHIN_DEFAULT_VALUE = "30 minutes";
+    public static final String ALLOW_ALL_USERS_TO_USE_DQR = "allowAllUsersToUseDqr";
+    public static final String ALLOW_ALL_USERS_TO_USE_DQR_DEFAULT_VALUE = "false";
+    public static final String ALLOW_ALL_PROJECTS_TO_USE_DQR = "allowAllProjectsToUseDqr";
+    public static final String ALLOW_ALL_PROJECTS_TO_USE_DQR_DEFAULT_VALUE = "false";
+    public static final String ORM_STRATEGY = "ormStrategy";
+    public static final String ORM_STRATEGY_DEFAULT_VALUE = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicOrmStrategy";
+    public static final String PATIENT_NAME_STRATEGY = "patientNameStrategy";
+    public static final String PATIENT_NAME_STRATEGY_DEFAULT_VALUE = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicPatientNameStrategy";
+    public static final String RESULT_SET_LIMIT_STRATEGY = "resultSetLimitStrategy";
+    public static final String RESULT_SET_LIMIT_STRATEGY_DEFAULT_VALUE = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicResultSetLimitStrategy";
+    public static final String LEAVE_PACS_AUDIT_TRAIL = "leavePacsAuditTrail";
+    public static final String LEAVE_PACS_AUDIT_TRAIL_DEFAULT_VALUE = "false";
+    public static final String DICOM_WEB_ENABLED = "dicomWebEnabled";
+    public static final String DICOM_WEB_ENABLED_DEFAULT_VALUE = "false";
 
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
         super(preferenceService, eventService, configPaths, initPrefs);
     }
 
-    @NrgPreference(defaultValue = "XNAT")
+    private void safeSet(final String value, final String name) {
+        try {
+            set(value, name);
+        } catch (InvalidPreferenceName e) {
+            log.error(INVALID_PREFERENCE_NAME_TEMPLATE, name, e);
+        }
+    }
+
+    private void safeSet(final Boolean value, final String name) {
+        try {
+            setBooleanValue(value, name);
+        } catch (InvalidPreferenceName e) {
+            log.error(INVALID_PREFERENCE_NAME_TEMPLATE, name, e);
+        }
+    }
+
+    @NrgPreference(defaultValue = DQR_CALLING_AE_DEFAULT_VALUE)
     public String getDqrCallingAe() {
-        return getValue("dqrCallingAe");
+        return getValue(DQR_CALLING_AE);
     }
 
-    @SuppressWarnings("unused")
     public void setDqrCallingAe(final String dqrCallingAe) {
-        try {
-            set(dqrCallingAe, "dqrCallingAe");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name dqrCallingAe: something is very wrong here.", e);
-        }
+        safeSet(dqrCallingAe, DQR_CALLING_AE);
     }
 
-    @NrgPreference(defaultValue = "1 minute")
+    @NrgPreference(defaultValue = PACS_AVAILABILITY_CHECK_FREQUENCY_DEFAULT_VALUE)
     public String getPacsAvailabilityCheckFrequency() {
-        return getValue("pacsAvailabilityCheckFrequency");
+        return getValue(PACS_AVAILABILITY_CHECK_FREQUENCY);
     }
 
-    @SuppressWarnings("unused")
     public void setPacsAvailabilityCheckFrequency(final String pacsAvailabilityCheckFrequency) {
-        try {
-            set(pacsAvailabilityCheckFrequency, "pacsAvailabilityCheckFrequency");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'pacsAvailabilityCheckFrequency': something is very wrong here.", e);
-        }
+        safeSet(pacsAvailabilityCheckFrequency, PACS_AVAILABILITY_CHECK_FREQUENCY);
     }
 
-    @NrgPreference(defaultValue = "5")
+    @NrgPreference(defaultValue = DQR_MAX_PACS_REQUEST_ATTEMPTS_DEFAULT_VALUE)
     public String getDqrMaxPacsRequestAttempts() {
-        return getValue("dqrMaxPacsRequestAttempts");
+        return getValue(DQR_MAX_PACS_REQUEST_ATTEMPTS);
     }
 
-    @SuppressWarnings("unused")
     public void setDqrMaxPacsRequestAttempts(final String dqrMaxPacsRequestAttempts) {
-        try {
-            set(dqrMaxPacsRequestAttempts, "dqrMaxPacsRequestAttempts");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'dqrMaxPacsRequestAttempts': something is very wrong here.", e);
-        }
+        safeSet(dqrMaxPacsRequestAttempts, DQR_MAX_PACS_REQUEST_ATTEMPTS);
+
     }
 
-    @NrgPreference(defaultValue = "300")
+    @NrgPreference(defaultValue = DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_DEFAULT_VALUE)
     public String getDqrWaitToRetryRequestInSeconds() {
-        return getValue("dqrWaitToRetryRequestInSeconds");
+        return getValue(DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS);
     }
 
-    @SuppressWarnings("unused")
     public void setDqrWaitToRetryRequestInSeconds(final String dqrWaitToRetryRequestInSeconds) {
-        try {
-            set(dqrWaitToRetryRequestInSeconds, "dqrWaitToRetryRequestInSeconds");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'dqrWaitToRetryRequestInSeconds': something is very wrong here.", e);
-        }
+        safeSet(dqrWaitToRetryRequestInSeconds, DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS);
     }
 
-    @NrgPreference(defaultValue = "false")
+    @NrgPreference(defaultValue = NOTIFY_ADMIN_ON_IMPORT_DEFAULT_VALUE)
     public boolean getNotifyAdminOnImport() {
-        return getBooleanValue("notifyAdminOnImport");
+        return getBooleanValue(NOTIFY_ADMIN_ON_IMPORT);
     }
 
-    @SuppressWarnings("unused")
     public void setNotifyAdminOnImport(final boolean notifyAdminOnImport) {
-        try {
-            setBooleanValue(notifyAdminOnImport, "notifyAdminOnImport");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'notifyAdminOnImport': something is very wrong here.", e);
-        }
+        safeSet(notifyAdminOnImport, NOTIFY_ADMIN_ON_IMPORT);
     }
 
-    @NrgPreference(defaultValue = "30 minutes")
+    @NrgPreference(defaultValue = ASSUME_SAME_SESSION_IF_ARRIVED_WITHIN_DEFAULT_VALUE)
     public String getAssumeSameSessionIfArrivedWithin() {
-        return getValue("assumeSameSessionIfArrivedWithin");
+        return getValue(ASSUME_SAME_SESSION_IF_ARRIVED_WITHIN);
     }
 
-    @SuppressWarnings("unused")
     public void setAssumeSameSessionIfArrivedWithin(final String assumeSameSessionIfArrivedWithin) {
-        try {
-            set(assumeSameSessionIfArrivedWithin, "assumeSameSessionIfArrivedWithin");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'assumeSameSessionIfArrivedWithin': something is very wrong here.", e);
-        }
+        safeSet(assumeSameSessionIfArrivedWithin, ASSUME_SAME_SESSION_IF_ARRIVED_WITHIN);
     }
 
-    @NrgPreference(defaultValue = "false")
+    @NrgPreference(defaultValue = ALLOW_ALL_USERS_TO_USE_DQR_DEFAULT_VALUE)
     public boolean getAllowAllUsersToUseDqr() {
-        return getBooleanValue("allowAllUsersToUseDqr");
+        return getBooleanValue(ALLOW_ALL_USERS_TO_USE_DQR);
     }
 
-    @SuppressWarnings("unused")
     public void setAllowAllUsersToUseDqr(final boolean allowAllUsersToUseDqr) {
-        try {
-            setBooleanValue(allowAllUsersToUseDqr, "allowAllUsersToUseDqr");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'allowAllUsersToUseDqr': something is very wrong here.", e);
-        }
+        safeSet(allowAllUsersToUseDqr, ALLOW_ALL_USERS_TO_USE_DQR);
     }
 
-    @NrgPreference(defaultValue = "false")
+    @NrgPreference(defaultValue = ALLOW_ALL_PROJECTS_TO_USE_DQR_DEFAULT_VALUE)
     public boolean getAllowAllProjectsToUseDqr() {
-        return getBooleanValue("allowAllProjectsToUseDqr");
+        return getBooleanValue(ALLOW_ALL_PROJECTS_TO_USE_DQR);
     }
 
-    @SuppressWarnings("unused")
     public void setAllowAllProjectsToUseDqr(final boolean allowAllProjectsToUseDqr) {
-        try {
-            setBooleanValue(allowAllProjectsToUseDqr, "allowAllProjectsToUseDqr");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'allowAllProjectsToUseDqr': something is very wrong here.", e);
-        }
+        safeSet(allowAllProjectsToUseDqr, ALLOW_ALL_PROJECTS_TO_USE_DQR);
     }
 
-    @NrgPreference(defaultValue = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicOrmStrategy")
+    @NrgPreference(defaultValue = ORM_STRATEGY_DEFAULT_VALUE)
     public String getOrmStrategy() {
-        return getStringValue("ormStrategy");
+        return getStringValue(ORM_STRATEGY);
     }
 
     public void setOrmStrategy(final String ormStrategy) {
-        try {
-            set(ormStrategy, "ormStrategy");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'ormStrategy': something is very wrong here.", e);
-        }
+        safeSet(ormStrategy, ORM_STRATEGY);
     }
 
-    @NrgPreference(defaultValue = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicPatientNameStrategy")
+    @NrgPreference(defaultValue = PATIENT_NAME_STRATEGY_DEFAULT_VALUE)
     public String getPatientNameStrategy() {
-        return getStringValue("patientNameStrategy");
+        return getStringValue(PATIENT_NAME_STRATEGY);
     }
 
-    @SuppressWarnings("unused")
     public void setPatientNameStrategy(final String patientNameStrategy) {
-        try {
-            set(patientNameStrategy, "patientNameStrategy");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'patientNameStrategy': something is very wrong here.", e);
-        }
+        safeSet(patientNameStrategy, PATIENT_NAME_STRATEGY);
     }
 
-    @NrgPreference(defaultValue = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicResultSetLimitStrategy")
+    @NrgPreference(defaultValue = RESULT_SET_LIMIT_STRATEGY_DEFAULT_VALUE)
     public String getResultSetLimitStrategy() {
-        return getStringValue("resultSetLimitStrategy");
+        return getStringValue(RESULT_SET_LIMIT_STRATEGY);
     }
 
-    @SuppressWarnings("unused")
     public void setResultSetLimitStrategy(final String resultSetLimitStrategy) {
-        try {
-            set(resultSetLimitStrategy, "resultSetLimitStrategy");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'resultSetLimitStrategy': something is very wrong here.", e);
-        }
+        safeSet(resultSetLimitStrategy, RESULT_SET_LIMIT_STRATEGY);
     }
 
-    @NrgPreference(defaultValue = "false")
+    @NrgPreference(defaultValue = LEAVE_PACS_AUDIT_TRAIL_DEFAULT_VALUE)
     public boolean getLeavePacsAuditTrail() {
-        return getBooleanValue("leavePacsAuditTrail");
+        return getBooleanValue(LEAVE_PACS_AUDIT_TRAIL);
     }
 
-    @SuppressWarnings("unused")
     public void setLeavePacsAuditTrail(final boolean leavePacsAuditTrail) {
-        try {
-            setBooleanValue(leavePacsAuditTrail, "leavePacsAuditTrail");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'leavePacsAuditTrail': something is very wrong here.", e);
-        }
+        safeSet(leavePacsAuditTrail, LEAVE_PACS_AUDIT_TRAIL);
     }
 
-    @NrgPreference(defaultValue = "false")
+    @NrgPreference(defaultValue = DICOM_WEB_ENABLED_DEFAULT_VALUE)
     public boolean getDicomWebEnabled() {
-        return getBooleanValue("dicomWebEnabled");
+        return getBooleanValue(DICOM_WEB_ENABLED);
     }
 
-    @SuppressWarnings("unused")
     public void setDicomWebEnabled(final boolean dicomWebEnabled) {
-        try {
-            setBooleanValue(dicomWebEnabled, "dicomWebEnabled");
-        } catch (InvalidPreferenceName e) {
-            log.error("Invalid preference name 'dicomWebEnabled': something is very wrong here.", e);
-        }
+        safeSet(dicomWebEnabled, DICOM_WEB_ENABLED);
     }
-
 }
