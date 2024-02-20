@@ -1,8 +1,11 @@
 package org.nrg.xnatx.dqr.services;
 
+import org.dcm4che2.net.DicomServiceException;
 import org.dcm4che3.data.Attributes;
+import org.nrg.dcm.scp.exceptions.UnknownDicomHelperInstanceException;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
@@ -156,11 +159,13 @@ public interface PacsClientService {
      * Import the specified series from the indicated PACS to this XNAT instance.
      *
      * @param pacs   The PACS from which the user wants to import.
+     * @param user   XNAT user importing the series.
      * @param study  The study containing the desired series.
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
+     * @param user   The user that launched the requuest
      */
-    void importSeries(Pacs pacs, Study study, Series series, String ae) throws DqrException;
+    void importSeries(Pacs pacs, UserI user, Study study, Series series, String ae) throws DqrException;
 
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.

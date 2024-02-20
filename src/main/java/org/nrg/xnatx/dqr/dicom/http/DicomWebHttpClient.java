@@ -227,7 +227,7 @@ public class DicomWebHttpClient implements AutoCloseable {
             }
         } catch (DqrRuntimeException e) {
             // Note: this is a workaround for the callback not being able to throw a checked exception
-            throw new DqrException("Could not read parse DICOMweb response from" + uri.toString(), e.getCause());
+            throw new DqrException("Could not read parse DICOMweb response from " + uri.toString(), e.getCause());
         } catch (Exception e) {
             log.error("Failed to request dicom from url: {}", uri, e);
             throw new DqrException("Failed to request dicom from url: " + uri, e);

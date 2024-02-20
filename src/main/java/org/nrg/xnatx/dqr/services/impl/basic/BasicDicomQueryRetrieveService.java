@@ -287,7 +287,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      */
     @Override
     public void importSeries(final UserI user, final Pacs pacs, final Study study, final Series series, final String ae) throws DqrException {
-        _pacsClientRoutingService.getPacsClientService(pacs).importSeries(pacs, study, series, ae);
+        _pacsClientRoutingService.getPacsClientService(pacs).importSeries(pacs, user, study, series, ae);
     }
 
     @Override
@@ -299,11 +299,12 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public void importFromPacsRequest(final ExecutedPacsRequest request) throws DqrException {
+    public void importFromPacsRequest(final ExecutedPacsRequest request, UserI user) throws DqrException {
         final Pacs pacs = _pacsService.retrieve(request.getPacsId());
         if (!pacs.isQueryable()) {
             throw new PacsNotQueryableException(request.getPacsId());
         }
+
         final String aeAndPort = request.getDecodedAeAndPort();
         if (!isAeStorable(aeAndPort)) {
             throw new PacsNotStorableException(new AeTitle(aeAndPort));
@@ -313,7 +314,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
         for (final String seriesId : request.getSeriesIds()) {
             log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
-            pacsClientService.importSeries(pacs, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);
+            pacsClientService.importSeries(pacs, user, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);
         }
     }
 

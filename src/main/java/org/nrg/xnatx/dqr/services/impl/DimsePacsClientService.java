@@ -9,6 +9,7 @@ import org.dcm4che3.data.VR;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
@@ -160,7 +161,7 @@ public class DimsePacsClientService implements PacsClientService {
      * {@inheritDoc}
      */
     @Override
-    public void importSeries(final Pacs pacs, final Study study, final Series series, final String ae) throws DqrException {
+    public void importSeries(final Pacs pacs, final UserI user, final Study study, final Series series, final String ae) throws DqrException {
         try {
             buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
         } catch (final CMoveTargetNotFoundException exception) {

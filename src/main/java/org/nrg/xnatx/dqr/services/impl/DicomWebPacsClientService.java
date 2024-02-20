@@ -1,12 +1,17 @@
 package org.nrg.xnatx.dqr.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
 import org.dcm4che3.mime.MultipartInputStream;
+import org.nrg.dcm.DicomFileNamer;
 import org.nrg.xdat.om.XnatImagescandata;
+import org.nrg.xdat.om.XnatProjectdata;
+import org.nrg.xft.security.UserI;
+import org.nrg.xnat.DicomObjectIdentifier;
+import org.nrg.xnat.archive.GradualDicomImporter;
+import org.nrg.xnat.helpers.uri.URIManager;
+import org.nrg.xnat.restlet.util.FileWriterWrapperI;
 import org.nrg.xnatx.dqr.dicom.http.DicomWebHttpClient;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -19,16 +24,11 @@ import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsClientService;
+import org.nrg.dcm.utils.StreamWrapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
@@ -40,13 +40,19 @@ public class DicomWebPacsClientService implements PacsClientService {
     private static final String     SERIES_ENDPOINT        = "series";
     private static final String     INSTANCES_ENDPOINT     = "instances";
     private static final String     META_DATA_ENDPOINT     = "metadata";
-
     private final DicomWebCredentialService dicomWebCredentialService;
     private final ConcurrentMap<Pacs, DicomWebHttpClient> dicomWebHttpClients;
+    private final DicomFileNamer defaultFileName;
+    private final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers;
 
-    public DicomWebPacsClientService(final DicomWebCredentialService dicomWebCredentialService) {
+    @Autowired
+    public DicomWebPacsClientService(final DicomWebCredentialService dicomWebCredentialService, final DicomFileNamer fileNamer,
+                                     final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers) {
         this.dicomWebCredentialService = dicomWebCredentialService;
+        this.defaultFileName = fileNamer;
+        this.dicomObjectIdentifiers = dicomObjectIdentifiers;
         dicomWebHttpClients = new ConcurrentHashMap<>();
+
     }
 
     @Override
@@ -138,14 +144,16 @@ public class DicomWebPacsClientService implements PacsClientService {
     }
 
     @Override
-    public void importSeries(Pacs pacs, Study study, Series series, String ae) throws DqrException {
+    public void importSeries(final Pacs pacs, final UserI user, final Study study, final Series series, final String ae) throws DqrException {
         log.debug("Importing study {} series {}", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
         final List<String> pathSegments = Arrays.asList(
                 STUDIES_ENDPOINT, study.getStudyInstanceUid(), SERIES_ENDPOINT, series.getSeriesInstanceUid()
         );
-        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), this::importSeriesFromMultipartDicom);
+
+        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), (partNumber, multipartInputStream) -> importSeriesFromMultipartDicom(pacs, user, ae, partNumber, multipartInputStream));
         log.info("Series {} imported", series.getSeriesInstanceUid());
     }
+
 
     @Override
     public void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) {
@@ -161,17 +169,34 @@ public class DicomWebPacsClientService implements PacsClientService {
         return dicomWebHttpClients.computeIfAbsent(pacs, p -> new DicomWebHttpClient(pacs.getDicomWebRootUrl(), dicomWebCredentialService.getCredential(pacs.getAeTitle()).orElse(null)));
     }
 
-    private void importSeriesFromMultipartDicom(final int partNumber, final MultipartInputStream multipartInputStream) throws DqrRuntimeException {
+
+    private DicomObjectIdentifier<XnatProjectdata> getDicomObjectIdentifier(final String identifier) {
+        return  dicomObjectIdentifiers.get(identifier); //TODO see Line 428 of DicomSCPManager
+    }
+
+    /**
+    * Modelled on web/org.nrg.dcm.scp.CStoreService doCStore method
+     */
+
+    private void importSeriesFromMultipartDicom(final Pacs pacs, final UserI user, final String receiverAeTitle, final int partNumber, final MultipartInputStream multipartInputStream) throws DqrRuntimeException {
         try {
-            final Map<String, List<String>> headerParams = multipartInputStream.readHeaderParams();
-            final int byteLen = headerParams.get("content-length").stream().mapToInt(Integer::parseInt).sum();
-            final int substringLen = Math.min(byteLen, 250);  // I know this is arbitrary, but it's just for debugging
-            final String dicomString = IOUtils.toString(multipartInputStream, StandardCharsets.UTF_8);
-            log.debug("Part {} headers {} dicom output: {}{}",
-                    partNumber, headerParams, dicomString.substring(0, substringLen), substringLen < byteLen ? "..." : ""
-            );
+            DicomObjectIdentifier<XnatProjectdata> doi = getDicomObjectIdentifier(pacs.getDicomObjectIdentifier());
+            final Map<String, List<String>> headers = multipartInputStream.readHeaderParams();
+            log.debug("Importing part {} of multipart DICOM. Headers: {}", partNumber, headers);
+            final Map<String, Object> parameters = new HashMap<>();
+            parameters.put(GradualDicomImporter.SENDER_ID_PARAM, pacs.getLabel());
+            parameters.put(GradualDicomImporter.SENDER_AE_TITLE_PARAM, pacs.getAeTitle());
+            parameters.put(GradualDicomImporter.RECEIVER_AE_TITLE_PARAM, receiverAeTitle);
+            parameters.put(GradualDicomImporter.CUSTOM_PROC_PARAM, true);
+            parameters.put(GradualDicomImporter.DIRECT_ARCHIVE_PARAM, false); //TODO: for now this will be false
+            parameters.put(URIManager.PREVENT_ANON, Boolean.toString(!pacs.isAnonymizationEnabled()));
+            final FileWriterWrapperI fw = new StreamWrapper(multipartInputStream);
+            final GradualDicomImporter importer = new GradualDicomImporter(this, user, fw, parameters);
+            importer.setIdentifier(doi);
+            importer.setNamer(defaultFileName);
+            importer.call();
         } catch (Exception e) {
-            log.error("Error reading DICOMweb response", e);
+            log.error("Error reading DICOMweb response for {} from {}", partNumber, pacs.getLabel(), e);
             // Note: this is a workaround for the callback not being able to throw a checked exception
             throw new DqrRuntimeException(e);
         }

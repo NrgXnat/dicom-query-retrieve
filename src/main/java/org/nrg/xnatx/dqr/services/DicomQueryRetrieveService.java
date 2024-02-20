@@ -16,6 +16,8 @@ import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.security.user.exceptions.UserInitException;
+import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -226,8 +228,9 @@ public interface DicomQueryRetrieveService {
      * Import data found in the {@link ExecutedPacsRequest completed PACS request} to this XNAT instance.
      *
      * @param request The completed request from which data should be imported.
+     * @param user The XNAT user making the request
      */
-    void importFromPacsRequest(ExecutedPacsRequest request) throws DqrException;
+    void importFromPacsRequest(ExecutedPacsRequest request, UserI user) throws DqrException;
 
     /**
      * Export the indicated {@link XnatImagescandata scans} from {@link XnatImagesessiondata session} to the specified PACS.

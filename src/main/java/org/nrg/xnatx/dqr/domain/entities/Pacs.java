@@ -58,6 +58,9 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private boolean _supportsExtendedNegotiations;
     private boolean _dicomWebEnabled;
     private String _dicomWebRootUrl;
+    private String _dicomObjectIdentifier;
+    @Builder.Default
+    private boolean _anonymizationEnabled = true;
 
     public Pacs(final PacsSettings settings) {
         copySettings(settings);
@@ -188,6 +191,24 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         this._dicomWebRootUrl = dicomWebRootUrl;
     }
 
+
+    public String getDicomObjectIdentifier() {
+        return _dicomObjectIdentifier;
+    }
+
+    public void setDicomObjectIdentifier(String _dicomObjectIdentifier) {
+        this._dicomObjectIdentifier = _dicomObjectIdentifier;
+    }
+
+    @Column(columnDefinition = "boolean default true")
+    public boolean isAnonymizationEnabled() {
+        return _anonymizationEnabled;
+    }
+
+    public void setAnonymizationEnabled(boolean _anonymization) {
+        this._anonymizationEnabled = _anonymization;
+    }
+
     @Override
     public String toString() {
         return "{ aeTitle: \"" + _aeTitle + "\", "
@@ -197,6 +218,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
                 + "queryRetrievePort: " + _queryRetrievePort + ", "
                 + "isDefaultQueryRetrievePacs: " + _defaultQueryRetrievePacs + ", "
                 + "storable: " + _storable + ", "
+                + "dicomObjectIdentifier: " + _dicomObjectIdentifier + ", "
                 + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
                 + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + ", "
                 + "Dicom-web Enabled: " + _dicomWebEnabled + ", "

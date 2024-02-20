@@ -131,7 +131,7 @@ class PacsDequeueThreadTest {
 
         // Simulate failed request
         doThrow(new DqrException("Simulating failed request"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -149,7 +149,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify calls were made to delete from prearchive
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -204,7 +204,7 @@ class PacsDequeueThreadTest {
 
         // Simulate failed request
         doThrow(new DqrException("Simulating failed request"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -221,7 +221,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify we read from the prearchive, but did not attempt to delete
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -261,7 +261,7 @@ class PacsDequeueThreadTest {
 
         // Simulate failed request
         doThrow(new DqrException("Simulating failed request"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -275,7 +275,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify no calls were made to read or delete from prearchive
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(0));
@@ -346,7 +346,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify call was made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -422,7 +422,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify call was made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -474,7 +474,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify no calls were made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(0));

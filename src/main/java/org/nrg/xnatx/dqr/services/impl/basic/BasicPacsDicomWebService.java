@@ -39,6 +39,7 @@ public class BasicPacsDicomWebService implements PacsDicomWebService {
         }
 
         dicomWebCredentialService.load();
+
         final Optional<DicomWebCredential> credentialOptional = dicomWebCredentialService.getCredential(pingRequest.getAeTitle());
         try (final DicomWebHttpClient httpClient
                      = new DicomWebHttpClient(pingRequest.getRootUrl(), credentialOptional.orElse(null))) {
