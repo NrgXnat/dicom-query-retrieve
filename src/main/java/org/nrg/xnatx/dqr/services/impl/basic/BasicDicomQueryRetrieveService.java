@@ -306,7 +306,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
 
         final String aeAndPort = request.getDecodedAeAndPort();
-        if (!isAeStorable(aeAndPort)) {
+        if (!pacs.isDicomWebEnabled() && !doesScpReceiverExist(aeAndPort)) {
             throw new PacsNotStorableException(new AeTitle(aeAndPort));
         }
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
@@ -344,7 +344,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      *
      * @param ae The AE title and optional port of the DICOM receiver to check.
      */
-    private boolean isAeStorable(final String ae) {
+    private boolean doesScpReceiverExist(final String ae) {
         final boolean hasPort = ae.contains(":");
         return _dicomSCPManager.getDicomSCPInstances().values().stream()
                 .filter(DicomSCPInstance::isEnabled)

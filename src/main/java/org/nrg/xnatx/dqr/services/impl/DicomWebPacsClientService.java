@@ -5,6 +5,7 @@ import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
 import org.dcm4che3.mime.MultipartInputStream;
 import org.nrg.dcm.DicomFileNamer;
+import org.nrg.dcm.utils.StreamWrapper;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatProjectdata;
 import org.nrg.xft.security.UserI;
@@ -24,11 +25,17 @@ import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsClientService;
-import org.nrg.dcm.utils.StreamWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
@@ -45,7 +52,6 @@ public class DicomWebPacsClientService implements PacsClientService {
     private final DicomFileNamer defaultFileName;
     private final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers;
 
-    @Autowired
     public DicomWebPacsClientService(final DicomWebCredentialService dicomWebCredentialService, final DicomFileNamer fileNamer,
                                      final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers) {
         this.dicomWebCredentialService = dicomWebCredentialService;
@@ -150,7 +156,7 @@ public class DicomWebPacsClientService implements PacsClientService {
                 STUDIES_ENDPOINT, study.getStudyInstanceUid(), SERIES_ENDPOINT, series.getSeriesInstanceUid()
         );
 
-        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), (partNumber, multipartInputStream) -> importSeriesFromMultipartDicom(pacs, user, ae, partNumber, multipartInputStream));
+        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), (partNumber, multipartInputStream) -> importSeriesFromMultipartDicom(pacs, user, study.getProjectId(), ae, partNumber, multipartInputStream));
         log.info("Series {} imported", series.getSeriesInstanceUid());
     }
 
@@ -178,7 +184,7 @@ public class DicomWebPacsClientService implements PacsClientService {
     * Modelled on web/org.nrg.dcm.scp.CStoreService doCStore method
      */
 
-    private void importSeriesFromMultipartDicom(final Pacs pacs, final UserI user, final String receiverAeTitle, final int partNumber, final MultipartInputStream multipartInputStream) throws DqrRuntimeException {
+    private void importSeriesFromMultipartDicom(final Pacs pacs, final UserI user, final String projectId, final String receiverAeTitle, final int partNumber, final MultipartInputStream multipartInputStream) throws DqrRuntimeException {
         try {
             DicomObjectIdentifier<XnatProjectdata> doi = getDicomObjectIdentifier(pacs.getDicomObjectIdentifier());
             final Map<String, List<String>> headers = multipartInputStream.readHeaderParams();
@@ -190,6 +196,7 @@ public class DicomWebPacsClientService implements PacsClientService {
             parameters.put(GradualDicomImporter.CUSTOM_PROC_PARAM, true);
             parameters.put(GradualDicomImporter.DIRECT_ARCHIVE_PARAM, false); //TODO: for now this will be false
             parameters.put(URIManager.PREVENT_ANON, Boolean.toString(!pacs.isAnonymizationEnabled()));
+            parameters.put(URIManager.PROJECT_ID, projectId);
             final FileWriterWrapperI fw = new StreamWrapper(multipartInputStream);
             final GradualDicomImporter importer = new GradualDicomImporter(this, user, fw, parameters);
             importer.setIdentifier(doi);
