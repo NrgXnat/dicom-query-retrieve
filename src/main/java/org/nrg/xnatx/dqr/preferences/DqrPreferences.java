@@ -36,8 +36,10 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String PACS_AVAILABILITY_CHECK_FREQUENCY = "pacsAvailabilityCheckFrequency";
     public static final String PACS_AVAILABILITY_CHECK_FREQUENCY_DEFAULT_VALUE = "1 minute";
     public static final String DQR_MAX_PACS_REQUEST_ATTEMPTS = "dqrMaxPacsRequestAttempts";
+    public static final String DQR_MAX_PACS_REQUEST_ATTEMPTS_OLD_NAME = "dqrMaxPacsCMOVEAttempts";
     public static final String DQR_MAX_PACS_REQUEST_ATTEMPTS_DEFAULT_VALUE = "5";
     public static final String DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS = "dqrWaitToRetryRequestInSeconds";
+    public static final String DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_OLD_NAME = "dqrWaitToRetryCMOVETimeInSeconds";
     public static final String DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_DEFAULT_VALUE = "300";
     public static final String NOTIFY_ADMIN_ON_IMPORT = "notifyAdminOnImport";
     public static final String NOTIFY_ADMIN_ON_IMPORT_DEFAULT_VALUE = "false";
@@ -97,7 +99,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         safeSet(pacsAvailabilityCheckFrequency, PACS_AVAILABILITY_CHECK_FREQUENCY);
     }
 
-    @NrgPreference(defaultValue = DQR_MAX_PACS_REQUEST_ATTEMPTS_DEFAULT_VALUE)
+    @NrgPreference(defaultValue = DQR_MAX_PACS_REQUEST_ATTEMPTS_DEFAULT_VALUE, aliases = DQR_MAX_PACS_REQUEST_ATTEMPTS_OLD_NAME)
     public String getDqrMaxPacsRequestAttempts() {
         return getValue(DQR_MAX_PACS_REQUEST_ATTEMPTS);
     }
@@ -107,7 +109,7 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
 
     }
 
-    @NrgPreference(defaultValue = DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_DEFAULT_VALUE)
+    @NrgPreference(defaultValue = DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_DEFAULT_VALUE, aliases = DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS_OLD_NAME)
     public String getDqrWaitToRetryRequestInSeconds() {
         return getValue(DQR_WAIT_TO_RETRY_REQUEST_IN_SECONDS);
     }
