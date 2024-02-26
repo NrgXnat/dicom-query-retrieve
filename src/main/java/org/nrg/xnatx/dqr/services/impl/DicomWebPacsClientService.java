@@ -25,10 +25,9 @@ import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsClientService;
+import org.nrg.xnatx.dqr.utils.DqrConstants;
 import org.springframework.stereotype.Service;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -196,6 +195,7 @@ public class DicomWebPacsClientService implements PacsClientService {
             parameters.put(GradualDicomImporter.DIRECT_ARCHIVE_PARAM, false); //TODO: for now this will be false
             parameters.put(URIManager.PREVENT_ANON, Boolean.toString(!pacs.isAnonymizationEnabled()));
             parameters.put(URIManager.PROJECT_ID, projectId);
+            parameters.put(DqrConstants.DICOM_IMPORT_PARAM_DQR_DICOM_WEB, true);
             final FileWriterWrapperI fw = new StreamWrapper(multipartInputStream);
             final GradualDicomImporter importer = new GradualDicomImporter(this, user, fw, parameters);
             importer.setIdentifier(doi);
