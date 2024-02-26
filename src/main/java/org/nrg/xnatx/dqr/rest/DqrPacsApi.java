@@ -32,7 +32,6 @@ import org.nrg.xnatx.dqr.dto.DicomWebPingRequest;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
 import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.nrg.xnatx.dqr.exceptions.InvalidDicomWebPingRequestException;
-import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
@@ -141,13 +140,14 @@ public class DqrPacsApi extends AbstractDqrRestController {
     @ApiResponses({@ApiResponse(code = 200, message = "Whether the PACS was responsive."),
                    @ApiResponse(code = 401, message = "Must be authenticated to ping PACS."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to ping PACS."),
+                   @ApiResponse(code = 404, message = "No PACS found with given ID."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}/status", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsPing pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) {
+    public PacsPing pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) throws PacsNotFoundException {
         final PacsPing ping = new PacsPing();
         ping.setPacsId(pacsId);
-        ping.setSuccessful(_dqrService.canConnect(getSessionUser(), getPacsService().retrieve(pacsId)));
+        ping.setSuccessful(_dqrService.ping(getSessionUser(), getPacs(pacsId)));
         ping.setPingTime(new Date());
         _pacsPingService.create(ping);
         return ping;

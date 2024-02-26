@@ -127,8 +127,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * {@inheritDoc}
      */
     @Override
-    public boolean canConnect(final UserI user, final Pacs pacs) {
-        return _pacsClientRoutingService.getPacsClientService(pacs).canConnect(pacs);
+    public boolean ping(final UserI user, final Pacs pacs) {
+        return _pacsClientRoutingService.getPacsClientService(pacs).ping(pacs);
     }
 
     /**

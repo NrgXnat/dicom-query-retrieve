@@ -115,7 +115,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
@@ -188,7 +188,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
@@ -245,7 +245,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
         when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
@@ -314,7 +314,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
         when(user.getUsername()).thenReturn(username);
 
@@ -393,7 +393,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -448,7 +448,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()

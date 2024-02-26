@@ -100,7 +100,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     }
                 }
                 final UserI admin      = _primaryAdminUserProvider.get();
-                boolean     canConnect = _dqrService.canConnect(admin, _pacsService.retrieve(_pacsId));
+                boolean     canConnect = _dqrService.ping(admin, _pacsService.retrieve(_pacsId));
                 if (!canConnect) {
                     break;
                 }

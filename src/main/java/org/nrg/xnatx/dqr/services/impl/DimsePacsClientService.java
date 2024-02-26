@@ -66,7 +66,7 @@ public class DimsePacsClientService implements PacsClientService {
      * {@inheritDoc}
      */
     @Override
-    public boolean canConnect(Pacs pacs) {
+    public boolean ping(Pacs pacs) {
         return buildCEchoSCU(pacs).canConnect();
     }
 

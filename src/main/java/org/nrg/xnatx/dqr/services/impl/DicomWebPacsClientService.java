@@ -62,9 +62,8 @@ public class DicomWebPacsClientService implements PacsClientService {
     }
 
     @Override
-    public boolean canConnect(Pacs pacs) {
-        // TODO is there a lightweight way to check that we can connect?
-        return true;
+    public boolean ping(Pacs pacs) {
+        return getDicomWebHttpClient(pacs).ping().isSuccessful();
     }
 
     @Override

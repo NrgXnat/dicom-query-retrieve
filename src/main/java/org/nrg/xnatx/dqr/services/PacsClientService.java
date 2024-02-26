@@ -27,7 +27,7 @@ public interface PacsClientService {
      *
      * @return Returns <b>true</b> if XNAT can connect to the specified PACS, <b>false</b> otherwise.
      */
-    boolean canConnect(Pacs pacs);
+    boolean ping(Pacs pacs);
 
     /**
      * Searches for a study on the specified PACS with the indicated study instance UID.

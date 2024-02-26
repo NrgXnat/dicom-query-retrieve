@@ -48,7 +48,7 @@ public interface DicomQueryRetrieveService {
      *
      * @return Returns <b>true</b> if the user can connect to the specified PACS, <b>false</b> otherwise.
      */
-    boolean canConnect(UserI user, Pacs pacs);
+    boolean ping(UserI user, Pacs pacs);
 
     /**
      * Searches for patients on the specified PACS that match the given criteria.
