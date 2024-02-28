@@ -262,6 +262,14 @@ public class DqrDateRange {
         return _start.toString() + " - " + _end.toString();
     }
 
+    @JsonIgnore
+    public String getStudyDateCriterion() {
+        final String startDate = this.isBoundedAtStart() ? DqrDateRange.formatDicomDate(this.getStart()) : "";
+        final String endDate   = this.isBoundedAtEnd() ? DqrDateRange.formatDicomDate(this.getEnd()) : "";
+        return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
+    }
+
+
     @Override
     public boolean equals(final Object object) {
         if (this == object) {
@@ -281,6 +289,7 @@ public class DqrDateRange {
         return new HashCodeBuilder(17, 37).appendSuper(super.hashCode()).append(getStart()).append(getEnd()).toHashCode();
     }
 
+    private static final String DICOM_DATE_RANGE_SEPARATOR = "-";
     private static final DateTimeFormatter BASIC_DATE_FORMATTER      = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final DateTimeFormatter DASHY_DATE_FORMATTER      = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter BASIC_TIME_FORMATTER      = DateTimeFormatter.ofPattern("H:m");

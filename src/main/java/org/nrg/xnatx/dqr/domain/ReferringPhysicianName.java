@@ -18,6 +18,10 @@ public class ReferringPhysicianName extends DqrPersonName {
         super(personName);
     }
 
+    public ReferringPhysicianName(final org.dcm4che3.data.PersonName personName) {
+        super(personName);
+    }
+
     public ReferringPhysicianName(final String firstName, final String lastName) {
         super(firstName, lastName);
     }

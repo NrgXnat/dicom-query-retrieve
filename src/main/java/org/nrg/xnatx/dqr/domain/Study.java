@@ -10,14 +10,23 @@
 package org.nrg.xnatx.dqr.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Singular;
 import org.apache.commons.lang3.StringUtils;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.PersonName;
+import org.dcm4che3.data.Tag;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Function;
 
 @Data
 @Builder
@@ -34,6 +43,35 @@ public class Study implements DqrDomainObject, Serializable {
     public Study(final String projectId, final String studyInstanceUid) {
         setProjectId(projectId);
         setStudyInstanceUid(studyInstanceUid);
+    }
+
+    /**
+     * Create a Study from the given DICOM attributes.
+     * <p>
+     * Replicates logic from
+     * {@link org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUStudyLevel#mapDicomObjectToDomainObject(org.dcm4che2.data.DicomObject)}
+     *
+     * @param attributes the DICOM attributes
+     * @param patientNamer the function to use to create a DqrPersonName from a DICOM person name
+     * @return the Series
+     */
+    public static Study from(final Attributes attributes, final Function<String, DqrPersonName> patientNamer) {
+        final StudyBuilder builder = Study.builder()
+                .studyInstanceUid(attributes.getString(Tag.StudyInstanceUID))
+                .studyId(attributes.getString(Tag.StudyID))
+                .accessionNumber(attributes.getString(Tag.AccessionNumber))
+                .studyDescription(StringUtils.trim(attributes.getString(Tag.StudyDescription)))
+                .patient(Patient.from(attributes, patientNamer));
+        if (attributes.containsValue(Tag.StudyDate) && !StringUtils.isBlank(attributes.getString(Tag.StudyDate))) {
+            builder.studyDate(attributes.getDate(Tag.StudyDate));
+        }
+        if (attributes.containsValue(Tag.ReferringPhysicianName)) {
+            builder.referringPhysicianName(new ReferringPhysicianName(new PersonName(attributes.getString(Tag.ReferringPhysicianName))));
+        }
+        if (attributes.containsValue(Tag.ModalitiesInStudy)) {
+            builder.modalitiesInStudy(Arrays.asList(attributes.getStrings(Tag.ModalitiesInStudy)));
+        }
+        return builder.build();
     }
 
     @Override

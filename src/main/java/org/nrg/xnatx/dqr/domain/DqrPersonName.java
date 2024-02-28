@@ -49,6 +49,11 @@ public class DqrPersonName implements Serializable {
         this.personName = personName;
     }
 
+    public DqrPersonName(final org.dcm4che3.data.PersonName personName) {
+        // Convert dcm4che3+ PersonName to dcm4che2 PersonName
+        this.personName = new PersonName(personName.toString());
+    }
+
     @Builder
     public DqrPersonName(final String firstName, final String lastName, final String middleName, final String prefix, final String suffix) {
         personName = new PersonName();
