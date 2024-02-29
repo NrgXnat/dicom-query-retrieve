@@ -11,6 +11,7 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -21,6 +22,7 @@ import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.json.JSONReader;
 import org.dcm4che3.mime.MultipartInputStream;
@@ -70,7 +72,13 @@ public class DicomWebHttpClient implements AutoCloseable {
     private static final String APPLICATION_DICOM_JSON = "application/dicom+json";
     private static final String MULTIPART_DICOM = "multipart/related; type=application/dicom";
     public static final String INCLUDEFIELD = "includefield";
+
+    private static final int DICOMWEB_CONNECTION_POOL_SIZE = 8;
+    private static final int DICOMWEB_TIMEOUT_SECONDS = 5;
+    private static final int DICOMWEB_TIMEOUT = DICOMWEB_TIMEOUT_SECONDS * 1000;
+
     private final CloseableHttpClient httpClient;
+    private final PoolingHttpClientConnectionManager connectionManager;
     private final HttpClientContext context;
     private final String rootUrl;
     private final URL rootUrlObj;
@@ -78,7 +86,18 @@ public class DicomWebHttpClient implements AutoCloseable {
     public DicomWebHttpClient(final String rootUrl, @Nullable final DicomWebCredential credentials) {
         this.rootUrl = StringUtils.appendIfMissing(rootUrl, "/");
 
-        httpClient = HttpClientBuilder.create().build();
+        connectionManager = new PoolingHttpClientConnectionManager();
+        connectionManager.setMaxTotal(DICOMWEB_CONNECTION_POOL_SIZE);
+
+        final RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(DICOMWEB_TIMEOUT)
+                .setConnectionRequestTimeout(DICOMWEB_TIMEOUT)
+                .setSocketTimeout(DICOMWEB_TIMEOUT)
+                .build();
+        httpClient = HttpClientBuilder.create()
+                .setConnectionManager(connectionManager)
+                .setDefaultRequestConfig(requestConfig)
+                .build();
         context = HttpClientContext.create();
 
         try {
@@ -238,6 +257,7 @@ public class DicomWebHttpClient implements AutoCloseable {
     public void close() {
         try {
             httpClient.close();
+            connectionManager.close();
         } catch (IOException e) {
             log.error("Failed to close {}", getClass().getSimpleName(), e);
         }
