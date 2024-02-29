@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
@@ -69,6 +70,10 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     public void copySettings(final PacsSettings settings) {
         final BeanWrapper wrappedPacs = PropertyAccessorFactory.forBeanPropertyAccess(settings);
         BeanUtils.copyProperties(settings, this, Stream.of(wrappedPacs.getPropertyDescriptors()).map(FeatureDescriptor::getName).filter(name -> wrappedPacs.getPropertyValue(name) == null).toArray(String[]::new));
+
+        if (_dicomWebEnabled && StringUtils.isBlank(_aeTitle)) {
+            _aeTitle = _label;
+        }
     }
 
     @NotBlank
