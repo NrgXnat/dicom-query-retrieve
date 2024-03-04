@@ -57,8 +57,6 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String RESULT_SET_LIMIT_STRATEGY_DEFAULT_VALUE = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicResultSetLimitStrategy";
     public static final String LEAVE_PACS_AUDIT_TRAIL = "leavePacsAuditTrail";
     public static final String LEAVE_PACS_AUDIT_TRAIL_DEFAULT_VALUE = "false";
-    public static final String DICOM_WEB_ENABLED = "dicomWebEnabled";
-    public static final String DICOM_WEB_ENABLED_DEFAULT_VALUE = "false";
 
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
@@ -188,14 +186,5 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
 
     public void setLeavePacsAuditTrail(final boolean leavePacsAuditTrail) {
         safeSet(leavePacsAuditTrail, LEAVE_PACS_AUDIT_TRAIL);
-    }
-
-    @NrgPreference(defaultValue = DICOM_WEB_ENABLED_DEFAULT_VALUE)
-    public boolean getDicomWebEnabled() {
-        return getBooleanValue(DICOM_WEB_ENABLED);
-    }
-
-    public void setDicomWebEnabled(final boolean dicomWebEnabled) {
-        safeSet(dicomWebEnabled, DICOM_WEB_ENABLED);
     }
 }
