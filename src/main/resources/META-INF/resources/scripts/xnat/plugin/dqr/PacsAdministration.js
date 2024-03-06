@@ -330,7 +330,7 @@ XNAT.app = getObject(XNAT.app || {});
                         }
 
                         $form.find('.validate').each(function(){
-                            if (this.checkVisibility() && !XNAT.validate($(this)).check()) {
+                            if (!$(this).is(":hidden") && !XNAT.validate($(this)).check()) {
                                 $(this).addClass('invalid');
                                 invalidFields.push($(this).prop('name'));
                             }
