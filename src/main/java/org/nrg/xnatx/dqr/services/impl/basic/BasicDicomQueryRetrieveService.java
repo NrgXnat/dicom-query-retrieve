@@ -380,7 +380,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         final List<StudyImportInformation>  studies      = request.getStudies();
         final boolean                       isMultiStudy = studies.size() > 1;
         final Map<String, Optional<String>> anonScripts  = studies.stream().collect(Collectors.toMap(StudyImportInformation::getStudyInstanceUid, BasicDicomQueryRetrieveService::getAnonScript));
-        if (!request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
+        if (!pacs.isDicomWebEnabled() && !request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
         return studies.stream()
