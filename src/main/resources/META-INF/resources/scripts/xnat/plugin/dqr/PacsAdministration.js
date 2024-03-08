@@ -166,9 +166,10 @@ XNAT.app = getObject(XNAT.app || {});
                 $form.append(
                     spawn('!', [
                         XNAT.ui.panel.input.text({
-                            name: 'label',
-                            label: 'Label',
-                            addClass: 'validate',
+                            id: 'aeTitle',
+                            name: 'aeTitle',
+                            label: 'AE Title',
+                            addClass: 'aeTitle-input validate',
                             validation: 'required'
                         }),
                         XNAT.ui.panel.select.single({
@@ -200,12 +201,16 @@ XNAT.app = getObject(XNAT.app || {});
                                 name: 'pacsId'
                             }),
                             ormSelector,
+                        ]),
+                        spawn('div.connection-type-settings.dimse.dicom_web',[
                             XNAT.ui.panel.input.text({
-                                name: 'aeTitle',
-                                label: 'AE Title',
-                                addClass: 'aeTitle-input validate',
-                                validation: 'required'
-                            }),
+                                id: 'label',
+                                name: 'label',
+                                label: 'Label',
+                                addClass: 'validate'
+                            })
+                        ]),
+                        spawn('div.connection-type-settings.dimse',[
                             XNAT.ui.panel.input.text({
                                 name: 'host',
                                 label: 'Host',
@@ -306,9 +311,26 @@ XNAT.app = getObject(XNAT.app || {});
                         $("#connection_type").prop('value', 'dimse');
                         PacsAdministration.displaySettings('dimse');
                     }
+                    if (pacs.aeTitle && !pacs.label) {
+                        $('#label').attr('placeholder', pacs.aeTitle);
+                    }
                 } else {
                     PacsAdministration.displaySettings(connection_types);
                 }
+
+                let $aeTitle = $('#aeTitle');
+                let $label = $('#label');
+
+                $aeTitle.on('input', function(){
+                    $label.attr('placeholder', $aeTitle.val());
+                });
+
+                $label.on('input', function() {
+                    if (!this.value) {
+                        $(this).attr('placeholder', $aeTitle.val());
+                    }
+                });
+
             },
             buttons: [
                 {
@@ -362,6 +384,9 @@ XNAT.app = getObject(XNAT.app || {});
                             parsedJson.queryable = true;
                         } else if (parsedJson.connection_type === 'dimse') {
                             parsedJson.dicomWebEnabled = false;
+                        }
+                        if (!parsedJson.hasOwnProperty('label')) {
+                            parsedJson.label = parsedJson.aeTitle;
                         }
                         delete parsedJson.connection_type;
 
@@ -805,7 +830,7 @@ XNAT.app = getObject(XNAT.app || {});
             return;
         }
 
-        let $aeTitle = $(document).find('input[name=label]');
+        let $aeTitle = $(document).find('input[name=aeTitle]');
         if(!XNAT.validate($aeTitle).check()) {
             $aeTitle.addClass('invalid');
             return;
