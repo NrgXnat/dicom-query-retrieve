@@ -198,10 +198,10 @@ public class DimsePacsClientService implements PacsClientService {
                 .remotePort(pacs.getQueryRetrievePort())
                 .localAe(getCallingAETitle());
 
-        new RetryablePacsOperation<Void>(pacs) {
+        new RetryablePacsOperation<Void>() {
             @Override
             @Nullable
-            public Void doOperationWithRetry() throws PacsConnectionException {
+            public Void doOperationWithRetry() throws PacsException {
                 try (final QrClient client = builder.build()) {
                     client.query(attributes, callback);
                 }
@@ -219,10 +219,10 @@ public class DimsePacsClientService implements PacsClientService {
                 .localAe(getCallingAETitle())
                 .destination(destination);
 
-        new RetryablePacsOperation<Void>(pacs) {
+        new RetryablePacsOperation<Void>() {
             @Override
             @Nullable
-            public Void doOperationWithRetry() throws PacsConnectionException {
+            public Void doOperationWithRetry() throws PacsException {
                 try (final QrClient client = builder.build()) {
                     log.debug("QRClient: Performing C-Move with keys: {}", attributes);
                     client.move(attributes);

@@ -8,24 +8,24 @@ import org.nrg.xnatx.dqr.utils.AeTitle;
 @Data
 @Accessors(prefix = "_")
 @EqualsAndHashCode(callSuper = false)
-public abstract class PacsException extends DqrException {
+public class PacsException extends DqrException {
     private static final long serialVersionUID = 3019798242092476487L;
 
-    protected PacsException(final String message) {
+    public PacsException(final String message) {
         super(message);
         _pacsId = 0;
         _aeTitle = AeTitle.EMPTY;
         _messageFormat = message;
     }
 
-    protected PacsException(final Exception cause) {
+    public PacsException(final Exception cause) {
         super(cause);
         _pacsId = 0;
         _aeTitle = AeTitle.EMPTY;
         _messageFormat = "";
     }
 
-    protected PacsException(final String message, final Exception cause) {
+    public PacsException(final String message, final Throwable cause) {
         super(message, cause);
         _pacsId = 0;
         _aeTitle = AeTitle.EMPTY;
