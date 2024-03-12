@@ -155,7 +155,7 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     public void getItem(final List<String> pathSegments, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
         final URI uri = buildUri(pathSegments, queryParamsByTag);
-        new RetryablePacsOperation<Void>(rootUrl) {
+        new RetryablePacsOperation<Void>() {
             @Override
             public Void doOperationWithRetry() throws PacsException {
                 doGetItem(uri, callback);
