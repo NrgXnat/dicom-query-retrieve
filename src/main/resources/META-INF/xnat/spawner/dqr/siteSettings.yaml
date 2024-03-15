@@ -39,11 +39,11 @@ dqrHistoryTab:
 dqrPacsPanel:
     kind: panel
     name: dqrPacsPanel
-    label: Manage DICOM AE (PACS) Connections
+    label: Manage Connected PACS/VNA
     contents:
         dqrPacsTableContainer:
             tag: "div#pacsDiv"
-            content: No DICOM AE connections yet
+            content: No PACS/VNA connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/xnat/plugin/dqr/PacsAdministration.js"
         dqrPacsCss:

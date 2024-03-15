@@ -486,11 +486,10 @@ XNAT.app = getObject(XNAT.app || {});
 
         // add table header row
         pacsTable.tr()
-                 .th({ addClass: 'left', html: '<b>DICOM AE</b>' })
-                 .th('<b>Schedule</b>')
-                 .th('<b>Queryable</b>')
-                 .th('<b>Storable</b>')
-                 .th('<b>Status</b>')
+                 .th({ addClass: 'left', html: '<b>PACS/VNA Connection</b>' })
+                 .th('<b>Protocol</b>')
+                 .th('<b>Query/Retrieve</b>')
+                 .th('<b>Store</b>')
                  .th('<b>Actions</b>');
 
         function showDefault(setting,defaultSet){
@@ -507,10 +506,18 @@ XNAT.app = getObject(XNAT.app || {});
                 spawn('i', { className: 'fa fa-pencil' })
             ]);
         }
+        function scheduleButton(ae) {
+            return spawn('button',{ className: 'btn scheduleRow', title: 'Schedule Availability of This DICOM AE Connection',
+                data: {'id': ae.id, 'label': ae.label, 'aeTitle': ae.aeTitle}},
+                [spawn('i', { className: 'fa fa-calendar' })]);
+        }
         function deleteButton(){
             return spawn('button',{ className: 'btn deleteRow', title: 'Delete This DICOM AE Connection' },[
                 spawn('i', {className: 'fa fa-trash' })
             ]);
+        }
+        function pingPacs(id){
+            return spawn('button.btn-sm.ping-pacs', { title: 'Check PACS Network Status', data: { 'pacs-id': id }}, 'Ping');
         }
         function displayLongLabel(label){
             return spawn('span.truncate', { style: { 'width': '120px' }, title: label }, label);
@@ -518,16 +525,66 @@ XNAT.app = getObject(XNAT.app || {});
         function displayAeSummary(ae){
             var summary = [
                 spawn('p',[
-                    spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.aeTitle),
-                    spawn('span', ' (IP: ' + ae.host + ')')
+                    spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.label)
                 ])
             ];
-            if (ae.label) summary.push( spawn('p', ae.label));
-            if (ae.queryRetrievePort) summary.push( spawn('p', 'Port: '+ae.queryRetrievePort));
+            summary.push(spawn('p', ' AETITILE: ' + ae.aeTitle));
+            if (ae.dicomWebEnabled) {
+                summary.push(spawn('p', 'URL: ' + ae.dicomWebRootUrl));
+            } else {
+                summary.push( spawn('p','IP: ' + ae.host + ' | Port: '+ ae.queryRetrievePort));
+            }
             return spawn('!',summary);
         }
-        function pingPacs(id){
-            return spawn('button.btn-sm.ping-pacs', { title: 'Check PACS Network Status', data: { 'pacs-id': id }}, 'Ping');
+        function getAeProtocol(ae) {
+            if (ae.dicomWebEnabled) {
+                return "DICOMweb";
+            } else {
+                return "DIMSE";
+            }
+        }
+        function getQueryRetrieve(ae) {
+            var queryRetrieve = []
+            if (ae.queryable) {
+                if (ae.defaultQueryRetrievePacs) {
+                    queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled (Default)"));
+                } else {
+                    queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled"));
+                }
+            } else {
+                queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Disabled"));
+                return spawn('!', queryRetrieve);
+            }
+
+            if (ae.dicomWebEnabled) {
+                queryRetrieve.push(spawn('p', 'DOI: ' + ae.dicomObjectIdentifier));
+                if (ae.anonymizationEnabled) {
+                    queryRetrieve.push(spawn('p', "Anonymization: Enabled"));
+                } else {
+                    queryRetrieve.push(spawn('p', "Anonymization: Disabled"));
+                }
+            } else {
+                queryRetrieve.push(spawn('p', "Via default SCP Receiver"));
+            }
+
+            return spawn('!', queryRetrieve);
+        }
+        function getStoreable(ae) {
+            var storable = [];
+            if (ae.dicomWebEnabled) {
+                storable.push(spawn('p', "--"));
+            } else {
+                if (ae.storable) {
+                    if (ae.defaultStoragePacs) {
+                        storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled (Default)"));
+                    } else {
+                        storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled"));
+                    }
+                } else {
+                    storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Disabled"));
+                }
+            }
+            return spawn('!', storable);
         }
 
         // add data rows
@@ -563,27 +620,10 @@ XNAT.app = getObject(XNAT.app || {});
                 // populate table row
                 pacsTable.tr({ data: dataAttrs })
                          .td([ displayAeSummary(ae) ])
-                         .td({ addClass: 'center ' }, [ spawn('a.link.edit-pacs-schedule|href=#!schedule', {
-                             on: [['click', function(e){
-                                 e.preventDefault();
-                                 window.pacsId = ae.id;
-                                 window.pacsLabel = ae.label || ae.aeTitle;
-                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', {
-                                     pacs: window.pacsId,
-                                     label: window.pacsLabel
-                                 });
-                                 console.log(URL);
-                                 XNAT.dialog.load(URL, {
-                                     width: 1150,
-                                     maxBtn: false
-                                 });
-                             }]]
-                         }, 'Schedule') ])
-                         .td({ addClass: 'center' }, [ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
-                         .td({ addClass: 'center' }, [ showDefault(ae.storable, ae.defaultStoragePacs) ])
-                         .td({ addClass: 'center' }, [ pingPacs(ae.id)] )
-                         // .td({ addClass: 'center' }, [ editButton(), '&nbsp;', deleteButton()] );
-                         .td({ addClass: 'center' }, [ editButton()] );
+                         .td([ getAeProtocol(ae) ])
+                         .td([ getQueryRetrieve(ae) ])
+                         .td([ getStoreable(ae) ])
+                         .td({ addClass: 'center', style: { width: '170px' }}, [ pingPacs(ae.id), '&nbsp;', scheduleButton(ae), '&nbsp;', editButton()] );
             });
 
         }
@@ -592,7 +632,7 @@ XNAT.app = getObject(XNAT.app || {});
 
         $(constants.PACS_DIV).append(
             spawn('p', { 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top': '1em' } }, [
-                spawn('a.btn.primary|href=#!', { id: constants.ADD_PACS_LINK.substring(1) }, 'Add New DICOM AE')
+                spawn('a.btn.primary|href=#!', { id: constants.ADD_PACS_LINK.substring(1) }, 'Add New')
             ])
         );
 
@@ -909,6 +949,24 @@ XNAT.app = getObject(XNAT.app || {});
         var id = $(this).data('pacs-id');
         XNAT.app.dqr.PacsAdministration.checkPacsStatus(id, this);
     });
+
+    $(document).on('click', '.scheduleRow', function (e) {
+       e.preventDefault();
+       var id = $(this).data('id');
+       var label = $(this).data('label');
+       var aeTitle = $(this).data('aeTitle');
+       window.pacsId = id;
+       window.pacsLabel = label || aeTitle;
+       var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', {
+           pacs: window.pacsId,
+           label: window.pacsLabel
+       });
+       console.log(URL);
+       XNAT.dialog.load(URL, {
+           width: 1150,
+           maxBtn: false
+       });
+   });
 
     $(document).ready(function(){
         XNAT.app.dqr.PacsAdministration.init();
