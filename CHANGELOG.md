@@ -5,6 +5,24 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="2.0"></a>XNAT DQR Version 2.0 Release Notes
+
+### 2.0.x Versions
+
+* [2.0.0](#2.0.0)
+
+### <a name="2.0.0"></a>DQR Plugin Version: 2.0.0
+
+DQR now fully supports Query and Retrieve over DICOMweb.
+
+#### 2.0.0 - General Improvements
+
+   * [PLUGINS-96](https://radiologics.atlassian.net/browse/PLUGINS-96) Support configuring a PACS connection for DICOMweb,
+        and performing query and retrieve (import) operations over DICOMweb.
+
+#### 2.0.0 - Fixes
+   * [PLUGINS-157](https://radiologics.atlassian.net/browse/PLUGINS-157) No longer restrict capitalization of Patient Name input on Query page
+
 ## <a name="1.3"></a>XNAT DQR Version 1.3 Release Notes
 
 ### 1.3.x Versions
