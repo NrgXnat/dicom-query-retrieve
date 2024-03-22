@@ -12,16 +12,37 @@ package org.nrg.xnatx.dqr.services.impl.hibernate;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
 import org.nrg.xnatx.dqr.domain.daos.PacsDAO;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.dto.PacsSettings;
+import org.nrg.xnatx.dqr.exceptions.InvalidPacsConfigurationException;
+import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @Transactional
 public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsService {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Pacs createPacs(final PacsSettings settings) throws InvalidPacsConfigurationException {
+        return createPacs(new Pacs(settings));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Pacs createPacs(final Pacs pacs) throws InvalidPacsConfigurationException {
+        validatePacs(pacs);
+        return create(pacs);
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -35,9 +56,37 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      * {@inheritDoc}
      */
     @Override
+    public Pacs getPacs(final long pacsId) throws PacsNotFoundException {
+        return getDao().getPacs(pacsId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Pacs updatePacs(long pacsId, PacsSettings settings) throws PacsNotFoundException, InvalidPacsConfigurationException {
+        final Pacs entity = getPacs(pacsId);
+        entity.copySettings(settings);
+        validatePacs(entity);
+        update(entity);
+        return entity;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void update(final Pacs entity) {
         clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
         super.update(entity);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deletePacs(long pacsId) throws PacsNotFoundException {
+        getDao().deletePacs(pacsId);
     }
 
     /**
@@ -86,6 +135,26 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
     @Override
     public List<Pacs> findAll(final boolean storable, final boolean queryable) {
         return storable && queryable ? findAllQueryableAndStorable() : (storable ? findAllStorable() : (queryable ? findAllQueryable() : getAll()));
+    }
+
+    private void validatePacs(final Pacs entity) throws InvalidPacsConfigurationException {
+        final List<String> errors = new ArrayList<>();
+        if (entity.isDefaultStoragePacs() && !entity.isStorable()) {
+            errors.add("PACS marked as default storage PACS must be storable");
+        }
+        if (entity.isDefaultQueryRetrievePacs() && !entity.isQueryable()) {
+            errors.add("PACS marked as default query/retrieve PACS must be queryable");
+        }
+        if (entity.isDicomWebEnabled() && !entity.isQueryable()) {
+            errors.add("DICOMweb PACS configurations must be queryable");
+        }
+        if (entity.isDicomWebEnabled() && entity.isStorable()) {
+            errors.add("DICOMweb PACS configurations must not be storable");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new InvalidPacsConfigurationException(errors);
+        }
     }
 
     private void clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(final Pacs entity) {

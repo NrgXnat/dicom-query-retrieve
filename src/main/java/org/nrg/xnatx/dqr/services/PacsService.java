@@ -11,11 +11,59 @@ package org.nrg.xnatx.dqr.services;
 
 import org.nrg.framework.orm.hibernate.BaseHibernateService;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.dto.PacsSettings;
+import org.nrg.xnatx.dqr.exceptions.InvalidPacsConfigurationException;
+import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface PacsService extends BaseHibernateService<Pacs> {
+    /**
+     * Creates a new PACS.
+     * @param settings The PACS to create.
+     * @throws InvalidPacsConfigurationException If the PACS configuration is invalid.
+     */
+    Pacs createPacs(final PacsSettings settings) throws InvalidPacsConfigurationException;
+
+    /**
+     * Creates a new PACS.
+     * @param pacs The PACS to create.
+     * @throws InvalidPacsConfigurationException If the PACS configuration is invalid.
+     */
+    Pacs createPacs(final Pacs pacs) throws InvalidPacsConfigurationException;
+
+    /**
+     * Finds the PACS with the specified ID.
+     *
+     * @param pacsId The ID of the PACS to retrieve.
+     *
+     * @return The PACS with the specified ID.
+     *
+     * @throws PacsNotFoundException If no PACS with the specified ID is found.
+     */
+    Pacs getPacs(final long pacsId) throws PacsNotFoundException;
+
+    /**
+     * Updates the PACS with the specified ID.
+     *
+     * @param pacsId The ID of the PACS to update.
+     * @param pacsUpdates The updates to apply to the PACS.
+     * @return The updated PACS.
+     * @throws PacsNotFoundException If no PACS with the specified ID is found.
+     * @throws InvalidPacsConfigurationException If the PACS configuration is invalid.
+     */
+    Pacs updatePacs(final long pacsId, final PacsSettings pacsUpdates) throws PacsNotFoundException, InvalidPacsConfigurationException;
+
+    /**
+     * Deletes the PACS with the specified ID.
+     *
+     * @param pacsId The ID of the PACS to delete.
+     *
+     * @throws PacsNotFoundException If no PACS with the specified ID is found.
+     */
+    void deletePacs(final long pacsId) throws PacsNotFoundException;
+
     /**
      * Finds the PACS marked as the default query-retrieve PACS.
      *

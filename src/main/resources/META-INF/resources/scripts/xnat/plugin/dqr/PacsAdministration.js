@@ -382,6 +382,7 @@ XNAT.app = getObject(XNAT.app || {});
                         if (parsedJson.connection_type === 'dicom_web') {
                             parsedJson.dicomWebEnabled = true;
                             parsedJson.queryable = true;
+                            parsedJson.storable = false;
                         } else if (parsedJson.connection_type === 'dimse') {
                             parsedJson.dicomWebEnabled = false;
                         }
