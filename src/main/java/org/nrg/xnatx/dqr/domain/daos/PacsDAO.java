@@ -13,6 +13,7 @@ import org.hibernate.criterion.Restrictions;
 import org.hibernate.criterion.SimpleExpression;
 import org.nrg.framework.orm.hibernate.AbstractHibernateDAO;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -25,6 +26,18 @@ public class PacsDAO extends AbstractHibernateDAO<Pacs> {
     private static final SimpleExpression CRITERIA_DEFAULT_STORAGE_PACS        = Restrictions.eq("defaultStoragePacs", true);
     private static final SimpleExpression CRITERIA_STORABLE                    = Restrictions.eq("storable", true);
     private static final SimpleExpression CRITERIA_QUERYABLE                   = Restrictions.eq("queryable", true);
+
+    public Pacs getPacs(final long pacsId) throws PacsNotFoundException {
+        final Pacs pacs = retrieve(pacsId);
+        if (pacs == null) {
+            throw new PacsNotFoundException(pacsId);
+        }
+        return pacs;
+    }
+
+    public void deletePacs(final long pacsId) throws PacsNotFoundException {
+        delete(getPacs(pacsId));
+    }
 
     /**
      * Finds the PACS marked as the default query-retrieve PACS.
