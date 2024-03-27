@@ -147,10 +147,16 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public void setDqrPreferences(@ApiParam(value = "The map of DQR preferences to be set.", required = true) @RequestBody final Map<String, String> properties) {
         log.info("User {} requested to set a batch of DQR preferences.", getSessionUser().getUsername());
         // Is this call initializing the system?
-        for (final String name : properties.keySet()) {
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name  = entry.getKey();
+            final String value = entry.getValue();
             try {
-                _preferences.set(properties.get(name), name);
-                log.info("Set property {} to value: {}", name, properties.get(name));
+                if (value == null) {
+                    log.info("Skipped null value for property: {}", name);
+                    continue;
+                }
+                _preferences.set(value, name);
+                log.info("Set property {} to value: {}", name, value);
             } catch (InvalidPreferenceName invalidPreferenceName) {
                 log.error("Got an invalid preference name error for the preference: {}, failed to set value to: {}", name, properties.get(name));
             }
