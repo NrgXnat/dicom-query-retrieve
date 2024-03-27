@@ -22,6 +22,8 @@ import org.nrg.prefs.services.NrgPreferenceService;
 import org.nrg.xdat.preferences.EventTriggeringAbstractPreferenceBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Map;
+
 @NrgPreferenceBean(toolId = DqrPreferences.DQR_TOOL_ID,
                    toolName = "XNAT DQR Preferences",
                    description = "Manages preferences and settings for the dicom query retrieve plugin.")
@@ -63,17 +65,31 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         super(preferenceService, eventService, configPaths, initPrefs);
     }
 
+    public void set(Map<String, String> preferences) {
+        preferences.forEach(this::safeSet);
+    }
+
     private void safeSet(final String value, final String name) {
+        if (value == null) {
+            log.info("Refusing to set null value for property: {}", name);
+            return;
+        }
         try {
             set(value, name);
+            log.info("Set property {} to value: {}", name, value);
         } catch (InvalidPreferenceName e) {
             log.error(INVALID_PREFERENCE_NAME_TEMPLATE, name, e);
         }
     }
 
     private void safeSet(final Boolean value, final String name) {
+        if (value == null) {
+            log.info("Skipped null value for property: {}", name);
+            return;
+        }
         try {
             setBooleanValue(value, name);
+            log.info("Set property {} to value: {}", name, value);
         } catch (InvalidPreferenceName e) {
             log.error(INVALID_PREFERENCE_NAME_TEMPLATE, name, e);
         }
