@@ -133,7 +133,6 @@ dependencies {
     implementation "org.aspectj:aspectjweaver"
     implementation "javax.validation:validation-api"
     implementation "org.restlet:org.restlet"
-    implementation 'javax.json:javax.json-api:1.1.4'
     implementation "org.dcm4che:dcm4che-core"
 
     implementation("turbine:turbine") {
@@ -156,6 +155,9 @@ dependencies {
         transitive = false
     }
     implementAndInclude("org.dcm4che:dcm4che-mime") {
+        transitive = false
+    }
+    implementAndInclude("org.glassfish:jakarta.json:1.1.6") {
         transitive = false
     }
 
