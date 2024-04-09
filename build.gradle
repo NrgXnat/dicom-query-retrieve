@@ -55,6 +55,14 @@ sourceSets {
             srcDir "build/xnat-generated/src/main/resources"
         }
     }
+    all {
+        configurations.getByName(runtimeClasspathConfigurationName) {
+            attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
+        }
+        configurations.getByName(compileClasspathConfigurationName) {
+            attributes.attribute(Attribute.of("org.gradle.jvm.environment", String), "standard-jvm")
+        }
+    }
 }
 
 configurations {
@@ -69,9 +77,6 @@ configurations {
         exclude group: "org.slf4j", module: "slf4j-simple"
     }
     implementation.extendsFrom(implementAndInclude)
-    compileClasspath {
-        attributes.attribute(Attribute.of('org.gradle.jvm.environment', String), 'standard-jvm')
-    }
 }
 
 jacocoTestReport {
