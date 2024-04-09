@@ -1616,11 +1616,15 @@ var XNAT = getObject(XNAT || {});
                     );
                 }
             },
-            failure: function(){
+            failure: function(e){
                 xmodal.loading.close();
                 console.warn('error importing CSV');
                 console.warn(arguments);
-                XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
+                if (e.status === 400) {
+                    XNAT.dialog.message('Error', e.responseText);
+                } else {
+                    XNAT.dialog.message('Error', 'An error occurred processing the CSV file. Please ensure that it\'s a valid CSV file and formatted properly for PACS queries.');
+                }
             }
         });
     };

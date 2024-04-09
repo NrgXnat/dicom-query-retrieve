@@ -55,6 +55,7 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.dto.StudyImportInformation;
 import org.nrg.xnatx.dqr.exceptions.ArchiveProcessorsNotAvailableException;
+import org.nrg.xnatx.dqr.exceptions.CsvPacsRequestTooManyRowsException;
 import org.nrg.xnatx.dqr.exceptions.DicomReceiverCustomProcessingDisabledException;
 import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
@@ -623,6 +624,10 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
         final RowManager           indexes   = new RowManager(FileUtils.CSVFileToArrayList(csv).stream().filter(list -> !list.isEmpty()).collect(Collectors.toList()));
         final Map<Integer, String> columnMap = indexes.getColumnMap(isNewRequest);
+
+        if (indexes.size() > 1000) {
+            throw new CsvPacsRequestTooManyRowsException("For performance reasons, please limit the number of rows in your uploaded CSV to 1000.");
+        }
 
         return indexes.stream().map(row -> {
             final AtomicBoolean                                areThereSearchCriteriaForThisRow = new AtomicBoolean();
