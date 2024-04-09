@@ -70,8 +70,7 @@ configurations {
     }
     implementation.extendsFrom(implementAndInclude)
     compileClasspath {
-        attributes.attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
-            objects.named(TargetJvmEnvironment, TargetJvmEnvironment.STANDARD_JVM))
+        attributes.attribute(Attribute.of('org.gradle.jvm.environment', String), 'standard-jvm')
     }
 }
 
