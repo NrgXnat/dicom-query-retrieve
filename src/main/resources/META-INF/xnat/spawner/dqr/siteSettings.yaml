@@ -39,11 +39,11 @@ dqrHistoryTab:
 dqrPacsPanel:
     kind: panel
     name: dqrPacsPanel
-    label: Manage DICOM AE (PACS) Connections
+    label: Manage Connected PACS/VNA
     contents:
         dqrPacsTableContainer:
             tag: "div#pacsDiv"
-            content: No DICOM AE connections yet
+            content: No PACS/VNA connections yet
         dqrPacsScript:
             tag: script|src="~/scripts/xnat/plugin/dqr/PacsAdministration.js"
         dqrPacsCss:
@@ -92,21 +92,21 @@ dqrOtherPreferencePanel:
                 configured than are currently open, additional threads will be opened (if there are more threads open
                 than are currently configured, they will be ended once they complete their current PACS request). Uses
                 <a target="_blank" href="http://www.postgresql.org/docs/9.0/static/functions-datetime.html">PostgreSQL interval notation</a>.
-        dqrMaxPacsCMOVEAttempts:
+        dqrMaxPacsRequestAttempts:
             kind: panel.input.text
             size: 10
-            name: dqrMaxPacsCMOVEAttempts
-            label: Maximum Connection Attempts (CMOVE)
+            name: dqrMaxPacsRequestAttempts
+            label: Maximum Retrieve Attempts
             placeholder: 5
-            description: Maximum number of connection attempts to make to a PACS.
+            description: Maximum number of attempts to make when retrieving data from a PACS.
             validation: number
-        dqrWaitToRetryCMOVETimeInSeconds:
+        dqrWaitToRetryRequestInSeconds:
             kind: panel.input.text
             size: 10
-            name: dqrWaitToRetryCMOVETimeInSeconds
-            label: Retry Wait Period (CMOVE)
+            name: dqrWaitToRetryRequestInSeconds
+            label: Retrieve Retry Wait Period
             placeholder: 300
-            description: Number of seconds to wait to retry the connection to a PACS.
+            description: Number of seconds to wait before retrying a failed attempt to retrieve data from a PACS.
             validation: number
         allowAllUsersToUseDqr:
             kind: panel.input.switchbox

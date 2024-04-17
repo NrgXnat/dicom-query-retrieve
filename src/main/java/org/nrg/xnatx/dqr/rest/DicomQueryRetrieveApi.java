@@ -9,7 +9,11 @@
 
 package org.nrg.xnatx.dqr.rest;
 
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -17,7 +21,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.ajax.PaginatedRequest;
 import org.nrg.framework.annotations.XapiRestController;
 import org.nrg.prefs.exceptions.InvalidPreferenceName;
-import org.nrg.xapi.exceptions.*;
+import org.nrg.xapi.exceptions.DataFormatException;
+import org.nrg.xapi.exceptions.InitializationException;
+import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
+import org.nrg.xapi.exceptions.NoContentException;
+import org.nrg.xapi.exceptions.NotFoundException;
+import org.nrg.xapi.exceptions.NotModifiedException;
+import org.nrg.xapi.exceptions.ResourceAlreadyExistsException;
 import org.nrg.xapi.rest.AuthDelegate;
 import org.nrg.xapi.rest.Project;
 import org.nrg.xapi.rest.XapiRequestMapping;
@@ -33,17 +43,29 @@ import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
 import org.nrg.xnatx.dqr.domain.Study;
-import org.nrg.xnatx.dqr.domain.entities.*;
-import org.nrg.xnatx.dqr.dto.*;
+import org.nrg.xnatx.dqr.domain.entities.DqrProjectSettings;
+import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.Pacs;
+import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
+import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
+import org.nrg.xnatx.dqr.dto.DqrProjectSettingsDTO;
+import org.nrg.xnatx.dqr.dto.PacsExportRequest;
+import org.nrg.xnatx.dqr.dto.PacsImportRequest;
+import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
+import org.nrg.xnatx.dqr.dto.PacsSearchResults;
+import org.nrg.xnatx.dqr.dto.PacsSeriesSearchRequest;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotAvailableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
-import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotStorableException;
 import org.nrg.xnatx.dqr.messaging.PacsSessionExportRequest;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
-import org.nrg.xnatx.dqr.services.*;
+import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
+import org.nrg.xnatx.dqr.services.DqrProjectSettingsService;
+import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
+import org.nrg.xnatx.dqr.services.PacsService;
+import org.nrg.xnatx.dqr.services.QueuedPacsRequestService;
 import org.nrg.xnatx.dqr.utils.FindRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -51,7 +73,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -61,11 +88,23 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.nrg.xdat.security.helpers.AccessLevel.*;
+import static org.nrg.xdat.security.helpers.AccessLevel.Admin;
+import static org.nrg.xdat.security.helpers.AccessLevel.Authorizer;
+import static org.nrg.xdat.security.helpers.AccessLevel.DataAccess;
+import static org.nrg.xdat.security.helpers.AccessLevel.DataAdmin;
+import static org.nrg.xdat.security.helpers.AccessLevel.Read;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 @Api("Dicom Query Retrieve API")
@@ -262,7 +301,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     public Collection<Study> searchForStudies(final @ApiParam("Import request.") @RequestBody PacsSearchCriteria criteria) throws PacsException, NoContentException, DataFormatException {
         final long  pacsId = criteria.getPacsId();
         final UserI user   = getSessionUser();
-        log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user, criteria);
+        log.debug("Searching PACS {} for user {} with criteria: {}", pacsId, user.getUsername(), criteria);
         final PacsSearchResults<Study> studies = _dqrService.getStudiesByExample(user, getDefaultQueryablePacs(pacsId), criteria);
         if (studies.getResults().isEmpty()) {
             throw new NoContentException("No studies were found that met the specified criteria");
@@ -494,7 +533,7 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
 
         final UserI user = getSessionUser();
 
-        if (!_dqrService.canConnect(user, pacs)) {
+        if (!_dqrService.ping(user, pacs)) {
             throw new PacsNotAvailableException(pacsId);
         }
 

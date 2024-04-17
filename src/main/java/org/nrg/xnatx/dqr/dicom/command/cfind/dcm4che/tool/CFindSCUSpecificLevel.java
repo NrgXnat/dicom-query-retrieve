@@ -172,7 +172,7 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         }
         final DqrDateRange studyDateRange = getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria).getDateRange();
         if (studyDateRange != null && studyDateRange.isBounded()) {
-            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), buildStudyDateCriterion(studyDateRange));
+            dcmQR.addMatchingKey(dicomTagPathToArray(Tag.StudyDate), studyDateRange.getStudyDateCriterion());
         }
     }
 
@@ -225,12 +225,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
     private int getMaxResults() {
         return getOrmStrategy().getResultSetLimitStrategy().getMaxResultsForQueryLevel(getQueryLevel());
-    }
-
-    private String buildStudyDateCriterion(final DqrDateRange studyDateRange) {
-        final String startDate = studyDateRange.isBoundedAtStart() ? DqrDateRange.formatDicomDate(studyDateRange.getStart()) : "";
-        final String endDate   = studyDateRange.isBoundedAtEnd() ? DqrDateRange.formatDicomDate(studyDateRange.getEnd()) : "";
-        return startDate + DICOM_DATE_RANGE_SEPARATOR + endDate;
     }
 
     private static final String DICOM_DATE_RANGE_SEPARATOR = "-";

@@ -12,23 +12,26 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class BasicDicomWebCredentialService implements DicomWebCredentialService {
     private static final Path DICOMWEB_AUTH_FILE = Paths.get("config", "auth", "dicomweb-auth.json");
     private final ObjectMapper objectMapper;
-    private Map<String, DicomWebCredential> dicomWebCredentials = new HashMap<>();
+    private final Map<String, DicomWebCredential> dicomWebCredentials;
     private final Path authFilePath;
 
     public BasicDicomWebCredentialService(final ObjectMapper objectMapper, final Path xnatHome) {
         this.objectMapper = objectMapper;
         this.authFilePath = xnatHome.resolve(DICOMWEB_AUTH_FILE);
+        this.dicomWebCredentials = new ConcurrentHashMap<>();
         this.load();
     }
 
@@ -39,32 +42,37 @@ public class BasicDicomWebCredentialService implements DicomWebCredentialService
 
     @Override
     public void load() {
-        dicomWebCredentials = new HashMap<>();
-        log.info("Load credentials from the local file {}", this.authFilePath);
-        File jsonFile = this.authFilePath.toFile();
-        if (jsonFile.exists()) {
-            try {
-                List<DicomWebCredential> dwcs = objectMapper.readValue(jsonFile, new TypeReference<List<DicomWebCredential>>() {
-                });
-                dwcs.forEach(this::addCredential);
-            } catch (IOException e) {
-                log.error("Read the local authentication file error ", e);
-            }
-        } else {
-            log.info("File {} does not exist", this.authFilePath);
+        final Map<String, DicomWebCredential> credentials = loadCredentialsFromFile();
+        synchronized (dicomWebCredentials) {
+            log.debug("Clearing existing DICOMweb credentials");
+            dicomWebCredentials.clear();
+            dicomWebCredentials.putAll(credentials);
         }
     }
 
-    private void addCredential(final DicomWebCredential dicomWebCredential) {
+    private Map<String, DicomWebCredential> loadCredentialsFromFile() {
+        log.debug("Loading DICOMweb credentials from file {}", this.authFilePath);
+        File jsonFile = this.authFilePath.toFile();
+        if (jsonFile.exists()) {
+            try {
+                return objectMapper.readValue(jsonFile, new TypeReference<List<DicomWebCredential>>() {}).stream()
+                                .filter(this::aeTitleIsNotEmpty)
+                                .collect(Collectors.toMap(DicomWebCredential::getAeTitle, Function.identity(), (a, b) -> a));
+            } catch (IOException e) {
+                log.error("Could not read DICOMweb credentials from file " + this.authFilePath, e);
+            }
+        } else {
+            log.info("DICOMweb credentials file {} does not exist", this.authFilePath);
+        }
+        return Collections.emptyMap();
+    }
+
+    private boolean aeTitleIsNotEmpty(final DicomWebCredential dicomWebCredential) {
         String aeTitle = dicomWebCredential.getAeTitle();
-        if (Objects.isNull(aeTitle) || StringUtils.isEmpty(aeTitle)) {
-            log.error("aeTitle can not be null or empty");
-            return;
+        if (StringUtils.isBlank(aeTitle)) {
+            log.warn("Blank aeTitle in DICOMweb credentials file {}", this.authFilePath);
+            return false;
         }
-        if (this.dicomWebCredentials.containsKey(aeTitle)) {
-            log.warn("The aeTitle is not unique, Only the first record will be saved");
-            return;
-        }
-        this.dicomWebCredentials.put(aeTitle, dicomWebCredential);
+        return true;
     }
 }

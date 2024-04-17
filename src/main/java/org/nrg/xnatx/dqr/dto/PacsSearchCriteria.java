@@ -23,8 +23,12 @@ import org.nrg.xnatx.dqr.dicom.converters.PacsSearchCriteriaDeserializer;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.nrg.xnatx.dqr.domain.Series.SERIES_NUMBER_PLACEHOLDER;
 
 @Data
 @Builder
@@ -39,34 +43,39 @@ public class PacsSearchCriteria implements Serializable {
         return !StringUtils.isAllBlank(getPatientId(), getStudyInstanceUid(), getSeriesInstanceUid(), getAccessionNumber());
     }
 
+    private Stream<Pair<Integer, String>> getKeyPairs() {
+        Stream<Pair<Integer, String>> raw = Stream.of(
+                Pair.of(Tag.PatientID, patientId),
+                Pair.of(Tag.PatientName, patientName),
+                Pair.of(Tag.PatientBirthDate, dob),
+                Pair.of(Tag.AccessionNumber, accessionNumber),
+                Pair.of(Tag.StudyInstanceUID, studyInstanceUid),
+                Pair.of(Tag.StudyID, studyId),
+                Pair.of(Tag.SeriesInstanceUID, seriesInstanceUid),
+                Pair.of(Tag.SeriesDescription, seriesDescription),
+                Pair.of(Tag.ModalitiesInStudy, modality)
+        );
+        if (seriesNumber > SERIES_NUMBER_PLACEHOLDER) {
+            raw = Stream.concat(raw, Stream.of(Pair.of(Tag.SeriesNumber, Integer.toString(seriesNumber))));
+        }
+        return raw.filter(p -> StringUtils.isNotBlank(p.getValue()));
+    }
+
     @JsonIgnore
     public List<Pair<int[], String>> getDicomKeys() {
-        final List<Pair<int[], String>> keys = new ArrayList<>();
-        getKey(keys, Tag.PatientID, patientId);
-        getKey(keys, Tag.PatientName, patientName);
-        getKey(keys, Tag.PatientBirthDate, dob);
-        getKey(keys, Tag.AccessionNumber, accessionNumber);
-        getKey(keys, Tag.StudyInstanceUID, studyInstanceUid);
-        getKey(keys, Tag.StudyID, studyId);
-        getKey(keys, Tag.SeriesInstanceUID, seriesInstanceUid);
-        getKey(keys, Tag.SeriesDescription, seriesDescription);
-        if (seriesNumber > 0) {
-            getKey(keys, Tag.SeriesNumber, Integer.toString(seriesNumber));
-        }
-        getKey(keys, Tag.ModalitiesInStudy, modality);
-        return keys;
+        return getKeyPairs()
+                .map(p -> Pair.of(new int[] {p.getKey()}, p.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    @JsonIgnore
+    public Map<Integer, String> getDicomKeysMap() {
+        return getKeyPairs().collect(Collectors.toMap(Pair::getKey, Pair::getValue));
     }
 
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
-    }
-
-    private void getKey(final List<Pair<int[], String>> keys, final int tag, final String value) {
-        if (StringUtils.isBlank(value)) {
-            return;
-        }
-        keys.add(Pair.of(new int[] {tag}, value));
     }
 
     private long         pacsId;

@@ -26,4 +26,5 @@ public class PacsSettings implements Serializable {
     private Boolean supportsExtendedNegotiations;
     private Boolean dicomWebEnabled;
     private String dicomWebRootUrl;
+    private String dicomObjectIdentifier;
 }

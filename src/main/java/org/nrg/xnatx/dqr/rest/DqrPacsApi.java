@@ -32,7 +32,7 @@ import org.nrg.xnatx.dqr.dto.DicomWebPingRequest;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
 import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.nrg.xnatx.dqr.exceptions.InvalidDicomWebPingRequestException;
-import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
+import org.nrg.xnatx.dqr.exceptions.InvalidPacsConfigurationException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.security.DqrUserXapiAuthorization;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
@@ -94,60 +94,61 @@ public class DqrPacsApi extends AbstractDqrRestController {
 
     @ApiOperation(value = "Creates a new PACS entry.", response = Pacs.class)
     @ApiResponses({@ApiResponse(code = 200, message = "New PACS entry successfully created."),
+                   @ApiResponse(code = 400, message = "PACS configuration is invalid."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to create a new PACS."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.POST, restrictTo = Admin)
-    public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody PacsSettings settings) {
-        return getPacsService().create(new Pacs(settings));
+    public Pacs createPacs(final @ApiParam("Attributes for the new PACS entry.") @RequestBody PacsSettings settings) throws InvalidPacsConfigurationException {
+        return getPacsService().createPacs(settings);
     }
 
     @ApiOperation(value = "Retrieves an existing PACS entry.", response = Pacs.class)
     @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully retrieved."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to retrieve the PACS entry."),
+                   @ApiResponse(code = 404, message = "No PACS found with given ID."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authenticated)
     public Pacs retrievePacs(final @ApiParam("ID of the PACS entry to be retrieved.") @PathVariable long pacsId) throws PacsNotFoundException {
-        return getPacs(pacsId);
+        return getPacsService().getPacs(pacsId);
     }
 
     @ApiOperation(value = "Updates an existing PACS entry.")
     @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully updated."),
+                   @ApiResponse(code = 400, message = "PACS configuration is invalid."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to update the PACS entry."),
+                   @ApiResponse(code = 404, message = "No PACS found with given ID."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.PUT, restrictTo = Admin)
-    public Pacs updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long pacsId, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody PacsSettings settings) throws DataFormatException, PacsNotFoundException {
-        final Pacs pacs = getPacsService().retrieve(pacsId);
-        pacs.copySettings(settings);
-        validate(pacsId, pacs);
-        getPacsService().update(pacs);
-        return getPacsService().retrieve(pacsId);
+    public Pacs updatePacs(final @ApiParam("ID of the PACS entry to be updated.") @PathVariable long pacsId, final @ApiParam("Attributes for the updated PACS entry.") @RequestBody PacsSettings settings) throws PacsNotFoundException, InvalidPacsConfigurationException {
+        return getPacsService().updatePacs(pacsId, settings);
     }
 
     @ApiOperation(value = "Deletes an existing PACS entry.")
     @ApiResponses({@ApiResponse(code = 200, message = "PACS entry successfully deleted."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to delete the PACS entry."),
+                   @ApiResponse(code = 404, message = "No PACS found with given ID."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}", method = RequestMethod.DELETE, restrictTo = Admin)
     public void deletePacs(final @ApiParam("ID of the PACS entry to be deleted.") @PathVariable long pacsId) throws PacsNotFoundException {
-        validate(pacsId);
-        getPacsService().delete(pacsId);
+        getPacsService().deletePacs(pacsId);
     }
 
     @ApiOperation(value = "Ping a PACS.", notes = "The ping PACS function returns whether the PACS was responsive.", response = PacsPing.class)
     @ApiResponses({@ApiResponse(code = 200, message = "Whether the PACS was responsive."),
                    @ApiResponse(code = 401, message = "Must be authenticated to ping PACS."),
                    @ApiResponse(code = 403, message = "You do not have sufficient permissions to ping PACS."),
+                   @ApiResponse(code = 404, message = "No PACS found with given ID."),
                    @ApiResponse(code = 500, message = "An unexpected error occurred.")})
     @XapiRequestMapping(value = "{pacsId}/status", produces = MediaType.APPLICATION_JSON_VALUE, method = RequestMethod.GET, restrictTo = Authorizer)
     @AuthDelegate(DqrUserXapiAuthorization.class)
-    public PacsPing pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) {
+    public PacsPing pingPacs(@ApiParam(value = "ID of the pacs to ping", required = true) @PathVariable final long pacsId) throws PacsNotFoundException {
         final PacsPing ping = new PacsPing();
         ping.setPacsId(pacsId);
-        ping.setSuccessful(_dqrService.canConnect(getSessionUser(), getPacsService().retrieve(pacsId)));
+        ping.setSuccessful(_dqrService.ping(getSessionUser(), getPacsService().getPacs(pacsId)));
         ping.setPingTime(new Date());
         _pacsPingService.create(ping);
         return ping;

@@ -9,12 +9,15 @@
 
 package org.nrg.xnatx.dqr.services;
 
+import org.dcm4che3.data.Attributes;
 import org.nrg.dcm.scp.exceptions.UnknownDicomScpInstanceException;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
+import org.nrg.xdat.security.user.exceptions.UserInitException;
+import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -45,7 +48,7 @@ public interface DicomQueryRetrieveService {
      *
      * @return Returns <b>true</b> if the user can connect to the specified PACS, <b>false</b> otherwise.
      */
-    boolean canConnect(UserI user, Pacs pacs);
+    boolean ping(UserI user, Pacs pacs);
 
     /**
      * Searches for patients on the specified PACS that match the given criteria.
@@ -126,6 +129,19 @@ public interface DicomQueryRetrieveService {
     Map<String, PacsSearchResults<Series>> getSeriesByStudyUid(UserI user, Pacs pacs, List<String> studyUids) throws PacsException;
 
     /**
+     * Get instance metadata from the PACS.
+     *
+     * @param pacs              The PACS to query.
+     * @param studyInstanceUid  Study instance UID
+     * @param seriesInstanceUid Series instance UID
+     * @param sopInstanceUid    SOP instance UID
+     * @param searchKeys
+     * @return Returns instance attributes
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException;
+
+    /**
      * Finds all series instance UIDs on the indicated PACS that match the specified study instance UID.
      *
      * @param pacs The PACS to be searched
@@ -194,7 +210,7 @@ public interface DicomQueryRetrieveService {
      * @param series The series to be imported.
      * @param ae     The AE title the PACS should use when sending the series back to XNAT.
      */
-    void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae);
+    void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae) throws DqrException;
 
     /**
      * Import a single instance from the specified series
@@ -212,8 +228,9 @@ public interface DicomQueryRetrieveService {
      * Import data found in the {@link ExecutedPacsRequest completed PACS request} to this XNAT instance.
      *
      * @param request The completed request from which data should be imported.
+     * @param user The XNAT user making the request
      */
-    void importFromPacsRequest(ExecutedPacsRequest request) throws PacsNotQueryableException, PacsNotStorableException;
+    void importFromPacsRequest(ExecutedPacsRequest request, UserI user) throws DqrException;
 
     /**
      * Export the indicated {@link XnatImagescandata scans} from {@link XnatImagesessiondata session} to the specified PACS.

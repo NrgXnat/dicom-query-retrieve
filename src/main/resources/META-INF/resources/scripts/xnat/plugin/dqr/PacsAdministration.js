@@ -87,6 +87,14 @@ XNAT.app = getObject(XNAT.app || {});
         "OPERATION_CREATE": "CREATE"
     };
 
+    var connection_types = [
+        { label: 'Select Connection Type', value: ''},
+        { label: 'DIMSE', value: 'dimse'},
+        { label: "DICOMweb", value: 'dicom_web'}
+    ];
+
+    var identifiers;
+
     var ormStrategies = ['dicomOrmStrategy']; // replace this with a dynamic list
 
     // We'll keep the edit form in JavaScript, adding it to the DOM upon request
@@ -157,70 +165,27 @@ XNAT.app = getObject(XNAT.app || {});
                 }
                 $form.append(
                     spawn('!', [
-                        XNAT.ui.panel.input.hidden({
-                            name: 'pacsId'
-                        }),
-                        ormSelector,
                         XNAT.ui.panel.input.text({
+                            id: 'aeTitle',
                             name: 'aeTitle',
                             label: 'AE Title',
                             addClass: 'aeTitle-input validate',
                             validation: 'required'
                         }),
-                        XNAT.ui.panel.input.text({
-                            name: 'host',
-                            label: 'Host',
-                            addClass: 'validate',
-                            validation: 'required'
+                        XNAT.ui.panel.select.single({
+                            id: 'connection_type',
+                            name: 'connection_type',
+                            label: 'Connection Type',
+                            className: 'connection-selector',
+                            options: connection_types
                         }),
-                        XNAT.ui.panel.input.text({
-                            name: 'label',
-                            label: 'Label',
-                            addClass: 'validate',
-                            validation: 'required'
-                        }),
-                        XNAT.ui.panel.input.text({
-                            name: 'queryRetrievePort',
-                            label: 'Port',
-                            addClass: 'validate',
-                            validation: 'required'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'queryable',
-                            label: 'Queryable',
-                            onText: 'Yes',
-                            offText: 'No',
-                            addClass: 'toggle-query'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'defaultQueryRetrievePacs',
-                            label: 'Default Q/R AE',
-                            onText: 'Yes',
-                            offText: 'No'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'storable',
-                            label: 'Storable',
-                            onText: 'Yes',
-                            offText: 'No',
-                            addClass: 'toggle-store'
-                        }),
-                        XNAT.ui.panel.input.switchbox({
-                            name: 'defaultStoragePacs',
-                            label: 'Default Storage AE',
-                            onText: 'Yes',
-                            offText: 'No'
-                        }),
-                        spawn('div.dicom-web', [
-                            XNAT.ui.panel.input.switchbox({
-                                name: 'dicomWebEnabled',
-                                label: 'DicomWeb Enabled',
-                                onText: 'Yes',
-                                offText: 'No'
-                            }),
+                        spawn('div.message.connection-type-placeholder','Settings will populate based on selected connection type'),
+                        spawn('div.connection-type-settings.dicom_web',[
+                            spawn('p.divider','<strong>DICOMweb Connection Settings</strong><br>DICOMweb is a secured protocol that requires stored credentials to connect and query.'),
+                            spawn('div.message.dicom_web_message','Sending data to PACS via DICOMweb is not supported.'),
                             XNAT.ui.panel.input.text({
                                 name: 'dicomWebRootUrl',
-                                label: 'DicomWeb Root Url',
+                                label: 'DICOMweb Root Url',
                                 addClass: 'validate',
                                 validation: 'url',
                                 description: 'eg: http://www.orthanc.com:8042/dicom-web/',
@@ -229,40 +194,143 @@ XNAT.app = getObject(XNAT.app || {});
                                 },
                                 afterElement: '<button disabled type="button" class="ping-pacs-dicom-web" class="btn btn-sm">Test</button>'
                             })
-                        ])
+                        ]),
+                        spawn('div.connection-type-settings.dimse',[
+                            spawn('p.divider','<strong>DIMSE Connection Settings</strong><br>DICOM Messaging Service Elements (DIMSE) uses traditional C-FIND, C-MOVE, and C-STORE operations. DIMSE is not secured, and requires this XNAT to be a registered AE in the PACS to connect.'),
+                            XNAT.ui.panel.input.hidden({
+                                name: 'pacsId'
+                            }),
+                            ormSelector,
+                        ]),
+                        spawn('div.connection-type-settings.dimse.dicom_web',[
+                            XNAT.ui.panel.input.text({
+                                id: 'label',
+                                name: 'label',
+                                label: 'Label',
+                                addClass: 'validate'
+                            })
+                        ]),
+                        spawn('div.connection-type-settings.dimse',[
+                            XNAT.ui.panel.input.text({
+                                name: 'host',
+                                label: 'Host',
+                                addClass: 'validate',
+                                validation: 'required'
+                            }),
+                            XNAT.ui.panel.input.text({
+                                name: 'queryRetrievePort',
+                                label: 'Port',
+                                addClass: 'validate',
+                                validation: 'required'
+                            })
+                        ]),
+                        spawn('div.connection-type-settings.dimse',[
+                            XNAT.ui.panel.input.switchbox({
+                                id: 'queryable',
+                                name: 'queryable',
+                                label: 'Queryable',
+                                onText: 'Yes',
+                                offText: 'No',
+                                addClass: 'toggle-query',
+                                checked: true,
+                                value: true
+                            }),
+                        ]),
+                        spawn('div.connection-type-settings.dicom_web',[
+                            spawn('p',{ style: { "text-align": "center", "width": "80%" }}, '<strong>Queryable</strong> Connections via DICOM Web are always queryable.'),
+                        ]),
+                        spawn('div.connection-type-settings.dimse.dicom_web',[
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'defaultQueryRetrievePacs',
+                                label: 'Default Q/R AE',
+                                onText: 'Yes',
+                                offText: 'No',
+                                checked: false,
+                                value: false
+                            })
+                        ]),
+                        spawn('div.connection-type-settings.dimse',[
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'storable',
+                                label: 'Storable',
+                                onText: 'Yes',
+                                offText: 'No',
+                                addClass: 'toggle-store',
+                                checked: true,
+                                value: true
+                            }),
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'defaultStoragePacs',
+                                label: 'Default Storage AE',
+                                onText: 'Yes',
+                                offText: 'No',
+                                checked: false,
+                                value: false
+                            })
+                        ]),
+                        spawn('div.connection-type-settings.dicom_web',[
+                            spawn('p.divider','<strong>DICOM Import Settings</strong><br>These elements are normally set in the DICOM SCP Receiver settings, but that receiver is not used in a DICOMweb PACS connection.'),
+                            XNAT.ui.panel.select.single({
+                                id: 'dicomObjectIdentifier',
+                                name: 'dicomObjectIdentifier',
+                                label: 'Identifier',
+                                className: 'identifier-selector',
+                                options: identifiers,
+                                description: 'Select the DICOM Object Identifier to associate with this PACS connection'
+                            }),
+                            XNAT.ui.panel.input.switchbox({
+                                name: 'anonymizationEnabled',
+                                label: 'Anonymization',
+                                onText: 'Anonymization: Enabled',
+                                offText: 'Anonymization: Disabled',
+                                description: 'Enable or disable all site-wide and project anonymization when using this PACS connection',
+                                checked: true,
+                                value: true
+                            })
+                        ]),
                     ])
                 );
 
                 let $dcmWebRootUrl = $form.find('input[name=dicomWebRootUrl]');
-                if (!dicomWebEnabled) {
-                    $dcmWebRootUrl.removeClass('validate');
-                } else {
-                    let $aeTitle       = $form.find('input[name=aeTitle]');
+                $dcmWebRootUrl.on('input', function(){
+                    let disabled = !this.value;
                     let $dcmWebPingBtn = $form.find("button.ping-pacs-dicom-web");
-                    let disabled       = !$aeTitle.val() || !$dcmWebRootUrl.val();
-
                     $dcmWebPingBtn.prop("disabled", disabled);
-
-                    $aeTitle.on('change', function() {
-                        let disabled = !this.value || !$dcmWebRootUrl.val();
-                        $dcmWebPingBtn.prop("disabled", disabled);
-                    });
-
-                    $dcmWebRootUrl.on('change', function(){
-                        let disabled = !this.value || !$aeTitle.val();
-                        $dcmWebPingBtn.prop("disabled", disabled);
-                    });
-
-                    $(document).find('.dicom-web').show();
+                });
+                if (pacs.dicomWebRootUrl != undefined) {
+                    let $dcmWebPingBtn = $form.find("button.ping-pacs-dicom-web");
+                    $dcmWebPingBtn.prop("disabled", false);
                 }
 
                 if (pacs && doWhat.toLowerCase() === 'modify') {
                     $form.setValues(pacs);
+                    if (pacs.dicomWebEnabled === true) {
+                        $("#connection_type").prop('value', 'dicom_web');
+                        PacsAdministration.displaySettings('dicom_web');
+                    } else {
+                        $("#connection_type").prop('value', 'dimse');
+                        PacsAdministration.displaySettings('dimse');
+                    }
+                    if (pacs.aeTitle && !pacs.label) {
+                        $('#label').attr('placeholder', pacs.aeTitle);
+                    }
+                } else {
+                    PacsAdministration.displaySettings(connection_types);
                 }
-                else {
-                    $form.find('select').find('option').first().prop('selected','selected');
-                    $form.find('input[type=checkbox]').prop('checked',false);
-                }
+
+                let $aeTitle = $('#aeTitle');
+                let $label = $('#label');
+
+                $aeTitle.on('input', function(){
+                    $label.attr('placeholder', $aeTitle.val());
+                });
+
+                $label.on('input', function() {
+                    if (!this.value) {
+                        $(this).attr('placeholder', $aeTitle.val());
+                    }
+                });
+
             },
             buttons: [
                 {
@@ -273,15 +341,18 @@ XNAT.app = getObject(XNAT.app || {});
                         var $form = obj.$modal.find('form');
                         var invalidFields = [];
 
-                        let $dcmWebEnabledCheckbox = $form.find('input[name=dicomWebEnabled]');
-                        let $dcmWebRootUrl         = $form.find('input[name=dicomWebRootUrl]');
+                        var v = $("#connection_type").val();
 
-                        if (!$dcmWebEnabledCheckbox.checked() && $dcmWebRootUrl.val() == '') {
-                            $dcmWebRootUrl.removeClass('validate');
+                        if ($("#connection_type").val() === "") {
+                           XNAT.ui.dialog.message({
+                               title: false,
+                               content: '<h4>Form Validation Errors Found</h4><p>You must select a connection type.</p>'
+                           });
+                           return false;
                         }
 
                         $form.find('.validate').each(function(){
-                            if (!XNAT.validate($(this)).check()) {
+                            if (!$(this).is(":hidden") && !XNAT.validate($(this)).check()) {
                                 $(this).addClass('invalid');
                                 invalidFields.push($(this).prop('name'));
                             }
@@ -306,9 +377,23 @@ XNAT.app = getObject(XNAT.app || {});
                             XNAT.ui.dialog.closeAll();
                         }
 
+                        var stringifiedForm = JSON.stringify($form);
+                        var parsedJson = JSON.parse(stringifiedForm);
+                        if (parsedJson.connection_type === 'dicom_web') {
+                            parsedJson.dicomWebEnabled = true;
+                            parsedJson.queryable = true;
+                            parsedJson.storable = false;
+                        } else if (parsedJson.connection_type === 'dimse') {
+                            parsedJson.dicomWebEnabled = false;
+                        }
+                        if (!parsedJson.hasOwnProperty('label')) {
+                            parsedJson.label = parsedJson.aeTitle;
+                        }
+                        delete parsedJson.connection_type;
+
                         (doWhat.toLowerCase() === 'modify') ?
-                            editPacs($form) :
-                            addPacs($form);
+                            editPacs(parsedJson) :
+                            addPacs(parsedJson);
                     }
                 },
                 {
@@ -363,6 +448,28 @@ XNAT.app = getObject(XNAT.app || {});
         $(constants.PACS_TABLE).on("click", ".deleteRow", deleteButtonHandler);
     }
 
+    $(document).on('change','select.connection-selector',function(){
+        PacsAdministration.displaySettings($(this).find(':selected').prop('value'))
+    });
+
+    PacsAdministration.displaySettings = function(selectedType) {
+        $(document).find('.connection-type-settings').hide();
+        if (!selectedType) {
+            $(document).find('.connection-type-placeholder').show();
+            return false;
+        }
+        else {
+            $(document).find('.connection-type-placeholder').hide();
+            $(document).find('.connection-type-settings').each(function(){
+                if ($(this).hasClass(selectedType)) $(this).slideDown(200);
+            });
+            // calculate innerheight
+            var dlg = XNAT.dialog.getDialog();
+            var bodyHeight = (dlg.windowHeight * 0.9) - dlg.footerHeight - 40 - 2;
+            $(document).find('.xnat-dialog.open .xnat-dialog-body').css('max-height',bodyHeight); // reset inner height of dialog
+        }
+    };
+
     function showPacs(data) {
         var pacsTableData = data;
 
@@ -380,11 +487,10 @@ XNAT.app = getObject(XNAT.app || {});
 
         // add table header row
         pacsTable.tr()
-                 .th({ addClass: 'left', html: '<b>DICOM AE</b>' })
-                 .th('<b>Schedule</b>')
-                 .th('<b>Queryable</b>')
-                 .th('<b>Storable</b>')
-                 .th('<b>Status</b>')
+                 .th({ addClass: 'left', html: '<b>PACS/VNA Connection</b>' })
+                 .th('<b>Protocol</b>')
+                 .th('<b>Query/Retrieve</b>')
+                 .th('<b>Store</b>')
                  .th('<b>Actions</b>');
 
         function showDefault(setting,defaultSet){
@@ -401,10 +507,18 @@ XNAT.app = getObject(XNAT.app || {});
                 spawn('i', { className: 'fa fa-pencil' })
             ]);
         }
+        function scheduleButton(ae) {
+            return spawn('button',{ className: 'btn scheduleRow', title: 'Schedule Availability of This DICOM AE Connection',
+                data: {'id': ae.id, 'label': ae.label, 'aeTitle': ae.aeTitle}},
+                [spawn('i', { className: 'fa fa-calendar' })]);
+        }
         function deleteButton(){
             return spawn('button',{ className: 'btn deleteRow', title: 'Delete This DICOM AE Connection' },[
                 spawn('i', {className: 'fa fa-trash' })
             ]);
+        }
+        function pingPacs(id){
+            return spawn('button.btn-sm.ping-pacs', { title: 'Check PACS Network Status', data: { 'pacs-id': id }}, 'Ping');
         }
         function displayLongLabel(label){
             return spawn('span.truncate', { style: { 'width': '120px' }, title: label }, label);
@@ -412,16 +526,66 @@ XNAT.app = getObject(XNAT.app || {});
         function displayAeSummary(ae){
             var summary = [
                 spawn('p',[
-                    spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.aeTitle),
-                    spawn('span', ' (IP: ' + ae.host + ')')
+                    spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.label)
                 ])
             ];
-            if (ae.label) summary.push( spawn('p', ae.label));
-            if (ae.queryRetrievePort) summary.push( spawn('p', 'Port: '+ae.queryRetrievePort));
+            summary.push(spawn('p', ' AETITILE: ' + ae.aeTitle));
+            if (ae.dicomWebEnabled) {
+                summary.push(spawn('p', 'URL: ' + ae.dicomWebRootUrl));
+            } else {
+                summary.push( spawn('p','IP: ' + ae.host + ' | Port: '+ ae.queryRetrievePort));
+            }
             return spawn('!',summary);
         }
-        function pingPacs(id){
-            return spawn('button.btn-sm.ping-pacs', { title: 'Check PACS Network Status', data: { 'pacs-id': id }}, 'Ping');
+        function getAeProtocol(ae) {
+            if (ae.dicomWebEnabled) {
+                return "DICOMweb";
+            } else {
+                return "DIMSE";
+            }
+        }
+        function getQueryRetrieve(ae) {
+            var queryRetrieve = []
+            if (ae.queryable) {
+                if (ae.defaultQueryRetrievePacs) {
+                    queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled (Default)"));
+                } else {
+                    queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled"));
+                }
+            } else {
+                queryRetrieve.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Disabled"));
+                return spawn('!', queryRetrieve);
+            }
+
+            if (ae.dicomWebEnabled) {
+                queryRetrieve.push(spawn('p', 'DOI: ' + ae.dicomObjectIdentifier));
+                if (ae.anonymizationEnabled) {
+                    queryRetrieve.push(spawn('p', "Anonymization: Enabled"));
+                } else {
+                    queryRetrieve.push(spawn('p', "Anonymization: Disabled"));
+                }
+            } else {
+                queryRetrieve.push(spawn('p', "Via default SCP Receiver"));
+            }
+
+            return spawn('!', queryRetrieve);
+        }
+        function getStoreable(ae) {
+            var storable = [];
+            if (ae.dicomWebEnabled) {
+                storable.push(spawn('p', "--"));
+            } else {
+                if (ae.storable) {
+                    if (ae.defaultStoragePacs) {
+                        storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled (Default)"));
+                    } else {
+                        storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Enabled"));
+                    }
+                } else {
+                    storable.push(spawn('p', {style: { 'font-weight': 'bold'}}, "Disabled"));
+                }
+            }
+            return spawn('!', storable);
         }
 
         // add data rows
@@ -431,7 +595,7 @@ XNAT.app = getObject(XNAT.app || {});
             });
             pacsTableData.forEach(function(ae){
                 // add AE Title to Pacs List
-                XNAT.app.dqr.pacsList.push(ae.aeTitle.toLowerCase());
+                XNAT.app.dqr.pacsList.push(ae.label.toLowerCase());
                 XNAT.app.dqr.pacsObj[ae.id] = ae;
 
                 // these parameters will be stored in
@@ -444,6 +608,8 @@ XNAT.app = getObject(XNAT.app || {});
                     queryable: ae.queryable,
                     queryRetrievePort: ae.queryRetrievePort,
                     defaultQueryRetrievePacs: ae.defaultQueryRetrievePacs,
+                    anonymizationEnabled: ae.anonymizationEnabled,
+                    dicomObjectIdentifier: ae.dicomObjectIdentifier,
                     storable: ae.storable,
                     defaultStoragePacs: ae.defaultStoragePacs,
                     ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
@@ -455,27 +621,10 @@ XNAT.app = getObject(XNAT.app || {});
                 // populate table row
                 pacsTable.tr({ data: dataAttrs })
                          .td([ displayAeSummary(ae) ])
-                         .td({ addClass: 'center ' }, [ spawn('a.link.edit-pacs-schedule|href=#!schedule', {
-                             on: [['click', function(e){
-                                 e.preventDefault();
-                                 window.pacsId = ae.id;
-                                 window.pacsLabel = ae.label || ae.aeTitle;
-                                 var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', {
-                                     pacs: window.pacsId,
-                                     label: window.pacsLabel
-                                 });
-                                 console.log(URL);
-                                 XNAT.dialog.load(URL, {
-                                     width: 1150,
-                                     maxBtn: false
-                                 });
-                             }]]
-                         }, 'Schedule') ])
-                         .td({ addClass: 'center' }, [ showDefault(ae.queryable, ae.defaultQueryRetrievePacs) ])
-                         .td({ addClass: 'center' }, [ showDefault(ae.storable, ae.defaultStoragePacs) ])
-                         .td({ addClass: 'center' }, [ pingPacs(ae.id)] )
-                         // .td({ addClass: 'center' }, [ editButton(), '&nbsp;', deleteButton()] );
-                         .td({ addClass: 'center' }, [ editButton()] );
+                         .td([ getAeProtocol(ae) ])
+                         .td([ getQueryRetrieve(ae) ])
+                         .td([ getStoreable(ae) ])
+                         .td({ addClass: 'center', style: { width: '170px' }}, [ pingPacs(ae.id), '&nbsp;', scheduleButton(ae), '&nbsp;', editButton()] );
             });
 
         }
@@ -484,10 +633,11 @@ XNAT.app = getObject(XNAT.app || {});
 
         $(constants.PACS_DIV).append(
             spawn('p', { 'id': constants.ADD_PACS_LINK_HOLDER.substring(1), style: { 'margin-top': '1em' } }, [
-                spawn('a.btn.primary|href=#!', { id: constants.ADD_PACS_LINK.substring(1) }, 'Add New DICOM AE')
+                spawn('a.btn.primary|href=#!', { id: constants.ADD_PACS_LINK.substring(1) }, 'Add New')
             ])
         );
 
+        getAllIdentifiers();
         bindAddButtonHandler();
         bindEditButtonHandler();
         // bindDeleteButtonHandler();
@@ -513,6 +663,20 @@ XNAT.app = getObject(XNAT.app || {});
         });
 
         openModalPanel(constants.MODAL_WINDOW_NAME, "Loading data...");
+    }
+
+    function getAllIdentifiers() {
+        XNAT.xhr.ajax({
+            type: "GET",
+            url: XNAT.url.csrfUrl("/xapi/dicomscp/identifiers"),
+            dataType: "json",
+            success: function(data) {
+                identifiers = Object.keys(data);
+            },
+            error: function(data) {
+                XNAT.ui.banner.top(3000,'Error: Could not retrieve identifiers','error');
+            }
+        });
     }
 
     function deletePacs() {
@@ -716,7 +880,7 @@ XNAT.app = getObject(XNAT.app || {});
         $dcmWebRootUrl.removeClass('invalid');
         $aeTitle.removeClass('invalid');
 
-        xmodal.loading.open({title: 'Checking DicomWeb Status'});
+        xmodal.loading.open({title: 'Checking DICOMweb Status'});
         let jsonData = {
             rootUrl: $dcmWebRootUrl.val(),
             aeTitle: $aeTitle.val()
@@ -786,6 +950,24 @@ XNAT.app = getObject(XNAT.app || {});
         var id = $(this).data('pacs-id');
         XNAT.app.dqr.PacsAdministration.checkPacsStatus(id, this);
     });
+
+    $(document).on('click', '.scheduleRow', function (e) {
+       e.preventDefault();
+       var id = $(this).data('id');
+       var label = $(this).data('label');
+       var aeTitle = $(this).data('aeTitle');
+       window.pacsId = id;
+       window.pacsLabel = label || aeTitle;
+       var URL = XNAT.url.restUrl('/page/dqr/schedule/view.html.jsp', {
+           pacs: window.pacsId,
+           label: window.pacsLabel
+       });
+       console.log(URL);
+       XNAT.dialog.load(URL, {
+           width: 1150,
+           maxBtn: false
+       });
+   });
 
     $(document).ready(function(){
         XNAT.app.dqr.PacsAdministration.init();

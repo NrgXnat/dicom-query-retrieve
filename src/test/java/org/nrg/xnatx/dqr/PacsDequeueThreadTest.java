@@ -22,13 +22,13 @@ import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
 import org.nrg.xnat.helpers.prearchive.PrearcUtils;
 import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
 import org.nrg.xnatx.dqr.events.PacsDequeueThread;
 import org.nrg.xnatx.dqr.events.PacsThreads;
+import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomQueryRetrieveService;
 import org.nrg.xnatx.dqr.services.ExecutedPacsRequestService;
@@ -85,7 +85,7 @@ class PacsDequeueThreadTest {
     }
 
     @Test
-    public void testFailedCmove_deleteFromPrearc() throws Exception {
+    public void testFailedRequest_deleteFromPrearc() throws Exception {
         // Set up test data
         final String studyInstanceUid = RandomStringUtils.randomAlphabetic(5);
         final String username = RandomStringUtils.randomAlphabetic(5);
@@ -115,9 +115,9 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
-        when(dqrPreferences.getDqrMaxPacsCMOVEAttempts()).thenReturn("0");
+        when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
                 .seriesIds(Collections.emptyList())
@@ -129,9 +129,9 @@ class PacsDequeueThreadTest {
                 .thenReturn(Collections.singletonList(queuedPacsRequest))
                 .thenReturn(Collections.emptyList());  // This will break the loop in the method under test after one iteration
 
-        // Simulate failed C-MOVE
-        doThrow(new CMoveFailureException("C-MOVE failed"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+        // Simulate failed request
+        doThrow(new DqrException("Simulating failed request"))
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -149,7 +149,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify calls were made to delete from prearchive
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -158,7 +158,7 @@ class PacsDequeueThreadTest {
     }
 
     @Test
-    public void testFailedCmove_multipleSessions_noDeleteFromPrearc() throws Exception {
+    public void testFailedRequest_multipleSessions_noDeleteFromPrearc() throws Exception {
         // Set up test data
         final String studyInstanceUid = RandomStringUtils.randomAlphabetic(5);
         final String username = RandomStringUtils.randomAlphabetic(5);
@@ -188,9 +188,9 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
-        when(dqrPreferences.getDqrMaxPacsCMOVEAttempts()).thenReturn("0");
+        when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
                 .seriesIds(Collections.emptyList())
@@ -202,9 +202,9 @@ class PacsDequeueThreadTest {
                 .thenReturn(Collections.singletonList(queuedPacsRequest))
                 .thenReturn(Collections.emptyList());  // This will break the loop in the method under test after one iteration
 
-        // Simulate failed C-MOVE
-        doThrow(new CMoveFailureException("C-MOVE failed"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+        // Simulate failed request
+        doThrow(new DqrException("Simulating failed request"))
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -221,7 +221,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify we read from the prearchive, but did not attempt to delete
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -230,7 +230,7 @@ class PacsDequeueThreadTest {
     }
 
     @Test
-    public void testFailedCmove_noProject_noDeleteFromPrearc() throws Exception {
+    public void testFailedRequest_noProject_noDeleteFromPrearc() throws Exception {
         // Set up test data
         final String studyInstanceUid = RandomStringUtils.randomAlphabetic(5);
         final String username = RandomStringUtils.randomAlphabetic(5);
@@ -245,9 +245,9 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
-        when(dqrPreferences.getDqrMaxPacsCMOVEAttempts()).thenReturn("0");
+        when(dqrPreferences.getDqrMaxPacsRequestAttempts()).thenReturn("0");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
                 .seriesIds(Collections.emptyList())
@@ -259,9 +259,9 @@ class PacsDequeueThreadTest {
                 .thenReturn(Collections.singletonList(queuedPacsRequest))
                 .thenReturn(Collections.emptyList());  // This will break the loop in the method under test after one iteration
 
-        // Simulate failed C-MOVE
-        doThrow(new CMoveFailureException("C-MOVE failed"))
-                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class));
+        // Simulate failed request
+        doThrow(new DqrException("Simulating failed request"))
+                .when(dqrService).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
         try (MockedStatic<PrearcDatabase> prearcMock = mockStatic(PrearcDatabase.class);
              MockedStatic<Users> usersMock = mockStatic(Users.class);
@@ -275,7 +275,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify no calls were made to read or delete from prearchive
             prearcMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(0));
@@ -314,7 +314,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
         when(user.getUsername()).thenReturn(username);
 
@@ -346,7 +346,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify call was made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -393,7 +393,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -422,7 +422,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify call was made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(1));
@@ -448,7 +448,7 @@ class PacsDequeueThreadTest {
         when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
         when(primaryAdminUserProvider.get()).thenReturn(admin);
         when(pacsService.retrieve(pacsId)).thenReturn(pacs);
-        when(dqrService.canConnect(admin, pacs)).thenReturn(true);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
         when(admin.getUsername()).thenReturn("admin");
 
         final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
@@ -474,7 +474,7 @@ class PacsDequeueThreadTest {
             pacsDequeueThread.runTask();
 
             // Verify that C-MOVE was attempted
-            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class));
+            verify(dqrService, times(1)).importFromPacsRequest(any(ExecutedPacsRequest.class), eq(user));
 
             // Verify no calls were made to find sessions in prearchive by uid
             prearcDbMock.verify(() -> PrearcDatabase.getSessionByUID(studyInstanceUid), times(0));

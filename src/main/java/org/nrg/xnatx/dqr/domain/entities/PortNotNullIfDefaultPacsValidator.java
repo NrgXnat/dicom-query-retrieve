@@ -20,10 +20,10 @@ public class PortNotNullIfDefaultPacsValidator implements ConstraintValidator<Po
 
     @Override
     public boolean isValid(final Pacs value, final ConstraintValidatorContext context) {
-        if (value.isDefaultStoragePacs() && value.getQueryRetrievePort() == null) {
+        if (!value.isDicomWebEnabled() && value.isDefaultStoragePacs() && value.getQueryRetrievePort() == null) {
             return false;
         }
-        if (value.isDefaultQueryRetrievePacs() && value.getQueryRetrievePort() == null) {
+        if (!value.isDicomWebEnabled() && value.isDefaultQueryRetrievePacs() && value.getQueryRetrievePort() == null) {
             return false;
         }
         return true;

@@ -20,7 +20,6 @@ import org.nrg.config.services.ConfigService;
 import org.nrg.framework.constants.Scope;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.mail.services.MailService;
-import org.nrg.xdat.XDAT;
 import org.nrg.xdat.om.XnatMrsessiondata;
 import org.nrg.xdat.preferences.SiteConfigPreferences;
 import org.nrg.xdat.security.helpers.Users;
@@ -101,7 +100,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     }
                 }
                 final UserI admin      = _primaryAdminUserProvider.get();
-                boolean     canConnect = _dqrService.canConnect(admin, _pacsService.retrieve(_pacsId));
+                boolean     canConnect = _dqrService.ping(admin, _pacsService.retrieve(_pacsId));
                 if (!canConnect) {
                     break;
                 }
@@ -164,7 +163,7 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                     final StopWatch stopWatch = StopWatch.createStarted();
                     try {
-                        _dqrService.importFromPacsRequest(pacsRequest);
+                        _dqrService.importFromPacsRequest(pacsRequest, user);
                     } finally {
                         stopWatch.stop();
                         requestTimeInMilliseconds = stopWatch.getTime();
@@ -189,10 +188,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                     final Integer attempts = Optional.ofNullable(request.getRetries()).orElse(0) + 1;
 
-                    final Integer maxAttempts = Integer.parseInt(_dqrPreferences.getDqrMaxPacsCMOVEAttempts());
+                    final Integer maxAttempts = Integer.parseInt(_dqrPreferences.getDqrMaxPacsRequestAttempts());
 
                     if (attempts < maxAttempts){
-                        log.debug("REQ {} - Retry CMOVE request ({} of {} attempts)", request.getId(), attempts, maxAttempts);
+                        log.debug("REQ {} - Retry request ({} of {} attempts)", request.getId(), attempts, maxAttempts);
 
                         //rollback to prior state
                         request.setRetries(attempts);
@@ -200,15 +199,15 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                         _queuedPacsRequestService.update(request);
 
                         final long sleepTimeMillisecondsFromAvailability = calculateSleepTimeMillisecondsFromAvailability(requestTimeInMilliseconds, availability);
-                        final long sleepTimeMillisecondsFromDqrSettings = TimeUnit.MILLISECONDS.convert(Long.parseLong(_dqrPreferences.getDqrWaitToRetryCMOVETimeInSeconds()), TimeUnit.SECONDS);
-                        log.debug("PACS {} - Will sleep for max of {} ms from availability and {} ms from DQR CMOVE retry setting",
+                        final long sleepTimeMillisecondsFromDqrSettings = TimeUnit.MILLISECONDS.convert(Long.parseLong(_dqrPreferences.getDqrWaitToRetryRequestInSeconds()), TimeUnit.SECONDS);
+                        log.debug("PACS {} - Will sleep for max of {} ms from availability and {} ms from DQR retry setting",
                                 _pacsId, sleepTimeMillisecondsFromAvailability, sleepTimeMillisecondsFromDqrSettings);
 
                         sleep(max(sleepTimeMillisecondsFromAvailability, sleepTimeMillisecondsFromDqrSettings));
 
                         return;
                     } else {
-                        log.debug("REQ {} - Failing CMOVE request after {} attempts", request.getId(), attempts);
+                        log.debug("REQ {} - Failing request after {} attempts", request.getId(), attempts);
                         closeRequest(request);
                     }
                 }

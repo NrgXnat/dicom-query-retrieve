@@ -52,7 +52,6 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
     @Override
     public void runTask() {
         try {
-            log.debug("Executing PACS threads checker function");
             final List<Pacs> pacsList = _pacsService.findAllQueryable();
             if (pacsList != null) {
                 for (final Pacs pacs : pacsList) {
@@ -72,7 +71,7 @@ public class PacsThreadsChecker extends AbstractXnatRunnable {
                         }
                         try {
                             final UserI admin = _primaryAdminUserProvider.get();
-                            if (_dqrService.canConnect(admin, pacs)) {
+                            if (_dqrService.ping(admin, pacs)) {
                                 final int startingThreads = _threads.get(pacsId);
                                 for (final QueuedPacsRequest request : requests) {
                                     if (_threads.hasAvailable(pacsId, availability.getThreads())) {

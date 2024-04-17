@@ -33,6 +33,11 @@ public class PacsSearchResults<V> {
         return results == null || results.isEmpty() ? Optional.empty() : Optional.ofNullable(results.iterator().next());
     }
 
+    @JsonIgnore
+    public boolean isEmpty() {
+        return this == EMPTY_RESULTS || results == null || results.isEmpty();
+    }
+
     private static final PacsSearchResults<?> EMPTY_RESULTS = PacsSearchResults.builder().build();
 
     private Collection<V>              results;

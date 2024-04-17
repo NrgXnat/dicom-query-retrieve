@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "1.3.0"
+version "2.0.0"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
@@ -133,7 +133,6 @@ dependencies {
     implementation "org.aspectj:aspectjweaver"
     implementation "javax.validation:validation-api"
     implementation "org.restlet:org.restlet"
-    implementation 'javax.json:javax.json-api:1.1.4'
     implementation "org.dcm4che:dcm4che-core"
 
     implementation("turbine:turbine") {
@@ -153,6 +152,12 @@ dependencies {
         transitive = false
     }
     implementAndInclude("org.dcm4che:dcm4che-json") {
+        transitive = false
+    }
+    implementAndInclude("org.dcm4che:dcm4che-mime") {
+        transitive = false
+    }
+    implementAndInclude("org.glassfish:jakarta.json:1.1.6") {
         transitive = false
     }
 

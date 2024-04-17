@@ -13,6 +13,9 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
 
 import java.io.Serializable;
 
@@ -22,9 +25,39 @@ import java.io.Serializable;
 public class Series implements DqrDomainObject, Serializable {
     private static final long serialVersionUID = 8880479205274075901L;
 
+    public static int SERIES_NUMBER_PLACEHOLDER = 0;
+
     @Override
     public String getUniqueIdentifier() {
         return getSeriesInstanceUid();
+    }
+
+    /**
+     * Create a Series from the given DICOM attributes.
+     * <p>
+     * Replicates logic from
+     * {@link org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevel#mapDicomObjectToDomainObject(org.dcm4che2.data.DicomObject)}
+     *
+     * @param attributes the DICOM attributes
+     * @return the Series
+     */
+    public static Series from(final Attributes attributes) {
+        final Series.SeriesBuilder builder = builder()
+                .study(new Study(StringUtils.trim(attributes.getString(Tag.StudyInstanceUID))))
+                .seriesInstanceUid(StringUtils.trim(attributes.getString(Tag.SeriesInstanceUID)))
+                .modality(StringUtils.trim(attributes.getString(Tag.Modality)))
+                .seriesDescription(StringUtils.trim(attributes.getString(Tag.SeriesDescription)))
+                .studyDate(StringUtils.trim(attributes.getString(Tag.StudyDate)))
+                .studyId(StringUtils.trim(attributes.getString(Tag.StudyID)))
+                .accessionNumber(StringUtils.trim(attributes.getString(Tag.AccessionNumber)))
+                .patientId(StringUtils.trim(attributes.getString(Tag.PatientID)))
+                .patientName(StringUtils.trim(attributes.getString(Tag.PatientName)));
+
+        if (StringUtils.isNotBlank(attributes.getString(Tag.SeriesNumber))) {
+            builder.seriesNumber(attributes.getInt(Tag.SeriesNumber, SERIES_NUMBER_PLACEHOLDER));
+        }
+
+        return builder.build();
     }
 
     @Override

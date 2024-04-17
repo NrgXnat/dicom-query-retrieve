@@ -6,6 +6,5 @@ import java.util.Optional;
 
 public interface DicomWebCredentialService {
     Optional<DicomWebCredential> getCredential(String aeTitle);
-
     void load();
 }

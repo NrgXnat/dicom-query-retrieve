@@ -9,6 +9,10 @@ public class PacsConnectionException extends PacsException {
         super(message);
     }
 
+    public PacsConnectionException(final Exception cause) {
+        super(cause);
+    }
+
     public PacsConnectionException(final String message, final Exception cause) {
         super(message, cause);
     }

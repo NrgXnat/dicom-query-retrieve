@@ -49,7 +49,6 @@ var XNAT = getObject(XNAT || {});
     var $searchResultsHeader = $pacsSearchResults.find('.results-header');
     var $searchResultsBody   = $pacsSearchResults.find('.results-body');
     var $searchResultsSubmit = $pacsSearchResults.find('.results-submit');
-    var $patientNameField    = $('input[name=patientName');
     var $pacsNoResults       = $('#pacs-no-results');
     var $pacsQueryMsg        = $('#pacs-query-msg');
     var $noResultsTemplate   = $('#no-search-results');
@@ -99,7 +98,7 @@ var XNAT = getObject(XNAT || {});
             dqr.canQuery = false;
             $('#pacs-status-indicator').append(
                 spawn('span.pacs-warning',
-                    '<i class="fa fa-warning"></i>&nbsp;Error: Cannot query'
+                    '<i class="fa fa-warning"></i>&nbsp;No PACS configured'
                 )
             );
             dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
@@ -522,11 +521,32 @@ var XNAT = getObject(XNAT || {});
     // reset the search results if changing source PACS...
     // ...but warn the user first
     $selectPacsMenu.on('change', function(e){
-        var pacsId = this.value;
-        if (!pacsId || pacsId === dqr.selectedPacs) return false;
+        const oldPacsId = dqr.selectedPacs;
+        const pacsId = this.value;
+        if (!pacsId || pacsId === oldPacsId) return false;
         var PACS = this.options[this.selectedIndex].textContent;
 
-        function resetSearch(pacsId){
+        function commitChange() {
+            dqr.selectedPacs = pacsId;
+
+            // ping the PACS to ensure it is up
+            XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
+                .success(function(data){
+                    if (data.successful) {
+                        pingSuccess();
+                    } else {
+                        pingFailure(false);
+                    }
+                })
+                .fail(function(e){
+                    pingFailure(true);
+                });
+
+            // When they select a PACS, also update the SCP receiver selector
+            dqr.initReceivers.updateForPacs(dqr.pacsObj[pacsId]);
+        }
+
+        function confirmChangePacsAndResetSearch(){
             XNAT.dialog.open({
                 width: 400,
                 title: 'Change Source PACS?',
@@ -535,61 +555,48 @@ var XNAT = getObject(XNAT || {});
                     'reset all search results and clear the download list.',
                 okLabel: 'Change PACS',
                 okAction: function(){
-                    dqr.selectedPacs = pacsId;
                     resetResults(true);
+                    commitChange();
                 },
                 cancelAction: function(){
-                    console.log('not changing PACS');
-                    // revert menu if cancelling
-                    $selectPacsMenu.changeVal(dqr.selectedPacs);
-                    // menuUpdate($selectPacsMenu);
+                    console.log('not changing PACS from ' + oldPacsId + ' to ' + pacsId);
+                    $selectPacsMenu.changeVal(oldPacsId);
                 }
             });
         }
 
-        dqr.selectedPacs = pacsId;
+        function pingSuccess() {
+            dqr.canQuery = true;
+            dqr.enableQueryForm($(document).find('#pacs-search-fields').find('input'));
+            $('#pacs-status-indicator').empty().css('color','#393').append(
+                spawn('!',[
+                    spawn('i.fa.fa-check'),
+                    spawn('span', { style: { padding: '0 4px' }}, 'Ready to Query')
+                ])
+            );
+        }
 
-        // ping the PACS to ensure it is up
-        XNAT.xhr.getJSON(XNAT.url.restUrl('/xapi/pacs/'+pacsId+'/status'))
-            .success(function(data){
-                if (data.successful) {
-                    dqr.canQuery = true;
-                    dqr.enableQueryForm($(document).find('#pacs-search-fields').find('input'));
-                    $('#pacs-status-indicator').empty().css('color','#393').append(
-                        spawn('!',[
-                            spawn('i.fa.fa-check'),
-                            spawn('span', { style: { padding: '0 4px' }}, 'Ready to Query')
-                        ])
-                    );
-                    // only show the dialog if there are are items in the dqr['allSearchResults'] object
-                    if (Object.keys(dqr.allSearchResults).length) {
-                        resetSearch(pacsId);
-                    }
-                } else {
-                    $('#pacs-status-indicator').empty().css('color','#933').append(
-                        spawn('!',[
-                            spawn('i.fa.fa-cancel'),
-                            spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
-                        ])
-                    );
-                    dqr.canQuery = false;
-                    dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
-                    XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
-                }
-            })
-            .fail(function(e){
-                $('#pacs-status-indicator').empty().css('color','#933').append(
-                    spawn('!',[
-                        spawn('i.fa.fa-cancel'),
-                        spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
-                    ])
-                );
-                dqr.canQuery = false;
+        function pingFailure(resetSearch) {
+            dqr.canQuery = false;
+            if (resetSearch) {
                 dqr.resetResults(true);
-                dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
-                XNAT.dialog.message("Error: PACS is not responding to network ping. Contact an XNAT administrator");
-            });
+            }
+            dqr.disableQueryForm($(document).find('#pacs-search-fields').find('input'));
+            $('#pacs-status-indicator').empty().css('color','#933').append(
+                spawn('!',[
+                    spawn('i.fa.fa-cancel'),
+                    spawn('span', { style: { padding: '0 4px' }}, 'Error: PACS Not Available')
+                ])
+            );
+            XNAT.dialog.message("Error: PACS is not responding to network ping. Contact your " + XNAT.app.siteId + " administrator");
+        }
 
+        // Show confirmation dialog if there are existing search results
+        if (Object.keys(dqr.allSearchResults).length) {
+            confirmChangePacsAndResetSearch();
+        } else {
+            commitChange();
+        }
     });
 
     var relabelColumn = {
@@ -769,7 +776,11 @@ var XNAT = getObject(XNAT || {});
 
         console.log(studyUIDs);
 
-        var ae = $('#ae-menu').val().split(':'); // ae produces an array [ title, port ]
+        // Receiver AE Title will be in #ae-menu if PACS is set to DIMSE,
+        //   else pacs.aeTitle if DICOMweb
+        const pacsId = dqr.selectedPacs;
+        const pacs = dqr.pacsObj[pacsId];
+        const ae = pacs.dicomWebEnabled ? [pacs.aeTitle, "0"] : $('#ae-menu').val().split(':'); // ae produces an array [ title, port ]
 
         var projectId = window.projectId || getQueryStringValue('project');
 
@@ -811,7 +822,7 @@ var XNAT = getObject(XNAT || {});
 
 
         var jsonData = {
-            pacsId: $selectPacsMenu.val(),
+            pacsId: pacsId,
             aeTitle: ae[0],
             port: ae[1],
             projectId: projectId,
@@ -1355,7 +1366,7 @@ var XNAT = getObject(XNAT || {});
         e.preventDefault();
         XNAT.dialog.message({
             title: 'SCP Receiver Configuration Error',
-            content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. An XNAT system adminstrator must configure a DQR-enabled receiver.</p>'+
+            content: '<p>There is no SCP receiver configured to allow DQR imports from a PACS system. A system adminstrator must configure a DQR-enabled receiver.</p>'+
                 '<p>You can still query PACS data in this configuration.</p>' +
                 '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
         });
@@ -1365,36 +1376,9 @@ var XNAT = getObject(XNAT || {});
         e.preventDefault();
         XNAT.dialog.message({
             title: 'DICOM AE Configuration Error',
-            content: '<p>There is no DICOM AE or PACS configured to allow DQR queries from this XNAT system. An XNAT system adminstrator must configure a queryable DICOM AE.</p>'+
+            content: '<p>There is no DICOM AE or PACS configured to allow DQR queries from this system. A system adminstrator must configure a queryable DICOM AE.</p>'+
                 '<p><a href="https://wiki.xnat.org/xnat-tools/dicom-query-retrieve-plugin" target="_blank">See documentation</a></p>'
         });
-    };
-
-    dqr.formatNameField = formatNameField = function(input,method){
-        if (method === 'pacs'){
-            var inputVal = $(input).val(),
-                pacsVal = inputVal.toUpperCase().replace(/\s/g,'^').replace(',','');
-            $(input).val(pacsVal);
-        } else {
-            var inputVal = $(input).val(),
-                arrayVal = inputVal.toLowerCase().split('^');
-            arrayVal.forEach(function(namePart,i){
-                arrayVal[i] = (namePart.length) ?
-                    namePart[0].toUpperCase() + namePart.slice(1) :
-                    '';
-            });
-            var nameVal = arrayVal.join(', ');
-            $(input).val(nameVal);
-        }
-    };
-
-    dqr.setNameFieldFormat = setNameFieldFormat = function(e){
-        var input = $(e.target);
-        if (dqr.usePacsNameFormatting) {
-            formatNameField(input,'pacs');
-        } else {
-            formatNameField(input,'human');
-        }
     };
 
     dqr.initReceivers = initReceivers = function(){
@@ -1429,7 +1413,7 @@ var XNAT = getObject(XNAT || {});
                 }
             });
 
-            var relabelInputs$ = null;
+            var relabelInputs$ = $pacsSearchResults.find('input.relabel');
 
             function toggleRemapping(e){
 
@@ -1438,8 +1422,6 @@ var XNAT = getObject(XNAT || {});
                     var doProcessing   = (hasReceiver && selectedOption) ?
                         /^true$/.test(receiverMap[selectedOption].customProcessing) :
                         false;
-
-                    !relabelInputs$ && (relabelInputs$ = $pacsSearchResults.find('input.relabel'));
 
                     if (window.jsdebug) {
                         console.log(relabelInputs$);
@@ -1459,25 +1441,32 @@ var XNAT = getObject(XNAT || {});
 
             }
 
-            toggleRemapping.call(aeMenu0);
+            dqr.initReceivers.updateForPacs = function(pacs) {
+                if (pacs === undef || pacs.dicomWebEnabled) {
+                    dqr.canImport = pacs !== undef;
+                    $('#scp-receiver-selector').empty();
+                    relabelInputs$.prop('disabled', false).css('opacity', '1');
+                } else if (!hasReceiver) {
+                    // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
+                    // aeMenu0.disabled = true;
+                    dqr.canImport = false;
 
-            if (!hasReceiver) {
-                // aeMenu$.spawn('option.disabled|disabled|selected|value=""', '(none available)');
-                // aeMenu0.disabled = true;
-                dqr.canImport = false;
-
-                $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', [
-                    '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
-                ]));
-            } else {
-
-                $('#scp-receiver-selector').empty().append(spawn('span', {
-                    on: [['change', '#ae-menu', toggleRemapping]]
-                }, [
-                    'Select SCP Receiver: ',
-                    aeMenu0
-                ]));
+                    $('#scp-receiver-selector').empty().append(spawn('span.receiver-warning', [
+                        '<i class="fa fa-warning"></i>&nbsp;Error: Cannot import'
+                    ]));
+                } else {
+                    dqr.canImport = true;
+                    toggleRemapping.call(aeMenu0);
+                    $('#scp-receiver-selector').empty().append(spawn('span', {
+                        on: [['change', '#ae-menu', toggleRemapping]]
+                    }, [
+                        'Select SCP Receiver: ',
+                        aeMenu0
+                    ]));
+                }
             }
+
+            dqr.initReceivers.updateForPacs(dqr.pacsObj[$selectPacsMenu.val()]);
 
         }
 
@@ -1511,17 +1500,6 @@ var XNAT = getObject(XNAT || {});
     $(document).on('click','.clear-search-results',function(e){
         dqr.resetResults(true);
     });
-
-    $(document).on('click','.pacs-name-format',function(){
-        dqr.usePacsNameFormatting = this.checked;
-        $patientNameField.prop('placeholder',(this.checked) ?
-            'LAST^FIRST':
-            'Last, First'
-        );
-        dqr.formatNameField($patientNameField,(this.checked) ? 'pacs':'human');
-    });
-
-    $patientNameField[0].addEventListener('input',dqr.setNameFieldFormat);
 
     dqr.enableQueryForm = enableQueryForm = function(inputs){
         inputs.prop('disabled',false);
