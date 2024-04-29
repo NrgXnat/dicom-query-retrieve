@@ -91,6 +91,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -242,12 +243,20 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     @Override
+    public void querySeriesInstances(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException {
+        _pacsClientRoutingService.getPacsClientService(pacs).queryInstance(pacs, studyInstanceUid, seriesInstanceUid, searchKeys, callback);
+    }
+
+    @Override
     public List<String> findSopInstanceUids(Pacs pacs, String studyInstanceUid, String seriesInstanceUid) throws PacsException {
         final List<String> sopInstanceUids = new ArrayList<>();
-        _pacsClientRoutingService.getPacsClientService(pacs)
-                .queryInstance(pacs, studyInstanceUid, seriesInstanceUid, Collections.emptyMap(), (attributes) -> sopInstanceUids.add(attributes.getString(Tag.SOPInstanceUID)));
-
+        querySeriesInstances(pacs, studyInstanceUid, seriesInstanceUid, Collections.emptyMap(), (attributes) -> sopInstanceUids.add(attributes.getString(Tag.SOPInstanceUID)));
         return sopInstanceUids;
+    }
+
+    @Override
+    public Attributes getInstanceMetadata(Pacs pacs, String retrieveUrl, Map<Integer, String> searchKeys) throws PacsException {
+        return _pacsClientRoutingService.getPacsClientService(pacs).getInstanceMetadata(pacs, retrieveUrl, searchKeys);
     }
 
     /**

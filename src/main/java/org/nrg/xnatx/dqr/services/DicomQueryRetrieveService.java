@@ -16,8 +16,6 @@ import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatImagesessiondata;
-import org.nrg.xdat.security.user.exceptions.UserInitException;
-import org.nrg.xdat.security.user.exceptions.UserNotFoundException;
 import org.nrg.xft.security.UserI;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -37,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 public interface DicomQueryRetrieveService {
@@ -154,6 +153,17 @@ public interface DicomQueryRetrieveService {
     List<String> findSeriesInstanceUids(Pacs pacs, String studyInstanceUid) throws PacsException;
 
     /**
+     * Execute a callback on the results of an arbitrary query for series instances
+     *
+     * @param pacs The PACS to be searched
+     * @param studyInstanceUid The study instance UID on which to filter the instances
+     * @param seriesInstanceUid The series instance UID on which to filter the instances
+     *
+     * @throws PacsException When an error occurs connecting to the PACS
+     */
+    void querySeriesInstances(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, Map<Integer, String> searchKeys, Consumer<Attributes> callback) throws PacsException;
+
+    /**
      * Finds all series instance UIDs on the indicated PACS that match the specified study instance UID.
      *
      * @param pacs The PACS to be searched
@@ -165,6 +175,18 @@ public interface DicomQueryRetrieveService {
      * @throws PacsException When an error occurs connecting to the PACS
      */
     List<String> findSopInstanceUids(Pacs pacs, String studyInstanceUid, String seriesInstanceUid) throws PacsException;
+
+    /**
+     * Get instance metadata from the PACS given its RetrieveURL
+     *
+     * @param pacs        The PACS to query.
+     * @param retrieveUrl The URL to retrieve one of these objects from the PACS.
+     *                    This is found from the RetrieveURL tag in the DICOM attributes of a query.
+     *                    We will append /metadata to the URL to get the metadata.
+     * @param searchKeys  The criteria on which to search.
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    Attributes getInstanceMetadata(Pacs pacs, String retrieveUrl, Map<Integer, String> searchKeys) throws PacsException;
 
     /**
      * Indicates whether the specified search request has completed.
