@@ -1,4 +1,4 @@
-# XNAT, DICOM Query Retrieve (DQR) Plugin Changelog - _Latest Release [1.2.0](#1.2.0)_
+# XNAT, DICOM Query Retrieve (DQR) Plugin Changelog
 
 The Dicom Query-Retrieve (DQR) plugin allows XNAT users to connect directly to
 a PACS or other DICOM Application Entity, send queries to find studies, and
