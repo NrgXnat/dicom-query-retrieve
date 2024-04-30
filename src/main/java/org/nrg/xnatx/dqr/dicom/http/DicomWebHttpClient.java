@@ -141,9 +141,19 @@ public class DicomWebHttpClient implements AutoCloseable {
         return _getAttributes(pathSegments, searchKeys, null).orElse(EMPTY_ATTRIBUTES);
     }
 
-    private Optional<Attributes> _getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsException {
-        final URI uri = buildUri(pathSegments, searchKeys);
+    public Attributes getAttributes(final URIBuilder uriBuilder, final Map<Integer, String> searchKeys) throws PacsException {
+        return _getAttributes(uriBuilder, searchKeys, null).orElse(EMPTY_ATTRIBUTES);
+    }
 
+    private Optional<Attributes> _getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsException {
+        return _getAttributes(buildUri(pathSegments, searchKeys), callback);
+    }
+
+    private Optional<Attributes> _getAttributes(final URIBuilder uriBuilder, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsException {
+        final URI uri = appendSearchKeysAndBuild(uriBuilder, searchKeys);
+        return _getAttributes(uri, callback);
+    }
+    private Optional<Attributes> _getAttributes(final URI uri, final Consumer<Attributes> callback) throws PacsException {
         return new RetryablePacsOperation<Optional<Attributes>>() {
             @Override
             @Nullable
@@ -155,6 +165,16 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     public void getItem(final List<String> pathSegments, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
         final URI uri = buildUri(pathSegments, queryParamsByTag);
+        _getItem(uri, callback);
+    }
+
+    public void getItem(final String retrieveUrl, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
+        final URI rawUri = URI.create(retrieveUrl);
+        final URI uri = appendSearchKeysAndBuild(new URIBuilder(rawUri), queryParamsByTag);
+        _getItem(uri, callback);
+    }
+
+    public void _getItem(final URI uri, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
         new RetryablePacsOperation<Void>() {
             @Override
             public Void doOperationWithRetry() throws PacsException {
@@ -286,6 +306,10 @@ public class DicomWebHttpClient implements AutoCloseable {
                 .setPort(rootUrlObj.getPort())
                 .setPathSegments(combinedPathSegments);
 
+        return appendSearchKeysAndBuild(uriBuilder, searchKeys);
+    }
+
+    private URI appendSearchKeysAndBuild(final URIBuilder uriBuilder, final Map<Integer, String> searchKeys) throws PacsConnectionException {
         final List<String> includeFields = new ArrayList<>();
         for (final Map.Entry<Integer, String> entry : searchKeys.entrySet()) {
             final String value = entry.getValue();

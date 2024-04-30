@@ -1,4 +1,4 @@
-# XNAT, DICOM Query Retrieve (DQR) Plugin Changelog - _Latest Release [1.2.0](#1.2.0)_
+# XNAT, DICOM Query Retrieve (DQR) Plugin Changelog
 
 The Dicom Query-Retrieve (DQR) plugin allows XNAT users to connect directly to
 a PACS or other DICOM Application Entity, send queries to find studies, and
@@ -9,7 +9,13 @@ also send image data from XNAT to the PACS.
 
 ### 2.0.x Versions
 
+* [2.0.1](#2.0.1)
 * [2.0.0](#2.0.0)
+
+### <a name="2.0.1"></a>DQR Plugin Version: 2.0.1
+
+#### 2.0.1 - Fixes
+   * [PLUGINS-185](https://radiologics.atlassian.net/browse/PLUGINS-185) Support DICOMweb operations for PACS vendors that split QIDO and WADO operations into separate root URL paths
 
 ### <a name="2.0.0"></a>DQR Plugin Version: 2.0.0
 
