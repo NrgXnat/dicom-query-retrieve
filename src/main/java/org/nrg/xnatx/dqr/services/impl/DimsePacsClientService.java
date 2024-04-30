@@ -30,7 +30,6 @@ import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.PacsSearchResults;
 import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
-import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.exceptions.PacsNotQueryableException;
 import org.nrg.xnatx.dqr.exceptions.PacsQueryException;
@@ -155,6 +154,15 @@ public class DimsePacsClientService implements PacsClientService {
         final Attributes attributes = new Attributes();
         queryInstance(pacs, studyInstanceUid, seriesInstanceUid, keys, attributes::addAll);
         return attributes;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Attributes getInstanceMetadata(Pacs pacs, String retrieveUrl, Map<Integer, String> searchKeys) throws PacsException {
+        log.error("getInstanceMetadata by RetrieveURL is not implemented for DIMSE");
+        return new Attributes(false, 0);
     }
 
     /**

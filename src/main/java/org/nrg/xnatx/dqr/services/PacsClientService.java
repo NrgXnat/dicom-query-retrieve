@@ -1,8 +1,6 @@
 package org.nrg.xnatx.dqr.services;
 
-import org.dcm4che2.net.DicomServiceException;
 import org.dcm4che3.data.Attributes;
-import org.nrg.dcm.scp.exceptions.UnknownDicomHelperInstanceException;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xft.security.UserI;
@@ -154,6 +152,18 @@ public interface PacsClientService {
      * @throws PacsException Thrown when the PACS can't be queried.
      */
     Attributes getInstanceMetadata(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, Map<Integer, String> searchKeys) throws PacsException;
+
+    /**
+     * Get instance metadata from the PACS given its RetrieveURL
+     *
+     * @param pacs        The PACS to query.
+     * @param retrieveUrl The URL to retrieve one of these objects from the PACS.
+     *                    This is found from the RetrieveURL tag in the DICOM attributes of a query.
+     *                    We will append /metadata to the URL to get the metadata.
+     * @param searchKeys  The criteria on which to search.
+     * @throws PacsException Thrown when the PACS can't be queried.
+     */
+    Attributes getInstanceMetadata(Pacs pacs, String retrieveUrl, Map<Integer, String> searchKeys) throws PacsException;
 
     /**
      * Import the specified series from the indicated PACS to this XNAT instance.
