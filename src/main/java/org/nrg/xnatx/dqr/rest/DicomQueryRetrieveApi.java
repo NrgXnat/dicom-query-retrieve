@@ -82,6 +82,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.ApiIgnore;
+import org.nrg.xnat.micrometer.annotations.ApplyObservationInterceptor;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -112,6 +113,7 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 @XapiRestController
 @Slf4j
 @RequestMapping("/dqr")
+@ApplyObservationInterceptor
 public class DicomQueryRetrieveApi extends AbstractDqrRestController {
     @Autowired
     public DicomQueryRetrieveApi(final DqrPreferences preferences, final UserManagementServiceI userManagementService, final RoleHolder roleHolder, final ExecutedPacsRequestService requestService, final QueuedPacsRequestService queuedRequestService, final DicomQueryRetrieveService dqrService, final PacsService pacsService, final DqrProjectSettingsService dqrProjectSettingsService, final Map<String, OrmStrategy> ormStrategies, final SiteConfigPreferences siteConfigPreferences, final NamedParameterJdbcTemplate template) {
