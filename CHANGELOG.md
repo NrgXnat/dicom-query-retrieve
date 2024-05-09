@@ -17,6 +17,9 @@ also send image data from XNAT to the PACS.
 
 #### 2.0.2 - General Improvements
 
+* [PLUGINS-187](https://radiologics.atlassian.net/browse/PLUGINS-187) Improve support for split QIDO and WADO PACS systems.
+    Always retrieve series by querying for + retrieving from `RetrieveURL` rather than as a fallback.
+
 #### 2.0.2 - Fixes
 
 

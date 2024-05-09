@@ -163,11 +163,6 @@ public class DicomWebHttpClient implements AutoCloseable {
         }.call();
     }
 
-    public void getItem(final List<String> pathSegments, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
-        final URI uri = buildUri(pathSegments, queryParamsByTag);
-        _getItem(uri, callback);
-    }
-
     public void getItem(final String retrieveUrl, final Map<Integer, String> queryParamsByTag, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
         final URI rawUri = URI.create(retrieveUrl);
         final URI uri = appendSearchKeysAndBuild(new URIBuilder(rawUri), queryParamsByTag);
