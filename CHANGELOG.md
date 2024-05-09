@@ -22,6 +22,7 @@ also send image data from XNAT to the PACS.
 
 #### 2.0.2 - Fixes
 
+* [PLUGINS-186](https://radiologics.atlassian.net/browse/PLUGINS-186) Tweak DICOMweb HTTP connection pool settings to enable more concurrent connections
 
 ### <a name="2.0.1"></a>DQR Plugin Version: 2.0.1
 

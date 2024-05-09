@@ -78,7 +78,7 @@ public class DicomWebHttpClient implements AutoCloseable {
     private static final String MULTIPART_DICOM = "multipart/related; type=application/dicom";
     public static final String INCLUDEFIELD = "includefield";
 
-    private static final int DICOMWEB_CONNECTION_POOL_SIZE = 8;
+    private static final int DICOMWEB_CONNECTION_POOL_SIZE = 50;
     private static final int DICOMWEB_CONNECT_TIMEOUT_MS = 5 * 1000;
     private static final int DICOMWEB_READ_TIMEOUT_MS = 20 * 1000;
 
@@ -93,6 +93,7 @@ public class DicomWebHttpClient implements AutoCloseable {
 
         connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(DICOMWEB_CONNECTION_POOL_SIZE);
+        connectionManager.setDefaultMaxPerRoute(DICOMWEB_CONNECTION_POOL_SIZE);
 
         final RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(DICOMWEB_CONNECT_TIMEOUT_MS)
