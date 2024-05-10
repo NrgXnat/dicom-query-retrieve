@@ -9,8 +9,16 @@ also send image data from XNAT to the PACS.
 
 ### 2.0.x Versions
 
+* [2.0.2](#2.0.2)
 * [2.0.1](#2.0.1)
 * [2.0.0](#2.0.0)
+
+### <a name="2.0.2"></a>DQR Plugin Version: 2.0.2
+
+#### 2.0.2 - General Improvements
+
+#### 2.0.2 - Fixes
+
 
 ### <a name="2.0.1"></a>DQR Plugin Version: 2.0.1
 
