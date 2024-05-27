@@ -277,50 +277,10 @@ public class DicomWebPacsClientService implements PacsClientService {
 
     @Override
     public void importSeries(final Pacs pacs, final UserI user, final Study study, final Series series, final String ae) throws DqrException {
-        final AtomicBoolean importHasBegun = new AtomicBoolean(false);
-        final BiConsumer<Integer, MultipartInputStream> callback = (partNumber, multipartInputStream) -> {
-            importSeriesFromMultipartDicom(pacs, user, study.getProjectId(), ae, partNumber, multipartInputStream);
-            importHasBegun.set(true);
-        };
+        log.info("Importing study {} series {}", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
 
-        log.debug("Importing study {} series {}", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
-        try {
-            importSeriesByConstructingUrl(pacs, study, series, callback);
-            log.info("Study {} series {} imported", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
-            return;
-        } catch (PacsException e) {
-            if (importHasBegun.get()) {
-                log.error("Failed to import study {} series {} by constructing URL. " +
-                                "Import was partially completed and will not be retried with RetrieveURL.",
-                        study.getStudyInstanceUid(), series.getSeriesInstanceUid(), e);
-                throw e;
-            }
-            // We never imported anything, so it is safe to try again a different way
-        }
-
-        log.debug("Failed to import study {} series {} by constructing URL. Trying to import by querying for RetrieveURL.",
+        log.debug("Querying for RetrieveURL for study {} series {}.",
                 study.getStudyInstanceUid(), series.getSeriesInstanceUid());
-        importSeriesByQueryingForRetrieveUrl(pacs, study, series, callback);
-        log.info("Study {} series {} imported", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
-    }
-
-    private void importSeriesByConstructingUrl(final Pacs pacs,
-                                               final Study study,
-                                               final Series series,
-                                               final BiConsumer<Integer, MultipartInputStream> callback)
-            throws PacsException {
-        final List<String> pathSegments = Arrays.asList(
-                STUDIES_ENDPOINT, study.getStudyInstanceUid(), SERIES_ENDPOINT, series.getSeriesInstanceUid()
-        );
-        getDicomWebHttpClient(pacs).getItem(pathSegments, Collections.emptyMap(), callback);
-    }
-
-    private void importSeriesByQueryingForRetrieveUrl(final Pacs pacs,
-                                                      final Study study,
-                                                      final Series series,
-                                                      final BiConsumer<Integer, MultipartInputStream> callback)
-            throws PacsException {
-        // Query
         final String[] retrieveUrlHolder = new String[1];
         final Map<Integer, String> searchKeys = new HashMap<>();
         searchKeys.put(Tag.SeriesInstanceUID, series.getSeriesInstanceUid());
@@ -334,7 +294,11 @@ public class DicomWebPacsClientService implements PacsClientService {
             throw new PacsDataNotFoundException("Could not find series");
         }
         // Retrieve
-        getDicomWebHttpClient(pacs).getItem(retrieveUrl, Collections.emptyMap(), callback);
+        getDicomWebHttpClient(pacs).getItem(retrieveUrl, Collections.emptyMap(),
+                (partNumber, multipartInputStream) ->
+                        importSeriesFromMultipartDicom(pacs, user, study.getProjectId(), ae, partNumber, multipartInputStream)
+        );
+        log.info("Study {} series {} imported", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
     }
 
     @Override
