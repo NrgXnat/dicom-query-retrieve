@@ -132,7 +132,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind"
     implementation "org.apache.commons:commons-lang3"
     implementation "org.aspectj:aspectjweaver"
-    implementation "javax.validation:validation-api"
+    implementation "javax.validation:validation-api:1.1.0.Final"
     implementation "org.restlet:org.restlet"
     implementation "org.dcm4che:dcm4che-core"
 

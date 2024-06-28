@@ -17,16 +17,15 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.validator.constraints.NotBlank;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -35,7 +34,7 @@ import java.util.regex.Pattern;
 
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"pacsId", "dayOfWeek", "availabilityStart"}))
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder

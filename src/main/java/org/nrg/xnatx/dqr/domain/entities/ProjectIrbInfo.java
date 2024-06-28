@@ -14,15 +14,13 @@ import lombok.NoArgsConstructor;
 import lombok.Singular;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.envers.Audited;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xnat.entities.FileStoreInfo;
 
 import javax.annotation.Nonnull;
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
+import org.hibernate.validator.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +28,7 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"projectId"}))
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @Audited
 @NoArgsConstructor
 public class ProjectIrbInfo extends AbstractHibernateEntity implements Serializable {

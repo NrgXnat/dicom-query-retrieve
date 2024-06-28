@@ -11,6 +11,8 @@ package org.nrg.xnatx.dqr.domain.entities;
 
 import java.io.Serializable;
 import java.util.Objects;
+
+import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -20,8 +22,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 /**
@@ -29,7 +29,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
  */
 @Entity
 @Table
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @Getter
 @Setter
 @Accessors(prefix = "_")

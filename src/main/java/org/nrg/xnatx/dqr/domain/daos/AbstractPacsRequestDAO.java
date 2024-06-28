@@ -33,7 +33,7 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     }
 
     public List<E> findAllOrderedByDate(final @Nonnull PaginatedPacsRequest request) {
-        final PaginatedPacsRequest sorted = request.toBuilder().sortBy(Pair.of(getTimeSortProperty(), PaginatedRequest.SortDir.ASC)).build();
+        final PaginatedPacsRequest sorted = request.toBuilder().sortBy(Pair.of( PaginatedRequest.SortDir.ASC,getTimeSortProperty())).build();
         return findPaginated(sorted);
     }
 
@@ -83,8 +83,8 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
     public List<E> findAllForPacsOrderedByPriorityAndDate(final long pacsId, final @Nonnull PaginatedPacsRequest request) {
         return findPaginated(request.toBuilder().clearFiltersMap().clearSortBys()
                                     .filter("pacsId", getFilter(pacsId))
-                                    .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                    .sortBy(Pair.of(getTimeSortProperty(), PaginatedRequest.SortDir.ASC)).build());
+                                    .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "priority"))
+                                    .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, getTimeSortProperty())).build());
     }
 
     private static PaginatedPacsRequest getUnpaginatedRequest() {

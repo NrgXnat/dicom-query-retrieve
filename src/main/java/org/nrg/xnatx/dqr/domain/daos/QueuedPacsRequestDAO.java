@@ -44,8 +44,8 @@ public class QueuedPacsRequestDAO extends AbstractPacsRequestDAO<QueuedPacsReque
         return findPaginated(ObjectUtils.defaultIfNull(request, new PaginatedPacsRequest()).toBuilder().clearFiltersMap().clearSortBys()
                                         .filter("pacsId", HibernateFilter.builder().operator(HibernateFilter.Operator.EQ).value(pacsId).build())
                                         .filter("status", HibernateFilter.builder().operator(HibernateFilter.Operator.IN).values(FAILED_OR_QUEUED).build())
-                                        .sortBy(Pair.of("priority", PaginatedRequest.SortDir.ASC))
-                                        .sortBy(Pair.of("queuedTime", PaginatedRequest.SortDir.ASC)).build());
+                                        .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "priority"))
+                                        .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, "queuedTime")).build());
     }
 
     public boolean isQueuedForStudyInstanceUidAndRequestId(final String requestId, final String studyInstanceUid) {

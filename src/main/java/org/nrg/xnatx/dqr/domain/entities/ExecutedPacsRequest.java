@@ -12,11 +12,11 @@ package org.nrg.xnatx.dqr.domain.entities;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import java.util.Date;
 import java.util.List;
+
+import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
@@ -24,7 +24,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @NoArgsConstructor
 @NamedQueries({
         @NamedQuery(name = ExecutedPacsRequest.GET_BY_STUDY_INSTANCE_UID_AND_REQUEST_ID_ORDERED_BY_MOST_RECENT,

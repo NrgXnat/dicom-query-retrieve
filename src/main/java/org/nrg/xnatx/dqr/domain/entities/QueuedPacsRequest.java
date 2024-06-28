@@ -9,10 +9,9 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import lombok.Builder;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import javax.persistence.Entity;
 import javax.persistence.NamedQueries;
@@ -23,7 +22,7 @@ import java.util.List;
 
 @Entity
 @Table
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @NamedQueries({
         @NamedQuery(name = QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID_AND_REQUEST_ID,
                 query = "SELECT (count(q.id) > 0) FROM QueuedPacsRequest q WHERE q.studyInstanceUid = :studyInstanceUid AND q.requestId = :requestId"),

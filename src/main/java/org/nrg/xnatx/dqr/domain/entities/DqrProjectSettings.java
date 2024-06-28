@@ -14,12 +14,12 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.envers.Audited;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import java.io.Serializable;
+
+import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
@@ -30,7 +30,7 @@ import javax.persistence.Table;
 @Entity
 @Table
 @Audited
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @Accessors(prefix = "_")
 @AllArgsConstructor
 @NoArgsConstructor

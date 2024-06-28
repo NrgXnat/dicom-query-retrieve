@@ -11,10 +11,9 @@ package org.nrg.xnatx.dqr.domain.entities;
 
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
+import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import java.io.Serializable;
@@ -22,7 +21,7 @@ import java.util.Date;
 
 @Entity
 @Table
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "nrg")
+@Cacheable
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class PacsPing extends AbstractHibernateEntity implements Serializable {

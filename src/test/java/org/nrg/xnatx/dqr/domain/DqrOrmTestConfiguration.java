@@ -9,68 +9,134 @@
 
 package org.nrg.xnatx.dqr.domain;
 
+
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
-import org.hibernate.cache.ehcache.SingletonEhCacheRegionFactory;
-import org.hibernate.cache.spi.RegionFactory;
-import org.hibernate.cfg.ImprovedNamingStrategy;
+import org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyHbmImpl;
+import org.hibernate.boot.model.naming.PhysicalNamingStrategy;
+import org.nrg.framework.exceptions.NrgServiceRuntimeException;
+import org.nrg.framework.jcache.DefaultHibernateEntityCacheKeyGenerator;
+import org.nrg.framework.jcache.JCacheHelper;
 import org.nrg.framework.orm.DatabaseHelper;
 import org.nrg.framework.orm.hibernate.AggregatedAnnotationSessionFactoryBean;
 import org.nrg.framework.orm.hibernate.HibernateEntityPackageList;
-import org.nrg.framework.orm.hibernate.PrefixedTableNamingStrategy;
-import org.postgresql.Driver;
+import org.nrg.framework.orm.hibernate.PrefixedPhysicalNamingStrategy;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.KeyGenerator;
+import org.springframework.cache.jcache.JCacheCacheManager;
+import org.springframework.cache.jcache.config.JCacheConfigurerSupport;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
-import org.springframework.orm.hibernate4.HibernateTransactionManager;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.ResourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
+import java.io.IOException;
+import java.sql.Driver;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+
+import static org.nrg.framework.jcache.JCacheHelper.JCACHE_PROVIDER_DEFAULT;
+import static org.nrg.framework.jcache.JCacheHelper.JCACHE_PROVIDER_ENV;
+import static org.nrg.framework.jcache.JCacheHelper.JCACHE_URI_DEFAULT;
+import static org.nrg.framework.jcache.JCacheHelper.JCACHE_URI_ENV;
 
 /**
  * Provides a re-usable test configuration for setting up in-memory ORM environment. This shouldn't be used in
  * production code and should eventually be refactored into an NRG test tools library.
  */
 @Configuration
+@EnableCaching
 @EnableTransactionManagement
-@TestPropertySource(locations = "classpath:/test.properties")
-public class DqrOrmTestConfiguration {
+@ComponentScan("org.nrg.framework.jcache")
+@Slf4j
+public class DqrOrmTestConfiguration extends JCacheConfigurerSupport {
+    @Value("${jdbc.driver.class:org.h2.Driver}")
+    private String  _jdbcDriverClass;
+    // Note: if MODE=PostgreSQL is in the URL, the dialect must be a PostgreSQL dialect or some operations will fail.
+    @Value("${jdbc.url:jdbc:h2:mem:test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}")
+    private String  _jdbcUrl;
+    @Value("${jdbc.username:sa}")
+    private String  _jdbcUsername;
+    @Value("${jdbc.password:}")
+    private String  _jdbcPassword;
+    // Note: if MODE=PostgreSQL is in the URL, the dialect must be a PostgreSQL dialect or some operations will fail.
+    @Value("${hibernate.dialect:org.hibernate.dialect.PostgreSQL10Dialect}")
+    private String  _dialect;
+    @Value("${hibernate.hbm2ddl.auto:create-drop}")
+    private String  _hbm2ddlAuto;
+    @Value("${hibernate.show-sql:false}")
+    private boolean _showSql;
+    @Value("${hibernate.cache.use_second_level_cache:true}")
+    private boolean _useSecondLevelCache;
+    @Value("${hibernate.cache.use_query_cache:true}")
+    private boolean _useQueryCache;
+    @Value("${hibernate.cache.region.factory_class:org.hibernate.cache.jcache.internal.JCacheRegionFactory}")
+    private String  _regionFactoryClass;
+    @Value("${" + JCACHE_PROVIDER_ENV + ":" + JCACHE_PROVIDER_DEFAULT + "}")
+    private String  _cacheProvider;
+    @Value("${" + JCACHE_URI_ENV + ":" + JCACHE_URI_DEFAULT + "}")
+    private String  _cacheUri;
+
+    @Bean
+    @Override
+    public org.springframework.cache.CacheManager cacheManager() {
+        return new JCacheCacheManager(JCacheHelper.getCachingProvider(_cacheProvider).getCacheManager());
+    }
+
+    @Bean
+    public KeyGenerator defaultHibernateEntityCacheKeyGenerator() {
+        return new DefaultHibernateEntityCacheKeyGenerator();
+    }
+
     @Bean
     public DataSource dataSource() {
+        final Class<? extends Driver> driverClass;
+        try {
+            driverClass = Class.forName(_jdbcDriverClass).asSubclass(Driver.class);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("An error occurred trying to get the driver class " + _jdbcDriverClass, e);
+        }
         final SimpleDriverDataSource dataSource = new SimpleDriverDataSource();
-        dataSource.setDriverClass(Driver.class);
-        dataSource.setUrl("jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
-        dataSource.setUsername("sa");
-        dataSource.setPassword("");
+        dataSource.setDriverClass(driverClass);
+        dataSource.setUrl(_jdbcUrl);
+        dataSource.setUsername(_jdbcUsername);
+        dataSource.setPassword(_jdbcPassword);
         return dataSource;
     }
 
     @Bean
-    public ImprovedNamingStrategy namingStrategy() {
-        return new PrefixedTableNamingStrategy("xhbm");
+    public PhysicalNamingStrategy physicalNamingStrategy() {
+        return new PrefixedPhysicalNamingStrategy("xhbm");
     }
 
     @Bean
     public PropertiesFactoryBean hibernateProperties() {
         final Properties properties = new Properties();
-        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
-        properties.setProperty("hibernate.hbm2ddl.auto", "create-drop");
-        properties.setProperty("hibernate.show_sql", "true");
-        properties.setProperty("hibernate.cache.use_second_level_cache", "true");
-        properties.setProperty("hibernate.cache.use_query_cache", "true");
-        properties.setProperty("hibernate.temp.use_jdbc_metadata_defaults", "false");
-        properties.setProperty("hibernate.jdbc.lob.non_contextual_creation", "true");
+        properties.setProperty("hibernate.dialect", _dialect);
+        properties.setProperty("hibernate.hbm2ddl.auto", _hbm2ddlAuto);
+        properties.setProperty("hibernate.show_sql", Boolean.toString(_showSql));
+        properties.setProperty("hibernate.cache.use_second_level_cache", Boolean.toString(_useSecondLevelCache));
+        properties.setProperty("hibernate.cache.use_query_cache", Boolean.toString(_useQueryCache));
+        properties.setProperty("hibernate.cache.region.factory_class", _regionFactoryClass);
+        properties.setProperty("hibernate.javax.cache.provider", _cacheProvider);
+        properties.setProperty("hibernate.javax.cache.uri", _cacheUri);
+        properties.setProperty("hibernate.javax.cache.missing_cache_strategy", "create");
+
+        getExtraHibernateProperties().forEach(properties::setProperty);
 
         final PropertiesFactoryBean bean = new PropertiesFactoryBean();
         bean.setProperties(properties);
@@ -78,22 +144,19 @@ public class DqrOrmTestConfiguration {
     }
 
     @Bean
-    public RegionFactory regionFactory(@Qualifier("hibernateProperties") final Properties properties) {
-        return new SingletonEhCacheRegionFactory(properties);
-    }
-
-    @Bean
-    public FactoryBean<SessionFactory> sessionFactory(final RegionFactory factory,
-                                                      final DataSource dataSource,
-                                                      @Qualifier("hibernateProperties") final Properties properties,
-                                                      final ImprovedNamingStrategy namingStrategy,
-                                                      @Autowired(required = false) final List<HibernateEntityPackageList> packageLists) {
+    public FactoryBean<SessionFactory> sessionFactory(@Autowired(required = false) final List<HibernateEntityPackageList> packageLists) {
+        final Properties properties;
+        try {
+            properties = hibernateProperties().getObject();
+        } catch (IOException e) {
+            throw new NrgServiceRuntimeException("An error occurred trying to get the Hibernate properties", e);
+        }
         final AggregatedAnnotationSessionFactoryBean bean = new AggregatedAnnotationSessionFactoryBean();
-        bean.setEntityPackageLists(packageLists);
-        bean.setCacheRegionFactory(factory);
-        bean.setDataSource(dataSource);
+        bean.setDataSource(dataSource());
         bean.setHibernateProperties(properties);
-        bean.setNamingStrategy(namingStrategy);
+        bean.setEntityPackageLists(packageLists);
+        bean.setImplicitNamingStrategy(new ImplicitNamingStrategyLegacyHbmImpl());
+        bean.setPhysicalNamingStrategy(physicalNamingStrategy());
         return bean;
     }
 
@@ -120,5 +183,15 @@ public class DqrOrmTestConfiguration {
     @Bean
     public DatabaseHelper databaseHelper(final NamedParameterJdbcTemplate template, final TransactionTemplate transactionTemplate) {
         return new DatabaseHelper(template, transactionTemplate);
+    }
+
+    /**
+     * This is provided as a hook to allow downstream projects to add properties to the Hibernate properties
+     * configuration. The default implementation returns an empty map.
+     *
+     * @return A map of properties and values to add to the Hibernate properties configuration.
+     */
+    protected Map<String, String> getExtraHibernateProperties() {
+        return Collections.emptyMap();
     }
 }
