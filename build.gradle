@@ -57,7 +57,6 @@ sourceSets {
     }
 }
 
-
 configurations {
     all {
         exclude group: "junit"
@@ -161,7 +160,6 @@ dependencies {
     implementAndInclude("org.glassfish:jakarta.json:1.1.6") {
         transitive = false
     }
-    implementation "io.micrometer:micrometer-core"
 
     compileOnly "javax.interceptor:javax.interceptor-api"
 
