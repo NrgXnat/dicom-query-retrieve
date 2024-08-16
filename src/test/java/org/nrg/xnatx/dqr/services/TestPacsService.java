@@ -13,8 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.nrg.xnatx.dqr.domain.TestPacsServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -30,6 +30,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitJupiterConfig;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Slf4j
 public class TestPacsService {
+
     @Autowired
     public TestPacsService(final PacsService service) {
         _service = service;
@@ -68,6 +69,31 @@ public class TestPacsService {
     }
 
     @Test
+    public void whenDmsePacsWithoutHostIsConfigured_thenObjectIsNotSaved() {
+        final Pacs pacs1 =  _service.create(Pacs.builder().queryRetrievePort(PACS_PORT_2).aeTitle("DUMMY").label("DUMMY").defaultQueryRetrievePacs(false).defaultStoragePacs(false).ormStrategySpringBeanId(PACS_ORM_STRATEGY_2).queryable(true).storable(true).build());
+        assertThat(pacs1).isNull();
+        final Pacs pacs2 =  _service.create(Pacs.builder().host("DUMMY").queryRetrievePort(PACS_PORT_2).aeTitle("DUMMY").label("DUMMY").defaultQueryRetrievePacs(false).defaultStoragePacs(false).ormStrategySpringBeanId(PACS_ORM_STRATEGY_2).queryable(true).storable(true).build());
+        assertThat(pacs2).isNotNull();
+    }
+
+    @Test
+    public void testDicomWebEnabledPacsTransaction() {
+        final Pacs pacs1 = _service.create(Pacs.builder().aeTitle(PACS_AE_1).label(PACS_LABEL_5).dicomWebRootUrl(PACS_DICOMWEB_URL).anonymizationEnabled(true).defaultQueryRetrievePacs(false).defaultStoragePacs(false).dicomObjectIdentifier(PACS_DQR_OBJ_ID).dicomWebEnabled(true).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(false).build());
+        assertThat(pacs1).isNotNull()
+                .hasFieldOrPropertyWithValue("dicomWebEnabled", true)
+                .hasFieldOrPropertyWithValue("dicomWebRootUrl", PACS_DICOMWEB_URL)
+                .hasFieldOrPropertyWithValue("host", null)
+                .hasFieldOrPropertyWithValue("queryRetrievePort", null)
+                .hasFieldOrPropertyWithValue("aeTitle", PACS_AE_1)
+                .hasFieldOrPropertyWithValue("label", PACS_LABEL_5)
+                .hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", false)
+                .hasFieldOrPropertyWithValue("defaultStoragePacs", false)
+                .hasFieldOrPropertyWithValue("ormStrategySpringBeanId", PACS_ORM_STRATEGY_1)
+                .hasFieldOrPropertyWithValue("queryable", true)
+                .hasFieldOrPropertyWithValue("storable", false);
+    }
+
+        @Test
     public void testNoDuplicatePacs() {
         final Pacs pacs1 = _service.create(Pacs.builder().host(PACS_HOST_1).queryRetrievePort(PACS_PORT_1).aeTitle(PACS_AE_1).label(PACS_LABEL_1).defaultQueryRetrievePacs(true).defaultStoragePacs(true).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).build());
         assertThat(pacs1).isNotNull()
@@ -218,8 +244,15 @@ public class TestPacsService {
     private static final String PACS_LABEL_2        = "Pacs 2";
     private static final String PACS_LABEL_3        = "Pacs 3";
     private static final String PACS_LABEL_4        = "Pacs 4";
+    private static final String PACS_LABEL_5        = "Pacs DICOMWeb 1";
+    private static final String PACS_LABEL_6        = "Pacs DICOMWeb 2";
+
+    private static final String PACS_DICOMWEB_URL   = "http://10.2.5.75:8042/dicom-web";
+    private static final String PACS_DQR_OBJ_ID     = "dqrObjectIdentifier";
+
     private static final String PACS_ORM_STRATEGY_1 = "dicomOrmStrategy1";
     private static final String PACS_ORM_STRATEGY_2 = "dicomOrmStrategy2";
 
     private final PacsService _service;
+
 }

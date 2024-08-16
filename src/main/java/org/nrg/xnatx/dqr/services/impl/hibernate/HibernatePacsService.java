@@ -18,13 +18,17 @@ import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.services.PacsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.apache.commons.lang3.StringUtils;
+import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
+@Slf4j
 public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, PacsDAO> implements PacsService {
     /**
      * {@inheritDoc}
@@ -39,7 +43,6 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      */
     @Override
     public Pacs createPacs(final Pacs pacs) throws InvalidPacsConfigurationException {
-        validatePacs(pacs);
         return create(pacs);
     }
 
@@ -47,9 +50,16 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      * {@inheritDoc}
      */
     @Override
+    @Nullable
     public Pacs create(final Pacs entity) {
-        clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
-        return super.create(entity);
+        try {
+            validatePacs(entity);
+            clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
+            return super.create(entity);
+        } catch (InvalidPacsConfigurationException ipc) {
+            log.error("Invalid Configuration: ", ipc);
+            return null;
+        }
     }
 
     /**
@@ -67,7 +77,6 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
     public Pacs updatePacs(long pacsId, PacsSettings settings) throws PacsNotFoundException, InvalidPacsConfigurationException {
         final Pacs entity = getPacs(pacsId);
         entity.copySettings(settings);
-        validatePacs(entity);
         update(entity);
         return entity;
     }
@@ -77,8 +86,13 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
      */
     @Override
     public void update(final Pacs entity) {
-        clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
-        super.update(entity);
+        try {
+            validatePacs(entity);
+            clearDefaultPacsFlagsOnOtherEntitiesIfThisEntityIsTheNewDefault(entity);
+            super.update(entity);
+        } catch (InvalidPacsConfigurationException ipc) {
+            log.error("Invalid Configuration: ", ipc);
+        }
     }
 
     /**
@@ -139,6 +153,9 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
 
     private void validatePacs(final Pacs entity) throws InvalidPacsConfigurationException {
         final List<String> errors = new ArrayList<>();
+        if (!entity.isDicomWebEnabled() &&  StringUtils.isBlank(entity.getHost())) {
+            errors.add("DMSE PACS configuration must set the host");
+        }
         if (entity.isDefaultStoragePacs() && !entity.isStorable()) {
             errors.add("PACS marked as default storage PACS must be storable");
         }

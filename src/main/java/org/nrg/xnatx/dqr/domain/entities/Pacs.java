@@ -85,7 +85,6 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         _aeTitle = aeTitle;
     }
 
-    @NotBlank
     @Size(max = 100)
     public String getHost() {
         return _host;
