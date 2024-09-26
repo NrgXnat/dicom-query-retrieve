@@ -5,6 +5,24 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="2.1"></a>XNAT DQR Version 2.1 Release Notes
+
+### 2.1.x Versions
+
+* [2.1.0](#2.1.0)
+
+### <a name="2.1.0"></a>DQR Plugin Version: 2.1.0
+
+#### 2.1.0 - General Improvements
+
+* [XNAT-7990](https://radiologics.atlassian.net/browse/XNAT-7990) Update Hibernate and Spring dependencies for XNAT 1.9.0 compatibility
+* Improve unit tests and validation
+
+#### 2.1.0 - Fixes
+
+* [XNAT-8163](https://radiologics.atlassian.net/browse/XNAT-8163) Remove "Host" as a constraint when configuring a DICOMweb connection to PACS
+
+
 ## <a name="2.0"></a>XNAT DQR Version 2.0 Release Notes
 
 ### 2.0.x Versions
