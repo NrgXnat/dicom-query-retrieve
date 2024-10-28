@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.annotations.XapiRestController;
+import org.nrg.framework.utilities.SanitizeUtils;
 import org.nrg.mail.services.MailService;
 import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.NotFoundException;
@@ -75,19 +76,26 @@ public class ProjectIrbFileApi extends AbstractXapiRestController {
     @ResponseBody
     public ResponseEntity<ByteArrayResource> getIrbFile(@PathVariable @Project final String projectId, final @PathVariable String fileName) throws IOException, NotFoundException {
         //Filename is included in the URL to avoid confusing some browsers (even though it's unused).
+        if (SanitizeUtils.containsPathTraversal(fileName)) {
+            throw new IllegalArgumentException("Invalid file name with path traversal.");
+        }
         final ProjectIrbInfo info = _projectIrbInfoEntityService.findIrbInfoForProject(projectId);
         if (info == null) {
             throw new NotFoundException("No IRB file found for project ID " + projectId);
         }
 
+        return irbFileResourceResponseEntity(projectId, fileName, info);
+    }
+
+    private static ResponseEntity<ByteArrayResource> irbFileResourceResponseEntity(String projectId, String fileName, ProjectIrbInfo info) throws NotFoundException, IOException {
         final File file = Paths.get(info.getProjectIrbFiles().stream().filter(fileStoreInfo -> fileStoreInfo.getLabel().equals(fileName)).findAny().orElseThrow(() -> new NotFoundException(projectId + ": " + fileName)).getStoreUri()).toFile();
 
         final String mimeType = StringUtils.endsWith(fileName, ".pdf") ? MediaType.APPLICATION_PDF_VALUE : URLConnection.guessContentTypeFromName(fileName);
 
         return ResponseEntity.ok()
-                             .header(HttpHeaders.CONTENT_TYPE, mimeType)
-                             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
-                             .body(new ByteArrayResource(FileUtils.readFileToByteArray(file)));
+                .header(HttpHeaders.CONTENT_TYPE, mimeType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .body(new ByteArrayResource(FileUtils.readFileToByteArray(file)));
     }
 
     @ApiOperation(value = "Get stored IRB filename for project.", response = String.class, responseContainer = "List")
