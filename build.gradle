@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.9.1-SNAPSHOT"
+        vXnat = "1.10.0-SNAPSHOT"
     }
 }
 
@@ -25,10 +25,11 @@ plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
+    id("org.openrewrite.rewrite") version("6.24.0")    
 }
 
 group "org.nrg.xnatx.plugins"
-version "2.2.0-SNAPSHOT"
+version "2.3.0-SNAPSHOT"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
@@ -39,8 +40,8 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
-sourceCompatibility = 8
-targetCompatibility = 8
+sourceCompatibility = 21
+targetCompatibility = 21
 
 compileJava {
     options.fork = false
@@ -71,14 +72,14 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
-jacocoTestReport {
-    dependsOn test
-    reports {
-        xml.enabled = false
-        csv.enabled = true
-        html.enabled = true
-    }
-}
+// jacocoTestReport {
+//     dependsOn test
+//     reports {
+//         xml.enabled = false
+//         csv.enabled = true
+//         html.enabled = true
+//     }
+// }
 
 test {
     useJUnitPlatform {
@@ -106,6 +107,8 @@ def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"]
 def vMockito = "4.+"
 
 dependencies {
+    rewrite("org.openrewrite.recipe:rewrite-migrate-java:2.26.0")
+
     implementation enforcedPlatform("org.nrg:parent:${vXnat}") {
         exclude group: "org.mockito"
     }
@@ -231,13 +234,19 @@ Building artifacts with manifest attributes:
  * Implementation-Dirty:    ${isDirty}
 """
 
+rewrite {
+    activeRecipe("org.openrewrite.java.migrate.UpgradeToJava21")
+    exportDatatables = true
+}
+
+
 lombok {
     version = dependencyManagement.importedProperties["lombok.version"] as String
     sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
-    classifier "sources"
+    archiveClassifier.set("sources")
     manifest {
         from gitManifest
     }
@@ -245,7 +254,7 @@ task sourceJar(type: Jar, dependsOn: classes) {
 }
 
 task javadocJar(type: Jar) {
-    classifier "javadoc"
+    archiveClassifier.set("javadoc")
     manifest {
         from gitManifest
     }
@@ -254,7 +263,7 @@ task javadocJar(type: Jar) {
 
 jar {
     dependsOn test, sourceJar, javadocJar
-    enabled = true
+    // enabled = true
     manifest {
         from gitManifest
     }
