@@ -27,4 +27,6 @@ public interface QueuedPacsRequestService extends BasePacsRequestService<QueuedP
     boolean isQueued(String requestId, final String studyInstanceUid);
 
     boolean isQueued(String studyInstanceUid);
+
+    void deleteAllWithRequestIdAndStatus(String requestId, List<String> statuses);
 }

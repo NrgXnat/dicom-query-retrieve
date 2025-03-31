@@ -9,6 +9,7 @@
 
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
+import lombok.extern.slf4j.Slf4j;
 import org.nrg.xnatx.dqr.domain.daos.QueuedPacsRequestDAO;
 import org.nrg.xnatx.dqr.domain.entities.PaginatedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.QueuedPacsRequest;
@@ -18,11 +19,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by mike on 1/19/18.
  */
+@Slf4j
 @Service
 @Transactional
 public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequestService<QueuedPacsRequest, QueuedPacsRequestDAO> implements QueuedPacsRequestService {
@@ -54,5 +58,20 @@ public class HibernateQueuedPacsRequestService extends AbstractHibernatePacsRequ
     @Override
     public boolean isQueued(final String studyInstanceUid) {
         return getDao().isQueuedForStudyInstanceUid(studyInstanceUid);
+    }
+
+    @Override
+    public void deleteAllWithRequestIdAndStatus(final String requestId, final List<String> statuses) {
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put("requestId", requestId);
+        properties.put("status", statuses);
+
+        getDao().findByProperties(properties).forEach(r -> {
+            try {
+                delete(r.getId());
+            } catch (Exception e) {
+                log.error("An unexpected error occurred while attempting to delete pacs request with id {}", r.getId(), e);
+            }
+        });
     }
 }
