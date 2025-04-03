@@ -5,29 +5,53 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="2.2"></a>XNAT DQR Version 2.2 Release Notes
+
+### <a name="2.2.0"></a>DQR Plugin Version: 2.2.0
+
+#### 2.2.0 - General Improvements
+
+  * [PLUGINS-212](https://radiologics.atlassian.net/browse/PLUGINS-212) Add a method to delete queued PACS requests that are associated with a request ID and status
+  * Updated the required XNAT version to 1.9.1
+
+
+## <a name="2.1"></a>XNAT DQR Version 2.1 Release Notes
+
+### <a name="2.1.0"></a>DQR Plugin Version: 2.1.0
+
+#### 2.1.0 - General Improvements
+
+  * [XNAT-7990](https://radiologics.atlassian.net/browse/XNAT-7990) Update Hibernate and Spring dependencies for XNAT 1.9.0 compatibility
+  * Improve unit tests and validation
+
+#### 2.1.0 - Fixes
+
+  * [XNAT-8163](https://radiologics.atlassian.net/browse/XNAT-8163) Remove "Host" as a constraint when configuring a DICOMweb connection to PACS
+
+
 ## <a name="2.0"></a>XNAT DQR Version 2.0 Release Notes
 
 ### 2.0.x Versions
 
-* [2.0.2](#2.0.2)
-* [2.0.1](#2.0.1)
-* [2.0.0](#2.0.0)
+  * [2.0.2](#2.0.2)
+  * [2.0.1](#2.0.1)
+  * [2.0.0](#2.0.0)
 
 ### <a name="2.0.2"></a>DQR Plugin Version: 2.0.2
 
 #### 2.0.2 - General Improvements
 
-* [PLUGINS-187](https://radiologics.atlassian.net/browse/PLUGINS-187) Improve support for split QIDO and WADO PACS systems.
+  * [PLUGINS-187](https://radiologics.atlassian.net/browse/PLUGINS-187) Improve support for split QIDO and WADO PACS systems.
     Always retrieve series by querying for + retrieving from `RetrieveURL` rather than as a fallback.
 
 #### 2.0.2 - Fixes
 
-* [PLUGINS-186](https://radiologics.atlassian.net/browse/PLUGINS-186) Tweak DICOMweb HTTP connection pool settings to enable more concurrent connections
+  * [PLUGINS-186](https://radiologics.atlassian.net/browse/PLUGINS-186) Tweak DICOMweb HTTP connection pool settings to enable more concurrent connections
 
 ### <a name="2.0.1"></a>DQR Plugin Version: 2.0.1
 
 #### 2.0.1 - Fixes
-   * [PLUGINS-185](https://radiologics.atlassian.net/browse/PLUGINS-185) Support DICOMweb operations for PACS vendors that split QIDO and WADO operations into separate root URL paths
+  * [PLUGINS-185](https://radiologics.atlassian.net/browse/PLUGINS-185) Support DICOMweb operations for PACS vendors that split QIDO and WADO operations into separate root URL paths
 
 ### <a name="2.0.0"></a>DQR Plugin Version: 2.0.0
 
@@ -35,11 +59,11 @@ DQR now fully supports Query and Retrieve over DICOMweb.
 
 #### 2.0.0 - General Improvements
 
-   * [PLUGINS-96](https://radiologics.atlassian.net/browse/PLUGINS-96) Support configuring a PACS connection for DICOMweb,
-        and performing query and retrieve (import) operations over DICOMweb.
+  * [PLUGINS-96](https://radiologics.atlassian.net/browse/PLUGINS-96) Support configuring a PACS connection for DICOMweb,
+    and performing query and retrieve (import) operations over DICOMweb.
 
 #### 2.0.0 - Fixes
-   * [PLUGINS-157](https://radiologics.atlassian.net/browse/PLUGINS-157) No longer restrict capitalization of Patient Name input on Query page
+  * [PLUGINS-157](https://radiologics.atlassian.net/browse/PLUGINS-157) No longer restrict capitalization of Patient Name input on Query page
 
 ## <a name="1.3"></a>XNAT DQR Version 1.3 Release Notes
 
@@ -53,53 +77,53 @@ This release updates the minimum supported XNAT version from 1.8.5 to 1.8.10.
 
 #### 1.3.0 - General Improvements
 
-   * [PLUGINS-22](https://radiologics.atlassian.net/browse/PLUGINS-22) Trigger session building and archiving when all study data is received, bypassing default archive timeout.
-   * [PLUGINS-91](https://radiologics.atlassian.net/browse/PLUGINS-91) Delete partially received study data from the prearchive when an import request fails
-   * [PLUGINS-93](https://radiologics.atlassian.net/browse/PLUGINS-93) Add internal API to find queued requests by study instance UID
-   * [PLUGINS-100](https://radiologics.atlassian.net/browse/PLUGINS-100) [PLUGINS-102](https://radiologics.atlassian.net/browse/PLUGINS-102) Refactor internal service APIs to prepare for more substantial DICOMweb support
+  * [PLUGINS-22](https://radiologics.atlassian.net/browse/PLUGINS-22) Trigger session building and archiving when all study data is received, bypassing default archive timeout.
+  * [PLUGINS-91](https://radiologics.atlassian.net/browse/PLUGINS-91) Delete partially received study data from the prearchive when an import request fails
+  * [PLUGINS-93](https://radiologics.atlassian.net/browse/PLUGINS-93) Add internal API to find queued requests by study instance UID
+  * [PLUGINS-100](https://radiologics.atlassian.net/browse/PLUGINS-100) [PLUGINS-102](https://radiologics.atlassian.net/browse/PLUGINS-102) Refactor internal service APIs to prepare for more substantial DICOMweb support
 
 #### 1.3.0 - Fixes
-   * [PLUGINS-94](https://radiologics.atlassian.net/browse/PLUGINS-94) DICOMweb: Fix Ping button in PACS configuration UI
+  * [PLUGINS-94](https://radiologics.atlassian.net/browse/PLUGINS-94) DICOMweb: Fix Ping button in PACS configuration UI
 
 ## <a name="1.2"></a>XNAT DQR Version 1.2 Release Notes
 
 ### 1.2.x Versions
 
-[1.2.0](#1.2.0) [1.2.1](#1.2.1)
+  * [1.2.0](#1.2.0)
+  * [1.2.1](#1.2.1)
 
 ### <a name="1.2.1"></a>DQR Plugin Version: 1.2.1
 
 #### 1.2.1 - General Improvements
 
-   * [PLUGINS-92](https://radiologics.atlassian.net/browse/PLUGINS-92) DICOM web: support preemptive auth
+  * [PLUGINS-92](https://radiologics.atlassian.net/browse/PLUGINS-92) DICOM web: support preemptive auth
 
 #### 1.2.1 - Fixes
-   * [PLUGINS-89](https://radiologics.atlassian.net/browse/PLUGINS-89) DQR: code refactor to clarify wait times for utilization and retrying
-   * [PLUGINS-90](https://radiologics.atlassian.net/browse/PLUGINS-90) DQR: count "attempts" rather than "retries"
+  * [PLUGINS-89](https://radiologics.atlassian.net/browse/PLUGINS-89) DQR: code refactor to clarify wait times for utilization and retrying
+  * [PLUGINS-90](https://radiologics.atlassian.net/browse/PLUGINS-90) DQR: count "attempts" rather than "retries"
 
 
 ### <a name="1.2.0"></a>DQR Plugin Version: 1.2.0
 
 #### 1.2.0 - General Improvements
 
-   * [PLUGINS-86](https://radiologics.atlassian.net/browse/PLUGINS-86) DQR: Store error message when PACS request fails
-   * [PLUGINS-87](https://radiologics.atlassian.net/browse/PLUGINS-87) DQR: Add a request id to identify pacs requests across queue and restarts
+  * [PLUGINS-86](https://radiologics.atlassian.net/browse/PLUGINS-86) DQR: Store error message when PACS request fails
+  * [PLUGINS-87](https://radiologics.atlassian.net/browse/PLUGINS-87) DQR: Add a request id to identify pacs requests across queue and restarts
 
 ## <a name="1.1"></a>XNAT DQR Version 1.1 Release Notes
 
 ### 1.1.x Versions
 
-[1.1.0](#1.1.0)
+  * [1.1.0](#1.1.0)
 
 ### <a name="1.1.0"></a>DQR Plugin Version: 1.1.0
 
 #### 1.1.0 - General Improvements
 
-   * [PLUGINS-83](https://radiologics.atlassian.net/browse/PLUGINS-83) Settings: Notifications settings apply to both admins and users
-   * [PLUGINS-82](https://radiologics.atlassian.net/browse/PLUGINS-82) PACS Requests: Don't require a port for C-MOVE
-   * [PLUGINS-79](https://radiologics.atlassian.net/browse/PLUGINS-79) PACS Requests: Configurable retry logic for C-MOVE request from the PACS
+  * [PLUGINS-83](https://radiologics.atlassian.net/browse/PLUGINS-83) Settings: Notifications settings apply to both admins and users
+  * [PLUGINS-82](https://radiologics.atlassian.net/browse/PLUGINS-82) PACS Requests: Don't require a port for C-MOVE
+  * [PLUGINS-79](https://radiologics.atlassian.net/browse/PLUGINS-79) PACS Requests: Configurable retry logic for C-MOVE request from the PACS
 
 #### 1.1.0 - Fixes
 
-   * [PLUGINS-81](https://radiologics.atlassian.net/browse/PLUGINS-81) PACS Requests: Fixed bug that caused DQR to not properly abide the “threads” availability setting
-
+  * [PLUGINS-81](https://radiologics.atlassian.net/browse/PLUGINS-81) PACS Requests: Fixed bug that caused DQR to not properly abide the “threads” availability setting
