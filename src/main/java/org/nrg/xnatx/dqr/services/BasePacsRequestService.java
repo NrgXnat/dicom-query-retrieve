@@ -54,4 +54,8 @@ public interface BasePacsRequestService<R extends PacsRequest> extends BaseHiber
     List<R> getAllForPacsOrderedByPriorityAndDate(final long pacsId);
 
     List<R> getAllForPacsOrderedByPriorityAndDate(final long pacsId, final PaginatedPacsRequest request);
+
+    void deleteAllWithRequestIdAndStatus(String requestId, List<String> statuses);
+
+    void deleteAllWithRequestIdAndStudyInstanceUid(String requestId, String studyInstanceUid);
 }

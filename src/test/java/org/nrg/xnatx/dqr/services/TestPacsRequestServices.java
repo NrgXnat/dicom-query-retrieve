@@ -8,6 +8,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.nrg.framework.exceptions.NotFoundException;
 import org.nrg.xnatx.dqr.domain.TestPacsRequestServicesConfig;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -22,13 +23,25 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitJupiterConfig;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.AssertionsForClassTypes.fail;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.*;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.FAILED_STATUS_TEXT;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.HIGH_PRIORITY;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.ISSUED_STATUS_TEXT;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.PROCESSING_STATUS_TEXT;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.QUEUED_STATUS_TEXT;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.RECEIVED_STATUS_TEXT;
+import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.STANDARD_PRIORITY;
 
 @ExtendWith(SpringExtension.class)
 @SpringJUnitJupiterConfig(TestPacsAvailabilityService.class)
@@ -36,36 +49,39 @@ import static org.nrg.xnatx.dqr.domain.entities.PacsRequest.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Slf4j
 public class TestPacsRequestServices {
-    private static final int NUM_QUEUED_REQUESTS   = 5000;
+    private static final int NUM_QUEUED_REQUESTS = 5000;
     private static final int NUM_EXECUTED_REQUESTS = 5000;
 
-    private final PacsService                _pacsService;
-    private final QueuedPacsRequestService   _queuedPacsRequestService;
+    private final PacsService _pacsService;
+    private final QueuedPacsRequestService _queuedPacsRequestService;
     private final ExecutedPacsRequestService _executedPacsRequestService;
+
+    private final String REQUEST_ID_1 = "test-1";
+    private final String REQUEST_ID_2 = "test-2";
 
     @Autowired
     public TestPacsRequestServices(final PacsService pacsService, final QueuedPacsRequestService queuedPacsRequestService, final ExecutedPacsRequestService executedPacsRequestService) {
-        _pacsService                = pacsService;
-        _queuedPacsRequestService   = queuedPacsRequestService;
+        _pacsService = pacsService;
+        _queuedPacsRequestService = queuedPacsRequestService;
         _executedPacsRequestService = executedPacsRequestService;
     }
 
     @Test
     public void testPaging() {
-        final List<Pacs>                pacs             = getPacs();
-        final List<QueuedPacsRequest>   queuedRequests   = IntStream.range(0, NUM_QUEUED_REQUESTS).boxed().map(index -> _queuedPacsRequestService.create(getRandomQueuedPacsRequest(pacs))).collect(Collectors.toList());
+        final List<Pacs> pacs = getPacs();
+        final List<QueuedPacsRequest> queuedRequests = IntStream.range(0, NUM_QUEUED_REQUESTS).boxed().map(index -> _queuedPacsRequestService.create(getRandomQueuedPacsRequest(pacs))).collect(Collectors.toList());
         final List<ExecutedPacsRequest> executedRequests = IntStream.range(0, NUM_EXECUTED_REQUESTS).boxed().map(index -> _executedPacsRequestService.create(getRandomExecutedPacsRequest(pacs))).collect(Collectors.toList());
         assertThat(queuedRequests).isNotNull().isNotEmpty().hasSize(NUM_QUEUED_REQUESTS);
         assertThat(executedRequests).isNotNull().isNotEmpty().hasSize(NUM_EXECUTED_REQUESTS);
 
-        final Map<String, Long> expectedQueuedRequestCounts   = queuedRequests.stream().collect(Collectors.groupingBy(QueuedPacsRequest::getUsername, Collectors.counting()));
+        final Map<String, Long> expectedQueuedRequestCounts = queuedRequests.stream().collect(Collectors.groupingBy(QueuedPacsRequest::getUsername, Collectors.counting()));
         final Map<String, Long> expectedExecutedRequestCounts = executedRequests.stream().collect(Collectors.groupingBy(ExecutedPacsRequest::getUsername, Collectors.counting()));
         Assertions.assertThat(expectedQueuedRequestCounts).isNotNull().isNotEmpty().hasSize(USERNAMES.size()).containsOnlyKeys(USERNAMES);
         Assertions.assertThat(expectedQueuedRequestCounts.values().stream().reduce(0L, Long::sum)).isEqualTo(NUM_QUEUED_REQUESTS);
         Assertions.assertThat(expectedExecutedRequestCounts).isNotNull().isNotEmpty().hasSize(USERNAMES.size()).containsOnlyKeys(USERNAMES);
         Assertions.assertThat(expectedExecutedRequestCounts.values().stream().reduce(0L, Long::sum)).isEqualTo(NUM_EXECUTED_REQUESTS);
 
-        final StopWatch         stopWatch                 = StopWatch.createStarted();
+        final StopWatch stopWatch = StopWatch.createStarted();
         final Map<String, Long> actualQueuedRequestCounts = USERNAMES.stream().collect(Collectors.toMap(Function.identity(), _queuedPacsRequestService::getAllForUserCount));
         stopWatch.stop();
         log.info("Retrieved counts of queued requests by username in {} milliseconds", stopWatch.getTime());
@@ -120,6 +136,129 @@ public class TestPacsRequestServices {
         Assertions.assertThat(first200ExecutedRequestsOrderedByDate).isNotNull().isNotEmpty().hasSize(200).containsAll(executedRequestsOrderedByDate.subList(0, 200));
     }
 
+    @Test
+    public void testDeleteQueuedRequestsWithRequestIdAndStatus() throws NotFoundException {
+        final Pacs pacs = getPacs("lab");
+        final QueuedPacsRequest queuedRequest1 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_1)
+                .status(QUEUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        final QueuedPacsRequest queuedRequest2 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_2)
+                .status(QUEUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        final QueuedPacsRequest issuedPacsRequest1 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_2)
+                .status(ISSUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        _queuedPacsRequestService.deleteAllWithRequestIdAndStatus(REQUEST_ID_1, Collections.singletonList(QUEUED_STATUS_TEXT));
+
+        // Only queuedRequest1 should have been deleted
+        _queuedPacsRequestService.get(queuedRequest2.getId());
+        _queuedPacsRequestService.get(issuedPacsRequest1.getId());
+
+        try {
+            final QueuedPacsRequest deletedRequest = _queuedPacsRequestService.get(queuedRequest1.getId());
+            fail("Expected NotFoundException, but the request with id " + deletedRequest.getId() + " still exists.");
+        } catch (NotFoundException ignored) {
+            // Expected
+        }
+
+        _queuedPacsRequestService.deleteAllWithRequestIdAndStatus(REQUEST_ID_2, Arrays.asList(QUEUED_STATUS_TEXT, ISSUED_STATUS_TEXT));
+        final List<QueuedPacsRequest> queuedPacsRequests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacs.getId());
+        Assertions.assertThat(queuedPacsRequests.isEmpty()).isTrue();
+    }
+
+    @Test
+    public void testDeleteAllWithRequestIdAndStudyInstanceUid() throws NotFoundException {
+        final Pacs pacs = getPacs("lab");
+        final QueuedPacsRequest queuedRequest1 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_1)
+                .status(QUEUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        final QueuedPacsRequest queuedRequest2 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_2)
+                .status(QUEUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        final QueuedPacsRequest queuedRequest3 = _queuedPacsRequestService.create(QueuedPacsRequest.builder()
+                .pacsId(pacs.getId())
+                .username(getRandom(USERNAMES))
+                .requestId(REQUEST_ID_2)
+                .status(ISSUED_STATUS_TEXT)
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .studyInstanceUid(RandomStringUtils.randomAlphanumeric(20))
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY).build());
+
+        _queuedPacsRequestService.deleteAllWithRequestIdAndStudyInstanceUid(REQUEST_ID_1, queuedRequest1.getStudyInstanceUid());
+
+        // Only queuedRequest1 should have been deleted
+        _queuedPacsRequestService.get(queuedRequest2.getId());
+        _queuedPacsRequestService.get(queuedRequest3.getId());
+
+        try {
+            final QueuedPacsRequest deletedRequest = _queuedPacsRequestService.get(queuedRequest1.getId());
+            fail("Expected NotFoundException, but the request with id " + deletedRequest.getId() + " still exists.");
+        } catch (NotFoundException ignored) {
+            // Expected
+        }
+
+        _queuedPacsRequestService.deleteAllWithRequestIdAndStudyInstanceUid(REQUEST_ID_2, queuedRequest2.getStudyInstanceUid());
+        try {
+            final QueuedPacsRequest deletedRequest = _queuedPacsRequestService.get(queuedRequest2.getId());
+            fail("Expected NotFoundException, but the request with id " + deletedRequest.getId() + " still exists.");
+        } catch (NotFoundException ignored) {
+            // Expected
+        }
+        _queuedPacsRequestService.get(queuedRequest3.getId());
+
+        _queuedPacsRequestService.deleteAllWithRequestIdAndStudyInstanceUid(REQUEST_ID_2, queuedRequest3.getStudyInstanceUid());
+        final List<QueuedPacsRequest> queuedPacsRequests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacs.getId());
+        Assertions.assertThat(queuedPacsRequests.isEmpty()).isTrue();
+    }
+
     private List<Pacs> getPacs() {
         return PACS.stream().map(this::getPacs).collect(Collectors.toList());
     }
@@ -131,14 +270,14 @@ public class TestPacsRequestServices {
 
     private QueuedPacsRequest getRandomQueuedPacsRequest(final List<Pacs> pacs) {
         final QueuedPacsRequest.QueuedPacsRequestBuilder builder = QueuedPacsRequest.builder()
-                                                                                    .pacsId(getRandom(pacs).getId())
-                                                                                    .username(getRandom(USERNAMES))
-                                                                                    .xnatProject(getRandom(PROJECTS))
-                                                                                    .destinationAeTitle(getRandom(AE_TITLES))
-                                                                                    .status(getRandom(STATUSES))
-                                                                                    .queuedTime(getRandomDate())
-                                                                                    .seriesIds(getRandomStrings())
-                                                                                    .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY);
+                .pacsId(getRandom(pacs).getId())
+                .username(getRandom(USERNAMES))
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .status(getRandom(STATUSES))
+                .queuedTime(getRandomDate())
+                .seriesIds(getRandomStrings())
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY);
         if (RANDOM.nextBoolean()) {
             builder.studyInstanceUid(RandomStringUtils.randomAlphanumeric(20));
         }
@@ -163,15 +302,15 @@ public class TestPacsRequestServices {
     private ExecutedPacsRequest getRandomExecutedPacsRequest(final List<Pacs> pacs) {
         final Date queuedDate = getRandomDate();
         final ExecutedPacsRequest.ExecutedPacsRequestBuilder builder = ExecutedPacsRequest.builder()
-                                                                                          .pacsId(getRandom(pacs).getId())
-                                                                                          .username(getRandom(USERNAMES))
-                                                                                          .xnatProject(getRandom(PROJECTS))
-                                                                                          .destinationAeTitle(getRandom(AE_TITLES))
-                                                                                          .status(getRandom(STATUSES))
-                                                                                          .queuedTime(queuedDate)
-                                                                                          .executedTime(getRandomDate(queuedDate))
-                                                                                          .seriesIds(getRandomStrings())
-                                                                                          .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY);
+                .pacsId(getRandom(pacs).getId())
+                .username(getRandom(USERNAMES))
+                .xnatProject(getRandom(PROJECTS))
+                .destinationAeTitle(getRandom(AE_TITLES))
+                .status(getRandom(STATUSES))
+                .queuedTime(queuedDate)
+                .executedTime(getRandomDate(queuedDate))
+                .seriesIds(getRandomStrings())
+                .priority(RANDOM.nextBoolean() ? HIGH_PRIORITY : STANDARD_PRIORITY);
         if (RANDOM.nextBoolean()) {
             builder.studyInstanceUid(RandomStringUtils.randomAlphanumeric(20));
         }
@@ -213,10 +352,10 @@ public class TestPacsRequestServices {
         return StringUtils.capitalize(StringUtils.lowerCase(RandomStringUtils.randomAlphabetic(5, maxLength)));
     }
 
-    private static final Random       RANDOM    = new Random();
-    private static final List<String> PACS      = Arrays.asList("lab", "upstairs", "downstairs", "uptown", "downtown");
+    private static final Random RANDOM = new Random();
+    private static final List<String> PACS = Arrays.asList("lab", "upstairs", "downstairs", "uptown", "downtown");
     private static final List<String> USERNAMES = Arrays.asList("abarrett", "abean", "asummers", "hmckinney", "hwiley", "jlynn", "jrangel", "jhiggins", "rburns", "rlittle", "vmurray", "ysantos");
-    private static final List<String> PROJECTS  = Arrays.asList("A", "B", "C", "D", "E", "F");
+    private static final List<String> PROJECTS = Arrays.asList("A", "B", "C", "D", "E", "F");
     private static final List<String> AE_TITLES = Arrays.asList("T", "U", "V", "W", "X", "Y", "Z");
-    private static final List<String> STATUSES  = Arrays.asList(QUEUED_STATUS_TEXT, PROCESSING_STATUS_TEXT, ISSUED_STATUS_TEXT, FAILED_STATUS_TEXT, RECEIVED_STATUS_TEXT);
+    private static final List<String> STATUSES = Arrays.asList(QUEUED_STATUS_TEXT, PROCESSING_STATUS_TEXT, ISSUED_STATUS_TEXT, FAILED_STATUS_TEXT, RECEIVED_STATUS_TEXT);
 }
