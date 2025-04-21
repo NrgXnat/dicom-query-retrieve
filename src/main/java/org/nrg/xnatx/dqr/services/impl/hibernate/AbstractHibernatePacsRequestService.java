@@ -184,14 +184,6 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
         findAndDeleteAllByProperties(properties);
     }
 
-    @Override
-    public void deleteAllWithRequestIdAndStudyInstanceUid(final String requestId, final String studyInstanceUid) {
-        final Map<String, Object> properties = new HashMap<>();
-        properties.put("requestId", requestId);
-        properties.put("studyInstanceUid", studyInstanceUid);
-        findAndDeleteAllByProperties(properties);
-    }
-
     private void findAndDeleteAllByProperties(final Map<String, Object> properties){
         getDao().findByProperties(properties).forEach(r -> {
             try {
