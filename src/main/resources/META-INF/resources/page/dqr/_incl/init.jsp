@@ -22,6 +22,4 @@
         <c:set var="siteRoot" value="/${pageContext.request.contextPath}" scope="session"/>
     </c:if>
 
-    <c:set var="hasInit" value="true" scope="request"/>
-
 </c:if>
