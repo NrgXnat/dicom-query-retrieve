@@ -1,11 +1,10 @@
 package org.nrg.xnatx.dqr.utils;
 
-import org.nrg.xnatx.dqr.exceptions.DqrException;
-import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.xdat.XDAT;
-import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
@@ -22,7 +21,7 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
     private final long secondsBeforeRetry;
 
     public RetryablePacsOperation() {
-        maxRetries         = Integer.parseInt(dqrPreferences.getDqrMaxPacsRequestAttempts());
+        maxRetries = Integer.parseInt(dqrPreferences.getDqrMaxPacsRequestAttempts());
         secondsBeforeRetry = Long.parseLong(dqrPreferences.getDqrWaitToRetryRequestInSeconds());
     }
 
@@ -40,7 +39,8 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
                         Thread.currentThread().interrupt();
                         throw new NrgServiceRuntimeException("Thread interrupted while performing pacs operation.", ex);
                     }
-                    log.debug("PACS operation attempt: {}/{}", attempt + 1, maxRetries);
+
+                    log.debug("PACS operation attempt: {}/{}", attempt + 1, maxRetries, e);
                     continue;
                 }
                 throw e;
