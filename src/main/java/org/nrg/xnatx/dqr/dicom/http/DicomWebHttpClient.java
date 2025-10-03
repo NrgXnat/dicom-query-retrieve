@@ -1,9 +1,9 @@
 package org.nrg.xnatx.dqr.dicom.http;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
@@ -24,6 +24,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.util.EntityUtils;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.json.JSONReader;
 import org.dcm4che3.mime.MultipartInputStream;
@@ -32,11 +33,11 @@ import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.xnatx.dqr.dicom.json.DicomCorrectingJsonParser;
 import org.nrg.xnatx.dqr.dto.DicomWebCredential;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
-import org.nrg.xnatx.dqr.exceptions.PacsAuthenticationException;
-import org.nrg.xnatx.dqr.exceptions.PacsDataNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
+import org.nrg.xnatx.dqr.exceptions.PacsAuthenticationException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
+import org.nrg.xnatx.dqr.exceptions.PacsDataNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
 import org.nrg.xnatx.dqr.utils.RetryablePacsOperation;
 import org.springframework.http.HttpStatus;
@@ -72,6 +73,9 @@ public class DicomWebHttpClient implements AutoCloseable {
     private static final Attributes EMPTY_ATTRIBUTES = new Attributes(false, 0);
     private static final DateFormat STUDY_DATE_FORMATTER = new SimpleDateFormat("yyyyMMdd");
     private static final String STUDIES = "studies?StudyDate=";
+
+    private static final String NO_RESPONSE_BODY_ERR_MESSAGE = "<no response body>";
+    private static final String COULD_NOT_READ_RESPONSE_ERR_MSG = "<Could not read error message from response>";
 
     private static final String BOUNDARY = "boundary";
     private static final String APPLICATION_DICOM_JSON = "application/dicom+json";
@@ -154,6 +158,7 @@ public class DicomWebHttpClient implements AutoCloseable {
         final URI uri = appendSearchKeysAndBuild(uriBuilder, searchKeys);
         return _getAttributes(uri, callback);
     }
+
     private Optional<Attributes> _getAttributes(final URI uri, final Consumer<Attributes> callback) throws PacsException {
         return new RetryablePacsOperation<Optional<Attributes>>() {
             @Override
@@ -204,15 +209,18 @@ public class DicomWebHttpClient implements AutoCloseable {
     private Optional<Attributes> doGet(final URI uri, @Nullable final Consumer<Attributes> callback) throws PacsException {
         final HttpUriRequest request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
-        log.debug("Executing request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
+        log.debug("Executing doGet request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
         try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
 
-            throwForHttpErrors(uri, response);
+            final Optional<HttpEntity> entity = getResponseEntity(uri, response);
+            if (!entity.isPresent()) {
+                return Optional.empty();
+            }
 
-            try (final InputStream inputStream = response.getEntity().getContent();
+            try (final InputStream inputStream = entity.get().getContent();
                  final JsonParser jsonParser = Json.createParser(inputStream);
-                 final JsonParser filteredParser = new DicomCorrectingJsonParser(jsonParser)
-            ) {
+                 final JsonParser filteredParser = new DicomCorrectingJsonParser(jsonParser)) {
+
                 final JSONReader jsonReader = new JSONReader(filteredParser);
                 jsonReader.setSkipBulkDataURI(true);
                 if (callback == null) {
@@ -239,42 +247,68 @@ public class DicomWebHttpClient implements AutoCloseable {
         log.debug("Executing request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
         try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
 
-            throwForHttpErrors(uri, response);
+            final Optional<HttpEntity> entity = getResponseEntity(uri, response);
+            if (!entity.isPresent()) {
+                return;
+            }
 
             final String boundary = parseBoundaryFromContentType(response.getFirstHeader(HttpHeaders.CONTENT_TYPE))
                     .orElseThrow(() -> new DqrException("Failed to parse multipart response from dicom-web endpoint " + rootUrl));
 
-            try (final InputStream inputStream = response.getEntity().getContent();
+            try (final InputStream inputStream = entity.get().getContent();
                  final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream)) {
                 new MultipartParser(boundary).parse(bufferedInputStream, callback::accept);
             }
         } catch (DqrRuntimeException e) {
             // Note: this is a workaround for the callback not being able to throw a checked exception
             throw new PacsException("Could not read parse DICOMweb response from " + uri.toString(), e.getCause());
-        } catch (Exception e) {
+        } catch (DqrException | IOException e) {
             log.error("Failed to request dicom from url: {}", uri, e);
+            if (e instanceof PacsException) {
+                throw (PacsException) e;
+            }
             throw new PacsException("Failed to request dicom from url: " + uri, e);
         }
     }
 
-    private void throwForHttpErrors(URI uri, CloseableHttpResponse response) throws PacsException {
-        final int httpStatus = response.getStatusLine().getStatusCode();
-        if (!(200 <= httpStatus && httpStatus < 300)) {
-            String errorMessage;
-            try {
-                errorMessage = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
-            } catch (IOException e) {
-                errorMessage = "<Could not read error message from response>";
-            }
-            log.error("Response from server was {}:\n{}", httpStatus, errorMessage);
+    private Optional<HttpEntity> getResponseEntity(final URI uri, final CloseableHttpResponse response) throws PacsException {
+        final int httpStatus = response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : -1;
 
-            if (401 == httpStatus) {
-                throw new PacsAuthenticationException("Failed to authenticate with dicom-web endpoint " + rootUrl);
-            } else if (404 == httpStatus) {
-                throw new PacsDataNotFoundException("No data found at " + uri.toString());
-            } else {
-                throw new PacsException("Failed to request dicom from url: " + uri.toString() + ". Server returned " + httpStatus);
+        if (httpStatus == 204 || httpStatus == 205) {
+            log.info("Received an HTTP {} from URI '{}' (no content).", httpStatus, uri);
+            return Optional.empty();
+        }
+
+        if (200 <= httpStatus && httpStatus < 300) {
+            final HttpEntity entity = response.getEntity();
+            if (entity == null) {
+                // If we need to retry this, throw PacsException instead of returning empty
+                log.warn("Received an HTTP {} from URI '{}' but the response entity is null.", httpStatus, uri);
+                return Optional.empty();
             }
+
+            log.debug("Received an HTTP {} from URI '{}'", httpStatus, uri);
+            return Optional.of(entity);
+        }
+
+        log.error("Response from {} was {}:\n{}", uri, httpStatus, getErrorMessage(response.getEntity()));
+        if (401 == httpStatus) {
+            throw new PacsAuthenticationException(
+                    "Failed to authenticate with dicom-web endpoint " + rootUrl + ". Server returned " + httpStatus);
+        }
+        if (404 == httpStatus) {
+            throw new PacsDataNotFoundException(
+                    "No data found at '" + uri.toString() + "'. Server returned: " + httpStatus);
+        }
+        throw new PacsException(
+                "Failed to request dicom from '" + uri.toString() + "'. Server returned: " + httpStatus);
+    }
+
+    private static String getErrorMessage(final HttpEntity entity) {
+        try {
+            return entity != null ? EntityUtils.toString(entity, Charset.defaultCharset()) : NO_RESPONSE_BODY_ERR_MESSAGE;
+        } catch (Exception e) {
+            return COULD_NOT_READ_RESPONSE_ERR_MSG;
         }
     }
 
@@ -288,7 +322,8 @@ public class DicomWebHttpClient implements AutoCloseable {
         }
     }
 
-    private URI buildUri(final Collection<String> pathSegments, final Map<Integer, String> searchKeys) throws PacsConnectionException {
+    private URI buildUri(final Collection<String> pathSegments, final Map<Integer, String> searchKeys) throws
+            PacsConnectionException {
         final List<String> combinedPathSegments = Stream.concat(
                         Arrays.stream(rootUrlObj.getPath().split("/")),
                         pathSegments.stream()
@@ -305,7 +340,8 @@ public class DicomWebHttpClient implements AutoCloseable {
         return appendSearchKeysAndBuild(uriBuilder, searchKeys);
     }
 
-    private URI appendSearchKeysAndBuild(final URIBuilder uriBuilder, final Map<Integer, String> searchKeys) throws PacsConnectionException {
+    private URI appendSearchKeysAndBuild(final URIBuilder uriBuilder, final Map<Integer, String> searchKeys) throws
+            PacsConnectionException {
         final List<String> includeFields = new ArrayList<>();
         for (final Map.Entry<Integer, String> entry : searchKeys.entrySet()) {
             final String value = entry.getValue();
