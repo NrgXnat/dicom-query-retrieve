@@ -79,7 +79,7 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     private static final String BOUNDARY = "boundary";
     private static final String APPLICATION_DICOM_JSON = "application/dicom+json";
-    private static final String MULTIPART_DICOM = "multipart/related; type=application/dicom";
+    private static final String MULTIPART_DICOM = "multipart/related; type=\"application/dicom\"";
     public static final String INCLUDEFIELD = "includefield";
 
     private static final int DICOMWEB_CONNECTION_POOL_SIZE = 50;
