@@ -7,6 +7,12 @@ also send image data from XNAT to the PACS.
 
 ## <a name="2.2"></a>XNAT DQR Version 2.2 Release Notes
 
+### <a name="2.2.2"></a>DQR Plugin Version: 2.2.2
+
+#### 2.2.2 - General Improvements
+
+* [PLUGINS-267](https://radiologics.atlassian.net/browse/PLUGINS-267) Fixed an issue that caused series imports to fail for certain PACS vendors
+
 ### <a name="2.2.1"></a>DQR Plugin Version: 2.2.1
 
 #### 2.2.1 - General Improvements
