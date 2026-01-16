@@ -268,6 +268,7 @@ task xnatPluginJar(type: Jar) {
     dependsOn test, sourceJar, javadocJar
     zip64 true
     archiveClassifier.set "xpl"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         from gitManifest
     }
