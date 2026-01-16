@@ -28,7 +28,7 @@ import org.nrg.xdat.om.XnatImagescandata;
 import org.nrg.xdat.om.XnatResource;
 import org.nrg.xdat.om.base.BaseXnatExperimentdata.UnknownPrimaryProjectException;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
-import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
+import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che3.Dcm4che3CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 
@@ -37,7 +37,7 @@ public class BasicCStoreSCU implements CStoreSCU {
     public BasicCStoreSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties) {
         _preferences = preferences;
         _dicomConnectionProperties = dicomConnectionProperties;
-        _cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
+        _cechoSCU = new Dcm4che3CEchoSCU(preferences, dicomConnectionProperties);
     }
 
     @Override

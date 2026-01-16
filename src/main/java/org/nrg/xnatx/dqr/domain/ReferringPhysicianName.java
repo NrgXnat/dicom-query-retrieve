@@ -9,16 +9,12 @@
 
 package org.nrg.xnatx.dqr.domain;
 
-import org.dcm4che2.data.PersonName;
+import org.dcm4che3.data.PersonName;
 
 public class ReferringPhysicianName extends DqrPersonName {
     private static final long serialVersionUID = 4641995793372862768L;
 
     public ReferringPhysicianName(final PersonName personName) {
-        super(personName);
-    }
-
-    public ReferringPhysicianName(final org.dcm4che3.data.PersonName personName) {
         super(personName);
     }
 
