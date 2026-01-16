@@ -1,7 +1,7 @@
 package org.nrg.xnatx.dqr.dicom.json.event;
 
-import javax.json.stream.JsonLocation;
-import javax.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParser.Event;
 
 /**
  * Replayable event that doesn't carry an associated value. This includes obvious cases
