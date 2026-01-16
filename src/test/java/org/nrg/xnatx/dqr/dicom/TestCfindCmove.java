@@ -16,7 +16,6 @@ import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.BasicResultSetLimitStrategy;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
-import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 

@@ -73,15 +73,6 @@ configurations {
     implementation.extendsFrom(implementAndInclude)
 }
 
-// jacocoTestReport {
-//     dependsOn test
-//     reports {
-//         xml.enabled = false
-//         csv.enabled = true
-//         html.enabled = true
-//     }
-// }
-
 test {
     useJUnitPlatform {
         includeEngines "junit-jupiter"
@@ -234,7 +225,6 @@ rewrite {
     exportDatatables = true
 }
 
-
 lombok {
     version = dependencyManagement.importedProperties["lombok.version"] as String
     sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
@@ -258,7 +248,6 @@ task javadocJar(type: Jar) {
 
 jar {
     dependsOn test, sourceJar, javadocJar
-    // enabled = true
     manifest {
         from gitManifest
     }

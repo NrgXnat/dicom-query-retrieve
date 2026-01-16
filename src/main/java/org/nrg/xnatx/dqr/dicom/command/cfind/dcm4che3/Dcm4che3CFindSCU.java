@@ -12,7 +12,6 @@ package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che3;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.ElementDictionary;
 import org.dcm4che3.data.Tag;
@@ -26,7 +25,6 @@ import org.dcm4che3.net.pdu.AAssociateRQ;
 import org.nrg.xnatx.dqr.dicom.command.dcm4che3.Dcm4che3DicomClient;
 import org.nrg.xnatx.dqr.dicom.command.dcm4che3.QueryRetrieveLevel;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
-import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,7 +48,6 @@ public class Dcm4che3CFindSCU extends Dcm4che3DicomClient {
     private final Attributes keys;
 
     private final List<Integer> returnKeys;
-    private String moveDest;
 
     public Dcm4che3CFindSCU(final String localAETitle,
                             final DicomConnectionProperties connectionProperties) {
@@ -65,13 +62,6 @@ public class Dcm4che3CFindSCU extends Dcm4che3DicomClient {
         addTransferCapability(UID.PatientRootQueryRetrieveInformationModelFind, TransferCapability.Role.SCU);
         addTransferCapability(UID.StudyRootQueryRetrieveInformationModelFind, TransferCapability.Role.SCU);
         addTransferCapability(UID.PatientStudyOnlyQueryRetrieveInformationModelFind, TransferCapability.Role.SCU);
-    }
-
-    /**
-     * Sets the move destination AE title for subsequent C-MOVE operations.
-     */
-    public void setMoveDest(String moveDest) {
-        this.moveDest = moveDest;
     }
 
     /**

@@ -61,11 +61,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
         String localAETitle = StringUtils.defaultIfBlank(preferences.getDqrCallingAe(), dicomConnectionProperties.getLocalAeTitle());
         this.cfindSCU = new Dcm4che3CFindSCU(localAETitle, dicomConnectionProperties);
         this.connectionProperties = dicomConnectionProperties;
-
-        if (cMoveRequestedOnResults()) {
-            cfindSCU.setMoveDest(dicomConnectionProperties.getLocalAeTitle());
-        }
-
         this.cechoSCU = cechoSCU;
         this.ormStrategy = ormStrategy;
     }
