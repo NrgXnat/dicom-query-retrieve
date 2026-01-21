@@ -39,6 +39,7 @@ repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
     maven { url "https://www.dcm4che.org/maven2" }
+    maven { url "https://raw.githubusercontent.com/nroduit/mvn-repo/master/" }  // weasis dependencies for dcm4che 5.x
 }
 
 sourceCompatibility = 21
