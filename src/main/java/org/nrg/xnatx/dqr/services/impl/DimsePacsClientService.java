@@ -39,9 +39,7 @@ import org.nrg.xnatx.dqr.utils.RetryablePacsOperation;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -49,8 +47,6 @@ import java.util.function.Consumer;
 @Slf4j
 @Service
 public class DimsePacsClientService implements PacsClientService {
-    private static final List<Integer> BLOCKED_RETURN_TAGS = Arrays.asList(Tag.NumberOfStudyRelatedInstances, Tag.NumberOfStudyRelatedSeries);
-
     final DqrPreferences preferences;
     final DicomSCPManager dicomSCPManager;
     final Map<String, OrmStrategy> ormStrategies;
@@ -263,7 +259,6 @@ public class DimsePacsClientService implements PacsClientService {
             }
         });
 
-        BLOCKED_RETURN_TAGS.forEach(queryAttrs::remove);
         queryAttrs.setString(Tag.QueryRetrieveLevel, getVr(Tag.QueryRetrieveLevel, queryAttrs), level.toString());
         return queryAttrs;
     }
