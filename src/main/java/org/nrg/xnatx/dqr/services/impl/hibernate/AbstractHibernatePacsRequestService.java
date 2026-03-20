@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -178,19 +177,6 @@ public abstract class AbstractHibernatePacsRequestService<R extends PacsRequest,
 
     @Override
     public void deleteAllWithRequestIdAndStatus(final String requestId, final List<String> statuses) {
-        final Map<String, Object> properties = new HashMap<>();
-        properties.put("requestId", requestId);
-        properties.put("status", statuses);
-        findAndDeleteAllByProperties(properties);
-    }
-
-    private void findAndDeleteAllByProperties(final Map<String, Object> properties){
-        getDao().findByProperties(properties).forEach(r -> {
-            try {
-                delete(r.getId());
-            } catch (Exception e) {
-                log.error("An unexpected error occurred while attempting to delete pacs request with id {}", r.getId(), e);
-            }
-        });
+        getDao().deleteAllWithRequestIdAndStatus(requestId, statuses);
     }
 }
