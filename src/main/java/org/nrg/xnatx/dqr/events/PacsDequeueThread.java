@@ -13,6 +13,7 @@ import static java.lang.Math.max;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.context.Context;
@@ -82,6 +83,11 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
     public void runTask() {
         try {
             log.debug("Executing PACS dequeue thread function for PACS {}", _pacsId);
+            final UserI admin = _primaryAdminUserProvider.get();
+            if (!_dqrService.ping(admin, _pacsService.retrieve(_pacsId))) {
+                log.debug("PACS {} is not reachable. Exiting dequeue thread.", _pacsId);
+                return;
+            }
             while (true) {
                 final Optional<PacsAvailability> getAvailability = _pacsAvailabilityService.findAvailableNow(_pacsId);
                 if (!getAvailability.isPresent()) {
@@ -98,11 +104,6 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                             break;
                         }
                     }
-                }
-                final UserI admin      = _primaryAdminUserProvider.get();
-                boolean     canConnect = _dqrService.ping(admin, _pacsService.retrieve(_pacsId));
-                if (!canConnect) {
-                    break;
                 }
 
                 boolean failed = false;
@@ -180,7 +181,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                     failed = true;
 
                     pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
-                    pacsRequest.setErrorMessage(e.getMessage());
+                    final Throwable rootCause = ExceptionUtils.getRootCause(e);
+                    pacsRequest.setErrorMessage(rootCause != null ? rootCause.getMessage() : e.getMessage());
                     _executedPacsRequestService.update(pacsRequest);
 
                     // Remove any existing session data from prearchive

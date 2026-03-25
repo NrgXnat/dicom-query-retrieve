@@ -14,9 +14,6 @@ import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
-import org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool.Dcm4cheToolCMoveSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.BasicCStoreSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.dimse.QrClient;
@@ -166,11 +163,14 @@ public class DimsePacsClientService implements PacsClientService {
      */
     @Override
     public void importSeries(final Pacs pacs, final UserI user, final Study study, final Series series, final String ae) throws DqrException {
+        final Map<Integer, String> keys = new HashMap<>();
+        keys.put(Tag.StudyInstanceUID, study.getStudyInstanceUid());
+        keys.put(Tag.SeriesInstanceUID, series.getSeriesInstanceUid());
+
         try {
-            buildCMoveSCU(pacs, ae).cmoveSeries(study, series);
-        } catch (final CMoveTargetNotFoundException exception) {
-            log.warn("C-MOVE target not found somehow: PACS {}", pacs, exception);
-            throw new DqrException(exception);
+            doCMove(buildQuery(keys, QrClient.QueryRetrieveLevel.SERIES), pacs, ae);
+        } catch (final PacsException e) {
+            throw new DqrException(e);
         }
     }
 
@@ -276,10 +276,6 @@ public class DimsePacsClientService implements PacsClientService {
             throw new PacsNotQueryableException(pacs.getId());
         }
         return new Dcm4cheToolCFindSCU(preferences, buildDicomConnectionProperties(pacs), getOrmStrategy(pacs));
-    }
-
-    private CMoveSCU buildCMoveSCU(final Pacs pacs, final String receiverAETitle) {
-        return new Dcm4cheToolCMoveSCU(preferences, buildDicomConnectionProperties(pacs, receiverAETitle), getOrmStrategy(pacs));
     }
 
     private CStoreSCU buildCStoreSCU(final Pacs pacs) {

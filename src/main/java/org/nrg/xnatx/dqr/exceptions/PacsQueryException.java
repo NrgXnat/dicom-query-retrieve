@@ -1,7 +1,7 @@
 package org.nrg.xnatx.dqr.exceptions;
 
 public class PacsQueryException extends PacsException {
-    protected PacsQueryException(String message) {
+    public PacsQueryException(String message) {
         super(message);
     }
 
