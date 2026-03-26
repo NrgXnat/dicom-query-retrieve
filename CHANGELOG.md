@@ -5,6 +5,17 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes
+
+### <a name="2.3.0"></a>DQR Plugin Version: 2.3.0
+
+#### 2.3.0 - General Improvements
+
+* [PLUGINS-287](https://radiologics.atlassian.net/browse/PLUGINS-287) Improve DQR C-MOVE efficiency via swap to dcm4che3 implementation
+* [PLUGINS-280](https://radiologics.atlassian.net/browse/PLUGINS-280) Allow NumberOfStudyRelatedInstances and NumberOfStudyRelatedSeries in C-FIND results when caller-provided tags are returned
+* [PLUGINS-281](https://radiologics.atlassian.net/browse/PLUGINS-281) Optimize queue deletion API call
+
+
 ## <a name="2.2"></a>XNAT DQR Version 2.2 Release Notes
 
 ### <a name="2.2.2"></a>DQR Plugin Version: 2.2.2
