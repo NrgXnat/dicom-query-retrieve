@@ -14,6 +14,8 @@ import javax.persistence.Column;
 import lombok.Builder;
 
 import javax.persistence.Entity;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
@@ -29,11 +31,23 @@ import java.util.List;
         @NamedQuery(name = QueuedPacsRequest.IS_QUEUED_FOR_STUDY_INSTANCE_UID,
                 query = "SELECT (count(q.id) > 0) FROM QueuedPacsRequest q WHERE q.studyInstanceUid = :studyInstanceUid"),
 })
+@NamedNativeQueries({
+        @NamedNativeQuery(name = QueuedPacsRequest.DELETE_SERIES_IDS_WITH_REQUEST_ID_AND_STATUS,
+                query = "DELETE FROM xhbm_queued_pacs_request_series_ids "
+                      + "WHERE queued_pacs_request IN ("
+                      + "  SELECT id FROM xhbm_queued_pacs_request "
+                      + "  WHERE request_id = :requestId AND status IN (:statuses))"),
+        @NamedNativeQuery(name = QueuedPacsRequest.DELETE_ALL_WITH_REQUEST_ID_AND_STATUS,
+                query = "DELETE FROM xhbm_queued_pacs_request "
+                      + "WHERE request_id = :requestId AND status IN (:statuses)"),
+})
 public class QueuedPacsRequest extends PacsRequest {
     private static final long serialVersionUID = 7081993254603730636L;
 
     public static final String IS_QUEUED_FOR_STUDY_INSTANCE_UID_AND_REQUEST_ID = "QueuedPacsRequest.isQueuedForStudyInstanceUidAndRequestId";
-    public static final String IS_QUEUED_FOR_STUDY_INSTANCE_UID = "QueuedPacsRequest.isQueuedForStudyInstanceUid";
+    public static final String IS_QUEUED_FOR_STUDY_INSTANCE_UID                = "QueuedPacsRequest.isQueuedForStudyInstanceUid";
+    public static final String DELETE_SERIES_IDS_WITH_REQUEST_ID_AND_STATUS     = "QueuedPacsRequest.deleteSeriesIdsWithRequestIdAndStatus";
+    public static final String DELETE_ALL_WITH_REQUEST_ID_AND_STATUS            = "QueuedPacsRequest.deleteAllWithRequestIdAndStatus";
 
     public QueuedPacsRequest() {
         super();

@@ -22,7 +22,7 @@ public class CmoveRspHandler extends QrClientRspHandler {
     public void onDimseRSP(final Association as, final Attributes cmd, final Attributes data) {
         super.onDimseRSP(as, cmd, data);
         if (!Status.isPending(cmd.getInt(Tag.Status, -1))) {
-            completed += cmd.getInt(Tag.NumberOfFailedSuboperations, 0);
+            completed += cmd.getInt(Tag.NumberOfCompletedSuboperations, 0);
             warning += cmd.getInt(Tag.NumberOfWarningSuboperations, 0);
             failed += cmd.getInt(Tag.NumberOfFailedSuboperations, 0);
         }
