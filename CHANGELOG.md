@@ -7,6 +7,12 @@ also send image data from XNAT to the PACS.
 
 ## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes
 
+### <a name="2.3.1"></a>DQR Plugin Version: 2.3.1
+
+#### 2.3.1 - Fixes
+
+* [PLUGINS-288](https://radiologics.atlassian.net/browse/PLUGINS-288) Fixed thread-safety issue in `DicomWebHttpClient` where a shared `HttpClientContext` caused sporadic HTTP 401 errors under concurrent DICOMweb access. Each request now uses its own context.
+
 ### <a name="2.3.0"></a>DQR Plugin Version: 2.3.0
 
 #### 2.3.0 - General Improvements
