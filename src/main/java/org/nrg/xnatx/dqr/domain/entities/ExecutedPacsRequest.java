@@ -18,6 +18,8 @@ import java.util.List;
 
 import javax.persistence.Cacheable;
 import javax.persistence.Entity;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Temporal;
@@ -30,10 +32,22 @@ import javax.persistence.TemporalType;
         @NamedQuery(name = ExecutedPacsRequest.GET_BY_STUDY_INSTANCE_UID_AND_REQUEST_ID_ORDERED_BY_MOST_RECENT,
                 query = "SELECT r FROM ExecutedPacsRequest r WHERE r.studyInstanceUid = :studyInstanceUid AND r.requestId = :requestId ORDER BY r.executedTime DESC"),
 })
+@NamedNativeQueries({
+        @NamedNativeQuery(name = ExecutedPacsRequest.DELETE_SERIES_IDS_WITH_REQUEST_ID_AND_STATUS,
+                query = "DELETE FROM xhbm_executed_pacs_request_series_ids "
+                      + "WHERE executed_pacs_request IN ("
+                      + "  SELECT id FROM xhbm_executed_pacs_request "
+                      + "  WHERE request_id = :requestId AND status IN (:statuses))"),
+        @NamedNativeQuery(name = ExecutedPacsRequest.DELETE_ALL_WITH_REQUEST_ID_AND_STATUS,
+                query = "DELETE FROM xhbm_executed_pacs_request "
+                      + "WHERE request_id = :requestId AND status IN (:statuses)"),
+})
 public class ExecutedPacsRequest extends PacsRequest {
     private static final long serialVersionUID = -2942642818163500573L;
 
     public static final String GET_BY_STUDY_INSTANCE_UID_AND_REQUEST_ID_ORDERED_BY_MOST_RECENT = "ExecutedPacsRequest.getByStudyInstanceUidAndRequestIdOrderedByMostRecent";
+    public static final String DELETE_SERIES_IDS_WITH_REQUEST_ID_AND_STATUS                   = "ExecutedPacsRequest.deleteSeriesIdsWithRequestIdAndStatus";
+    public static final String DELETE_ALL_WITH_REQUEST_ID_AND_STATUS                          = "ExecutedPacsRequest.deleteAllWithRequestIdAndStatus";
 
     @Builder
     public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId) {

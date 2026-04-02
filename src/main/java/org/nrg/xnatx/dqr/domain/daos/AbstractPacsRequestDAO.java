@@ -87,6 +87,17 @@ public abstract class AbstractPacsRequestDAO<E extends PacsRequest> extends Abst
                                     .sortBy(Pair.of(PaginatedRequest.SortDir.ASC, getTimeSortProperty())).build());
     }
 
+    public int deleteAllWithRequestIdAndStatus(final String requestId, final List<String> statuses) {
+        getSession().getNamedNativeQuery(getParameterizedType().getSimpleName() + ".deleteSeriesIdsWithRequestIdAndStatus")
+                .setParameter("requestId", requestId)
+                .setParameterList("statuses", statuses)
+                .executeUpdate();
+        return getSession().getNamedNativeQuery(getParameterizedType().getSimpleName() + ".deleteAllWithRequestIdAndStatus")
+                .setParameter("requestId", requestId)
+                .setParameterList("statuses", statuses)
+                .executeUpdate();
+    }
+
     private static PaginatedPacsRequest getUnpaginatedRequest() {
         return PaginatedPacsRequest.builder().pageNumber(0).pageSize(0).build();
     }

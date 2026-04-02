@@ -17,6 +17,8 @@ import org.dcm4che3.net.pdu.PresentationContext;
 import org.dcm4che3.net.pdu.RoleSelection;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
+import org.nrg.xnatx.dqr.exceptions.PacsException;
+import org.nrg.xnatx.dqr.exceptions.PacsQueryException;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -159,7 +161,7 @@ public class QrClient implements AutoCloseable {
      *
      * @param attributes - The attributes identifying the object we are wanting to move
      */
-    public void move(final Attributes attributes) {
+    public void move(final Attributes attributes) throws PacsException {
         if (null == destination) {
             throw new IllegalArgumentException("Unable to perform c-move. Destination is null");
         }
@@ -169,17 +171,15 @@ public class QrClient implements AutoCloseable {
             association.cmove(UID.StudyRootQueryRetrieveInformationModelMove, 0, attributes, null, destination, rspHandler);
             association.waitForOutstandingRSP();
             if (!rspHandler.isResponseReceived()) {
-                log.error("Issued C-Move request but didn't receive a response from the remote host");
-                return;
+                throw new PacsConnectionException("PACS did not respond to C-MOVE request");
             }
             if (!rspHandler.isSuccess()) {
-                log.error("C-Move Failed with status code(s) {} -- Failed: {}, Warning: {}, Completed: {}",
-                        rspHandler.getFailureCodes(), rspHandler.getFailed(), rspHandler.getWarning(), rspHandler.getCompleted());
-                return;
+                throw new PacsQueryException("PACS returned error status for C-MOVE: status code(s) " + rspHandler.getFailureCodes()
+                        + ", failed: " + rspHandler.getFailed() + ", completed: " + rspHandler.getCompleted());
             }
             log.debug("C-Move -- Completed: {}", rspHandler.getCompleted());
         } catch (IOException e) {
-            log.error("C-Move failed", e);
+            throw new PacsConnectionException("Lost connection to PACS during C-MOVE", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new NrgServiceRuntimeException("Interrupted while performing C-Move", e);

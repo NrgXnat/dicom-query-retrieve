@@ -8,7 +8,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
@@ -88,9 +87,14 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     private final CloseableHttpClient httpClient;
     private final PoolingHttpClientConnectionManager connectionManager;
-    private final HttpClientContext context;
     private final String rootUrl;
     private final URL rootUrlObj;
+
+    // Auth config stored as immutable fields; used to build a fresh HttpClientContext per request
+    private final HttpHost httpHost;
+    private final String authUsername;
+    private final String authPassword;
+    private final boolean preemptiveAuth;
 
     public DicomWebHttpClient(final String rootUrl, @Nullable final DicomWebCredential credentials) {
         this.rootUrl = StringUtils.appendIfMissing(rootUrl, "/");
@@ -108,7 +112,6 @@ public class DicomWebHttpClient implements AutoCloseable {
                 .setConnectionManager(connectionManager)
                 .setDefaultRequestConfig(requestConfig)
                 .build();
-        context = HttpClientContext.create();
 
         try {
             rootUrlObj = new URL(rootUrl);
@@ -116,26 +119,44 @@ public class DicomWebHttpClient implements AutoCloseable {
             throw new NrgServiceRuntimeException("Malformed dicom-web url: " + rootUrl, e);
         }
 
-        final HttpHost httpHost = new HttpHost(rootUrlObj.getHost(), rootUrlObj.getPort());
+        httpHost = new HttpHost(rootUrlObj.getHost(), rootUrlObj.getPort());
 
         if (null != credentials) {
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            final AuthCache authCache = new BasicAuthCache();
-            final AuthScope authScope = new AuthScope(httpHost);
-            final Credentials basicCredentials
-                    = new UsernamePasswordCredentials(credentials.getUsername(), credentials.getPassword());
-
             log.debug("Using dicom-web authentication credentials for user: {}", credentials.getUsername());
-            credentialsProvider.setCredentials(authScope, basicCredentials);
-            if (credentials.isPreemptiveAuth()) {
+            authUsername = credentials.getUsername();
+            authPassword = credentials.getPassword();
+            preemptiveAuth = credentials.isPreemptiveAuth();
+            if (preemptiveAuth) {
                 log.debug("Using preemptive authentication for dicom-web endpoint: {}:{}",
                         httpHost.getHostName(), httpHost.getPort());
-                authCache.put(httpHost, new BasicScheme());
             }
-
-            context.setCredentialsProvider(credentialsProvider);
-            context.setAuthCache(authCache);
+        } else {
+            authUsername = null;
+            authPassword = null;
+            preemptiveAuth = false;
         }
+    }
+
+    /**
+     * Creates a fresh {@link HttpClientContext} for each request to avoid thread-safety issues.
+     * {@code HttpClientContext} holds mutable auth state that is updated during request execution,
+     * so sharing one across threads causes sporadic 401 errors under concurrent load.
+     */
+    private HttpClientContext createContext() {
+        final HttpClientContext context = HttpClientContext.create();
+        if (authUsername != null) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(new AuthScope(httpHost),
+                    new UsernamePasswordCredentials(authUsername, authPassword));
+            context.setCredentialsProvider(credentialsProvider);
+
+            if (preemptiveAuth) {
+                final AuthCache authCache = new BasicAuthCache();
+                authCache.put(httpHost, new BasicScheme());
+                context.setAuthCache(authCache);
+            }
+        }
+        return context;
     }
 
     public void getAttributes(final List<String> pathSegments, final Map<Integer, String> searchKeys, final Consumer<Attributes> callback) throws PacsException {
@@ -190,7 +211,7 @@ public class DicomWebHttpClient implements AutoCloseable {
         final HttpUriRequest request = new HttpGet(requestUrl);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
 
-        try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
+        try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
             final HttpStatus status = HttpStatus.valueOf(response.getStatusLine().getStatusCode());
             return DicomWebPingResult.builder()
                     .successful(status.is2xxSuccessful())
@@ -210,7 +231,7 @@ public class DicomWebHttpClient implements AutoCloseable {
         final HttpUriRequest request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
         log.debug("Executing doGet request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
-        try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
+        try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
 
             final Optional<HttpEntity> entity = getResponseEntity(uri, response);
             if (!entity.isPresent()) {
@@ -245,7 +266,7 @@ public class DicomWebHttpClient implements AutoCloseable {
         final HttpUriRequest request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, MULTIPART_DICOM);
         log.debug("Executing request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
-        try (final CloseableHttpResponse response = httpClient.execute(request, context)) {
+        try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
 
             final Optional<HttpEntity> entity = getResponseEntity(uri, response);
             if (!entity.isPresent()) {
