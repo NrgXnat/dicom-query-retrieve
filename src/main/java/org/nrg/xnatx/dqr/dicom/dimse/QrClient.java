@@ -38,6 +38,7 @@ public class QrClient implements AutoCloseable {
     private static final int DIMSE_RSP_TIMEOUT = 60000;
     private static final int ACCEPT_TIMEOUT = 60000;
     private static final int RETRIEVE_RSP_TIMEOUT = 60000;
+    private static final int CONNECT_TIMEOUT = 30000;
 
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
@@ -75,6 +76,7 @@ public class QrClient implements AutoCloseable {
         local.setResponseTimeout(DIMSE_RSP_TIMEOUT);
         local.setRetrieveTimeout(RETRIEVE_RSP_TIMEOUT);
         local.setAcceptTimeout(ACCEPT_TIMEOUT);
+        local.setConnectTimeout(CONNECT_TIMEOUT);
 
         final Connection remote = new Connection();
         remote.setHostname(remoteHost);
@@ -98,10 +100,16 @@ public class QrClient implements AutoCloseable {
             association = applicationEntity.connect(local, remote, request);
             log.debug("QRClient association opened");
         } catch (IncompatibleConnectionException | GeneralSecurityException | IOException e) {
+            close();
             throw new PacsConnectionException("Failed to open connection to remote AE ", e);
         } catch (InterruptedException e) {
+            close();
             Thread.currentThread().interrupt();
             throw new NrgServiceRuntimeException("Interrupted while attempting to open connection", e);
+        } catch (Exception e) {
+            log.error("Unexpected error while opening connection to remote AE", e);
+            close();
+            throw e;
         }
     }
 
