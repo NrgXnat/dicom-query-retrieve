@@ -5,6 +5,19 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="3.0"></a>XNAT DQR Version 3.0 Release Notes
+
+### <a name="3.0.0"></a>DQR Plugin Version: 3.0.0
+
+Version 3.0.0 of the DQR Plugin requires XNAT 1.10.0 or newer and is compiled on JDK21. 
+
+#### 3.0.0 - Improvements
+
+* [PLUGINS-289](https://radiologics.atlassian.net/browse/PLUGINS-289) Update and validate core functions to use dcm4che5 
+* [PLUGINS-291](https://radiologics.atlassian.net/browse/PLUGINS-291) Prevent thread leak from QrClient 
+* [XNAT-8256](https://radiologics.atlassian.net/browse/XNAT-8256) Update build architecture to use JDK21
+
+
 ## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes
 
 ### <a name="2.3.1"></a>DQR Plugin Version: 2.3.1
