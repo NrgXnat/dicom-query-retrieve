@@ -20,6 +20,12 @@ Version 3.0.0 of the DQR Plugin requires XNAT 1.10.0 or newer and is compiled on
 
 ## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes
 
+### <a name="2.3.2"></a>DQR Plugin Version: 2.3.2
+
+#### 2.3.2 - Bug Fixes
+
+* [PLUGINS-291](https://radiologics.atlassian.net/browse/PLUGINS-291) Fixed a thread leak in QrClient when connection failures were not properly cleaning up resources
+
 ### <a name="2.3.1"></a>DQR Plugin Version: 2.3.1
 
 #### 2.3.1 - Fixes
