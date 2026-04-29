@@ -12,7 +12,7 @@ package org.nrg.xnatx.dqr;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import lombok.extern.slf4j.Slf4j;
-import org.dcm4che2.data.Tag;
+import org.dcm4che3.data.Tag;
 import org.nrg.dcm.TextExtractor;
 import org.nrg.dcm.id.ClassicDicomObjectIdentifier;
 import org.nrg.dcm.id.CompositeDicomObjectIdentifier;

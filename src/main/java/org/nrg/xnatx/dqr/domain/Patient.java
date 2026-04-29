@@ -16,10 +16,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.Singular;
 import org.apache.commons.lang3.StringUtils;
-import org.dcm4che2.data.DicomObject;
-import org.dcm4che2.data.Tag;
 import org.dcm4che3.data.Attributes;
-import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
+import org.dcm4che3.data.Tag;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
 import java.io.Serializable;
@@ -36,33 +34,20 @@ import java.util.function.Function;
 public class Patient implements DqrDomainObject, Serializable {
     private static final long serialVersionUID = -3085053888171875651L;
 
-    public Patient(final DicomObject dicomObject, final OrmStrategy ormStrategy) {
-        id = StringUtils.trim(dicomObject.getString(Tag.PatientID));
-        name = ormStrategy.getPatientNameStrategy().dicomPatientNameToDqrPatientName(StringUtils.trim(dicomObject.getString(Tag.PatientName)));
-        sex = StringUtils.trim(dicomObject.getString(Tag.PatientSex));
-        if (!StringUtils.isBlank(dicomObject.getString(Tag.PatientBirthDate))) {
-            birthDate = dicomObject.getDate(Tag.PatientBirthDate);
-        }
-    }
-
     /**
      * Create a Patient from the given DICOM attributes.
-     * <p>
-     * Replicates logic from
-     * {@link org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUPatientLevel#mapDicomObjectToDomainObject(DicomObject)}
-     * and {@link Patient#Patient(DicomObject, OrmStrategy)}
      *
      * @param attributes the DICOM attributes
      * @param patientNamer the function to create a DqrPersonName from the PatientName string
-     * @return the Series
+     * @return the Patient
      */
     public static Patient from(final Attributes attributes, final Function<String, DqrPersonName> patientNamer) {
         final Patient.PatientBuilder builder = Patient.builder()
-                .id(StringUtils.trim(attributes.getString(org.dcm4che3.data.Tag.PatientID)))
-                .name(patientNamer.apply(StringUtils.trim(attributes.getString(org.dcm4che3.data.Tag.PatientName))))
-                .sex(StringUtils.trim(attributes.getString(org.dcm4che3.data.Tag.PatientSex)));
-        if (!StringUtils.isBlank(attributes.getString(org.dcm4che3.data.Tag.PatientBirthDate))) {
-            builder.birthDate(attributes.getDate(org.dcm4che3.data.Tag.PatientBirthDate));
+                .id(StringUtils.trim(attributes.getString(Tag.PatientID)))
+                .name(patientNamer.apply(StringUtils.trim(attributes.getString(Tag.PatientName))))
+                .sex(StringUtils.trim(attributes.getString(Tag.PatientSex)));
+        if (!StringUtils.isBlank(attributes.getString(Tag.PatientBirthDate))) {
+            builder.birthDate(attributes.getDate(Tag.PatientBirthDate));
         }
         return builder.build();
     }

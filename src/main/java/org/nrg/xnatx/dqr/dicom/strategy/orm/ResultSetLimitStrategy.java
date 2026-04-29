@@ -9,7 +9,7 @@
 
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
-import org.dcm4che2.tool.dcmqr.DcmQR.QueryRetrieveLevel;
+import org.nrg.xnatx.dqr.dicom.command.dcm4che3.QueryRetrieveLevel;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 import org.nrg.xnatx.dqr.dto.StudyDateRangeLimitResults;
 

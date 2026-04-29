@@ -1,6 +1,6 @@
 package org.nrg.xnatx.dqr.dicom.json.event;
 
-import javax.json.stream.JsonLocation;
+import jakarta.json.stream.JsonLocation;
 import java.math.BigDecimal;
 
 /**

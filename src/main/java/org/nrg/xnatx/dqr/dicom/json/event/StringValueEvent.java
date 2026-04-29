@@ -1,7 +1,7 @@
 package org.nrg.xnatx.dqr.dicom.json.event;
 
-import javax.json.stream.JsonLocation;
-import javax.json.stream.JsonParser.Event;
+import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParser.Event;
 
 /**
  * KEY_NAME and VALUE_STRING carry a String value.

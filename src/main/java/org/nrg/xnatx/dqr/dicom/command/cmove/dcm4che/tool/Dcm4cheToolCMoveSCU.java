@@ -10,7 +10,7 @@
 package org.nrg.xnatx.dqr.dicom.command.cmove.dcm4che.tool;
 
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
-import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
+import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che3.Dcm4che3CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -22,7 +22,7 @@ import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 public class Dcm4cheToolCMoveSCU implements CMoveSCU {
     public Dcm4cheToolCMoveSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
         _dicomConnectionProperties = dicomConnectionProperties;
-        _cEchoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
+        _cEchoSCU = new Dcm4che3CEchoSCU(preferences, dicomConnectionProperties);
         _ormStrategy = ormStrategy;
         _preferences = preferences;
     }

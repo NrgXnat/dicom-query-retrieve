@@ -42,8 +42,8 @@ import org.nrg.xnatx.dqr.utils.RetryablePacsOperation;
 import org.springframework.http.HttpStatus;
 
 import javax.annotation.Nullable;
-import javax.json.Json;
-import javax.json.stream.JsonParser;
+import jakarta.json.Json;
+import jakarta.json.stream.JsonParser;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;

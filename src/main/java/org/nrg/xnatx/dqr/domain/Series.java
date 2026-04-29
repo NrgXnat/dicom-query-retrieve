@@ -34,9 +34,6 @@ public class Series implements DqrDomainObject, Serializable {
 
     /**
      * Create a Series from the given DICOM attributes.
-     * <p>
-     * Replicates logic from
-     * {@link org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUSeriesLevel#mapDicomObjectToDomainObject(org.dcm4che2.data.DicomObject)}
      *
      * @param attributes the DICOM attributes
      * @return the Series

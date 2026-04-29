@@ -1,29 +1,14 @@
 package org.nrg.xnatx.dqr.utils;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.dcm4che2.data.DicomObject;
-import org.dcm4che2.io.DicomInputStream;
-import org.dcm4che2.io.StopTagInputHandler;
-import org.dcm4che3.data.Attributes;
-import org.dcm4che3.data.ElementDictionary;
 import org.dcm4che3.data.Tag;
-import org.dcm4che3.data.UID;
-import org.dcm4che3.io.DicomOutputStream;
-import org.nrg.dicom.mizer.objects.DicomObjectFactory;
-import org.nrg.dicom.mizer.objects.DicomObjectI;
 import org.nrg.framework.utilities.BasicXnatResourceLocator;
-import org.nrg.xnatx.dqr.exceptions.Dcm4cheConversionException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,72 +23,12 @@ import java.util.stream.Stream;
 // TODO: This class should be moved into the dicomtools library as org.nrg.dicomtools.utilities.Dcm4cheUtils
 @Slf4j
 public class Dcm4cheUtils {
-    private static final String              DEFAULT_TRANSFER_SYNTAX     = UID.ExplicitVRLittleEndian;
-    private static final StopTagInputHandler STOP_AT_PIXEL_DATA_HANDLER  = new StopTagInputHandler(Tag.PixelData);
     private static final Pattern             TAG_PATTERN                 = Pattern.compile("^(0x|\\()(?<group>[A-F0-9]{4}),?\\s*(?<element>[A-F0-9]{4})\\)?$", Pattern.CASE_INSENSITIVE);
     private static final Pattern             HEX_PATTERN                 = Pattern.compile("^[A-Fa-f0-9]{5,8}$", Pattern.CASE_INSENSITIVE);
     public static final  Map<Number, String> DCM4CHE_DICOM_NAMES_BY_TAG  = loadDcm4cheTags();
     public static final  Map<Number, String> EXTENDED_DICOM_NAMES_BY_TAG = loadDicomExtensions();
     private static final Map<Number, String> DICOM_NAMES_BY_TAG          = Stream.concat(DCM4CHE_DICOM_NAMES_BY_TAG.entrySet().stream(), EXTENDED_DICOM_NAMES_BY_TAG.entrySet().stream()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (k1, k2) -> k2));
     private static final Map<String, Number> DICOM_TAGS_BY_NAME          = DICOM_NAMES_BY_TAG.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
-
-    /**
-     * Method will convert an org.dcm4che3.data.Attributes object into an org.dcm4che2.data.DicomObject.
-     * This method will not include any pixel data in the converted object
-     *
-     * @param attributes - The org.dcm4che3.data.Attributes object to convert
-     *
-     * @return - The converted org.dcm4che2.data.DicomObject object
-     *
-     * @throws Dcm4cheConversionException - If an error occurred while attempting to convert the object.
-     */
-    public static DicomObject AttributesToDicomObject(final Attributes attributes) throws Dcm4cheConversionException {
-        // Attributes.createFileMetaInformation() throws IllegalArgumentException if transfer syntax, SOP class UID, or
-        // SOP instance UID are blank. We're providing transfer syntax here, but make sure SOP class and instance UID
-        // are included as well. Track if they were missing so we can delete them before returning.
-        final boolean missingSopClassUid    = !attributes.contains(Tag.SOPClassUID);
-        final boolean missingSopInstanceUid = !attributes.contains(Tag.SOPInstanceUID);
-        if (missingSopClassUid) {
-            attributes.setString(Tag.SOPClassUID, ElementDictionary.vrOf(Tag.SOPClassUID, null), UID.StudyRootQueryRetrieveInformationModelFind);
-        }
-        if (missingSopInstanceUid) {
-            attributes.setString(Tag.SOPInstanceUID, ElementDictionary.vrOf(Tag.SOPInstanceUID, null), UID.StudyRootQueryRetrieveInformationModelFind);
-        }
-
-        final String  transferSyntax        = attributes.getString(Tag.TransferSyntaxUID, DEFAULT_TRANSFER_SYNTAX);
-        final Attributes fileMetaInformation = attributes.createFileMetaInformation(transferSyntax);
-
-        try (final PipedInputStream pipedInputStream = new PipedInputStream();
-             final PipedOutputStream pipedOutputStream = new PipedOutputStream(pipedInputStream)) {
-            new Thread(() -> {
-                try (final DicomOutputStream dcm4che3DicomOutputStream = new DicomOutputStream(pipedOutputStream, transferSyntax)) {
-                    dcm4che3DicomOutputStream.writeDataset(fileMetaInformation, attributes);
-                } catch (Exception e) {
-                    log.error("Failed to convert dcm4che3.data.Attributes to dcm4che2.data.DicomObject for dicom instance: {'StudyInstanceUID':'{}', 'SeriesInstanceUID':'{}', 'SOPInstanceUID':'{}'}",
-                            attributes.getString(Tag.StudyInstanceUID), attributes.getString(Tag.SeriesInstanceUID),
-                            attributes.getString(Tag.SOPInstanceUID), e);
-                }
-            }).start();
-
-            try (final DicomInputStream dcm4che2DicomInputStream = new DicomInputStream(pipedInputStream)) {
-                dcm4che2DicomInputStream.setHandler(STOP_AT_PIXEL_DATA_HANDLER);
-                final DicomObject dicomObject = dcm4che2DicomInputStream.readDicomObject();
-                if (missingSopClassUid) {
-                    dicomObject.remove(Tag.SOPClassUID);
-                }
-                if (missingSopInstanceUid) {
-                    dicomObject.remove(Tag.SOPInstanceUID);
-                }
-                return dicomObject;
-            }
-        } catch (IOException e) {
-            throw new Dcm4cheConversionException("Unable to convert dcm4che Attributes to Object", e);
-        }
-    }
-
-    public static DicomObjectI AttributesToMizerDicomObject(final Attributes attributes) throws Dcm4cheConversionException {
-        return DicomObjectFactory.newInstance(AttributesToDicomObject(attributes));
-    }
 
     /**
      * This method returns a map of tag names and tags, filtering out any entries that have extended tags that have long

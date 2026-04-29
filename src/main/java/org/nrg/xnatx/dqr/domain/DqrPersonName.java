@@ -14,7 +14,9 @@ import lombok.Builder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.dcm4che2.data.PersonName;
+import org.dcm4che3.data.PersonName;
+import org.dcm4che3.data.PersonName.Component;
+import org.dcm4che3.data.PersonName.Group;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -40,24 +42,33 @@ public class DqrPersonName implements Serializable {
      */
     public DqrPersonName(final String commaDelimitedName) {
         final String[] patientNameParts = StringUtils.trimToEmpty(commaDelimitedName).split("\\s*,\\s*");
-        personName = new PersonName();
-        personName.set(PersonName.FAMILY, StringUtils.trimToNull((patientNameParts.length >= 1 ? patientNameParts[0] : null)));
-        personName.set(PersonName.GIVEN, StringUtils.trimToNull((patientNameParts.length >= 2 ? patientNameParts[1] : null)));
+        String lastName = StringUtils.trimToNull((patientNameParts.length >= 1 ? patientNameParts[0] : null));
+        String firstName = StringUtils.trimToNull((patientNameParts.length >= 2 ? patientNameParts[1] : null));
+        personName = buildPersonName(firstName, lastName, null, null, null);
     }
 
     public DqrPersonName(final PersonName personName) {
         this.personName = personName;
     }
 
-    public DqrPersonName(final org.dcm4che3.data.PersonName personName) {
-        // Convert dcm4che3+ PersonName to dcm4che2 PersonName
-        this.personName = new PersonName(personName.toString());
-    }
-
     @Builder
     public DqrPersonName(final String firstName, final String lastName, final String middleName, final String prefix, final String suffix) {
-        personName = new PersonName();
-        setPersonNameFields(firstName, lastName, middleName, prefix, suffix);
+        personName = buildPersonName(firstName, lastName, middleName, prefix, suffix);
+    }
+
+    private static PersonName buildPersonName(String firstName, String lastName, String middleName, String prefix, String suffix) {
+        // Build DICOM PN format: FamilyName^GivenName^MiddleName^Prefix^Suffix
+        StringBuilder sb = new StringBuilder();
+        sb.append(StringUtils.defaultString(lastName));
+        sb.append("^");
+        sb.append(StringUtils.defaultString(firstName));
+        sb.append("^");
+        sb.append(StringUtils.defaultString(middleName));
+        sb.append("^");
+        sb.append(StringUtils.defaultString(prefix));
+        sb.append("^");
+        sb.append(StringUtils.defaultString(suffix));
+        return new PersonName(sb.toString(), true);
     }
 
     public boolean isBlank() {
@@ -73,37 +84,28 @@ public class DqrPersonName implements Serializable {
     }
 
     public String getFirstName() {
-        return personName.get(PersonName.GIVEN);
+        return personName.get(Group.Alphabetic, Component.GivenName);
     }
 
     public String getLastName() {
-        return personName.get(PersonName.FAMILY);
+        return personName.get(Group.Alphabetic, Component.FamilyName);
     }
 
     public String getMiddleName() {
-        return personName.get(PersonName.MIDDLE);
+        return personName.get(Group.Alphabetic, Component.MiddleName);
     }
 
     public String getPrefix() {
-        return personName.get(PersonName.PREFIX);
+        return personName.get(Group.Alphabetic, Component.NamePrefix);
     }
 
     public String getSuffix() {
-        return personName.get(PersonName.SUFFIX);
+        return personName.get(Group.Alphabetic, Component.NameSuffix);
     }
 
     @JsonIgnore
     public String getLastNameCommaFirstName() {
         return StringUtils.isBlank(getFirstName()) ? getLastName() : StringUtils.joinWith(", ", getLastName(), getFirstName());
-    }
-
-    private void setPersonNameFields(final String firstName, final String lastName, final String middleName,
-                                     final String prefix, final String suffix) {
-        personName.set(PersonName.FAMILY, lastName);
-        personName.set(PersonName.GIVEN, firstName);
-        personName.set(PersonName.MIDDLE, middleName);
-        personName.set(PersonName.PREFIX, prefix);
-        personName.set(PersonName.SUFFIX, suffix);
     }
 
     /**
@@ -120,12 +122,12 @@ public class DqrPersonName implements Serializable {
 
     private void readObject(final ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
         inputStream.defaultReadObject();
-        personName = new PersonName();
-        setPersonNameFields((String) inputStream.readObject(),
-                            (String) inputStream.readObject(),
-                            (String) inputStream.readObject(),
-                            (String) inputStream.readObject(),
-                            (String) inputStream.readObject());
+        personName = buildPersonName(
+                (String) inputStream.readObject(),
+                (String) inputStream.readObject(),
+                (String) inputStream.readObject(),
+                (String) inputStream.readObject(),
+                (String) inputStream.readObject());
     }
 
     @Override

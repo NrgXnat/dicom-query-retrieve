@@ -47,13 +47,10 @@ public class Study implements DqrDomainObject, Serializable {
 
     /**
      * Create a Study from the given DICOM attributes.
-     * <p>
-     * Replicates logic from
-     * {@link org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.CFindSCUStudyLevel#mapDicomObjectToDomainObject(org.dcm4che2.data.DicomObject)}
      *
      * @param attributes the DICOM attributes
      * @param patientNamer the function to use to create a DqrPersonName from a DICOM person name
-     * @return the Series
+     * @return the Study
      */
     public static Study from(final Attributes attributes, final Function<String, DqrPersonName> patientNamer) {
         final StudyBuilder builder = Study.builder()

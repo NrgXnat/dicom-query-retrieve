@@ -18,4 +18,8 @@ public class CMoveFailureException extends DqrRuntimeException {
     public CMoveFailureException(String arg0) {
         super(arg0);
     }
+
+    public CMoveFailureException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
