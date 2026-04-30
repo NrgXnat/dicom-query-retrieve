@@ -10,7 +10,7 @@
 package org.nrg.xnatx.dqr.dicom.strategy.orm;
 
 import org.apache.commons.lang3.StringUtils;
-import org.dcm4che2.data.PersonName;
+import org.dcm4che3.data.PersonName;
 import org.nrg.xnatx.dqr.domain.DqrPersonName;
 import org.nrg.xnatx.dqr.dto.PacsSearchCriteria;
 

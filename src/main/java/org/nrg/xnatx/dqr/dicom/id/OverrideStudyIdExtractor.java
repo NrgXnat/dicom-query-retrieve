@@ -11,8 +11,8 @@ package org.nrg.xnatx.dqr.dicom.id;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.dcm4che2.data.DicomObject;
-import org.dcm4che2.data.Tag;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
 import org.nrg.dcm.Extractor;
 import org.nrg.xnat.helpers.merge.anonymize.DefaultAnonUtils;
 import org.nrg.xnatx.dqr.domain.entities.StudyIdStudyInstanceUidMapping;
@@ -30,7 +30,8 @@ public class OverrideStudyIdExtractor implements Extractor {
         _preferences = preferences;
     }
 
-    public String extract(final DicomObject dicomObject) {
+    @Override
+    public String extract(final Attributes dicomObject) {
         final String           studyId          = StringUtils.defaultIfBlank(dicomObject.getString(Tag.StudyID), dicomObject.getString(Tag.AccessionNumber));
         final String           studyInstanceUID = dicomObject.getString(Tag.StudyInstanceUID);
         final Optional<String> script           = getStudyScript(studyInstanceUID);

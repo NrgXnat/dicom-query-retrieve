@@ -8,8 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.dcm4che3.data.UID;
 import org.dcm4che3.data.VR;
 
-import javax.json.stream.JsonLocation;
-import javax.json.stream.JsonParser;
+import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParser;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

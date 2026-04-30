@@ -13,8 +13,8 @@ import java.util.Date;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.dcm4che2.data.DicomObject;
-import org.dcm4che2.data.Tag;
+import org.dcm4che3.data.Tag;
+import org.nrg.dicom.mizer.objects.DicomObjectI;
 import org.nrg.dicom.mizer.service.MizerService;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.prearchive.SessionData;
@@ -34,7 +34,7 @@ public class UpdateRequestStatusArchiveProcessor extends AbstractArchiveProcesso
     }
 
     @Override
-    public boolean process(final DicomObject dicomData, final SessionData sessionData, final MizerService mizer, final ArchiveProcessorInstance instance, final Map<String, Object> aeParameters) {
+    public boolean process(final DicomObjectI dicomData, final SessionData sessionData, final MizerService mizer, final ArchiveProcessorInstance instance, final Map<String, Object> aeParameters) {
         try {
             final ExecutedPacsRequest mostRecentRequest = _service.getMostRecentForStudyInstanceUid(dicomData.getString(Tag.StudyInstanceUID));
             if (mostRecentRequest != null) {

@@ -1,8 +1,8 @@
 package org.nrg.xnatx.dqr.dicom.json.event;
 
-import javax.json.JsonException;
-import javax.json.stream.JsonLocation;
-import javax.json.stream.JsonParser;
+import jakarta.json.JsonException;
+import jakarta.json.stream.JsonLocation;
+import jakarta.json.stream.JsonParser;
 import java.math.BigDecimal;
 
 /**

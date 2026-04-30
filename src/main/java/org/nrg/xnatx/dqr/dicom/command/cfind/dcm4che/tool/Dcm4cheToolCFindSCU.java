@@ -11,7 +11,7 @@ package org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool;
 
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
-import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che.tool.Dcm4cheToolCEchoSCU;
+import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che3.Dcm4che3CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -28,7 +28,7 @@ public class Dcm4cheToolCFindSCU implements CFindSCU {
     public Dcm4cheToolCFindSCU(final DqrPreferences preferences, final DicomConnectionProperties dicomConnectionProperties, final OrmStrategy ormStrategy) {
         _preferences = preferences;
         _dicomConnectionProperties = dicomConnectionProperties;
-        _cechoSCU = new Dcm4cheToolCEchoSCU(preferences, dicomConnectionProperties);
+        _cechoSCU = new Dcm4che3CEchoSCU(preferences, dicomConnectionProperties);
         _ormStrategy = ormStrategy;
     }
 

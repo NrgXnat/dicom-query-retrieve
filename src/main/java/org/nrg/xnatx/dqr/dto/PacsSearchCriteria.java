@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
-import org.dcm4che2.data.Tag;
+import org.dcm4che3.data.Tag;
 import org.nrg.xnatx.dqr.dicom.converters.PacsSearchCriteriaDeserializer;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 

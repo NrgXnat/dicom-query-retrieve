@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
-import javax.json.Json;
-import javax.json.stream.JsonParser;
+import jakarta.json.Json;
+import jakarta.json.stream.JsonParser;
 
 import java.io.FileInputStream;
 import java.io.IOException;
