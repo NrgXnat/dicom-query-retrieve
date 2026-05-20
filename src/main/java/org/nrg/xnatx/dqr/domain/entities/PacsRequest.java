@@ -40,6 +40,10 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     }
 
     public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId) {
+        this(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName, errorMessage, requestId, null, null);
+    }
+
+    public PacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId, final String subjectLabel, final String experimentLabel) {
         _username           = username;
         _pacsId             = pacsId;
         _xnatProject        = xnatProject;
@@ -57,6 +61,8 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _patientName        = patientName;
         _errorMessage       = errorMessage;
         _requestId          = requestId;
+        _subjectLabel       = subjectLabel;
+        _experimentLabel    = experimentLabel;
     }
 
     @Transient
@@ -210,6 +216,22 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _requestId = requestId;
     }
 
+    public String getSubjectLabel() {
+        return _subjectLabel;
+    }
+
+    public void setSubjectLabel(final String subjectLabel) {
+        _subjectLabel = subjectLabel;
+    }
+
+    public String getExperimentLabel() {
+        return _experimentLabel;
+    }
+
+    public void setExperimentLabel(final String experimentLabel) {
+        _experimentLabel = experimentLabel;
+    }
+
     @Override
     public String toString() {
         return "{ username: " + getUsername() + ", "
@@ -228,7 +250,9 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
                + "patientId: " + getPatientId() + ", "
                + "patientName: " + getPatientName() + ", "
                + "errorMessage: " + getErrorMessage() + ", "
-               + "requestId: " + getRequestId() + "}";
+               + "requestId: " + getRequestId() + ", "
+               + "subjectLabel: " + getSubjectLabel() + ", "
+               + "experimentLabel: " + getExperimentLabel() + "}";
     }
 
     private String       _username;
@@ -248,4 +272,6 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     private String       _patientName;
     private String       _errorMessage;
     private String       _requestId;
+    private String       _subjectLabel;
+    private String       _experimentLabel;
 }
