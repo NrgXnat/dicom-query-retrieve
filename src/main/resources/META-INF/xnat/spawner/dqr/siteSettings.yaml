@@ -108,6 +108,22 @@ dqrOtherPreferencePanel:
             placeholder: 300
             description: Number of seconds to wait before retrying a failed attempt to retrieve data from a PACS.
             validation: number
+        dicomWebMetadataReadTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dicomWebMetadataReadTimeoutSeconds
+            label: DICOMweb Metadata Read Timeout (seconds)
+            placeholder: 20
+            description: Socket read timeout for DICOMweb metadata calls (QIDO-RS searches, instance metadata fetches, and PACS ping checks).
+            validation: number
+        dicomWebRetrieveReadTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dicomWebRetrieveReadTimeoutSeconds
+            label: DICOMweb Retrieve Read Timeout (seconds)
+            placeholder: 20
+            description: Socket read timeout for DICOMweb binary retrieval (WADO-RS). Raise on PACS implementations where the server-side response-assembly delay before the first byte exceeds the default.
+            validation: number
         allowAllUsersToUseDqr:
             kind: panel.input.switchbox
             name: allowAllUsersToUseDqr

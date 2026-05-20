@@ -7,6 +7,7 @@ import org.nrg.xnatx.dqr.dto.DicomWebCredential;
 import org.nrg.xnatx.dqr.dto.DicomWebPingRequest;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
 import org.nrg.xnatx.dqr.exceptions.InvalidDicomWebPingRequestException;
+import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsDicomWebService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +21,13 @@ import java.util.Optional;
 @Slf4j
 public class BasicPacsDicomWebService implements PacsDicomWebService {
     private final DicomWebCredentialService dicomWebCredentialService;
+    private final DqrPreferences dqrPreferences;
 
     @Autowired
-    public BasicPacsDicomWebService(final DicomWebCredentialService dicomWebCredentialService) {
+    public BasicPacsDicomWebService(final DicomWebCredentialService dicomWebCredentialService,
+                                    final DqrPreferences dqrPreferences) {
         this.dicomWebCredentialService = dicomWebCredentialService;
+        this.dqrPreferences = dqrPreferences;
     }
 
     @Override
@@ -42,7 +46,7 @@ public class BasicPacsDicomWebService implements PacsDicomWebService {
 
         final Optional<DicomWebCredential> credentialOptional = dicomWebCredentialService.getCredential(pingRequest.getAeTitle());
         try (final DicomWebHttpClient httpClient
-                     = new DicomWebHttpClient(pingRequest.getRootUrl(), credentialOptional.orElse(null))) {
+                     = new DicomWebHttpClient(pingRequest.getRootUrl(), credentialOptional.orElse(null), dqrPreferences)) {
             return httpClient.ping();
         }
     }

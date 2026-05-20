@@ -28,6 +28,7 @@ import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsDataNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
+import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsClientService;
 import org.nrg.xnatx.dqr.utils.DqrConstants;
@@ -78,15 +79,18 @@ public class DicomWebPacsClientService implements PacsClientService {
     private final ConcurrentMap<Pacs, DicomWebHttpClient> dicomWebHttpClients;
     private final DicomFileNamer defaultFileName;
     private final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers;
+    private final DqrPreferences dqrPreferences;
 
     public DicomWebPacsClientService(final DicomWebCredentialService dicomWebCredentialService,
                                      final DicomFileNamer fileNamer,
                                      final Map<String, DicomObjectIdentifier<XnatProjectdata>> dicomObjectIdentifiers,
-                                     final OrmStrategy ormStrategy) {
+                                     final OrmStrategy ormStrategy,
+                                     final DqrPreferences dqrPreferences) {
         this.dicomWebCredentialService = dicomWebCredentialService;
         this.defaultFileName = fileNamer;
         this.dicomObjectIdentifiers = dicomObjectIdentifiers;
         this.ormStrategy = ormStrategy;
+        this.dqrPreferences = dqrPreferences;
         dicomWebHttpClients = new ConcurrentHashMap<>();
 
     }
@@ -312,7 +316,7 @@ public class DicomWebPacsClientService implements PacsClientService {
     }
 
     private DicomWebHttpClient getDicomWebHttpClient(final Pacs pacs) {
-        return dicomWebHttpClients.computeIfAbsent(pacs, p -> new DicomWebHttpClient(pacs.getDicomWebRootUrl(), dicomWebCredentialService.getCredential(pacs.getAeTitle()).orElse(null)));
+        return dicomWebHttpClients.computeIfAbsent(pacs, p -> new DicomWebHttpClient(pacs.getDicomWebRootUrl(), dicomWebCredentialService.getCredential(pacs.getAeTitle()).orElse(null), dqrPreferences));
     }
 
 
