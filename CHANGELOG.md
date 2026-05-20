@@ -5,6 +5,18 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="2.4"></a>XNAT DQR Version 2.4 Release Notes
+
+### <a name="2.4.0"></a>DQR Plugin Version: 2.4.0
+
+#### 2.4.0 - General Improvements
+
+* [PLUGINS-295](https://radiologics.atlassian.net/browse/PLUGINS-295) Add subject and experiment label fields to PacsRequest/QueuedPacsRequest routing, enabling incoming DICOM studies to be routed to a specific subject and experiment within a project at queue pickup time.
+* [PLUGINS-296](https://radiologics.atlassian.net/browse/PLUGINS-296) Split the single DICOMweb HTTP read timeout into two configurable preferences, so binary retrieval (WADO-RS) is no longer constrained by the shorter metadata-query timeout.
+    * `dicomWebMetadataReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb metadata requests: QIDO-RS searches, instance metadata fetches, and PACS ping checks.
+    * `dicomWebRetrieveReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb binary retrieval (WADO-RS multipart responses); raise on PACS implementations whose server-side response-assembly delay before the first byte exceeds the default.
+
+
 ## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes
 
 ### <a name="2.3.2"></a>DQR Plugin Version: 2.3.2
