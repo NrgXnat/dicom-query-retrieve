@@ -57,6 +57,10 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String RESULT_SET_LIMIT_STRATEGY_DEFAULT_VALUE = "org.nrg.xnatx.dqr.dicom.strategy.orm.BasicResultSetLimitStrategy";
     public static final String LEAVE_PACS_AUDIT_TRAIL = "leavePacsAuditTrail";
     public static final String LEAVE_PACS_AUDIT_TRAIL_DEFAULT_VALUE = "false";
+    public static final String DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS = "dicomWebMetadataReadTimeoutSeconds";
+    public static final String DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS_DEFAULT_VALUE = "20";
+    public static final String DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS = "dicomWebRetrieveReadTimeoutSeconds";
+    public static final String DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE = "20";
 
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
@@ -186,5 +190,45 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
 
     public void setLeavePacsAuditTrail(final boolean leavePacsAuditTrail) {
         safeSet(leavePacsAuditTrail, LEAVE_PACS_AUDIT_TRAIL);
+    }
+
+    @NrgPreference(defaultValue = DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDicomWebMetadataReadTimeoutSeconds() {
+        return getValue(DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS);
+    }
+
+    public void setDicomWebMetadataReadTimeoutSeconds(final String dicomWebMetadataReadTimeoutSeconds) {
+        safeSet(dicomWebMetadataReadTimeoutSeconds, DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS);
+    }
+
+    @NrgPreference(defaultValue = DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDicomWebRetrieveReadTimeoutSeconds() {
+        return getValue(DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS);
+    }
+
+    public void setDicomWebRetrieveReadTimeoutSeconds(final String dicomWebRetrieveReadTimeoutSeconds) {
+        safeSet(dicomWebRetrieveReadTimeoutSeconds, DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS);
+    }
+
+    public int getDicomWebMetadataReadTimeoutMs() {
+        return parseTimeoutMs(getDicomWebMetadataReadTimeoutSeconds(),
+                DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS,
+                DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDicomWebRetrieveReadTimeoutMs() {
+        return parseTimeoutMs(getDicomWebRetrieveReadTimeoutSeconds(),
+                DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS,
+                DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    private static int parseTimeoutMs(final String value, final String prefName, final String defaultValue) {
+        final String effective = (value == null || value.trim().isEmpty()) ? defaultValue : value;
+        try {
+            return Integer.parseInt(effective.trim()) * 1000;
+        } catch (NumberFormatException e) {
+            log.warn("Invalid value '{}' for preference {}; falling back to default {}", value, prefName, defaultValue);
+            return Integer.parseInt(defaultValue) * 1000;
+        }
     }
 }

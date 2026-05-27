@@ -143,6 +143,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .accessionNumber(request.getAccessionNumber())
                                                                            .patientName(request.getPatientName())
                                                                            .requestId(request.getRequestId())
+                                                                           .subjectLabel(request.getSubjectLabel())
+                                                                           .experimentLabel(request.getExperimentLabel())
                                                                            .build();
                 try {
                     final String adminUsername = admin.getUsername();

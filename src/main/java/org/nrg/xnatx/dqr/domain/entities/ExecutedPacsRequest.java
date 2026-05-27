@@ -50,8 +50,8 @@ public class ExecutedPacsRequest extends PacsRequest {
     public static final String DELETE_ALL_WITH_REQUEST_ID_AND_STATUS                          = "ExecutedPacsRequest.deleteAllWithRequestIdAndStatus";
 
     @Builder
-    public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId) {
-        super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName, errorMessage, requestId);
+    public ExecutedPacsRequest(final String username, final Long pacsId, final String xnatProject, final String studyInstanceUid, final List<String> seriesIds, final String remappingScript, final String destinationAeTitle, final String status, final Long priority, final Date queuedTime, final Date executedTime, final String studyDate, final String studyId, final String accessionNumber, final String patientId, final String patientName, final String errorMessage, final String requestId, final String subjectLabel, final String experimentLabel) {
+        super(username, pacsId, xnatProject, studyInstanceUid, seriesIds, remappingScript, destinationAeTitle, status, priority, queuedTime, studyDate, studyId, accessionNumber, patientId, patientName, errorMessage, requestId, subjectLabel, experimentLabel);
         _executedTime = executedTime;
     }
 
