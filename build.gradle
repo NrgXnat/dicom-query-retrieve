@@ -149,6 +149,8 @@ dependencies {
     compileOnly "javax.interceptor:javax.interceptor-api"
     // Compile-only deps that xnat-web no longer surfaces on consumer compileClasspath in monorepo 1.10.1+
     compileOnly "javax.servlet:javax.servlet-api"
+    // Mockito ByteBuddy retransform of xdat Users.class (mocked via mockStatic) needs HttpServletRequest at test runtime
+    testRuntimeOnly "javax.servlet:javax.servlet-api"
     compileOnly("org.apache.velocity:velocity") { transitive = false }
     compileOnly "commons-fileupload:commons-fileupload:1.5"
     compileOnly "javax.jms:javax.jms-api:2.0.1"
