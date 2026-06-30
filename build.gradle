@@ -23,7 +23,6 @@ plugins {
     id "com.palantir.git-version" version "3.1.0"
     id "io.franzbecker.gradle-lombok" version "4.0.0"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "net.linguica.maven-settings" version "0.5"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
 }
 
@@ -336,8 +335,14 @@ publishing {
     repositories {
         maven {
             url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
-            // The value for name must match <id> in ~/.m2/settings.xml
             name = "XNAT_Artifactory"
+            // Credentials come from the artifactoryUser/artifactoryToken gradle
+            // properties (CI injects them via ORG_GRADLE_PROJECT_* env vars;
+            // for local publishing set them in ~/.gradle/gradle.properties).
+            credentials {
+                username = project.findProperty("artifactoryUser")?.toString() ?: ""
+                password = project.findProperty("artifactoryToken")?.toString() ?: ""
+            }
         }
     }
 }
