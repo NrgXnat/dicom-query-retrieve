@@ -19,6 +19,12 @@ Version 3.0.0 of the DQR Plugin requires XNAT 1.10.0 or newer and is compiled on
 
 ## <a name="2.4"></a>XNAT DQR Version 2.4 Release Notes
 
+### <a name="2.4.1"></a>DQR Plugin Version: 2.4.1
+
+#### 2.4.1 - Bug Fixes
+
+* [PLUGINS-323](https://xnat.atlassian.net/browse/PLUGINS-323) Fail a PACS request when a C-MOVE reports success but delivers zero files to the prearchive. Previously `PacsDequeueThread` only logged a warning and left the executed request in the `ISSUED` state, so the study stalled with no failure signal. The request is now marked `FAILED` with the message `Received zero files for study <uid> in project <project>` so downstream orchestration can detect and surface the failure.
+
 ### <a name="2.4.0"></a>DQR Plugin Version: 2.4.0
 
 #### 2.4.0 - General Improvements
