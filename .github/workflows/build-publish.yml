@@ -1,0 +1,86 @@
+name: Build and Publish
+
+# Thin caller around the shared reusable workflow in
+# NrgXnat/xnat-ci-workflows. Plugin variant — no GHCR Docker image
+# (plugins ship a jar to JFrog only).
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'releases/*'   # RC / release branches, e.g. releases/1.6.0-rc
+  workflow_dispatch:
+    inputs:
+      publish_jfrog:
+        description: 'Publish jar to JFrog Artifactory (nrgxnat)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write   # required by reusable workflow's publish-ghcr job (gated by if: inputs.publish-ghcr but parsed at startup)
+
+jobs:
+  build-publish:
+    uses: NrgXnat/xnat-ci-workflows/.github/workflows/gradle-build-publish.yml@v1
+    with:
+      # ──── Build environment ────
+      # Pin to JDK 8 — the 2.4.x line targets source/targetCompatibility 8.
+      # The reusable workflow defaults java-version to 21, which is not what
+      # this maintenance line builds with.
+      java-version: '8'
+
+      # ──── Artifact ────
+      artifact-glob: 'build/libs/*.jar'
+      artifact-name: 'dicom-query-retrieve-jar'
+
+      # ──── JFrog ────
+      # On any push to a triggered branch: publish. On dispatch: only when publish_jfrog ticked.
+      publish-jfrog: ${{ github.event_name == 'push' || inputs.publish_jfrog }}
+
+      # publish-ghcr deliberately omitted — defaults to false in the reusable workflow.
+
+    # secrets: inherit passes XNAT_ARTIFACTORY_USER/TOKEN (org-level) and
+    # the auto-injected GITHUB_TOKEN through to the reusable workflow.
+    secrets: inherit
+
+  # After a successful build/publish, tag the commit <version> — but only
+  # for real releases. Snapshot pushes (develop/main, *-SNAPSHOT) are skipped,
+  # and an already-existing tag is a no-op rather than a failure.
+  tag-release:
+    name: Tag release
+    needs: build-publish
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push the tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read project version
+        id: ver
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version[[:space:]]*=?[[:space:]]*"' build.gradle | head -1 | sed -E 's/^version[[:space:]]*=?[[:space:]]*"([^"]+)".*/\1/')
+          if [ -z "$VERSION" ]; then echo "Could not read version from build.gradle"; exit 1; fi
+          echo "Resolved version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: ${{ !endsWith(steps.ver.outputs.version, '-SNAPSHOT') }}
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="${VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on origin — skipping."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+          echo "Created and pushed ${TAG}"
