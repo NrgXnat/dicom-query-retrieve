@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.10.0"
+        vXnat = "1.10.1-SNAPSHOT"
     }
 }
 
@@ -21,9 +21,8 @@ plugins {
     id "maven-publish"
     id "com.dorongold.task-tree" version "1.5"
     id "com.palantir.git-version" version "3.1.0"
-    id "io.franzbecker.gradle-lombok" version "4.0.0"
-    id "io.spring.dependency-management" version "1.0.11.RELEASE"
-    id "net.linguica.maven-settings" version "0.5"
+    id "io.franzbecker.gradle-lombok" version "5.0.0"
+    id "io.spring.dependency-management" version "1.1.7"
     id "org.nrg.xnat.build.xnat-data-builder" version "${vXnat}"
     id("org.openrewrite.rewrite") version("6.24.0")    
 }
@@ -42,8 +41,10 @@ repositories {
     maven { url "https://raw.githubusercontent.com/nroduit/mvn-repo/master/" }  // weasis dependencies for dcm4che 5.x
 }
 
-sourceCompatibility = 21
-targetCompatibility = 21
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 compileJava {
     options.fork = false
@@ -93,24 +94,18 @@ dependencyManagement {
     }
 }
 
-def vDcm4che = dependencyManagement.importedProperties["dcm4che.version"] as String
-def vCommonsCli = dependencyManagement.importedProperties["commons-cli.version"] as String
-
-// Use Mockito >= 3.x for mocking statics with JUnit 5 (where PowerMock is not available)
-def vMockito = "4.+"
+def vDcm4che = "5.33.1"
+def vCommonsCli = "1.4"
 
 dependencies {
     rewrite("org.openrewrite.recipe:rewrite-migrate-java:2.26.0")
 
-    implementation enforcedPlatform("org.nrg:parent:${vXnat}") {
-        exclude group: "org.mockito"
-    }
+    implementation enforcedPlatform("org.nrg:parent:${vXnat}")
 
     implementation "org.nrg.xnat:web"
     implementation "org.nrg.dicom:dicom-edit4"
     implementation "org.nrg.dicom:dicom-edit6"
     implementation "org.nrg:dicom-xnat-util"
-    implementation "org.nrg:dicom-xnat-mx"
     implementation "org.springframework:spring-web"
     implementation "org.springframework:spring-tx"
     implementation "org.springframework:spring-jms"
@@ -152,18 +147,29 @@ dependencies {
     implementAndInclude("org.eclipse.parsson:parsson:1.1.6")
 
     compileOnly "javax.interceptor:javax.interceptor-api"
+    // Compile-only deps that xnat-web no longer surfaces on consumer compileClasspath in monorepo 1.10.1+
+    compileOnly "javax.servlet:javax.servlet-api"
+    // Mockito ByteBuddy retransform of xdat Users.class (mocked via mockStatic) needs HttpServletRequest at test runtime
+    testRuntimeOnly "javax.servlet:javax.servlet-api"
+    compileOnly("org.apache.velocity:velocity") { transitive = false }
+    compileOnly "commons-fileupload:commons-fileupload:1.5"
+    compileOnly "javax.jms:javax.jms-api:2.0.1"
+    compileOnly "fop:fop:0.20.5"
+    compileOnly "commons-lang:commons-lang:2.6"
 
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.springframework:spring-test"
     testImplementation "com.github.sbrannen:spring-test-junit5"
-    testImplementation "org.mockito:mockito-core:${vMockito}"
-    testImplementation "org.mockito:mockito-junit-jupiter:${vMockito}"
+    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.mockito:mockito-junit-jupiter"
     testImplementation "org.assertj:assertj-core"
     testImplementation "com.h2database:h2"
     testImplementation "org.dcm4che:dcm4che-json"
+    testCompileOnly "commons-lang:commons-lang:2.6"
 
 
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.10.5"
     testRuntimeOnly "ch.qos.logback:logback-classic"
 }
 
@@ -192,19 +198,19 @@ try {
     isCleanTag = false
 }
 
-ext.gitManifest = manifest {
-    attributes "Application-Name": project.description,
-            "Build-Date": buildDate,
-            "Build-Number": buildNumber,
-            "Implementation-Version": project.version,
-            "Implementation-Sha": gitHash,
-            "Implementation-Sha-Full": gitHashFull,
-            "Implementation-Commit": commitDistance,
-            "Implementation-LastTag": lastTag,
-            "Implementation-Branch": branchName,
-            "Implementation-CleanTag": isCleanTag,
-            "Implementation-Dirty": isDirty
-}
+ext.gitManifestAttrs = [
+        "Application-Name"        : project.description,
+        "Build-Date"              : buildDate,
+        "Build-Number"            : buildNumber,
+        "Implementation-Version"  : project.version,
+        "Implementation-Sha"      : gitHash,
+        "Implementation-Sha-Full" : gitHashFull,
+        "Implementation-Commit"   : commitDistance,
+        "Implementation-LastTag"  : lastTag,
+        "Implementation-Branch"   : branchName,
+        "Implementation-CleanTag" : isCleanTag,
+        "Implementation-Dirty"    : isDirty
+]
 
 logger.info """
 Building artifacts with manifest attributes:
@@ -227,14 +233,14 @@ rewrite {
 }
 
 lombok {
-    version = dependencyManagement.importedProperties["lombok.version"] as String
-    sha256 = dependencyManagement.importedProperties["lombok.checksum"] as String
+    version = "1.18.34"
+    sha256 = "1ea5ad6c6afcff902d75072b2aaa6695585aebee9f12127e15c0036ba95d2918"
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {
     archiveClassifier.set("sources")
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
     from sourceSets.main.allSource
 }
@@ -242,7 +248,7 @@ task sourceJar(type: Jar, dependsOn: classes) {
 task javadocJar(type: Jar) {
     archiveClassifier.set("javadoc")
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
     from javadoc.destinationDir
 }
@@ -250,7 +256,7 @@ task javadocJar(type: Jar) {
 jar {
     dependsOn test, sourceJar, javadocJar
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
 }
 
@@ -260,7 +266,7 @@ task xnatPluginJar(type: Jar) {
     archiveClassifier.set "xpl"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        from gitManifest
+        attributes gitManifestAttrs
     }
     // files and folders with "-dev" or "--xx" in their name
     // will not be in the compiled jar
@@ -330,9 +336,17 @@ publishing {
     }
     repositories {
         maven {
-            url "https://nrgxnat.jfrog.io/nrgxnat/libs-${project.version.endsWith("-SNAPSHOT") ? "snapshot" : "release"}"
-            // The value for name must match <id> in ~/.m2/settings.xml
             name = "XNAT_Artifactory"
+            url = project.version.toString().endsWith("-SNAPSHOT")
+                ? "https://nrgxnat.jfrog.io/nrgxnat/libs-snapshot-local"
+                : "https://nrgxnat.jfrog.io/nrgxnat/libs-release-local"
+            // CI injects ORG_GRADLE_PROJECT_artifactoryUser/Token env vars (Gradle maps
+            // these to project properties). Local devs can set artifactoryUser/Token in
+            // ~/.gradle/gradle.properties. Mirrors monorepo's buildSrc convention.
+            credentials {
+                username = (project.findProperty("artifactoryUser")  ?: System.getenv("ARTIFACTORY_USER"))  ?: ""
+                password = (project.findProperty("artifactoryToken") ?: System.getenv("ARTIFACTORY_TOKEN")) ?: ""
+            }
         }
     }
 }
