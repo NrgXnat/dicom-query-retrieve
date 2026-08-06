@@ -529,7 +529,7 @@ XNAT.app = getObject(XNAT.app || {});
                     spawn('a.editRow', { href: '#!', style: { 'font-weight': 'bold'} }, ae.label)
                 ])
             ];
-            summary.push(spawn('p', ' AETITILE: ' + ae.aeTitle));
+            summary.push(spawn('p', ' AETITLE: ' + ae.aeTitle));
             if (ae.dicomWebEnabled) {
                 summary.push(spawn('p', 'URL: ' + ae.dicomWebRootUrl));
             } else {
