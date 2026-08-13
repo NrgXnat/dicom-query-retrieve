@@ -12,6 +12,7 @@ package org.apache.turbine.modules.screens;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.turbine.modules.actions.DqrSecureAction;
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 import org.nrg.dcm.scp.DicomSCPInstance;
 import org.nrg.dcm.scp.DicomSCPManager;
@@ -30,7 +31,8 @@ import java.util.stream.Collectors;
 
 public abstract class DqrSecureScreen extends SecureScreen {
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) {
+    protected void doBuildTemplate(final PipelineData pipelineData, final Context context) {
+        final RunData data = pipelineData.getRunData();
         context.put("dqrPreferences", getDqrPreferences());
     }
 

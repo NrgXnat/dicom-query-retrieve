@@ -11,6 +11,7 @@
 package org.apache.turbine.modules.actions;
 
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 import org.nrg.xapi.exceptions.NotFoundException;
 import org.nrg.xdat.XDAT;
@@ -24,7 +25,8 @@ import java.util.Optional;
 @SuppressWarnings("unused")
 public class ChoosePacsSession extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsException, NotFoundException {
+    public void doPerform(final PipelineData pipelineData, final Context context) throws PacsException, NotFoundException {
+        final RunData data = pipelineData.getRunData();
         final Pacs            pacs             = getPassedPacs(data);
         final String          studyInstanceUid = (String) TurbineUtils.GetPassedParameter("studyInstanceUid", data);
         final Optional<Study> study            = getDicomQueryRetrieveService().getStudyById(XDAT.getUserDetails(), pacs, studyInstanceUid);

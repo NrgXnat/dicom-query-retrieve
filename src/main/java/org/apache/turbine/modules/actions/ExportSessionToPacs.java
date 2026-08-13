@@ -12,6 +12,7 @@ package org.apache.turbine.modules.actions;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.xapi.exceptions.InitializationException;
@@ -36,7 +37,8 @@ import org.nrg.xnatx.dqr.exceptions.ProjectNotDqrEnabledException;
 @Slf4j
 public class ExportSessionToPacs extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws PacsNotFoundException, NotFoundException, ProjectNotDqrEnabledException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException {
+    public void doPerform(final PipelineData pipelineData, final Context context) throws PacsNotFoundException, NotFoundException, ProjectNotDqrEnabledException, DataFormatException, InitializationException, InsufficientPrivilegesException, PacsNotStorableException {
+        final RunData data = pipelineData.getRunData();
         final UserI user = XDAT.getUserDetails();
 
         getPassedPacs(data);

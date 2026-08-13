@@ -19,9 +19,9 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 
 import java.io.Serializable;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 /**
  * Created by mike on 1/23/18.

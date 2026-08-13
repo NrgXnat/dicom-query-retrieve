@@ -30,7 +30,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import springfox.documentation.annotations.ApiIgnore;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,7 +41,6 @@ import java.util.Optional;
 /**
  * The project IRB file functionality is not fully supported as of the 1.0 release of the XNAT DQR plugin.
  */
-@ApiIgnore
 @Api(value = "XNAT Project IRB File API", hidden = true)
 @XapiRestController
 @Slf4j

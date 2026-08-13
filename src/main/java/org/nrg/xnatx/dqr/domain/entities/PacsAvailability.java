@@ -21,12 +21,12 @@ import org.hibernate.validator.constraints.NotBlank;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xnatx.dqr.utils.DqrDateRange;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.Size;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Size;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.Objects;

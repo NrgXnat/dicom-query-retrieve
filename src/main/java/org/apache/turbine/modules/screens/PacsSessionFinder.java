@@ -10,12 +10,14 @@
 package org.apache.turbine.modules.screens;
 
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 
 @SuppressWarnings("unused")
 public class PacsSessionFinder extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) {
+    protected void doBuildTemplate(final PipelineData pipelineData, final Context context) {
+        final RunData data = pipelineData.getRunData();
         super.doBuildTemplate(data, context);
         storeProjectAndQueryablePacs(data, context);
     }

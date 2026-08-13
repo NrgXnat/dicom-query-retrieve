@@ -12,6 +12,7 @@ package org.apache.turbine.modules.screens;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.model.XnatImagescandataI;
@@ -21,7 +22,8 @@ import org.nrg.xnatx.dqr.domain.entities.Pacs;
 @SuppressWarnings("unused")
 public class ExportSessionToPacs extends DqrSecureScreen {
     @Override
-    protected void doBuildTemplate(final RunData data, final Context context) {
+    protected void doBuildTemplate(final PipelineData pipelineData, final Context context) {
+        final RunData data = pipelineData.getRunData();
         super.doBuildTemplate(data, context);
 
         final String sessionId = data.getParameters().get("sessionId");
