@@ -308,14 +308,27 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             context.put("adminEmail", adminEmail);
             context.put("pacs", _pacsService.retrieve(_pacsId));
             if (_dqrPreferences.getNotifyAdminOnImport()) {
-                final String subject = wholeStudy
-                                       ? String.format(STUDY_SUBJECT_FORMAT, TurbineUtils.GetSystemName())
-                                       : String.format(SUBJECT_FORMAT, TurbineUtils.GetSystemName(), seriesIds.size());
+                final String subject = notificationSubject(request, TurbineUtils.GetSystemName());
                 _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, subject, AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
             }
         } catch (Exception exception) {
             log.warn("User {} requested DICOM data, but an error occurred sending the notification email.", user.getUsername(), exception);
         }
+    }
+
+    /**
+     * Builds the subject line for the import notification. A study-level request has no series to
+     * count, so it names what was actually asked for instead.
+     *
+     * @param request    The request that was carried out.
+     * @param systemName The name of this XNAT system.
+     *
+     * @return The subject line for the notification email.
+     */
+    static String notificationSubject(final ExecutedPacsRequest request, final String systemName) {
+        return request.getRetrieveLevel() == RetrieveLevel.STUDY
+               ? String.format(STUDY_SUBJECT_FORMAT, systemName)
+               : String.format(SUBJECT_FORMAT, systemName, request.getSeriesIds().size());
     }
 
     public void saveWorkflowEntry(final UserI user, final ExecutedPacsRequest request, final boolean failed) throws Exception {
