@@ -69,6 +69,8 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String DIMSE_ACCEPT_TIMEOUT_SECONDS_DEFAULT_VALUE = "60";
     public static final String DIMSE_CONNECT_TIMEOUT_SECONDS = "dimseConnectTimeoutSeconds";
     public static final String DIMSE_CONNECT_TIMEOUT_SECONDS_DEFAULT_VALUE = "30";
+    public static final String DQR_MAX_THROTTLE_SLEEP_SECONDS = "dqrMaxThrottleSleepSeconds";
+    public static final String DQR_MAX_THROTTLE_SLEEP_SECONDS_DEFAULT_VALUE = "1800";
 
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
@@ -254,6 +256,15 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         safeSet(dimseConnectTimeoutSeconds, DIMSE_CONNECT_TIMEOUT_SECONDS);
     }
 
+    @NrgPreference(defaultValue = DQR_MAX_THROTTLE_SLEEP_SECONDS_DEFAULT_VALUE)
+    public String getDqrMaxThrottleSleepSeconds() {
+        return getValue(DQR_MAX_THROTTLE_SLEEP_SECONDS);
+    }
+
+    public void setDqrMaxThrottleSleepSeconds(final String dqrMaxThrottleSleepSeconds) {
+        safeSet(dqrMaxThrottleSleepSeconds, DQR_MAX_THROTTLE_SLEEP_SECONDS);
+    }
+
     public int getDicomWebMetadataReadTimeoutMs() {
         return parseTimeoutMs(getDicomWebMetadataReadTimeoutSeconds(),
                 DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS,
@@ -288,6 +299,12 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         return parseTimeoutMs(getDimseConnectTimeoutSeconds(),
                 DIMSE_CONNECT_TIMEOUT_SECONDS,
                 DIMSE_CONNECT_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDqrMaxThrottleSleepMs() {
+        return parseTimeoutMs(getDqrMaxThrottleSleepSeconds(),
+                DQR_MAX_THROTTLE_SLEEP_SECONDS,
+                DQR_MAX_THROTTLE_SLEEP_SECONDS_DEFAULT_VALUE);
     }
 
     private static int parseTimeoutMs(final String value, final String prefName, final String defaultValue) {

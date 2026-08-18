@@ -250,7 +250,11 @@ var XNAT = getObject(XNAT || {});
                     console.log(data);
                     data = getObject(data);
                     if (data.seriesIds) {
-                        data.seriesIds = spawn('pre|style=margin:0', data.seriesIds.join(',\n')).outerHTML
+                        // A study-level request carries no series list: the whole study was asked
+                        // for, and which series that is isn't known until the data arrives.
+                        data.seriesIds = data.seriesIds.length
+                            ? spawn('pre|style=margin:0', data.seriesIds.join(',\n')).outerHTML
+                            : spawn('em', 'Entire study \u2014 no individual series requested').outerHTML
                     }
                     if (data.remappingScript) {
                         data.remappingScript = spawn('pre|style=margin:0', data.remappingScript).outerHTML

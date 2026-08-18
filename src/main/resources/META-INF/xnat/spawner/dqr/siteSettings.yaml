@@ -148,6 +148,14 @@ dqrOtherPreferencePanel:
             placeholder: 60
             description: How long to wait for a PACS to accept an association request.
             validation: number
+        dqrMaxThrottleSleepSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dqrMaxThrottleSleepSeconds
+            label: Maximum Throttling Pause (seconds)
+            placeholder: 1800
+            description: Upper bound on the pause taken between PACS requests to hold a PACS at its configured utilization. The pause is calculated from how long the previous request took, so a single long request (a whole-study retrieve, for instance) would otherwise stall the queue for hours. Set to 0 for no upper bound.
+            validation: number
         dimseConnectTimeoutSeconds:
             kind: panel.input.text
             size: 10

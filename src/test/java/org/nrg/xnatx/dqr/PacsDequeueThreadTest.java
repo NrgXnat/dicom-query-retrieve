@@ -22,6 +22,7 @@ import org.nrg.xnat.helpers.prearchive.PrearcDatabase;
 import org.nrg.xnat.helpers.prearchive.PrearcUtils;
 import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -82,6 +84,50 @@ class PacsDequeueThreadTest {
     @BeforeEach
     public void setup() {
         pacsDequeueThread = new PacsDequeueThread(pacsId, threads, dqrService, pacsService, queuedPacsRequestService, executedPacsRequestService, pacsAvailabilityService, studyRoutingService, dqrPreferences, siteConfigPreferences, configService, mailService, primaryAdminUserProvider);
+    }
+
+    @Test
+    public void testStudyLevelRequestIsDescribedAsAWholeStudyInTheWorkflowEntry() throws Exception {
+        final String studyInstanceUid = RandomStringUtils.randomAlphabetic(5);
+        final String username = RandomStringUtils.randomAlphabetic(5);
+        final String project = RandomStringUtils.randomAlphabetic(5);
+        final int numAvailableThreads = ThreadLocalRandom.current().nextInt(1, 3);
+
+        when(pacsAvailabilityService.findAvailableNow(pacsId)).thenReturn(Optional.of(pacsAvailability));
+        when(pacsAvailability.getThreads()).thenReturn(numAvailableThreads);
+        when(pacsAvailability.getUtilizationPercent()).thenReturn(100);
+        when(threads.isOversubscribed(pacsId, numAvailableThreads)).thenReturn(false);
+        when(primaryAdminUserProvider.get()).thenReturn(admin);
+        when(pacsService.retrieve(pacsId)).thenReturn(pacs);
+        when(dqrService.ping(admin, pacs)).thenReturn(true);
+        when(admin.getUsername()).thenReturn("admin");
+
+        // A study-level request carries no series list, so the workflow comment can't enumerate one
+        final QueuedPacsRequest queuedPacsRequest = QueuedPacsRequest.builder()
+                .seriesIds(Collections.emptyList())
+                .studyInstanceUid(studyInstanceUid)
+                .xnatProject(project)
+                .username(username)
+                .build();
+        queuedPacsRequest.setRetrieveLevel(RetrieveLevel.STUDY);
+        when(queuedPacsRequestService.getQueuedOrFailedForPacsOrderedByPriorityAndDate(pacsId))
+                .thenReturn(Collections.singletonList(queuedPacsRequest))
+                .thenReturn(Collections.emptyList());
+
+        try (MockedStatic<PrearcDatabase> prearcDbMock = mockStatic(PrearcDatabase.class);
+             MockedStatic<PrearcUtils> prearcUtilsMock = mockStatic(PrearcUtils.class);
+             MockedStatic<Users> usersMock = mockStatic(Users.class);
+             MockedStatic<PersistentWorkflowUtils> workflowUtilsMock = mockStatic(PersistentWorkflowUtils.class)) {
+            usersMock.when(() -> Users.getUser(username)).thenReturn(user);
+            workflowUtilsMock.when(() -> PersistentWorkflowUtils.buildOpenWorkflow(eq(user), any(), eq(studyInstanceUid), eq(project), any()))
+                    .thenReturn(workflow);
+            prearcDbMock.when(() -> PrearcDatabase.getSessionByUID(studyInstanceUid)).thenReturn(Collections.emptyList());
+
+            pacsDequeueThread.runTask();
+
+            workflowUtilsMock.verify(() -> PersistentWorkflowUtils.buildOpenWorkflow(eq(user), any(), eq(studyInstanceUid), eq(project),
+                    argThat(details -> StringUtils.equals("Entire study: " + studyInstanceUid, details.getComment()))), times(1));
+        }
     }
 
     @Test

@@ -41,6 +41,7 @@ import org.nrg.xnat.helpers.prearchive.SessionData;
 import org.nrg.xnat.helpers.prearchive.SessionDataTriple;
 import org.nrg.xnat.services.messaging.prearchive.PrearchiveOperationRequest;
 import org.nrg.xnat.task.AbstractXnatRunnable;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.PacsAvailability;
 import org.nrg.xnatx.dqr.domain.entities.PacsRequest;
@@ -232,10 +233,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                 if (!failed) {
                     //this seemed like it was notifying success no matter what
-                    sendNotification(user, seriesIds);
+                    sendNotification(user, pacsRequest);
                 }
 
-                saveWorkflowEntry(user,seriesIds,studyInstanceUid,projectId,failed);
+                saveWorkflowEntry(user, pacsRequest, failed);
 
                 final long sleepTimeMillisecondsFromAvailability = calculateSleepTimeMillisecondsFromAvailability(requestTimeInMilliseconds, availability);
                 sleep(sleepTimeMillisecondsFromAvailability);
@@ -248,12 +249,23 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
-    private long calculateSleepTimeMillisecondsFromAvailability(final long requestTimeMilliseconds, final PacsAvailability availability) {
+    long calculateSleepTimeMillisecondsFromAvailability(final long requestTimeMilliseconds, final PacsAvailability availability) {
         final long nominalUtilizationPercent = availability.getUtilizationPercent();
         final long sleepTimeMillisecondsFromAvailability = (long) ((((double) 100 / (double) nominalUtilizationPercent) - 1) * requestTimeMilliseconds);
 
         log.debug("PACS {} - Ran for {} ms. Should sleep for {} ms to maintain {}% utilization",
                 _pacsId, requestTimeMilliseconds, sleepTimeMillisecondsFromAvailability, nominalUtilizationPercent);
+
+        // The pause is proportional to how long the last request took, which was fine when every
+        // request was a single series. A whole-study retrieve can run for many minutes, and at a
+        // low utilization setting that multiplies into hours of a queue thread doing nothing, so
+        // the pause is bounded.
+        final long maximumSleepMilliseconds = _dqrPreferences.getDqrMaxThrottleSleepMs();
+        if (maximumSleepMilliseconds > 0 && sleepTimeMillisecondsFromAvailability > maximumSleepMilliseconds) {
+            log.info("PACS {} - Capping the {} ms utilization pause at the configured maximum of {} ms. Utilization will run above the configured {}% until the queue catches up.",
+                    _pacsId, sleepTimeMillisecondsFromAvailability, maximumSleepMilliseconds, nominalUtilizationPercent);
+            return maximumSleepMilliseconds;
+        }
 
         return sleepTimeMillisecondsFromAvailability;
     }
@@ -278,10 +290,17 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
-    private void sendNotification(final UserI user, final List<String> seriesIds){
+    private void sendNotification(final UserI user, final ExecutedPacsRequest request){
+        // A study-level retrieve has no series list to enumerate: the whole study was requested,
+        // and which series that turned out to be isn't known until the data arrives.
+        final boolean      wholeStudy = request.getRetrieveLevel() == RetrieveLevel.STUDY;
+        final List<String> seriesIds  = request.getSeriesIds();
+
         final Context context = new VelocityContext();
         context.put("prearchive", StringUtils.appendIfMissing(_siteConfigPreferences.getSiteUrl(), "/") + PREARCHIVE_SCREEN);
         context.put("seriesIds", seriesIds);
+        context.put("wholeStudy", wholeStudy);
+        context.put("studyInstanceUid", request.getStudyInstanceUid());
 
         try {
 
@@ -289,18 +308,23 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
             context.put("adminEmail", adminEmail);
             context.put("pacs", _pacsService.retrieve(_pacsId));
             if (_dqrPreferences.getNotifyAdminOnImport()) {
-                final String subject = String.format(SUBJECT_FORMAT, TurbineUtils.GetSystemName(), seriesIds.size());
+                final String subject = wholeStudy
+                                       ? String.format(STUDY_SUBJECT_FORMAT, TurbineUtils.GetSystemName())
+                                       : String.format(SUBJECT_FORMAT, TurbineUtils.GetSystemName(), seriesIds.size());
                 _mailService.sendHtmlMessage(adminEmail, user.getEmail(), adminEmail, subject, AdminUtils.populateVmTemplate(context, "/screens/dqr/email/SeriesRequested.vm"));
             }
         } catch (Exception exception) {
-            log.warn("User {} requested one or more DICOM series, but an error occurred sending the notification email.", user.getUsername(), exception);
+            log.warn("User {} requested DICOM data, but an error occurred sending the notification email.", user.getUsername(), exception);
         }
     }
 
-    public void saveWorkflowEntry(final UserI user, final List<String> seriesIds, final String studyInstanceUid, final String projectId, final boolean failed) throws Exception {
+    public void saveWorkflowEntry(final UserI user, final ExecutedPacsRequest request, final boolean failed) throws Exception {
+        final String studyInstanceUid = request.getStudyInstanceUid();
         final EventDetails eventDetails = EventUtils.newEventInstance(EventUtils.CATEGORY.DATA, EventUtils.TYPE.PROCESS, "IMPORT_FROM_PACS_REQUEST");
-        eventDetails.setComment("Series: " + seriesIds);
-        PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, projectId, eventDetails);
+        eventDetails.setComment(request.getRetrieveLevel() == RetrieveLevel.STUDY
+                                ? "Entire study: " + studyInstanceUid
+                                : "Series: " + request.getSeriesIds());
+        PersistentWorkflowI wrk = PersistentWorkflowUtils.buildOpenWorkflow(user, XnatMrsessiondata.SCHEMA_ELEMENT_NAME, studyInstanceUid, request.getXnatProject(), eventDetails);
         assert wrk != null;
         if(failed){
             PersistentWorkflowUtils.fail(wrk, wrk.buildEvent());
@@ -398,7 +422,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
     private final static Object QUEUE_LOCK     = new Object();
     private final static Object OVERSUBSCRIBED_THREADS_LOCK     = new Object();
-    private final static String SUBJECT_FORMAT = "[%s] %d selected DICOM series requested";
+    private final static String SUBJECT_FORMAT       = "[%s] %d selected DICOM series requested";
+    private final static String STUDY_SUBJECT_FORMAT = "[%s] Complete DICOM study requested";
 
     private final Long                       _pacsId;
     private final PacsThreads               _threads;
