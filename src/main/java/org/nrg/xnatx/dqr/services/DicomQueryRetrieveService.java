@@ -298,13 +298,14 @@ public interface DicomQueryRetrieveService {
      * @return Returns <b>true</b> if all data was imported and <b>false</b> if more data needs to be imported from the PACS.
      *
      * @throws ArchiveProcessorsNotAvailableException         When archive processors aren't available for the DICOM receiver.
+     * @throws DataFormatException                            When the request asks for something the specified PACS can't do.
      * @throws DicomReceiverCustomProcessingDisabledException When custom processing is disabled for the DICOM receiver.
      * @throws NotFoundException                              When the requested data can't be found.
      * @throws PacsNotFoundException                          When the specified PACS can't be found.
      * @throws PacsNotQueryableException                      When the specified PACS isn't queryable..
      * @throws UnknownDicomScpInstanceException               When the specified DICOM receiver doesn't exist.
      */
-    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException;
+    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException, DataFormatException;
 
     /**
      * Processes CSV import operations.

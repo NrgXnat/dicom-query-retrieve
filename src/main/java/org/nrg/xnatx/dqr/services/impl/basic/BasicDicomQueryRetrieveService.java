@@ -395,7 +395,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
      * @return
      */
     @Override
-    public List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException {
+    public List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException, DataFormatException {
         // Map<String, StudyImportInformation> studiesToImport, String ae, String project, , boolean importEvenIfCustomProcessingIsOff
         final long pacsId = request.getPacsId();
         final Pacs pacs   = _pacsService.retrieve(pacsId);
@@ -413,6 +413,12 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
         final RetrieveLevel retrieveLevel = RetrieveLevel.resolve(request.getRetrieveLevel(), pacs.getRetrieveLevel());
+        if (retrieveLevel == RetrieveLevel.STUDY && pacs.isDicomWebEnabled()) {
+            // A PACS can't be configured this way, so the level came from the request. Reject it
+            // here rather than queueing requests that can only fail once they reach the PACS.
+            throw new DataFormatException("PACS " + pacs.getLabel() + " is a DICOMweb connection, which retrieves one series at a time."
+                                          + " Study-level retrieve is only available over DIMSE, so this import cannot request it.");
+        }
         log.debug("Importing {} studies from PACS {} at the {} level", studies.size(), pacsId, retrieveLevel);
 
         return studies.stream()

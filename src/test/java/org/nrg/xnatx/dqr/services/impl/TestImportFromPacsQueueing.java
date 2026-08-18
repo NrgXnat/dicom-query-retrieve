@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.nrg.config.services.ConfigService;
+import org.nrg.xapi.exceptions.DataFormatException;
 import org.nrg.dcm.scp.DicomSCPManager;
 import org.nrg.xdat.security.user.XnatUserProvider;
 import org.nrg.xdat.services.StudyRoutingService;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -162,6 +164,38 @@ class TestImportFromPacsQueueing {
         assertThat(queued.getSeriesIds()).containsExactly("1.2.3.1");
     }
 
+    @Test
+    void askingForAStudyLevelRetrieveFromADicomWebPacsIsRejectedBeforeAnythingIsQueued() {
+        // The PACS setting can't be study level, so a level this high can only have come from the
+        // request itself. Queueing it would produce requests that can only fail at the PACS.
+        final Pacs dicomWebPacs = dicomWebPacs();
+        when(pacsService.retrieve(2L)).thenReturn(dicomWebPacs);
+        when(pacsClientRoutingService.getPacsClientService(dicomWebPacs)).thenReturn(pacsClientService);
+
+        assertThatThrownBy(() -> service.importFromPacs(user, request(2L, RetrieveLevel.STUDY)))
+                .isInstanceOf(DataFormatException.class)
+                .hasMessageContaining("Orthanc")
+                .hasMessageContaining("DIMSE");
+
+        verify(queuedPacsRequestService, never()).create(any(QueuedPacsRequest.class));
+    }
+
+    @Test
+    void aSeriesLevelImportFromADicomWebPacsIsStillAccepted() throws Exception {
+        final Pacs dicomWebPacs = dicomWebPacs();
+        when(pacsService.retrieve(2L)).thenReturn(dicomWebPacs);
+        when(pacsClientRoutingService.getPacsClientService(dicomWebPacs)).thenReturn(pacsClientService);
+        when(pacsClientService.querySeries(any(Pacs.class), any(PacsSearchCriteria.class))).thenReturn(seriesResults());
+
+        service.importFromPacs(user, request(2L, RetrieveLevel.SERIES));
+
+        assertThat(captureQueuedRequest().getRetrieveLevel()).isEqualTo(RetrieveLevel.SERIES);
+    }
+
+    private static Pacs dicomWebPacs() {
+        return Pacs.builder().label("Orthanc").aeTitle("ORTHANC").dicomWebEnabled(true).queryable(true).build();
+    }
+
     private QueuedPacsRequest captureQueuedRequest() {
         final ArgumentCaptor<QueuedPacsRequest> captor = ArgumentCaptor.forClass(QueuedPacsRequest.class);
         verify(queuedPacsRequestService).create(captor.capture());
@@ -169,8 +203,12 @@ class TestImportFromPacsQueueing {
     }
 
     private static PacsImportRequest request(final RetrieveLevel retrieveLevel) {
+        return request(1L, retrieveLevel);
+    }
+
+    private static PacsImportRequest request(final long pacsId, final RetrieveLevel retrieveLevel) {
         return PacsImportRequest.builder()
-                .pacsId(1L).aeTitle("XNAT").port(8104).projectId("PROJ")
+                .pacsId(pacsId).aeTitle("XNAT").port(8104).projectId("PROJ")
                 .retrieveLevel(retrieveLevel)
                 .study(StudyImportInformation.builder().studyInstanceUid(STUDY_UID).build())
                 .build();
