@@ -461,12 +461,19 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                 _configService.enable(login, "", DicomEdit.ToolName, path, Scope.Site, studyId);
             }
 
+            final RetrieveLevel retrieveLevel = RetrieveLevel.resolve(null, pacs.getRetrieveLevel());
+
+            // A study-level retrieve takes the whole study, so there's nothing to expand it into
             final List<String> seriesInstanceUids;
-            try {
-                seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
-            } catch (PacsException e) {
-                log.error("Could not query PACS {} for series", pacs.getId(), e);
-                continue;
+            if (retrieveLevel == RetrieveLevel.STUDY) {
+                seriesInstanceUids = Collections.emptyList();
+            } else {
+                try {
+                    seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
+                } catch (PacsException e) {
+                    log.error("Could not query PACS {} for series", pacs.getId(), e);
+                    continue;
+                }
             }
             final QueuedPacsRequest queuedPacsRequest = createQueuedPacsRequest(
                     user,
@@ -477,7 +484,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                     studyId,
                     seriesInstanceUids,
                     null,
-                    RetrieveLevel.resolve(null, pacs.getRetrieveLevel()));
+                    retrieveLevel);
             _queuedPacsRequestService.create(queuedPacsRequest);
             valueToReturn.set(false);
         }
@@ -549,12 +556,19 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             final String anonScript = entry.getValue();
 
             final String studyInstanceUid = study.getStudyInstanceUid();
+            final RetrieveLevel retrieveLevel = RetrieveLevel.resolve(null, pacs.getRetrieveLevel());
+
+            // A study-level retrieve takes the whole study, so there's nothing to expand it into
             final List<String> seriesInstanceUids;
-            try {
-                seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
-            } catch (PacsException e) {
-                log.error("Could not query PACS {} for series", pacs.getId(), e);
-                continue;
+            if (retrieveLevel == RetrieveLevel.STUDY) {
+                seriesInstanceUids = Collections.emptyList();
+            } else {
+                try {
+                    seriesInstanceUids = getSeriesByStudy(user, pacs, study).getResults().stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList());
+                } catch (PacsException e) {
+                    log.error("Could not query PACS {} for series", pacs.getId(), e);
+                    continue;
+                }
             }
             final QueuedPacsRequest queuedPacsRequest = createQueuedPacsRequest(
                     user,
@@ -565,7 +579,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                     studyInstanceUid,
                     seriesInstanceUids,
                     null,
-                    RetrieveLevel.resolve(null, pacs.getRetrieveLevel()));
+                    retrieveLevel);
             queuedPacsRequest.setRemappingScript(anonScript);
             _queuedPacsRequestService.create(queuedPacsRequest);
         }
@@ -594,14 +608,65 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId, final RetrieveLevel retrieveLevel) {
-        final String            studyInstanceUid   = studyInfo.getStudyInstanceUid();
-        final List<String>      seriesDescriptions = studyInfo.getSeriesDescriptions();
-        final List<String>      seriesInstanceUids = studyInfo.getSeriesInstanceUids();
-        final Predicate<Series> includeSeries      = new IncludeSeries(seriesInstanceUids, seriesDescriptions);
+        final String        studyInstanceUid = studyInfo.getStudyInstanceUid();
+        final RetrieveLevel effectiveLevel   = effectiveRetrieveLevel(retrieveLevel, studyInfo);
+        final String        ae               = port == 0 ? aeTitle : aeTitle + ":" + port;
 
         //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
         final String login = _xnatUserProvider.getLogin();
         log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyInstanceUid);
+
+        return effectiveLevel == RetrieveLevel.STUDY
+               ? queueWholeStudyImport(user, pacs, projectId, ae, isMultiStudy, studyInstanceUid, anonScript, requestId)
+               : queueSeriesImport(user, pacs, projectId, ae, isMultiStudy, studyInfo, anonScript, requestId);
+    }
+
+    /**
+     * Queues a request to retrieve an entire study, which needs no series list. Rather than the
+     * series-level C-FIND used to expand a study, this runs a single study-level query: it confirms
+     * the study is on the PACS, and supplies the descriptive fields the queue and history views
+     * show, which would otherwise have come from the first series returned by the expansion.
+     */
+    private Optional<QueuedPacsRequest> queueWholeStudyImport(final UserI user, final Pacs pacs, final String projectId, final String ae, final boolean isMultiStudy, final String studyInstanceUid, final Optional<String> anonScript, final String requestId) {
+        final Optional<Study> found;
+        try {
+            found = getStudyById(user, pacs, studyInstanceUid);
+        } catch (PacsException e) {
+            log.warn("The PACS {} is not currently queryable, so study {} was not queued", pacs.getId(), studyInstanceUid, e);
+            return Optional.empty();
+        }
+
+        if (!found.isPresent()) {
+            log.warn("No study with instance UID {} was found on PACS {}, so nothing was queued", studyInstanceUid, pacs.getId());
+            return Optional.empty();
+        }
+
+        final Study             study       = found.get();
+        final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, Collections.emptyList(), requestId, RetrieveLevel.STUDY);
+        pacsRequest.setStudyDate(StringUtils.trimToNull(DqrDateRange.formatDicomDate(study.getStudyDate())));
+        pacsRequest.setStudyId(study.getStudyId());
+        pacsRequest.setAccessionNumber(study.getAccessionNumber());
+
+        final Patient patient = study.getPatient();
+        if (patient != null) {
+            pacsRequest.setPatientId(patient.getId());
+            if (patient.getName() != null) {
+                pacsRequest.setPatientName(patient.getName().toString());
+            }
+        }
+
+        anonScript.ifPresent(pacsRequest::setRemappingScript);
+
+        return Optional.of(_queuedPacsRequestService.create(pacsRequest));
+    }
+
+    /**
+     * Queues a request to retrieve a study series by series, expanding the study into its series
+     * and applying whatever series filter the request carried.
+     */
+    private Optional<QueuedPacsRequest> queueSeriesImport(final UserI user, final Pacs pacs, final String projectId, final String ae, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId) {
+        final String            studyInstanceUid = studyInfo.getStudyInstanceUid();
+        final Predicate<Series> includeSeries    = new IncludeSeries(studyInfo.getSeriesInstanceUids(), studyInfo.getSeriesDescriptions());
 
         final List<Series> results;
         try {
@@ -612,9 +677,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
 
         if (!results.isEmpty()) {
-            final String ae = port == 0 ? aeTitle : aeTitle + ":" + port;
             final Series            first       = results.get(0);
-            final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId, effectiveRetrieveLevel(retrieveLevel, studyInfo));
+            final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId, RetrieveLevel.SERIES);
             pacsRequest.setStudyDate(first.getStudyDate());
             pacsRequest.setStudyId(first.getStudyId());
             pacsRequest.setAccessionNumber(first.getAccessionNumber());

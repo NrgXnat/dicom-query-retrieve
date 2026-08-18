@@ -183,6 +183,19 @@ public class DqrDateRange {
         return BASIC_DATE_FORMATTER.format(date);
     }
 
+    /**
+     * Formats the date the way DICOM writes one, i.e. yyyyMMdd with no separators. This is the form
+     * a PACS returns in StudyDate and the form stored on PACS requests, so it's what to use when a
+     * date that came back as a parsed {@link Date} has to go somewhere expecting the DICOM form.
+     *
+     * @param date The date to format.
+     *
+     * @return The formatted date, or an empty string when the date is null.
+     */
+    public static String formatDicomDate(final Date date) {
+        return date == null ? "" : BASIC_DATE_FORMATTER.format(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime());
+    }
+
     public static Pair<LocalDateTime, LocalDateTime> getDateRange(final LocalTime start, final LocalTime end) {
         return getDateRange(start, end, LocalDate.now().getDayOfWeek());
     }
