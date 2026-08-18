@@ -146,6 +146,9 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .subjectLabel(request.getSubjectLabel())
                                                                            .experimentLabel(request.getExperimentLabel())
                                                                            .build();
+                // Carried over from the queued request rather than resolved again, so that the
+                // history records the level the request was actually queued at.
+                pacsRequest.setRetrieveLevel(request.getRetrieveLevel());
                 try {
                     final String adminUsername = admin.getUsername();
                     final String studyId       = request.getStudyInstanceUid();

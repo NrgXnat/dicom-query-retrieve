@@ -93,6 +93,11 @@ XNAT.app = getObject(XNAT.app || {});
         { label: "DICOMweb", value: 'dicom_web'}
     ];
 
+    var retrieve_levels = [
+        { label: 'Series (one C-MOVE per series)', value: 'SERIES'},
+        { label: 'Study (one C-MOVE per study)', value: 'STUDY'}
+    ];
+
     var identifiers;
 
     var ormStrategies = ['dicomOrmStrategy']; // replace this with a dynamic list
@@ -235,6 +240,13 @@ XNAT.app = getObject(XNAT.app || {});
                                 checked: true,
                                 value: true
                             }),
+                            XNAT.ui.panel.select.single({
+                                id: 'retrieveLevel',
+                                name: 'retrieveLevel',
+                                label: 'Retrieve Level',
+                                options: retrieve_levels,
+                                description: 'The level at which data is retrieved from this PACS. Series retrieves each series separately, which allows importing part of a study. Study retrieves a whole study in one operation, which suits a PACS that only supports study-level retrieves or one where an association per series is too much load.'
+                            })
                         ]),
                         spawn('div.connection-type-settings.dicom_web',[
                             spawn('p',{ style: { "text-align": "center", "width": "80%" }}, '<strong>Queryable</strong> Connections via DICOM Web are always queryable.'),
@@ -383,6 +395,8 @@ XNAT.app = getObject(XNAT.app || {});
                             parsedJson.dicomWebEnabled = true;
                             parsedJson.queryable = true;
                             parsedJson.storable = false;
+                            // Retrieve level is a DIMSE-only setting; DICOMweb always retrieves per series.
+                            delete parsedJson.retrieveLevel;
                         } else if (parsedJson.connection_type === 'dimse') {
                             parsedJson.dicomWebEnabled = false;
                         }
@@ -615,7 +629,8 @@ XNAT.app = getObject(XNAT.app || {});
                     ormStrategySpringBeanId: ae.ormStrategySpringBeanId,
                     supportsExtendedNegotiations: ae.supportsExtendedNegotiations,
                     dicomWebEnabled: ae.dicomWebEnabled,
-                    dicomWebRootUrl: ae.dicomWebRootUrl
+                    dicomWebRootUrl: ae.dicomWebRootUrl,
+                    retrieveLevel: ae.retrieveLevel
                 };
 
                 // populate table row

@@ -42,6 +42,7 @@ import org.nrg.xft.utils.FileUtils;
 import org.nrg.xnat.entities.ArchiveProcessorInstance;
 import org.nrg.xnat.helpers.editscript.DicomEdit;
 import org.nrg.xnat.processor.services.ArchiveProcessorInstanceService;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreFailureException;
 import org.nrg.xnatx.dqr.domain.Patient;
 import org.nrg.xnatx.dqr.domain.Series;
@@ -394,8 +395,11 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         if (!pacs.isDicomWebEnabled() && !request.isForceImport() && anonScripts.values().stream().anyMatch(Optional::isPresent)) {
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
+        final RetrieveLevel retrieveLevel = RetrieveLevel.resolve(request.getRetrieveLevel(), pacs.getRetrieveLevel());
+        log.debug("Importing {} studies from PACS {} at the {} level", studies.size(), pacsId, retrieveLevel);
+
         return studies.stream()
-                .map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()), request.getRequestId()))
+                .map(studyInfo -> queueStudyImport(user, pacs, request.getProjectId(), request.getAeTitle(), request.getPort(), isMultiStudy, studyInfo, anonScripts.get(studyInfo.getStudyInstanceUid()), request.getRequestId(), retrieveLevel))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
@@ -455,7 +459,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                     multiStudy,
                     studyId,
                     seriesInstanceUids,
-                    null);
+                    null,
+                    RetrieveLevel.resolve(null, pacs.getRetrieveLevel()));
             _queuedPacsRequestService.create(queuedPacsRequest);
             valueToReturn.set(false);
         }
@@ -542,7 +547,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                     multiStudy,
                     studyInstanceUid,
                     seriesInstanceUids,
-                    null);
+                    null,
+                    RetrieveLevel.resolve(null, pacs.getRetrieveLevel()));
             queuedPacsRequest.setRemappingScript(anonScript);
             _queuedPacsRequestService.create(queuedPacsRequest);
         }
@@ -570,7 +576,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         R process(final Map<Integer, String> columnMap, final List<String> row, final PacsSearchCriteria criteria, final Collection<Study> results);
     }
 
-    private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId) {
+    private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId, final RetrieveLevel retrieveLevel) {
         final String            studyInstanceUid   = studyInfo.getStudyInstanceUid();
         final List<String>      seriesDescriptions = studyInfo.getSeriesDescriptions();
         final List<String>      seriesInstanceUids = studyInfo.getSeriesInstanceUids();
@@ -591,7 +597,7 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         if (!results.isEmpty()) {
             final String ae = port == 0 ? aeTitle : aeTitle + ":" + port;
             final Series            first       = results.get(0);
-            final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId);
+            final QueuedPacsRequest pacsRequest = createQueuedPacsRequest(user, ae, projectId, pacs.getId(), isMultiStudy, studyInstanceUid, results.stream().map(Series::getSeriesInstanceUid).collect(Collectors.toList()), requestId, effectiveRetrieveLevel(retrieveLevel, studyInfo));
             pacsRequest.setStudyDate(first.getStudyDate());
             pacsRequest.setStudyId(first.getStudyId());
             pacsRequest.setAccessionNumber(first.getAccessionNumber());
@@ -606,8 +612,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     @NotNull
-    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds, final String requestId) {
-        return QueuedPacsRequest.builder()
+    private QueuedPacsRequest createQueuedPacsRequest(final UserI user, final String ae, final String project, final long pacsId, final boolean multiStudy, final String studyId, final List<String> seriesIds, final String requestId, final RetrieveLevel retrieveLevel) {
+        final QueuedPacsRequest request = QueuedPacsRequest.builder()
                                 .pacsId(pacsId)
                                 .username(user.getUsername())
                                 .xnatProject(project)
@@ -618,6 +624,29 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
                                 .status(PacsRequest.QUEUED_STATUS_TEXT)
                                 .requestId(requestId)
                                 .queuedTime(new Date()).build();
+        request.setRetrieveLevel(retrieveLevel);
+        return request;
+    }
+
+    /**
+     * Determines the level a single study is retrieved at. A study that names the series to import
+     * has to be retrieved series by series whatever the configured level says, because a study-level
+     * retrieve pulls the whole study and can't filter it.
+     *
+     * @param requested The level resolved for the request as a whole.
+     * @param studyInfo The study being queued.
+     *
+     * @return The level to use for this study.
+     */
+    private static RetrieveLevel effectiveRetrieveLevel(final RetrieveLevel requested, final StudyImportInformation studyInfo) {
+        if (requested != RetrieveLevel.STUDY) {
+            return requested;
+        }
+        if (CollectionUtils.isEmpty(studyInfo.getSeriesInstanceUids()) && CollectionUtils.isEmpty(studyInfo.getSeriesDescriptions())) {
+            return RetrieveLevel.STUDY;
+        }
+        log.info("Study {} was requested at the STUDY level but names the series to import, so it will be retrieved at the SERIES level instead", studyInfo.getStudyInstanceUid());
+        return RetrieveLevel.SERIES;
     }
 
     private Integer createExportWorkflow(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final List<String> scanIds) throws InitializationException {
