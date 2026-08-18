@@ -61,6 +61,14 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
     public static final String DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS_DEFAULT_VALUE = "20";
     public static final String DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS = "dicomWebRetrieveReadTimeoutSeconds";
     public static final String DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE = "20";
+    public static final String DIMSE_RESPONSE_TIMEOUT_SECONDS = "dimseResponseTimeoutSeconds";
+    public static final String DIMSE_RESPONSE_TIMEOUT_SECONDS_DEFAULT_VALUE = "60";
+    public static final String DIMSE_RETRIEVE_TIMEOUT_SECONDS = "dimseRetrieveTimeoutSeconds";
+    public static final String DIMSE_RETRIEVE_TIMEOUT_SECONDS_DEFAULT_VALUE = "60";
+    public static final String DIMSE_ACCEPT_TIMEOUT_SECONDS = "dimseAcceptTimeoutSeconds";
+    public static final String DIMSE_ACCEPT_TIMEOUT_SECONDS_DEFAULT_VALUE = "60";
+    public static final String DIMSE_CONNECT_TIMEOUT_SECONDS = "dimseConnectTimeoutSeconds";
+    public static final String DIMSE_CONNECT_TIMEOUT_SECONDS_DEFAULT_VALUE = "30";
 
     @Autowired
     public DqrPreferences(final NrgPreferenceService preferenceService, final NrgEventServiceI eventService, final ConfigPaths configPaths, final OrderedProperties initPrefs) {
@@ -210,6 +218,42 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         safeSet(dicomWebRetrieveReadTimeoutSeconds, DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS);
     }
 
+    @NrgPreference(defaultValue = DIMSE_RESPONSE_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDimseResponseTimeoutSeconds() {
+        return getValue(DIMSE_RESPONSE_TIMEOUT_SECONDS);
+    }
+
+    public void setDimseResponseTimeoutSeconds(final String dimseResponseTimeoutSeconds) {
+        safeSet(dimseResponseTimeoutSeconds, DIMSE_RESPONSE_TIMEOUT_SECONDS);
+    }
+
+    @NrgPreference(defaultValue = DIMSE_RETRIEVE_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDimseRetrieveTimeoutSeconds() {
+        return getValue(DIMSE_RETRIEVE_TIMEOUT_SECONDS);
+    }
+
+    public void setDimseRetrieveTimeoutSeconds(final String dimseRetrieveTimeoutSeconds) {
+        safeSet(dimseRetrieveTimeoutSeconds, DIMSE_RETRIEVE_TIMEOUT_SECONDS);
+    }
+
+    @NrgPreference(defaultValue = DIMSE_ACCEPT_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDimseAcceptTimeoutSeconds() {
+        return getValue(DIMSE_ACCEPT_TIMEOUT_SECONDS);
+    }
+
+    public void setDimseAcceptTimeoutSeconds(final String dimseAcceptTimeoutSeconds) {
+        safeSet(dimseAcceptTimeoutSeconds, DIMSE_ACCEPT_TIMEOUT_SECONDS);
+    }
+
+    @NrgPreference(defaultValue = DIMSE_CONNECT_TIMEOUT_SECONDS_DEFAULT_VALUE)
+    public String getDimseConnectTimeoutSeconds() {
+        return getValue(DIMSE_CONNECT_TIMEOUT_SECONDS);
+    }
+
+    public void setDimseConnectTimeoutSeconds(final String dimseConnectTimeoutSeconds) {
+        safeSet(dimseConnectTimeoutSeconds, DIMSE_CONNECT_TIMEOUT_SECONDS);
+    }
+
     public int getDicomWebMetadataReadTimeoutMs() {
         return parseTimeoutMs(getDicomWebMetadataReadTimeoutSeconds(),
                 DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS,
@@ -220,6 +264,30 @@ public class DqrPreferences extends EventTriggeringAbstractPreferenceBean {
         return parseTimeoutMs(getDicomWebRetrieveReadTimeoutSeconds(),
                 DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS,
                 DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDimseResponseTimeoutMs() {
+        return parseTimeoutMs(getDimseResponseTimeoutSeconds(),
+                DIMSE_RESPONSE_TIMEOUT_SECONDS,
+                DIMSE_RESPONSE_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDimseRetrieveTimeoutMs() {
+        return parseTimeoutMs(getDimseRetrieveTimeoutSeconds(),
+                DIMSE_RETRIEVE_TIMEOUT_SECONDS,
+                DIMSE_RETRIEVE_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDimseAcceptTimeoutMs() {
+        return parseTimeoutMs(getDimseAcceptTimeoutSeconds(),
+                DIMSE_ACCEPT_TIMEOUT_SECONDS,
+                DIMSE_ACCEPT_TIMEOUT_SECONDS_DEFAULT_VALUE);
+    }
+
+    public int getDimseConnectTimeoutMs() {
+        return parseTimeoutMs(getDimseConnectTimeoutSeconds(),
+                DIMSE_CONNECT_TIMEOUT_SECONDS,
+                DIMSE_CONNECT_TIMEOUT_SECONDS_DEFAULT_VALUE);
     }
 
     private static int parseTimeoutMs(final String value, final String prefName, final String defaultValue) {

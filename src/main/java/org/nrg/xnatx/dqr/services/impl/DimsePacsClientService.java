@@ -16,6 +16,7 @@ import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.dcm4che3.Dcm4che3CStoreSCU;
+import org.nrg.xnatx.dqr.dicom.dimse.DimseTimeouts;
 import org.nrg.xnatx.dqr.dicom.dimse.QrClient;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -200,7 +201,8 @@ public class DimsePacsClientService implements PacsClientService {
                 .remoteAe(pacs.getAeTitle())
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
-                .localAe(getCallingAETitle());
+                .localAe(getCallingAETitle())
+                .timeouts(getDimseTimeouts());
 
         new RetryablePacsOperation<Void>() {
             @Override
@@ -221,7 +223,8 @@ public class DimsePacsClientService implements PacsClientService {
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
                 .localAe(getCallingAETitle())
-                .destination(destination);
+                .destination(destination)
+                .timeouts(getDimseTimeouts());
 
         new RetryablePacsOperation<Void>() {
             @Override
@@ -284,6 +287,22 @@ public class DimsePacsClientService implements PacsClientService {
 
     private String getCallingAETitle() {
         return preferences.getDqrCallingAe();
+    }
+
+    /**
+     * Resolves the DIMSE connection timeouts from the current DQR preferences. These are read per
+     * operation rather than cached so that an administrator changing them takes effect on the next
+     * request instead of requiring a restart.
+     *
+     * @return The timeouts to apply to the DIMSE connection.
+     */
+    private DimseTimeouts getDimseTimeouts() {
+        return DimseTimeouts.builder()
+                .responseTimeoutMs(preferences.getDimseResponseTimeoutMs())
+                .retrieveTimeoutMs(preferences.getDimseRetrieveTimeoutMs())
+                .acceptTimeoutMs(preferences.getDimseAcceptTimeoutMs())
+                .connectTimeoutMs(preferences.getDimseConnectTimeoutMs())
+                .build();
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {
