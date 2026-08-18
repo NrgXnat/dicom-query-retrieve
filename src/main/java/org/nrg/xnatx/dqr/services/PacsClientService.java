@@ -178,6 +178,18 @@ public interface PacsClientService {
     void importSeries(Pacs pacs, UserI user, Study study, Series series, String ae) throws DqrException;
 
     /**
+     * Import an entire study from the indicated PACS to this XNAT instance in a single retrieve
+     * operation, rather than one operation per series. The series that make up the study can't be
+     * filtered, so this is only appropriate when the whole study is wanted.
+     *
+     * @param pacs  The PACS from which the user wants to import.
+     * @param user  The user that launched the request.
+     * @param study The study to be imported.
+     * @param ae    The AE title the PACS should use when sending the study back to XNAT.
+     */
+    void importStudy(Pacs pacs, UserI user, Study study, String ae) throws DqrException;
+
+    /**
      * Import the specified series from the indicated PACS to this XNAT instance.
      *
      * @param pacs              The PACS from which the user wants to import.

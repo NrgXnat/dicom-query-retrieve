@@ -301,6 +301,14 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         _pacsClientRoutingService.getPacsClientService(pacs).importSeries(pacs, user, study, series, ae);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void importStudy(final UserI user, final Pacs pacs, final Study study, final String ae) throws DqrException {
+        _pacsClientRoutingService.getPacsClientService(pacs).importStudy(pacs, user, study, ae);
+    }
+
     @Override
     public void importInstance(Pacs pacs, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid, String destinationAe) throws PacsException {
         _pacsClientRoutingService.getPacsClientService(pacs).importInstance(pacs, studyInstanceUid, seriesInstanceUid, sopInstanceUid, destinationAe);
@@ -324,6 +332,15 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         final PacsClientService pacsClientService = _pacsClientRoutingService.getPacsClientService(pacs);
         final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(),
                 request.getSubjectLabel(), request.getExperimentLabel(), request.getUsername());
+
+        // The level was resolved when the request was queued. Anything that needs a subset of a
+        // study was forced to SERIES then, so a STUDY request here always wants the whole study.
+        if (request.getRetrieveLevel() == RetrieveLevel.STUDY) {
+            log.debug("Requesting all of study instance UID {} from PACS {} in a single retrieve", request.getStudyInstanceUid(), request.getPacsId());
+            pacsClientService.importStudy(pacs, user, study, aeTitle);
+            return;
+        }
+
         for (final String seriesId : request.getSeriesIds()) {
             log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
             pacsClientService.importSeries(pacs, user, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);

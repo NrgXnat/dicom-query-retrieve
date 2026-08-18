@@ -28,6 +28,7 @@ import org.nrg.xnatx.dqr.exceptions.DqrException;
 import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 import org.nrg.xnatx.dqr.exceptions.PacsDataNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
+import org.nrg.xnatx.dqr.exceptions.PacsRetrieveNotSupportedException;
 import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.services.DicomWebCredentialService;
 import org.nrg.xnatx.dqr.services.PacsClientService;
@@ -303,6 +304,19 @@ public class DicomWebPacsClientService implements PacsClientService {
                         importSeriesFromMultipartDicom(pacs, user, study.getProjectId(), ae, partNumber, multipartInputStream)
         );
         log.info("Study {} series {} imported", study.getStudyInstanceUid(), series.getSeriesInstanceUid());
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Study-level retrieve isn't supported over DICOMweb here: retrieval streams one series at a
+     * time into the importer. A DICOMweb PACS is rejected at validation if it's configured for
+     * study-level retrieve, so reaching this is a bug rather than a configuration error.
+     */
+    @Override
+    public void importStudy(final Pacs pacs, final UserI user, final Study study, final String ae) throws DqrException {
+        throw new PacsRetrieveNotSupportedException("PACS " + pacs.getLabel() + " is a DICOMweb connection, which retrieves one series at a time;"
+                                                   + " study-level retrieve is only available over DIMSE. Set this PACS to retrieve at the SERIES level.", -1);
     }
 
     @Override

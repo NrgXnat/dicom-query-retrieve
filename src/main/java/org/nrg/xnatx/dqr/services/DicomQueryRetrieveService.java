@@ -235,6 +235,18 @@ public interface DicomQueryRetrieveService {
     void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae) throws DqrException;
 
     /**
+     * Import an entire study from the indicated PACS to this XNAT instance in a single retrieve
+     * operation. Unlike {@link #importSeries(UserI, Pacs, Study, Series, String)} the series can't
+     * be filtered, so this applies only when the whole study is wanted.
+     *
+     * @param user  The user requesting the import operation.
+     * @param pacs  The PACS from which the user wants to import.
+     * @param study The study to be imported.
+     * @param ae    The AE title the PACS should use when sending the study back to XNAT.
+     */
+    void importStudy(UserI user, Pacs pacs, Study study, String ae) throws DqrException;
+
+    /**
      * Import a single instance from the specified series
      *
      * @param pacs              The PACS to be searched
