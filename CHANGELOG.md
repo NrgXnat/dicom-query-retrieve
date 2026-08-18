@@ -5,11 +5,20 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
-## <a name="3.1"></a>XNAT DQR Version 3.1 Release Notes
+## <a name="3.2"></a>XNAT DQR Version 3.2 Release Notes
 
-### <a name="3.1.0"></a>DQR Plugin Version: 3.1.0
+### <a name="3.2.0"></a>DQR Plugin Version: 3.2.0
 
-Version 3.1.0 of the DQR Plugin requires XNAT 1.10.1 or newer and is compiled on JDK21.
+Version 3.2.0 of the DQR Plugin requires XNAT 1.10.1 or newer and is compiled on JDK21.
+
+#### 3.2.0 - New Features
+
+* [PLUGINS-362](https://radiologics.atlassian.net/browse/PLUGINS-362) Retrieve an entire study in a single C-MOVE, rather than one C-MOVE per series each on its own association. This suits a PACS that only supports study-level retrieves, and reduces a study import to one association instead of one per series plus one to enumerate them.
+    * Each PACS has a new **Retrieve Level** setting, `SERIES` or `STUDY`. It defaults to `SERIES`, which is how the plugin has always retrieved, so existing configurations are unchanged until an administrator changes them.
+    * A single import can override the PACS setting by sending `retrieveLevel` on the `POST /xapi/dqr/import` request body. The import screen offers this as an **Import Entire Studies** button.
+    * A study-level import runs no series-level C-FIND to expand the study, so the queued request carries no series list. Its study date, study ID, accession number and patient details come from a study-level query instead.
+    * Requesting a subset of a study's series forces that study back to series-level retrieve, since a study-level retrieve takes the whole study and cannot filter it. This is logged when it happens.
+    * Study-level retrieve is available over DIMSE only. A DICOMweb PACS cannot be configured for it, and an import request asking for it against a DICOMweb PACS is rejected.
 
 #### 3.1.0 - Improvements
 
