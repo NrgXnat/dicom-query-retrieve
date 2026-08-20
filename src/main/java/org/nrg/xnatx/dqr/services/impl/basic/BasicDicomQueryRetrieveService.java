@@ -335,10 +335,22 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
 
         // The level was resolved when the request was queued. Anything that needs a subset of a
         // study was forced to SERIES then, so a STUDY request here always wants the whole study.
-        if (request.getRetrieveLevel() == RetrieveLevel.STUDY) {
-            log.debug("Requesting all of study instance UID {} from PACS {} in a single retrieve", request.getStudyInstanceUid(), request.getPacsId());
+        final RetrieveLevel retrieveLevel = request.getRetrieveLevel();
+        log.info("Retrieving study instance UID {} from PACS {} at the {} level with {} series listed",
+                request.getStudyInstanceUid(), request.getPacsId(), retrieveLevel, request.getSeriesIds().size());
+
+        if (retrieveLevel == RetrieveLevel.STUDY) {
             pacsClientService.importStudy(pacs, user, study, aeTitle);
             return;
+        }
+
+        // A series-level request with nothing to retrieve would loop zero times and report success
+        // without contacting the PACS at all. That is never what anyone asked for, and it is how a
+        // request whose retrieve level failed to survive being queued would present itself.
+        if (request.getSeriesIds().isEmpty()) {
+            throw new DqrException("PACS request for study " + request.getStudyInstanceUid() + " is set to retrieve at the SERIES level but lists no series,"
+                                   + " so there is nothing to retrieve. A study-level request should have been stored with a retrieve level of STUDY;"
+                                   + " check the retrieve_level column on this request.");
         }
 
         for (final String seriesId : request.getSeriesIds()) {

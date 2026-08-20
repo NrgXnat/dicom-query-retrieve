@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -105,6 +106,24 @@ class TestImportFromPacsRequestBranching {
         service.importFromPacsRequest(request(null), user);
 
         verify(pacsClientService, times(SERIES_UIDS.size())).importSeries(eq(pacs), eq(user), any(Study.class), any(Series.class), eq(AE_TITLE));
+        verify(pacsClientService, never()).importStudy(any(), any(), any(), any());
+    }
+
+    @Test
+    void aSeriesLevelRequestWithNothingToRetrieveFailsInsteadOfDoingNothing() throws DqrException {
+        // Looping zero times and reporting success would hide the reason nothing was retrieved,
+        // and is how a request whose level failed to survive being queued would present itself
+        final ExecutedPacsRequest empty = ExecutedPacsRequest.builder()
+                .pacsId(1L).username("someone").studyInstanceUid(STUDY_UID)
+                .seriesIds(Collections.emptyList()).destinationAeTitle(AE_TITLE).build();
+        empty.setRetrieveLevel(RetrieveLevel.SERIES);
+
+        assertThatThrownBy(() -> service.importFromPacsRequest(empty, user))
+                .isInstanceOf(DqrException.class)
+                .hasMessageContaining("nothing to retrieve")
+                .hasMessageContaining("retrieve_level");
+
+        verify(pacsClientService, never()).importSeries(any(), any(), any(), any(), any());
         verify(pacsClientService, never()).importStudy(any(), any(), any(), any());
     }
 
