@@ -1261,11 +1261,16 @@ XNAT.app = getObject(XNAT.app || {});
                     filter: true, // add filter: true to individual items to add a filter,
                     apply: function(){
                         var sessionID = this['studyInstanceUid'];
-                        var scans = this['seriesIds'];
+                        var scans = this['seriesIds'] || [];
+                        // A study-level request lists no series: the whole study was asked for, so
+                        // there is no series count to report and "0 Scans" would misread as a failure
+                        var requested = scans.length
+                            ? '1 Session with '+scans.length+' Scans'
+                            : '1 Session, entire study';
                         return spawn (
                             'a',
                             { href: '#!', title: sessionID, className: 'view-'+tableType+'-entry', data: { id: this['id'] } },
-                            '1 Session with '+scans.length+' Scans'
+                            requested
                         );
                     }
                 },
