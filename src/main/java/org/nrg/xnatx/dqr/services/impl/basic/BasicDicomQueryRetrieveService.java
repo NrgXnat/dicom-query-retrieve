@@ -425,6 +425,23 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
             validateDicomScpInstance(request.getAeTitle(), request.getPort());
         }
         final RetrieveLevel retrieveLevel = RetrieveLevel.resolve(request.getRetrieveLevel(), pacs.getRetrieveLevel());
+
+        // A study-level retrieve takes the whole study and cannot leave any of it behind, so a
+        // request that names series is asking for something that cannot be done. Previously each
+        // such study was quietly retrieved series by series instead, which meant a PACS configured
+        // for study-level retrieve was never actually used that way.
+        final List<String> studiesNamingSeries = retrieveLevel != RetrieveLevel.STUDY
+                                                 ? Collections.emptyList()
+                                                 : studies.stream()
+                                                          .filter(BasicDicomQueryRetrieveService::namesSeries)
+                                                          .map(StudyImportInformation::getStudyInstanceUid)
+                                                          .collect(Collectors.toList());
+        if (!studiesNamingSeries.isEmpty()) {
+            throw new DataFormatException("PACS " + pacs.getLabel() + " retrieves whole studies, so the series to import cannot be selected."
+                                          + " Remove the series selection from " + (studiesNamingSeries.size() == 1 ? "study " : "studies ")
+                                          + String.join(", ", studiesNamingSeries) + ", or set this PACS to retrieve at the SERIES level.");
+        }
+
         if (retrieveLevel == RetrieveLevel.STUDY && pacs.isDicomWebEnabled()) {
             // A PACS can't be configured this way, so the level came from the request. Reject it
             // here rather than queueing requests that can only fail once they reach the PACS.
@@ -626,15 +643,14 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     private Optional<QueuedPacsRequest> queueStudyImport(final UserI user, final Pacs pacs, final String projectId, final String aeTitle, final int port, final boolean isMultiStudy, final StudyImportInformation studyInfo, final Optional<String> anonScript, final String requestId, final RetrieveLevel retrieveLevel) {
-        final String        studyInstanceUid = studyInfo.getStudyInstanceUid();
-        final RetrieveLevel effectiveLevel   = effectiveRetrieveLevel(retrieveLevel, studyInfo);
-        final String        ae               = port == 0 ? aeTitle : aeTitle + ":" + port;
+        final String studyInstanceUid = studyInfo.getStudyInstanceUid();
+        final String ae               = port == 0 ? aeTitle : aeTitle + ":" + port;
 
         //TODO: We should just be able to uncomment the setStudyScript call and remove the 11 lines below it, but I'm having a build issue with the updated XNAT code not being picked up. This should be changed as soon as those issues are resolved.
         final String login = _xnatUserProvider.getLogin();
         log.debug("User {} is setting {} script for project {}", login, DicomEdit.ToolName, studyInstanceUid);
 
-        return effectiveLevel == RetrieveLevel.STUDY
+        return retrieveLevel == RetrieveLevel.STUDY
                ? queueWholeStudyImport(user, pacs, projectId, ae, isMultiStudy, studyInstanceUid, anonScript, requestId)
                : queueSeriesImport(user, pacs, projectId, ae, isMultiStudy, studyInfo, anonScript, requestId);
     }
@@ -728,24 +744,15 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     /**
-     * Determines the level a single study is retrieved at. A study that names the series to import
-     * has to be retrieved series by series whatever the configured level says, because a study-level
-     * retrieve pulls the whole study and can't filter it.
+     * Indicates whether a study asks for particular series rather than all of them, either by
+     * series instance UID or by series description.
      *
-     * @param requested The level resolved for the request as a whole.
-     * @param studyInfo The study being queued.
+     * @param studyInfo The study being imported.
      *
-     * @return The level to use for this study.
+     * @return Returns <b>true</b> if the study names the series to import.
      */
-    private static RetrieveLevel effectiveRetrieveLevel(final RetrieveLevel requested, final StudyImportInformation studyInfo) {
-        if (requested != RetrieveLevel.STUDY) {
-            return requested;
-        }
-        if (CollectionUtils.isEmpty(studyInfo.getSeriesInstanceUids()) && CollectionUtils.isEmpty(studyInfo.getSeriesDescriptions())) {
-            return RetrieveLevel.STUDY;
-        }
-        log.info("Study {} was requested at the STUDY level but names the series to import, so it will be retrieved at the SERIES level instead", studyInfo.getStudyInstanceUid());
-        return RetrieveLevel.SERIES;
+    private static boolean namesSeries(final StudyImportInformation studyInfo) {
+        return !CollectionUtils.isEmpty(studyInfo.getSeriesInstanceUids()) || !CollectionUtils.isEmpty(studyInfo.getSeriesDescriptions());
     }
 
     private Integer createExportWorkflow(final UserI user, final Pacs pacs, final XnatImagesessiondata session, final List<String> scanIds) throws InitializationException {

@@ -17,7 +17,7 @@ Version 3.2.0 of the DQR Plugin requires XNAT 1.10.1 or newer and is compiled on
     * Each PACS has a new **Retrieve Level** setting, `SERIES` or `STUDY`. It defaults to `SERIES`, which is how the plugin has always retrieved, so existing configurations are unchanged until an administrator changes them.
     * A single import can override the PACS setting by sending `retrieveLevel` on the `POST /xapi/dqr/import` request body. The import screen offers this as an **Import Entire Studies** button.
     * A study-level import runs no series-level C-FIND to expand the study, so the queued request carries no series list. Its study date, study ID, accession number and patient details come from a study-level query instead.
-    * Requesting a subset of a study's series forces that study back to series-level retrieve, since a study-level retrieve takes the whole study and cannot filter it. This is logged when it happens.
+    * A study-level retrieve takes the whole study and cannot leave any of it behind, so the series to import cannot be selected when retrieving from such a PACS. The import screen shows the series a study contains with their selection locked on and explains why, and offers only the whole-study import; an import request that names series is rejected.
     * Study-level retrieve is available over DIMSE only. A DICOMweb PACS cannot be configured for it, and an import request asking for it against a DICOMweb PACS is rejected.
 
 #### 3.1.0 - Improvements

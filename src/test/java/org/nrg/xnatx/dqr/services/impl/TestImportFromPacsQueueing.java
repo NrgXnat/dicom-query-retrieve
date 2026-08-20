@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -143,9 +144,9 @@ class TestImportFromPacsQueueing {
     }
 
     @Test
-    void namingSeriesForcesTheExpansionEvenWhenStudyLevelWasAskedFor() throws Exception {
-        when(pacsClientService.querySeries(any(Pacs.class), any(PacsSearchCriteria.class))).thenReturn(seriesResults());
-
+    void namingSeriesForAStudyLevelRetrieveIsRejectedRatherThanQuietlyDowngraded() {
+        // Downgrading meant a PACS configured to retrieve whole studies never actually did, since
+        // the import screen always named the series it had selected
         final PacsImportRequest request = PacsImportRequest.builder()
                 .pacsId(1L).aeTitle("XNAT").port(8104).projectId("PROJ")
                 .retrieveLevel(RetrieveLevel.STUDY)
@@ -155,10 +156,44 @@ class TestImportFromPacsQueueing {
                         .build())
                 .build();
 
+        assertThatThrownBy(() -> service.importFromPacs(user, request))
+                .isInstanceOf(DataFormatException.class)
+                .hasMessageContaining(STUDY_UID)
+                .hasMessageContaining("SERIES level");
+
+        verifyNoInteractions(queuedPacsRequestService);
+    }
+
+    @Test
+    void namingSeriesDescriptionsForAStudyLevelRetrieveIsAlsoRejected() {
+        final PacsImportRequest request = PacsImportRequest.builder()
+                .pacsId(1L).aeTitle("XNAT").port(8104).projectId("PROJ")
+                .retrieveLevel(RetrieveLevel.STUDY)
+                .study(StudyImportInformation.builder()
+                        .studyInstanceUid(STUDY_UID)
+                        .seriesDescriptions(Collections.singletonList("T1"))
+                        .build())
+                .build();
+
+        assertThatThrownBy(() -> service.importFromPacs(user, request))
+                .isInstanceOf(DataFormatException.class);
+    }
+
+    @Test
+    void namingSeriesIsStillFineWhenThePacsRetrievesPerSeries() throws Exception {
+        when(pacsClientService.querySeries(any(Pacs.class), any(PacsSearchCriteria.class))).thenReturn(seriesResults());
+
+        final PacsImportRequest request = PacsImportRequest.builder()
+                .pacsId(1L).aeTitle("XNAT").port(8104).projectId("PROJ")
+                .retrieveLevel(RetrieveLevel.SERIES)
+                .study(StudyImportInformation.builder()
+                        .studyInstanceUid(STUDY_UID)
+                        .seriesInstanceUids(Collections.singletonList("1.2.3.1"))
+                        .build())
+                .build();
+
         service.importFromPacs(user, request);
 
-        // A subset of a study can't be expressed as a study-level retrieve
-        verify(pacsClientService, never()).getStudy(any(Pacs.class), anyString());
         final QueuedPacsRequest queued = captureQueuedRequest();
         assertThat(queued.getRetrieveLevel()).isEqualTo(RetrieveLevel.SERIES);
         assertThat(queued.getSeriesIds()).containsExactly("1.2.3.1");

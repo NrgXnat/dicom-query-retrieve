@@ -765,6 +765,27 @@ var XNAT = getObject(XNAT || {});
     }
 
 
+    // Shown on the series checkboxes when the PACS is set to retrieve whole studies
+    var STUDY_LEVEL_LOCK_TITLE = 'This PACS is set to retrieve entire studies, so individual series cannot be excluded from the import.';
+
+    // A PACS that retrieves whole studies takes every series with the study, so there is nothing
+    // for a series filter to do. DICOMweb connections always retrieve series by series.
+    function isStudyLevelPacs(pacsId){
+        var pacs = dqr.pacsObj[pacsId] || {};
+        return !pacs.dicomWebEnabled && pacs.retrieveLevel === 'STUDY';
+    }
+
+    // The series are shown ticked and locked rather than hidden, so the user can still see what
+    // the studies contain even though none of it can be left behind.
+    function lockSeriesSelection($list){
+        $list.find('input[type=checkbox]')
+             .prop('checked', true)
+             .prop('disabled', true)
+             .attr('title', STUDY_LEVEL_LOCK_TITLE);
+        $list.find('label.scan-type-label')
+             .attr('title', STUDY_LEVEL_LOCK_TITLE);
+    }
+
     // Collects the relabel values entered on a study's row in the search results
     function relabelMapForStudy(uid){
         var relabelMapTemp = {};
@@ -936,22 +957,29 @@ var XNAT = getObject(XNAT || {});
                 .prop('disabled',false)
                 .data('clicked',false);
 
-            // Retrieving a whole study in one operation is a C-MOVE feature; DICOMweb connections
-            // always retrieve one series at a time, so the option isn't offered for them.
-            var dialogButtons = [
-                {
+            var studyLevel = isStudyLevelPacs(pacsId);
+
+            var dialogButtons = [];
+
+            // Importing a selection means filtering by series, which a study-level PACS cannot do,
+            // so that action is not offered at all for one.
+            if (!studyLevel) {
+                dialogButtons.push({
                     label: 'Import Selected',
                     isDefault: true,
                     close: false,
                     action: function(obj){
                         importSessionsOfSelectedTypeToProject(obj);
                     }
-                }
-            ];
+                });
+            }
 
+            // Retrieving a whole study in one operation is a C-MOVE feature; DICOMweb connections
+            // always retrieve one series at a time, so the option isn't offered for them.
             if (!(dqr.pacsObj[pacsId] || {}).dicomWebEnabled) {
                 dialogButtons.push({
                     label: 'Import Entire Studies',
+                    isDefault: studyLevel,
                     close: false,
                     action: function(obj){
                         importSessionsOfSelectedTypeToProject(obj, true);
@@ -969,6 +997,9 @@ var XNAT = getObject(XNAT || {});
                 content: scanTypesTable,
                 afterShow: function(dlg){
                     XNAT.plugin.dqr.selectableItems(dlg.body$.find('#scan-types-list'));
+                    if (studyLevel) {
+                        lockSeriesSelection(dlg.body$.find('#scan-types-list'));
+                    }
                 },
                 buttons: dialogButtons
             });
