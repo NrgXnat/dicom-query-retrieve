@@ -9,7 +9,7 @@
 
 buildscript {
     ext {
-        vXnat = "1.10.1-SNAPSHOT"
+        vXnat = "1.10.1-RC-SNAPSHOT"
     }
 }
 
@@ -28,7 +28,7 @@ plugins {
 }
 
 group "org.nrg.xnatx.plugins"
-version "3.1.0-SNAPSHOT"
+version "3.1.0-RC-SNAPSHOT"
 description "XNAT DICOM Query/Retrieve Plugin"
 
 repositories {
