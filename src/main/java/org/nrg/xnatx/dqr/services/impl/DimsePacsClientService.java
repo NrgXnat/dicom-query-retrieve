@@ -16,6 +16,7 @@ import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.dcm4che3.Dcm4che3CStoreSCU;
+import org.nrg.xnatx.dqr.dicom.dimse.DimseTimeouts;
 import org.nrg.xnatx.dqr.dicom.dimse.QrClient;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -167,11 +168,21 @@ public class DimsePacsClientService implements PacsClientService {
         keys.put(Tag.StudyInstanceUID, study.getStudyInstanceUid());
         keys.put(Tag.SeriesInstanceUID, series.getSeriesInstanceUid());
 
-        try {
-            doCMove(buildQuery(keys, QrClient.QueryRetrieveLevel.SERIES), pacs, ae);
-        } catch (final PacsException e) {
-            throw new DqrException(e);
-        }
+        // PacsException is already a DqrException, so it's allowed to propagate as it is. Wrapping
+        // it would hide the specific failure from callers that need to tell, for instance, a PACS
+        // refusing the retrieve from one that merely failed to complete it.
+        doCMove(buildQuery(keys, QrClient.QueryRetrieveLevel.SERIES), pacs, ae);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void importStudy(final Pacs pacs, final UserI user, final Study study, final String ae) throws DqrException {
+        final Map<Integer, String> keys = new HashMap<>();
+        keys.put(Tag.StudyInstanceUID, study.getStudyInstanceUid());
+
+        doCMove(buildQuery(keys, QrClient.QueryRetrieveLevel.STUDY), pacs, ae);
     }
 
     @Override
@@ -200,7 +211,8 @@ public class DimsePacsClientService implements PacsClientService {
                 .remoteAe(pacs.getAeTitle())
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
-                .localAe(getCallingAETitle());
+                .localAe(getCallingAETitle())
+                .timeouts(getDimseTimeouts());
 
         new RetryablePacsOperation<Void>() {
             @Override
@@ -214,14 +226,23 @@ public class DimsePacsClientService implements PacsClientService {
         }.call();
     }
 
-    private void doCMove(final Attributes attributes, final Pacs pacs, final String destination) throws PacsException {
+    /**
+     * Issues the C-MOVE. Visible to subclasses so that tests can capture the keys sent to the PACS
+     * without a PACS on the other end of the association.
+     *
+     * @param attributes  The identifier keys for the retrieve.
+     * @param pacs        The PACS to retrieve from.
+     * @param destination The AE title the PACS should send the data to.
+     */
+    protected void doCMove(final Attributes attributes, final Pacs pacs, final String destination) throws PacsException {
 
         final QrClient.QrClientBuilder builder = QrClient.builder()
                 .remoteAe(pacs.getAeTitle())
                 .remoteHost(pacs.getHost())
                 .remotePort(pacs.getQueryRetrievePort())
                 .localAe(getCallingAETitle())
-                .destination(destination);
+                .destination(destination)
+                .timeouts(getDimseTimeouts());
 
         new RetryablePacsOperation<Void>() {
             @Override
@@ -284,6 +305,22 @@ public class DimsePacsClientService implements PacsClientService {
 
     private String getCallingAETitle() {
         return preferences.getDqrCallingAe();
+    }
+
+    /**
+     * Resolves the DIMSE connection timeouts from the current DQR preferences. These are read per
+     * operation rather than cached so that an administrator changing them takes effect on the next
+     * request instead of requiring a restart.
+     *
+     * @return The timeouts to apply to the DIMSE connection.
+     */
+    private DimseTimeouts getDimseTimeouts() {
+        return DimseTimeouts.builder()
+                .responseTimeoutMs(preferences.getDimseResponseTimeoutMs())
+                .retrieveTimeoutMs(preferences.getDimseRetrieveTimeoutMs())
+                .acceptTimeoutMs(preferences.getDimseAcceptTimeoutMs())
+                .connectTimeoutMs(preferences.getDimseConnectTimeoutMs())
+                .build();
     }
 
     private DicomConnectionProperties buildDicomConnectionProperties(final Pacs pacs) {

@@ -1,7 +1,20 @@
 #* @vtlvariable name="seriesIds" type="java.util.List" *#
+#* @vtlvariable name="wholeStudy" type="java.lang.Boolean" *#
+#* @vtlvariable name="studyInstanceUid" type="java.lang.String" *#
 #* @vtlvariable name="prearchive" type="java.lang.String" *#
 #* @vtlvariable name="adminEmail" type="java.lang.String" *#
 #* @vtlvariable name="pacs" type="org.nrg.xnatx.dqr.domain.entities.Pacs" *#
+#if($wholeStudy)
+<p>
+    The DICOM study you requested was imported in full from the PACS $pacs.aeTitle on port $pacs.queryRetrievePort. Once
+    transferred, it will be available as a new XNAT session in the <a href="$prearchive">system prearchive</a>. The
+    study requested was:
+</p>
+
+<ul>
+    <li>$studyInstanceUid</li>
+</ul>
+#else
 <p>
     Your requested DICOM series were imported from the PACS $pacs.aeTitle on port $pacs.queryRetrievePort. Once
     transferred, your DICOM series will be available as a new XNAT session in the <a href="$prearchive">system
@@ -13,5 +26,6 @@
         <li>$seriesId</li>
     #end
 </ul>
+#end
 
 <p>For support, contact the <a href="mailto:${adminEmail}?subject=DICOM Import Assistance">system administrator</a>.</p>

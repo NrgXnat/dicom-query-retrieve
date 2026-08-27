@@ -765,7 +765,41 @@ var XNAT = getObject(XNAT || {});
     }
 
 
-    function importSessionsOfSelectedTypeToProject(scanTypesDialog){
+    // Shown on the series checkboxes when the PACS is set to retrieve whole studies
+    var STUDY_LEVEL_LOCK_TITLE = 'This PACS is set to retrieve entire studies, so individual series cannot be excluded from the import.';
+
+    // A PACS that retrieves whole studies takes every series with the study, so there is nothing
+    // for a series filter to do. DICOMweb connections always retrieve series by series.
+    function isStudyLevelPacs(pacsId){
+        var pacs = dqr.pacsObj[pacsId] || {};
+        return !pacs.dicomWebEnabled && pacs.retrieveLevel === 'STUDY';
+    }
+
+    // The series are shown ticked and locked rather than hidden, so the user can still see what
+    // the studies contain even though none of it can be left behind.
+    function lockSeriesSelection($list){
+        $list.find('input[type=checkbox]')
+             .prop('checked', true)
+             .prop('disabled', true)
+             .attr('title', STUDY_LEVEL_LOCK_TITLE);
+        $list.find('label.scan-type-label')
+             .attr('title', STUDY_LEVEL_LOCK_TITLE);
+    }
+
+    // Collects the relabel values entered on a study's row in the search results
+    function relabelMapForStudy(uid){
+        var relabelMapTemp = {};
+        var $importRow = $('#all-search-results').find('tr[data-uid="' + uid + '"]');
+        $importRow.find('input.relabel').each(function(){
+            // only add to the relabelMap object if there's a value
+            this.value && (relabelMapTemp[this.title] = this.value || '');
+        });
+        return relabelMapTemp;
+    }
+
+    // `wholeStudy` imports each selected study in its entirety, with no series filter, which lets
+    // the PACS send the whole study in one retrieve instead of one per series.
+    function importSessionsOfSelectedTypeToProject(scanTypesDialog, wholeStudy){
 
         var $searchResultsTable = $('#all-search-results');
         var $selectedSessions   = $searchResultsTable.find('input.select-session:checked').filter(':visible');
@@ -790,7 +824,7 @@ var XNAT = getObject(XNAT || {});
             return ckbx.value;
         });
 
-        if (!scanTypes.length) {
+        if (!wholeStudy && !scanTypes.length) {
             XNAT.dialog.message(false, 'Please select at least one series type to import.');
             return false;
         }
@@ -830,6 +864,10 @@ var XNAT = getObject(XNAT || {});
             studies: []
         };
 
+        if (wholeStudy) {
+            jsonData.retrieveLevel = 'STUDY';
+        }
+
         // SETUP THE FINAL SUBMISSION JSON
         forEach(studyUIDs, function(uid){
 
@@ -838,6 +876,14 @@ var XNAT = getObject(XNAT || {});
                 seriesDescriptions: [],
                 seriesInstanceUids: []
             };
+
+            // Naming any series would force the retrieve back to series level, so a whole-study
+            // import sends the study on its own.
+            if (wholeStudy) {
+                importObj.relabelMap = relabelMapForStudy(uid);
+                jsonData.studies.push(importObj);
+                return;
+            }
 
             importObj.seriesDescriptions = scanTypes.filter(function(type){
                 return dqr.seriesDescriptions[type].studyUIDs.indexOf(uid) !== -1;
@@ -853,15 +899,7 @@ var XNAT = getObject(XNAT || {});
                         importObj.seriesInstanceUids.concat(dqr.seriesDescriptions[type || NONE].seriesUIDs || []);
                 });
 
-                importObj.relabelMap = (function(){
-                    var relabelMapTemp = {};
-                    var $importRow     = $searchResultsTable.find('tr[data-uid="' + uid + '"]');
-                    $importRow.find('input.relabel').each(function(){
-                        // only add to the relabelMap object if there's a value
-                        this.value && (relabelMapTemp[this.title] = this.value || '');
-                    });
-                    return relabelMapTemp;
-                })();
+                importObj.relabelMap = relabelMapForStudy(uid);
 
                 jsonData.studies.push(importObj);
             }
@@ -919,26 +957,51 @@ var XNAT = getObject(XNAT || {});
                 .prop('disabled',false)
                 .data('clicked',false);
 
+            var studyLevel = isStudyLevelPacs(pacsId);
+
+            var dialogButtons = [];
+
+            // Importing a selection means filtering by series, which a study-level PACS cannot do,
+            // so that action is not offered at all for one.
+            if (!studyLevel) {
+                dialogButtons.push({
+                    label: 'Import Selected',
+                    isDefault: true,
+                    close: false,
+                    action: function(obj){
+                        importSessionsOfSelectedTypeToProject(obj);
+                    }
+                });
+            }
+
+            // Retrieving a whole study in one operation is a C-MOVE feature; DICOMweb connections
+            // always retrieve one series at a time, so the option isn't offered for them.
+            if (!(dqr.pacsObj[pacsId] || {}).dicomWebEnabled) {
+                dialogButtons.push({
+                    label: 'Import Entire Studies',
+                    isDefault: studyLevel,
+                    close: false,
+                    action: function(obj){
+                        importSessionsOfSelectedTypeToProject(obj, true);
+                    }
+                });
+            }
+
+            dialogButtons.push({
+                label: 'Cancel',
+                close: true
+            });
+
             XNAT.dialog.open({
                 title: 'Import from PACS',
                 content: scanTypesTable,
                 afterShow: function(dlg){
                     XNAT.plugin.dqr.selectableItems(dlg.body$.find('#scan-types-list'));
-                },
-                buttons: [
-                    {
-                        label: 'Import Selected',
-                        isDefault: true,
-                        close: false,
-                        action: function(obj){
-                            importSessionsOfSelectedTypeToProject(obj);
-                        }
-                    },
-                    {
-                        label: 'Cancel',
-                        close: true
+                    if (studyLevel) {
+                        lockSeriesSelection(dlg.body$.find('#scan-types-list'));
                     }
-                ]
+                },
+                buttons: dialogButtons
             });
         });
 
