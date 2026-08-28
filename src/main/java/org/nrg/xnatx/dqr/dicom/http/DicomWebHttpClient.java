@@ -14,7 +14,6 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.auth.BasicScheme;
@@ -29,6 +28,7 @@ import org.dcm4che3.json.JSONReader;
 import org.dcm4che3.mime.MultipartInputStream;
 import org.dcm4che3.mime.MultipartParser;
 import org.nrg.framework.exceptions.NrgServiceRuntimeException;
+import org.nrg.xdat.XDAT;
 import org.nrg.xnatx.dqr.dicom.json.DicomCorrectingJsonParser;
 import org.nrg.xnatx.dqr.dto.DicomWebCredential;
 import org.nrg.xnatx.dqr.dto.DicomWebPingResult;
@@ -38,6 +38,7 @@ import org.nrg.xnatx.dqr.exceptions.PacsAuthenticationException;
 import org.nrg.xnatx.dqr.exceptions.PacsConnectionException;
 import org.nrg.xnatx.dqr.exceptions.PacsDataNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.PacsException;
+import org.nrg.xnatx.dqr.preferences.DqrPreferences;
 import org.nrg.xnatx.dqr.utils.RetryablePacsOperation;
 import org.springframework.http.HttpStatus;
 
@@ -83,7 +84,12 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     private static final int DICOMWEB_CONNECTION_POOL_SIZE = 50;
     private static final int DICOMWEB_CONNECT_TIMEOUT_MS = 5 * 1000;
-    private static final int DICOMWEB_READ_TIMEOUT_MS = 20 * 1000;
+
+    /** Compile-time fallback timeouts used only when no {@link DqrPreferences} bean is available. */
+    private static final int DICOMWEB_METADATA_READ_TIMEOUT_MS_FALLBACK =
+            Integer.parseInt(DqrPreferences.DICOM_WEB_METADATA_READ_TIMEOUT_SECONDS_DEFAULT_VALUE) * 1000;
+    private static final int DICOMWEB_RETRIEVE_READ_TIMEOUT_MS_FALLBACK =
+            Integer.parseInt(DqrPreferences.DICOM_WEB_RETRIEVE_READ_TIMEOUT_SECONDS_DEFAULT_VALUE) * 1000;
 
     private final CloseableHttpClient httpClient;
     private final PoolingHttpClientConnectionManager connectionManager;
@@ -96,21 +102,42 @@ public class DicomWebHttpClient implements AutoCloseable {
     private final String authPassword;
     private final boolean preemptiveAuth;
 
+    /**
+     * DQR preferences bean used to read per-request timeout settings on every call so that admin
+     * updates to {@code dicomWebMetadataReadTimeoutSeconds} / {@code dicomWebRetrieveReadTimeoutSeconds}
+     * take effect without restarting (this class is cached per-PACS in DicomWebPacsClientService).
+     * May be {@code null} if the 2-arg constructor was used and the bean could not be resolved via
+     * the Spring context; in that case the helper methods fall back to compile-time defaults.
+     */
+    @Nullable
+    private final DqrPreferences dqrPreferences;
+
+    /**
+     * Convenience constructor that resolves the {@link DqrPreferences} bean inline via
+     * {@link XDAT#getContextService()}. Falls back to compile-time default timeouts if the
+     * bean is unavailable.
+     */
     public DicomWebHttpClient(final String rootUrl, @Nullable final DicomWebCredential credentials) {
+        this(rootUrl, credentials, XDAT.getContextService().getBeanSafely(DqrPreferences.class));
+    }
+
+    public DicomWebHttpClient(final String rootUrl, @Nullable final DicomWebCredential credentials, @Nullable final DqrPreferences dqrPreferences) {
         this.rootUrl = StringUtils.appendIfMissing(rootUrl, "/");
+        this.dqrPreferences = dqrPreferences;
+        if (dqrPreferences == null) {
+            log.warn("DqrPreferences not available for DicomWebHttpClient ({}); falling back to "
+                    + "compile-time default DICOMweb read timeouts (metadata={}ms, retrieve={}ms).",
+                    rootUrl,
+                    DICOMWEB_METADATA_READ_TIMEOUT_MS_FALLBACK,
+                    DICOMWEB_RETRIEVE_READ_TIMEOUT_MS_FALLBACK);
+        }
 
         connectionManager = new PoolingHttpClientConnectionManager();
         connectionManager.setMaxTotal(DICOMWEB_CONNECTION_POOL_SIZE);
         connectionManager.setDefaultMaxPerRoute(DICOMWEB_CONNECTION_POOL_SIZE);
 
-        final RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(DICOMWEB_CONNECT_TIMEOUT_MS)
-                .setConnectionRequestTimeout(DICOMWEB_CONNECT_TIMEOUT_MS)
-                .setSocketTimeout(DICOMWEB_READ_TIMEOUT_MS)
-                .build();
         httpClient = HttpClientBuilder.create()
                 .setConnectionManager(connectionManager)
-                .setDefaultRequestConfig(requestConfig)
                 .build();
 
         try {
@@ -208,8 +235,9 @@ public class DicomWebHttpClient implements AutoCloseable {
 
     public DicomWebPingResult ping() {
         final String requestUrl = rootUrl + STUDIES + STUDY_DATE_FORMATTER.format(new Date());
-        final HttpUriRequest request = new HttpGet(requestUrl);
+        final HttpGet request = new HttpGet(requestUrl);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
+        request.setConfig(buildRequestConfig(metadataReadTimeoutMs()));
 
         try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
             final HttpStatus status = HttpStatus.valueOf(response.getStatusLine().getStatusCode());
@@ -228,8 +256,9 @@ public class DicomWebHttpClient implements AutoCloseable {
     }
 
     private Optional<Attributes> doGet(final URI uri, @Nullable final Consumer<Attributes> callback) throws PacsException {
-        final HttpUriRequest request = new HttpGet(uri);
+        final HttpGet request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, APPLICATION_DICOM_JSON);
+        request.setConfig(buildRequestConfig(metadataReadTimeoutMs()));
         log.debug("Executing doGet request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
         try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
 
@@ -263,8 +292,9 @@ public class DicomWebHttpClient implements AutoCloseable {
     }
 
     private void doGetItem(final URI uri, final BiConsumer<Integer, MultipartInputStream> callback) throws PacsException {
-        final HttpUriRequest request = new HttpGet(uri);
+        final HttpGet request = new HttpGet(uri);
         request.setHeader(HttpHeaders.ACCEPT, MULTIPART_DICOM);
+        request.setConfig(buildRequestConfig(retrieveReadTimeoutMs()));
         log.debug("Executing request: {} {} {}", request.getAllHeaders(), request.getMethod(), request.getURI());
         try (final CloseableHttpResponse response = httpClient.execute(request, createContext())) {
 
@@ -341,6 +371,26 @@ public class DicomWebHttpClient implements AutoCloseable {
         } catch (IOException e) {
             log.error("Failed to close {}", getClass().getSimpleName(), e);
         }
+    }
+
+    private static RequestConfig buildRequestConfig(final int socketTimeoutMs) {
+        return RequestConfig.custom()
+                .setConnectTimeout(DICOMWEB_CONNECT_TIMEOUT_MS)
+                .setConnectionRequestTimeout(DICOMWEB_CONNECT_TIMEOUT_MS)
+                .setSocketTimeout(socketTimeoutMs)
+                .build();
+    }
+
+    private int metadataReadTimeoutMs() {
+        return dqrPreferences != null
+                ? dqrPreferences.getDicomWebMetadataReadTimeoutMs()
+                : DICOMWEB_METADATA_READ_TIMEOUT_MS_FALLBACK;
+    }
+
+    private int retrieveReadTimeoutMs() {
+        return dqrPreferences != null
+                ? dqrPreferences.getDicomWebRetrieveReadTimeoutMs()
+                : DICOMWEB_RETRIEVE_READ_TIMEOUT_MS_FALLBACK;
     }
 
     private URI buildUri(final Collection<String> pathSegments, final Map<Integer, String> searchKeys) throws

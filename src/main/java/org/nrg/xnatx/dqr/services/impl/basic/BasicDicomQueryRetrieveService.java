@@ -321,7 +321,8 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
         }
         final String aeTitle = StringUtils.substringBefore(aeAndPort, ":");
         final PacsClientService pacsClientService = _pacsClientRoutingService.getPacsClientService(pacs);
-        final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(), request.getUsername());
+        final Study study = assignStudyToProject(request.getXnatProject(), request.getStudyInstanceUid(),
+                request.getSubjectLabel(), request.getExperimentLabel(), request.getUsername());
         for (final String seriesId : request.getSeriesIds()) {
             log.debug("Requesting series {} for study instance UID {}", seriesId, request.getStudyInstanceUid());
             pacsClientService.importSeries(pacs, user, study, Series.builder().seriesInstanceUid(seriesId).build(), aeTitle);
@@ -548,9 +549,16 @@ public class BasicDicomQueryRetrieveService implements DicomQueryRetrieveService
     }
 
     protected Study assignStudyToProject(final String projectId, final String studyInstanceUid, final String username) {
+        return assignStudyToProject(projectId, studyInstanceUid, null, null, username);
+    }
+
+    protected Study assignStudyToProject(final String projectId, final String studyInstanceUid,
+                                          final String subjectLabel, final String experimentLabel,
+                                          final String username) {
         if (!StringUtils.isBlank(projectId)) {
-            log.debug("Assigning study instance UID {} to project {}", studyInstanceUid, projectId);
-            _studyRoutingService.assign(studyInstanceUid, projectId, username);
+            log.debug("Assigning study instance UID {} to project {} (subject={}, experiment={})",
+                    studyInstanceUid, projectId, subjectLabel, experimentLabel);
+            _studyRoutingService.assign(studyInstanceUid, projectId, subjectLabel, experimentLabel, username);
             return new Study(projectId, studyInstanceUid);
         } else {
             log.debug("No project assignment specified for study instance UID {}, may be registered as Unassigned", studyInstanceUid);

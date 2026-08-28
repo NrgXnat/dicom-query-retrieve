@@ -143,6 +143,8 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
                                                                            .accessionNumber(request.getAccessionNumber())
                                                                            .patientName(request.getPatientName())
                                                                            .requestId(request.getRequestId())
+                                                                           .subjectLabel(request.getSubjectLabel())
+                                                                           .experimentLabel(request.getExperimentLabel())
                                                                            .build();
                 try {
                     final String adminUsername = admin.getUsername();
@@ -175,7 +177,12 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
                     closeRequest(request);
 
-                    submitPrearchiveSessionRebuildRequest(studyInstanceUid, projectId, user);
+                    if (!submitPrearchiveSessionRebuildRequest(pacsRequest, studyInstanceUid, projectId, user)) {
+                        // The C-MOVE reported success but no files landed in the prearchive (e.g. an empty or
+                        // undelivered move). The request was marked FAILED; record it as a failure here so we
+                        // don't send a success notification and the workflow entry is saved as failed.
+                        failed = true;
+                    }
                 } catch (Exception e) {
                     log.error("REQ {} - Error executing PACS import request.", request.getId(), e);
                     failed = true;
@@ -341,17 +348,36 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
         }
     }
 
-    private void submitPrearchiveSessionRebuildRequest(final String studyInstanceUid, final String project, final UserI user) {
+    /**
+     * Submits a request to rebuild the prearchive session for a completed PACS import.
+     *
+     * @return {@code false} if zero files were received for the study, in which case {@code pacsRequest}
+     *         is marked FAILED; {@code true} otherwise (a single session was found and a rebuild queued,
+     *         multiple sessions were found, no project was supplied, or the rebuild could not be submitted).
+     */
+    private boolean submitPrearchiveSessionRebuildRequest(final ExecutedPacsRequest pacsRequest, final String studyInstanceUid, final String project, final UserI user) {
         if (StringUtils.isBlank(project)) {
             log.debug("Not attempting to rebuild session for study {} because no project was specified.", studyInstanceUid);
-            return;
+            return true;
         }
         try {
             final List<SessionDataTriple> prearcSessions = findPrearchiveSessions(studyInstanceUid, project);
 
-            if (prearcSessions.size() != 1) {
+            if (prearcSessions.isEmpty()) {
+                // The C-MOVE returned success but nothing landed in the prearchive (e.g. an empty or
+                // undelivered move). Mark the request FAILED so downstream orchestration can detect it,
+                // rather than leaving it ISSUED and silently stalling the study.
+                final String message = String.format("Received zero files for study %s in project %s", studyInstanceUid, project);
+                log.warn(message);
+                pacsRequest.setStatus(PacsRequest.FAILED_STATUS_TEXT);
+                pacsRequest.setErrorMessage(message);
+                _executedPacsRequestService.update(pacsRequest);
+                return false;
+            }
+
+            if (prearcSessions.size() > 1) {
                 log.warn("Cannot build session. {} prearchive sessions found for study {} in project {}.", prearcSessions.size(), studyInstanceUid, project);
-                return;
+                return true;
             }
 
             final SessionDataTriple prearcSession = prearcSessions.get(0);
@@ -360,8 +386,10 @@ public class PacsDequeueThread extends AbstractXnatRunnable {
 
             final PrearchiveOperationRequest request = new PrearchiveOperationRequest(user, Operation.Rebuild, prearcSession);
             PrearcUtils.queuePrearchiveOperation(request);
+            return true;
         } catch (Exception e) {
             log.warn("Failed to submit request to rebuild prearchive session for study {} in project {}", studyInstanceUid, project, e);
+            return true;
         }
     }
 

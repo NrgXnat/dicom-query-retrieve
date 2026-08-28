@@ -5,6 +5,28 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="3.1"></a>XNAT DQR Version 3.1 Release Notes
+
+### <a name="3.1.0"></a>DQR Plugin Version: 3.1.0
+
+Version 3.1.0 of the DQR Plugin requires XNAT 1.10.1 or newer and is compiled on JDK21.
+
+#### 3.1.0 - Improvements
+
+* [PLUGINS-354](https://xnat.atlassian.net/browse/PLUGINS-354) Reimplemented sending image data to a PACS on the dcm4che3 API, replacing `BasicCStoreSCU` with `Dcm4che3CStoreSCU`.
+    * Every object in a send request now goes over a single association, whose presentation contexts are negotiated from the SOP classes and transfer syntaxes of the files themselves.
+    * Each object is streamed to the PACS in the transfer syntax in which it is stored in the archive, preserving its original encoding rather than transcoding it. Objects archived gzip-compressed are decompressed en route.
+    * The DIMSE status the PACS returns for each object is now inspected. A warning status (`Bxxx`, meaning the object was stored but with data elements coerced or discarded) is logged and the send continues; any other non-success status fails the send, reporting the status code and the PACS error comment.
+* [PLUGINS-295](https://xnat.atlassian.net/browse/PLUGINS-295) Add subject and experiment label fields to PacsRequest/QueuedPacsRequest routing, enabling incoming DICOM studies to be routed to a specific subject and experiment within a project at queue pickup time.
+* [PLUGINS-296](https://xnat.atlassian.net/browse/PLUGINS-296) Split the single DICOMweb HTTP read timeout into two configurable preferences, so binary retrieval (WADO-RS) is no longer constrained by the shorter metadata-query timeout.
+    * `dicomWebMetadataReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb metadata requests: QIDO-RS searches, instance metadata fetches, and PACS ping checks.
+    * `dicomWebRetrieveReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb binary retrieval (WADO-RS multipart responses); raise on PACS implementations whose server-side response-assembly delay before the first byte exceeds the default.
+
+#### 3.1.0 - Bug Fixes
+
+* [PLUGINS-323](https://xnat.atlassian.net/browse/PLUGINS-323) Fail a PACS request when a C-MOVE reports success but delivers zero files to the prearchive. Previously `PacsDequeueThread` only logged a warning and left the executed request in the `ISSUED` state, so the study stalled with no failure signal. The request is now marked `FAILED` with the message `Received zero files for study <uid> in project <project>` so downstream orchestration can detect and surface the failure.
+* [PLUGINS-353](https://xnat.atlassian.net/browse/PLUGINS-353) Corrected the `AETITILE` misspelling in the AE summary on the PACS administration page.
+
 ## <a name="3.0"></a>XNAT DQR Version 3.0 Release Notes
 
 ### <a name="3.0.0"></a>DQR Plugin Version: 3.0.0
@@ -16,6 +38,23 @@ Version 3.0.0 of the DQR Plugin requires XNAT 1.10.0 or newer and is compiled on
 * [PLUGINS-289](https://radiologics.atlassian.net/browse/PLUGINS-289) Update and validate core functions to use dcm4che5 
 * [PLUGINS-291](https://radiologics.atlassian.net/browse/PLUGINS-291) Prevent thread leak from QrClient 
 * [XNAT-8256](https://radiologics.atlassian.net/browse/XNAT-8256) Update build architecture to use JDK21
+
+## <a name="2.4"></a>XNAT DQR Version 2.4 Release Notes
+
+### <a name="2.4.1"></a>DQR Plugin Version: 2.4.1
+
+#### 2.4.1 - Bug Fixes
+
+* [PLUGINS-323](https://xnat.atlassian.net/browse/PLUGINS-323) Fail a PACS request when a C-MOVE reports success but delivers zero files to the prearchive. Previously `PacsDequeueThread` only logged a warning and left the executed request in the `ISSUED` state, so the study stalled with no failure signal. The request is now marked `FAILED` with the message `Received zero files for study <uid> in project <project>` so downstream orchestration can detect and surface the failure.
+
+### <a name="2.4.0"></a>DQR Plugin Version: 2.4.0
+
+#### 2.4.0 - General Improvements
+
+* [PLUGINS-295](https://radiologics.atlassian.net/browse/PLUGINS-295) Add subject and experiment label fields to PacsRequest/QueuedPacsRequest routing, enabling incoming DICOM studies to be routed to a specific subject and experiment within a project at queue pickup time.
+* [PLUGINS-296](https://radiologics.atlassian.net/browse/PLUGINS-296) Split the single DICOMweb HTTP read timeout into two configurable preferences, so binary retrieval (WADO-RS) is no longer constrained by the shorter metadata-query timeout.
+    * `dicomWebMetadataReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb metadata requests: QIDO-RS searches, instance metadata fetches, and PACS ping checks.
+    * `dicomWebRetrieveReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb binary retrieval (WADO-RS multipart responses); raise on PACS implementations whose server-side response-assembly delay before the first byte exceeds the default.
 
 
 ## <a name="2.3"></a>XNAT DQR Version 2.3 Release Notes

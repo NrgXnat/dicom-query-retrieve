@@ -14,8 +14,8 @@ import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cecho.dcm4che3.Dcm4che3CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.CFindSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che.tool.Dcm4cheToolCFindSCU;
-import org.nrg.xnatx.dqr.dicom.command.cstore.BasicCStoreSCU;
 import org.nrg.xnatx.dqr.dicom.command.cstore.CStoreSCU;
+import org.nrg.xnatx.dqr.dicom.command.cstore.dcm4che3.Dcm4che3CStoreSCU;
 import org.nrg.xnatx.dqr.dicom.dimse.QrClient;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.OrmStrategy;
@@ -279,7 +279,7 @@ public class DimsePacsClientService implements PacsClientService {
     }
 
     private CStoreSCU buildCStoreSCU(final Pacs pacs) {
-        return new BasicCStoreSCU(preferences, buildDicomConnectionProperties(pacs));
+        return new Dcm4che3CStoreSCU(preferences, buildDicomConnectionProperties(pacs));
     }
 
     private String getCallingAETitle() {
