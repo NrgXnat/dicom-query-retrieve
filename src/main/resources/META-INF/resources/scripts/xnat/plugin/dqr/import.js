@@ -824,7 +824,7 @@ var XNAT = getObject(XNAT || {});
             return ckbx.value;
         });
 
-        if (!wholeStudy && !scanTypes.length) {
+        if (!wholeStudy && !scanTypes?.length) {
             XNAT.dialog.message(false, 'Please select at least one series type to import.');
             return false;
         }
