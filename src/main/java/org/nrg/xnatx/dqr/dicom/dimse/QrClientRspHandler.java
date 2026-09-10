@@ -22,11 +22,24 @@ public abstract class QrClientRspHandler extends DimseRSPHandler {
     @Override
     public void onDimseRSP(final Association as, final Attributes cmd, final Attributes data) {
         responseReceived = true;
-        final int status = cmd.getInt(Tag.Status, -1) & '\uff00';
-        if (status != Status.Pending && status != Status.Success) {
+        final int status = cmd.getInt(Tag.Status, -1);
+        // Whether a status is pending, successful, or a failure is determined by its high byte, but
+        // the full status is what identifies the specific failure, so that's what gets recorded.
+        final int category = status & 0xFF00;
+        if (category != Status.Pending && category != Status.Success) {
             failureCodes.add(status);
         }
         super.onDimseRSP(as, cmd, data);
+    }
+
+    /**
+     * Returns the first failure status reported by the PACS, which is the one that identifies why
+     * the operation failed. Returns -1 when the operation didn't fail.
+     *
+     * @return The first failure status, or -1 if there wasn't one.
+     */
+    public int getFirstFailureCode() {
+        return failureCodes.isEmpty() ? -1 : failureCodes.get(0);
     }
 
     public boolean isSuccess() {

@@ -16,6 +16,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.domain.TestPacsServiceConfig;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -232,6 +233,26 @@ public class TestPacsService {
         final Pacs defaultStoragePacs4       = _service.findDefaultStoragePacs().orElse(null);
         assertThat(defaultQueryRetrievePacs4).isNotNull().hasFieldOrPropertyWithValue("id", pacs4.getId()).hasFieldOrPropertyWithValue("defaultQueryRetrievePacs", true);
         assertThat(defaultStoragePacs4).isNotNull().hasFieldOrPropertyWithValue("id", pacs4.getId()).hasFieldOrPropertyWithValue("defaultStoragePacs", true);
+    }
+
+    @Test
+    public void whenNoRetrieveLevelIsConfigured_thenThePacsRetrievesPerSeries() {
+        // A PACS saved before this setting existed must keep behaving the way it always has
+        final Pacs pacs = _service.create(Pacs.builder().host(PACS_HOST_1).queryRetrievePort(PACS_PORT_1).aeTitle(PACS_AE_1).label(PACS_LABEL_1).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).build());
+        assertThat(pacs).isNotNull().hasFieldOrPropertyWithValue("retrieveLevel", RetrieveLevel.SERIES);
+    }
+
+    @Test
+    public void whenStudyLevelRetrieveIsConfiguredOnADimsePacs_thenItIsSaved() {
+        final Pacs pacs = _service.create(Pacs.builder().host(PACS_HOST_1).queryRetrievePort(PACS_PORT_1).aeTitle(PACS_AE_1).label(PACS_LABEL_1).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(true).retrieveLevel(RetrieveLevel.STUDY).build());
+        assertThat(pacs).isNotNull().hasFieldOrPropertyWithValue("retrieveLevel", RetrieveLevel.STUDY);
+    }
+
+    @Test
+    public void whenStudyLevelRetrieveIsConfiguredOnADicomWebPacs_thenObjectIsNotSaved() {
+        // Study-level retrieve is a C-MOVE feature; DICOMweb retrieval is per series
+        final Pacs pacs = _service.create(Pacs.builder().aeTitle(PACS_AE_1).label(PACS_LABEL_5).dicomWebRootUrl(PACS_DICOMWEB_URL).dicomObjectIdentifier(PACS_DQR_OBJ_ID).dicomWebEnabled(true).ormStrategySpringBeanId(PACS_ORM_STRATEGY_1).queryable(true).storable(false).retrieveLevel(RetrieveLevel.STUDY).build());
+        assertThat(pacs).isNull();
     }
 
     private static final String PACS_HOST_1         = "pacs1.xnat.org";

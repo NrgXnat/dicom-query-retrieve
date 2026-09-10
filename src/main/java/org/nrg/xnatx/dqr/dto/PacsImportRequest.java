@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.dto;
 
 import lombok.*;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 
 import java.io.Serializable;
 import java.util.List;
@@ -48,6 +49,14 @@ public class PacsImportRequest implements Serializable {
 
     @Builder.Default
     boolean forceImport = false;
+
+    /**
+     * The query/retrieve level to use for this import, overriding whatever the PACS is configured
+     * for. Null means the PACS setting applies. A study can only be retrieved at the study level
+     * when the whole study is wanted, so this is ignored for any study that names the series to
+     * import.
+     */
+    RetrieveLevel retrieveLevel;
 
     /**
      * The list of studies to be imported.

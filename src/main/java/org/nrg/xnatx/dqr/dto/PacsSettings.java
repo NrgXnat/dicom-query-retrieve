@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 
 import java.io.Serializable;
 
@@ -27,4 +28,11 @@ public class PacsSettings implements Serializable {
     private Boolean dicomWebEnabled;
     private String dicomWebRootUrl;
     private String dicomObjectIdentifier;
+
+    /**
+     * The query/retrieve level to use when retrieving from this PACS. Null leaves the existing
+     * setting alone, since {@link org.nrg.xnatx.dqr.domain.entities.Pacs#copySettings} ignores
+     * properties that weren't supplied.
+     */
+    private RetrieveLevel retrieveLevel;
 }

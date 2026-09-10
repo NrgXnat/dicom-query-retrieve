@@ -12,6 +12,7 @@ package org.nrg.xnatx.dqr.domain.entities;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 
 import java.io.Serializable;
 import java.net.URLDecoder;
@@ -208,6 +209,24 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
         _errorMessage = errorMessage;
     }
 
+    /**
+     * The query/retrieve level this request is retrieved at, resolved when the request was queued.
+     * It's stored rather than recomputed so that a change to the PACS configuration between
+     * queueing and execution doesn't silently change how a queued request behaves, and so the
+     * request history records what was actually done.
+     *
+     * @return The retrieve level for this request.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(16) default 'SERIES'")
+    public RetrieveLevel getRetrieveLevel() {
+        return _retrieveLevel != null ? _retrieveLevel : RetrieveLevel.DEFAULT;
+    }
+
+    public void setRetrieveLevel(final RetrieveLevel retrieveLevel) {
+        _retrieveLevel = retrieveLevel;
+    }
+
     public String getRequestId() {
         return _requestId;
     }
@@ -251,6 +270,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
                + "patientName: " + getPatientName() + ", "
                + "errorMessage: " + getErrorMessage() + ", "
                + "requestId: " + getRequestId() + ", "
+               + "retrieveLevel: " + getRetrieveLevel() + ", "
                + "subjectLabel: " + getSubjectLabel() + ", "
                + "experimentLabel: " + getExperimentLabel() + "}";
     }
@@ -272,6 +292,7 @@ public class PacsRequest extends AbstractHibernateEntity implements Serializable
     private String       _patientName;
     private String       _errorMessage;
     private String       _requestId;
+    private RetrieveLevel _retrieveLevel;
     private String       _subjectLabel;
     private String       _experimentLabel;
 }

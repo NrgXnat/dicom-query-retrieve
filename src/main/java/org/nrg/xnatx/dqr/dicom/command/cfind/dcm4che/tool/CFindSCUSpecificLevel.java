@@ -18,8 +18,6 @@ import org.dcm4che3.data.Tag;
 import org.nrg.xnatx.dqr.dicom.command.cecho.CEchoSCU;
 import org.nrg.xnatx.dqr.dicom.command.cfind.SearchCriteriaTooVagueException;
 import org.nrg.xnatx.dqr.dicom.command.cfind.dcm4che3.Dcm4che3CFindSCU;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveFailureException;
-import org.nrg.xnatx.dqr.dicom.command.cmove.CMoveTargetNotFoundException;
 import org.nrg.xnatx.dqr.dicom.command.dcm4che3.QueryRetrieveLevel;
 import org.nrg.xnatx.dqr.dicom.net.DicomConnectionProperties;
 import org.nrg.xnatx.dqr.dicom.strategy.orm.DicomPersonNameSearchCriteria;
@@ -86,10 +84,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
 
         try {
             List<Attributes> dicomResults = setParamsAndSendQuery(searchCriteria);
-
-            if (cMoveRequestedOnResults()) {
-                performCMoveOnResults(searchCriteria, dicomResults);
-            }
 
             return mapDicomResultsToDomainResults(searchCriteria, dicomResults);
         } catch (DqrRuntimeException e) {
@@ -193,23 +187,6 @@ public abstract class CFindSCUSpecificLevel<T extends DqrDomainObject> {
                 dicomResults.size() == getMaxResults(),
                 getOrmStrategy().getResultSetLimitStrategy().limitStudyDateRange(searchCriteria)
         );
-    }
-
-    protected void performCMoveOnResults(final PacsSearchCriteria searchCriteria, final List<Attributes> dicomResults) {
-        if (dicomResults.isEmpty()) {
-            reportCMoveTargetNotFound(searchCriteria);
-        } else {
-            // TODO: Implement C-MOVE using dcm4che3 when needed
-            throw new UnsupportedOperationException("C-MOVE not yet implemented for dcm4che3");
-        }
-    }
-
-    protected boolean cMoveRequestedOnResults() {
-        return false;
-    }
-
-    protected void reportCMoveTargetNotFound(final PacsSearchCriteria searchCriteria) {
-        throw new CMoveTargetNotFoundException(searchCriteria.toString());
     }
 
     protected int[] dicomTagPathToArray(final int dicomTagPath) {

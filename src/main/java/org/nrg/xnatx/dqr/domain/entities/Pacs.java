@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.dto.PacsSettings;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;
@@ -24,6 +25,8 @@ import org.springframework.beans.PropertyAccessorFactory;
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import org.hibernate.validator.constraints.NotBlank;
@@ -61,6 +64,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
     private String _dicomObjectIdentifier;
     @Builder.Default
     private boolean _anonymizationEnabled = true;
+    private RetrieveLevel _retrieveLevel;
 
     public Pacs(final PacsSettings settings) {
         copySettings(settings);
@@ -212,6 +216,23 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
         this._anonymizationEnabled = _anonymization;
     }
 
+    /**
+     * The query/retrieve level used when retrieving data from this PACS. Never returns null: a PACS
+     * configured before this setting existed retrieves at {@link RetrieveLevel#DEFAULT}, which is
+     * how it behaved already.
+     *
+     * @return The retrieve level for this PACS.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "varchar(16) default 'SERIES'")
+    public RetrieveLevel getRetrieveLevel() {
+        return _retrieveLevel != null ? _retrieveLevel : RetrieveLevel.DEFAULT;
+    }
+
+    public void setRetrieveLevel(final RetrieveLevel retrieveLevel) {
+        _retrieveLevel = retrieveLevel;
+    }
+
     @Override
     public String toString() {
         return "{ aeTitle: \"" + _aeTitle + "\", "
@@ -225,6 +246,7 @@ public class Pacs extends AbstractHibernateEntity implements Serializable {
                 + "isDefaultStoragePacs: " + _defaultStoragePacs + ", "
                 + "supportsExtendedNegotiations: " + _supportsExtendedNegotiations + ", "
                 + "Dicom-web Enabled: " + _dicomWebEnabled + ", "
-                + "Dicom-Web Root Url: " + _dicomWebRootUrl + " }";
+                + "Dicom-Web Root Url: " + _dicomWebRootUrl + ", "
+                + "retrieveLevel: " + getRetrieveLevel() + " }";
     }
 }

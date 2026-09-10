@@ -124,6 +124,46 @@ dqrOtherPreferencePanel:
             placeholder: 20
             description: Socket read timeout for DICOMweb binary retrieval (WADO-RS). Raise on PACS implementations where the server-side response-assembly delay before the first byte exceeds the default.
             validation: number
+        dimseResponseTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dimseResponseTimeoutSeconds
+            label: DIMSE Response Timeout (seconds)
+            placeholder: 60
+            description: How long to wait for a response to a DIMSE message sent to a PACS over the query/retrieve port.
+            validation: number
+        dimseRetrieveTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dimseRetrieveTimeoutSeconds
+            label: DIMSE Retrieve Timeout (seconds)
+            placeholder: 60
+            description: How long to wait between the sub-operation responses of a C-MOVE. Raise this when retrieving whole studies, which take considerably longer than a single series.
+            validation: number
+        dimseAcceptTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dimseAcceptTimeoutSeconds
+            label: DIMSE Association Accept Timeout (seconds)
+            placeholder: 60
+            description: How long to wait for a PACS to accept an association request.
+            validation: number
+        dqrMaxThrottleSleepSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dqrMaxThrottleSleepSeconds
+            label: Maximum Throttling Pause (seconds)
+            placeholder: 1800
+            description: Upper bound on the pause taken between PACS requests to hold a PACS at its configured utilization. The pause is calculated from how long the previous request took, so a single long request (a whole-study retrieve, for instance) would otherwise stall the queue for hours. Set to 0 for no upper bound.
+            validation: number
+        dimseConnectTimeoutSeconds:
+            kind: panel.input.text
+            size: 10
+            name: dimseConnectTimeoutSeconds
+            label: DIMSE Connect Timeout (seconds)
+            placeholder: 30
+            description: How long to wait for the network connection to a PACS to be established.
+            validation: number
         allowAllUsersToUseDqr:
             kind: panel.input.switchbox
             name: allowAllUsersToUseDqr
