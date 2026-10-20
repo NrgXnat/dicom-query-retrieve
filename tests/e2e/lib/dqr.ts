@@ -226,8 +226,9 @@ export class XnatClient {
 
     // ------------------------------------------------------------------ search
 
-    rawQueryStudies(criteria: Record<string, unknown>): Promise<APIResponse> {
-        return this.post('/xapi/dqr/query/studies', criteria);
+    /** `timeoutMs` for the rare search that is expected to wait on a PACS that does not answer. */
+    rawQueryStudies(criteria: Record<string, unknown>, timeoutMs?: number): Promise<APIResponse> {
+        return this.ctx.post('/xapi/dqr/query/studies', { data: criteria, timeout: timeoutMs });
     }
 
     /** Study search; an empty array when the PACS answered 204. */
@@ -242,11 +243,11 @@ export class XnatClient {
     }
 
     async querySeries(pacsId: number, studyInstanceUid: string): Promise<any[]> {
-        const byStudy = await this.ok<Record<string, any[]>>(
+        const byStudy = await this.ok<Record<string, { results: any[] }>>(
             await this.rawQuerySeries(pacsId, [studyInstanceUid]),
             'POST /xapi/dqr/query/series',
         );
-        return byStudy[studyInstanceUid] ?? [];
+        return byStudy[studyInstanceUid]?.results ?? [];
     }
 
     rawQueryBatch(pacsId: number, csv: string, fileName = 'batch.csv'): Promise<APIResponse> {
