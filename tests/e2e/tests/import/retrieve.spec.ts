@@ -8,13 +8,21 @@
  *
  * The scheduler is set to look for work every ten seconds for this spec, and
  * put back afterwards, so an import finishes in seconds rather than a minute.
- * Each test imports into a project of its own, deleted afterwards.
+ * Each test imports into a project of its own, deleted afterwards. Studies a
+ * test relabels are neutralized at the end (see neutralizeRelabels), so the
+ * stack is left as it was found.
  */
 import { test, expect } from '../../lib/fixtures';
 import { ImportRequest, Pacs, XnatClient } from '../../lib/dqr';
 import { ADMIN, PACS_LABEL, RECEIVER_AE, RECEIVER_PORT, projectNameFor, uniqueLabel } from '../../lib/env';
 import { DISCO, DiscoStudy, SESSION_TYPE } from '../../lib/disco';
-import { FAST_QUEUE, SiteSettings, waitForOutcome, waitForSession } from '../../lib/stack';
+import {
+    FAST_QUEUE,
+    SiteSettings,
+    neutralizeRelabels,
+    waitForOutcome,
+    waitForSession,
+} from '../../lib/stack';
 
 let admin: XnatClient;
 /** Each test gets its own project, so imports of the same study in different tests never meet. */
@@ -22,6 +30,10 @@ let PROJECT: string;
 let pacs: Pacs;
 let settings: SiteSettings;
 const madePacs: number[] = [];
+/** Studies imported with relabels, whose stored relabel scripts are neutralized afterwards. */
+const relabeled = new Set<DiscoStudy>();
+/** Session labels this spec made up, for cleaning up anything misrouted. */
+const madeLabels: string[] = [];
 
 test.beforeAll(async () => {
     admin = await XnatClient.as(ADMIN);
@@ -41,11 +53,18 @@ test.afterEach(async () => {
 
 test.afterAll(async () => {
     for (const id of madePacs) await admin.deletePacsQuietly(id);
+    await neutralizeRelabels(admin, pacs.id, [...relabeled]);
+    await admin.clearUnassignedPrearchive(madeLabels);
     await settings.restore();
     await admin.dispose();
 });
 
-function request(study: DiscoStudy, extra: Partial<ImportRequest> = {}, studyExtra = {}): ImportRequest {
+function request(
+    study: DiscoStudy,
+    extra: Partial<ImportRequest> = {},
+    studyExtra: { relabelMap?: Record<string, string>; [k: string]: unknown } = {},
+): ImportRequest {
+    if (studyExtra.relabelMap) relabeled.add(study);
     return {
         pacsId: pacs.id,
         aeTitle: RECEIVER_AE,
@@ -59,7 +78,9 @@ function request(study: DiscoStudy, extra: Partial<ImportRequest> = {}, studyExt
 }
 
 function labels(prefix: string) {
-    return { Subject: uniqueLabel(`${prefix}Subj`), Session: uniqueLabel(`${prefix}Sess`) };
+    const made = { Subject: uniqueLabel(`${prefix}Subj`), Session: uniqueLabel(`${prefix}Sess`) };
+    madeLabels.push(made.Session);
+    return made;
 }
 
 /** Series numbers the PACS reports for a study, sorted, as strings (XNAT scan IDs). */
@@ -198,6 +219,32 @@ test('without relabeling, the subject is the patient name and the session is the
     const session = await waitForSession(admin, PROJECT, 'Disco_Study_3');
     const subjectId = (await admin.getSession(session.ID)).data_fields.subject_ID;
     expect(await admin.getSubjectLabel(subjectId)).toBe('Disco_Patient_3');
+});
+
+test("an earlier import's relabels are not applied to a later import of the same study", async () => {
+    // Relabels belong to the request that asked for them. A second user who
+    // imports the same study into another project, without relabeling, should
+    // get the study under its own names, in their own project.
+    const first = labels('First');
+    const req1 = request(DISCO[4], { retrieveLevel: 'STUDY' }, { relabelMap: first });
+    await admin.queueImport(req1);
+    const [one] = await waitForOutcome(admin, req1.requestId!);
+    expect(one.status, `first import: ${one.errorMessage ?? ''}`).toBe('RECEIVED');
+    await waitForSession(admin, PROJECT, first.Session);
+
+    const other = projectNameFor('ret2');
+    await admin.ensureProject(other);
+    try {
+        const req2 = request(DISCO[4], { retrieveLevel: 'STUDY', projectId: other });
+        await admin.queueImport(req2);
+        const [two] = await waitForOutcome(admin, req2.requestId!);
+        expect.soft(two.status, `second import: ${two.errorMessage ?? ''}`).toBe('RECEIVED');
+        const session = await waitForSession(admin, other, 'Disco_Study_4', { timeoutMs: 150_000 });
+        const subjectId = (await admin.getSession(session.ID)).data_fields.subject_ID;
+        expect(await admin.getSubjectLabel(subjectId)).toBe('Disco_Patient_4');
+    } finally {
+        await admin.deleteProjectQuietly(other);
+    }
 });
 
 test('one request for two studies queues one row per study, and both arrive', async () => {

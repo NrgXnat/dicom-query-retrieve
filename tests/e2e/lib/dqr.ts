@@ -13,6 +13,8 @@
  */
 import { APIRequestContext, APIResponse, expect, request } from '@playwright/test';
 import { Account, XNAT_URL } from './env';
+import { GeneratedStudy } from './dicom';
+import { zip } from './zip';
 
 export type RetrieveLevel = 'SERIES' | 'STUDY';
 
@@ -356,6 +358,61 @@ export class XnatClient {
                 'GET scans',
             )
         ).ResultSet.Result;
+    }
+
+    /**
+     * Uploads a generated study straight into the archive as one session, and
+     * returns the session's ID.
+     */
+    async uploadStudy(
+        projectId: string,
+        subject: string,
+        session: string,
+        study: GeneratedStudy,
+    ): Promise<string> {
+        const files: Record<string, Buffer> = {};
+        for (const s of study.series) files[`series${s.seriesNumber}/image.dcm`] = s.file;
+        const res = await this.ctx.post('/data/services/import', {
+            params: {
+                'import-handler': 'DICOM-zip',
+                PROJECT_ID: projectId,
+                SUBJECT_ID: subject,
+                EXPT_LABEL: session,
+                dest: '/archive',
+                overwrite: 'append',
+            },
+            multipart: { file: { name: 'study.zip', mimeType: 'application/zip', buffer: zip(files) } },
+            timeout: 120_000,
+        });
+        const body = (await res.text()).trim();
+        expect(res.ok(), `upload: HTTP ${res.status()} ${body.slice(0, 200)}`).toBeTruthy();
+        const match = (await this.listSessions(projectId)).find(s => s.label === session);
+        expect(
+            match,
+            `uploaded session ${session} is in ${projectId} (upload answered ${body})`,
+        ).toBeDefined();
+        return match!.ID;
+    }
+
+    /**
+     * Deletes "Unassigned" prearchive sessions carrying one of these labels,
+     * which is where a misrouted import ends up. Only labels the suite made
+     * are passed in, so nobody else's data is touched. Returns what it deleted.
+     */
+    async clearUnassignedPrearchive(sessionLabels: string[]): Promise<string[]> {
+        const wanted = new Set(sessionLabels);
+        const res = await this.get('/data/prearchive', { format: 'json' });
+        if (!res.ok()) return [];
+        const rows: any[] = (await res.json()).ResultSet.Result;
+        const removed: string[] = [];
+        for (const r of rows) {
+            if (r.project !== 'Unassigned' || !wanted.has(r.name)) continue;
+            await this.delete(
+                `/data/prearchive/projects/Unassigned/${r.timestamp}/${encodeURIComponent(r.name)}`,
+            );
+            removed.push(r.name);
+        }
+        return removed;
     }
 
     async getSubjectLabel(subjectId: string): Promise<string> {

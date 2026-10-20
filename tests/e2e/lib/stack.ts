@@ -11,9 +11,19 @@
  * connection from the PACS. The waits here poll the cheapest thing that shows
  * the outcome (the history row for a request ID, then the archived session),
  * with a hard deadline, rather than sleeping.
+ *
+ * Relabeling leaves state behind too. DQR stores an import's relabels as a
+ * site-wide script keyed to the study's UID and never removes it, so a later
+ * import of that study without relabels of its own is renamed with the old
+ * ones. `neutralizeRelabels` replaces that script with one that sets only the
+ * patient name and ID to their original values, so the next plain import of
+ * the study is unaffected. Every spec that relabels a fixture study calls it
+ * afterwards.
  */
 import { expect } from '@playwright/test';
 import { PacsRequestRow, XnatClient } from './dqr';
+import { DiscoStudy } from './disco';
+import { RECEIVER_AE, RECEIVER_PORT, projectNameFor, uniqueLabel } from './env';
 
 export class SiteSettings {
     private original: Record<string, unknown> | undefined;
@@ -103,4 +113,43 @@ export async function waitForSession(
     throw new Error(
         `no session "${label}" in ${projectId} after ${timeoutMs / 1000}s; saw ${JSON.stringify(seen)}`,
     );
+}
+
+/**
+ * Leaves each study's stored relabel script harmless: one that sets the
+ * patient name and ID to the values the PACS already has. Runs a real import
+ * of each study into a scratch project, which it deletes afterwards. The
+ * scheduler should already be fast (FAST_QUEUE) when this is called.
+ */
+export async function neutralizeRelabels(
+    admin: XnatClient,
+    pacsId: number,
+    studies: DiscoStudy[],
+): Promise<void> {
+    if (studies.length === 0) return;
+    const project = projectNameFor('neu');
+    await admin.ensureProject(project);
+    try {
+        const requestId = uniqueLabel('e2eneutral');
+        await admin.queueImport({
+            pacsId,
+            aeTitle: RECEIVER_AE,
+            port: RECEIVER_PORT,
+            projectId: project,
+            forceImport: true,
+            retrieveLevel: 'STUDY',
+            requestId,
+            studies: [...new Map(studies.map(s => [s.studyInstanceUid, s])).values()].map(s => ({
+                studyInstanceUid: s.studyInstanceUid,
+                relabelMap: { 'Relabel Patient Name': s.patientName, 'Relabel Patient ID': s.patientId },
+            })),
+        });
+        const outcomes = await waitForOutcome(admin, requestId);
+        expect(
+            outcomes.map(o => o.status),
+            'neutralizing the stored relabels',
+        ).toEqual(outcomes.map(() => 'RECEIVED'));
+    } finally {
+        await admin.deleteProjectQuietly(project);
+    }
 }
