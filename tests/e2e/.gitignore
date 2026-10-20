@@ -1,0 +1,9 @@
+node_modules/
+.env
+.auth/
+test-results/
+playwright-report/
+
+# Keep the helper directory even if a parent .gitignore ever excludes `lib/`
+# (a Java build convention), which would silently drop it from every commit.
+!lib/

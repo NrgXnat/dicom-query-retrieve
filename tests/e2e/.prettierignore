@@ -1,0 +1,9 @@
+node_modules/
+test-results/
+playwright-report/
+.auth/
+package-lock.json
+
+# Markdown is hand-formatted. Prettier pads table columns, which makes every
+# future edit a large diff for no gain.
+*.md
