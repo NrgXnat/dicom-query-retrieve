@@ -5,6 +5,37 @@ a PACS or other DICOM Application Entity, send queries to find studies, and
 import them to their XNAT with custom relabeling applied en route. Users can
 also send image data from XNAT to the PACS.
 
+## <a name="3.2"></a>XNAT DQR Version 3.2 Release Notes
+
+### <a name="3.2.0"></a>DQR Plugin Version: 3.2.0
+
+Version 3.2.0 of the DQR Plugin requires XNAT 1.10.1 or newer and is compiled on JDK21.
+
+#### 3.2.0 - New Features
+
+* [PLUGINS-362](https://radiologics.atlassian.net/browse/PLUGINS-362) Retrieve an entire study in a single C-MOVE, rather than one C-MOVE per series each on its own association. This suits a PACS that only supports study-level retrieves, and reduces a study import to one association instead of one per series plus one to enumerate them.
+    * Each PACS has a new **Retrieve Level** setting, `SERIES` or `STUDY`. It defaults to `SERIES`, which is how the plugin has always retrieved, so existing configurations are unchanged until an administrator changes them.
+    * A single import can override the PACS setting by sending `retrieveLevel` on the `POST /xapi/dqr/import` request body. The import screen offers this as an **Import Entire Studies** button.
+    * A study-level import runs no series-level C-FIND to expand the study, so the queued request carries no series list. Its study date, study ID, accession number and patient details come from a study-level query instead.
+    * A study-level retrieve takes the whole study and cannot leave any of it behind, so the series to import cannot be selected when retrieving from such a PACS. The import screen shows the series a study contains with their selection locked on and explains why, and offers only the whole-study import; an import request that names series is rejected.
+    * Study-level retrieve is available over DIMSE only. A DICOMweb PACS cannot be configured for it, and an import request asking for it against a DICOMweb PACS is rejected.
+
+#### 3.1.0 - Improvements
+
+* [PLUGINS-354](https://xnat.atlassian.net/browse/PLUGINS-354) Reimplemented sending image data to a PACS on the dcm4che3 API, replacing `BasicCStoreSCU` with `Dcm4che3CStoreSCU`.
+    * Every object in a send request now goes over a single association, whose presentation contexts are negotiated from the SOP classes and transfer syntaxes of the files themselves.
+    * Each object is streamed to the PACS in the transfer syntax in which it is stored in the archive, preserving its original encoding rather than transcoding it. Objects archived gzip-compressed are decompressed en route.
+    * The DIMSE status the PACS returns for each object is now inspected. A warning status (`Bxxx`, meaning the object was stored but with data elements coerced or discarded) is logged and the send continues; any other non-success status fails the send, reporting the status code and the PACS error comment.
+* [PLUGINS-295](https://xnat.atlassian.net/browse/PLUGINS-295) Add subject and experiment label fields to PacsRequest/QueuedPacsRequest routing, enabling incoming DICOM studies to be routed to a specific subject and experiment within a project at queue pickup time.
+* [PLUGINS-296](https://xnat.atlassian.net/browse/PLUGINS-296) Split the single DICOMweb HTTP read timeout into two configurable preferences, so binary retrieval (WADO-RS) is no longer constrained by the shorter metadata-query timeout.
+    * `dicomWebMetadataReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb metadata requests: QIDO-RS searches, instance metadata fetches, and PACS ping checks.
+    * `dicomWebRetrieveReadTimeoutSeconds` (default 20) — socket read timeout in seconds for DICOMweb binary retrieval (WADO-RS multipart responses); raise on PACS implementations whose server-side response-assembly delay before the first byte exceeds the default.
+
+#### 3.1.0 - Bug Fixes
+
+* [PLUGINS-323](https://xnat.atlassian.net/browse/PLUGINS-323) Fail a PACS request when a C-MOVE reports success but delivers zero files to the prearchive. Previously `PacsDequeueThread` only logged a warning and left the executed request in the `ISSUED` state, so the study stalled with no failure signal. The request is now marked `FAILED` with the message `Received zero files for study <uid> in project <project>` so downstream orchestration can detect and surface the failure.
+* [PLUGINS-353](https://xnat.atlassian.net/browse/PLUGINS-353) Corrected the `AETITILE` misspelling in the AE summary on the PACS administration page.
+
 ## <a name="3.0"></a>XNAT DQR Version 3.0 Release Notes
 
 ### <a name="3.0.0"></a>DQR Plugin Version: 3.0.0

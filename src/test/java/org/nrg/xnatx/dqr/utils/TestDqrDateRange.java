@@ -8,8 +8,10 @@ import org.nrg.xnatx.dqr.exceptions.DqrRuntimeException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,20 @@ public class TestDqrDateRange {
         final List<Boolean>        badDates        = dateTimeMatches.keySet().stream().filter(key -> StringUtils.startsWithAny(key, BAD_DATE_1, BAD_DATE_2)).map(dateTimeMatches::get).distinct().collect(Collectors.toList());
         assertThat(goodDates).hasSize(1).containsOnly(true);
         assertThat(badDates).hasSize(1).containsOnly(false);
+    }
+
+    @Test
+    public void testFormatDicomDateFromDate() {
+        // A study date parsed out of a C-FIND result comes back as a Date, but has to be stored the
+        // way DICOM writes it so it matches what a series-level import stores
+        final Date date = Date.from(LocalDate.parse(BASIC_DATE, DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        assertThat(DqrDateRange.formatDicomDate(date)).isEqualTo(BASIC_DATE);
+        assertThat(DqrDateRange.formatDate(date)).isEqualTo(DASHY_DATE);
+    }
+
+    @Test
+    public void testFormatDicomDateHandlesAMissingDate() {
+        assertThat(DqrDateRange.formatDicomDate((Date) null)).isEmpty();
     }
 
     private static final String        BASIC_DATE    = "20210616";

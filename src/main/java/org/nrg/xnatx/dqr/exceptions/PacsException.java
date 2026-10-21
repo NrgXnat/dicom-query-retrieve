@@ -44,6 +44,17 @@ public class PacsException extends DqrException {
         _messageFormat = messageFormat;
     }
 
+    /**
+     * Indicates whether submitting the same request again might succeed. Failures are assumed to be
+     * transient unless a subclass says otherwise, which preserves the retry behavior that existed
+     * before permanent failures were distinguished.
+     *
+     * @return Returns <b>true</b> if the operation is worth retrying.
+     */
+    public boolean isRetryable() {
+        return true;
+    }
+
     private final long    _pacsId;
     private final AeTitle _aeTitle;
     private final String  _messageFormat;

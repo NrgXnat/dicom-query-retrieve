@@ -32,6 +32,12 @@ public abstract class RetryablePacsOperation<T> implements Callable<T> {
             try {
                 return doOperationWithRetry();
             } catch (PacsException e) {
+                if (!e.isRetryable()) {
+                    // The PACS rejected the request rather than failing to carry it out, so the
+                    // remaining attempts would fail identically. Fail now with the real reason.
+                    log.debug("PACS operation failed permanently on attempt {}/{}; not retrying", attempt + 1, maxRetries, e);
+                    throw e;
+                }
                 if (attempt + 1 < maxRetries) {
                     try {
                         TimeUnit.SECONDS.sleep(secondsBeforeRetry);

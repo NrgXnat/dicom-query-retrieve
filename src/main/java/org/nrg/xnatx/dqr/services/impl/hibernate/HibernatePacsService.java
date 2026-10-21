@@ -10,6 +10,7 @@
 package org.nrg.xnatx.dqr.services.impl.hibernate;
 
 import org.nrg.framework.orm.hibernate.AbstractHibernateEntityService;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.domain.daos.PacsDAO;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 import org.nrg.xnatx.dqr.dto.PacsSettings;
@@ -167,6 +168,9 @@ public class HibernatePacsService extends AbstractHibernateEntityService<Pacs, P
         }
         if (entity.isDicomWebEnabled() && entity.isStorable()) {
             errors.add("DICOMweb PACS configurations must not be storable");
+        }
+        if (entity.isDicomWebEnabled() && entity.getRetrieveLevel() == RetrieveLevel.STUDY) {
+            errors.add("DICOMweb PACS configurations must retrieve at the SERIES level; study-level retrieve is only supported over DIMSE");
         }
 
         if (!errors.isEmpty()) {

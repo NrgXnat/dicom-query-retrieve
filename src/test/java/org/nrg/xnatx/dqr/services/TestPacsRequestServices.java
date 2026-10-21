@@ -9,6 +9,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.nrg.framework.exceptions.NotFoundException;
+import org.nrg.xnatx.dqr.dicom.RetrieveLevel;
 import org.nrg.xnatx.dqr.domain.TestPacsRequestServicesConfig;
 import org.nrg.xnatx.dqr.domain.entities.ExecutedPacsRequest;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
@@ -191,6 +192,30 @@ public class TestPacsRequestServices {
         _queuedPacsRequestService.deleteAllWithRequestIdAndStatus(REQUEST_ID_2, Arrays.asList(QUEUED_STATUS_TEXT, ISSUED_STATUS_TEXT));
         final List<QueuedPacsRequest> queuedPacsRequests = _queuedPacsRequestService.getAllForPacsOrderedByPriorityAndDate(pacs.getId());
         Assertions.assertThat(queuedPacsRequests.isEmpty()).isTrue();
+    }
+
+    @Test
+    public void testRetrieveLevelRoundTripsThroughBothRequestTables() {
+        final Pacs pacs = getPacs("lab");
+
+        final QueuedPacsRequest queued = getRandomQueuedPacsRequest(Collections.singletonList(pacs));
+        queued.setRetrieveLevel(RetrieveLevel.STUDY);
+        final long queuedId = _queuedPacsRequestService.create(queued).getId();
+        assertThat(_queuedPacsRequestService.retrieve(queuedId).getRetrieveLevel()).isEqualTo(RetrieveLevel.STUDY);
+
+        final ExecutedPacsRequest executed = getRandomExecutedPacsRequest(Collections.singletonList(pacs));
+        executed.setRetrieveLevel(RetrieveLevel.STUDY);
+        final long executedId = _executedPacsRequestService.create(executed).getId();
+        assertThat(_executedPacsRequestService.retrieve(executedId).getRetrieveLevel()).isEqualTo(RetrieveLevel.STUDY);
+    }
+
+    @Test
+    public void testRequestsWithNoStoredRetrieveLevelReadBackAsSeries() {
+        // Requests queued before this column existed have no value stored, and must still behave
+        // the way they did when they were queued
+        final Pacs pacs = getPacs("lab");
+        final QueuedPacsRequest queued = _queuedPacsRequestService.create(getRandomQueuedPacsRequest(Collections.singletonList(pacs)));
+        assertThat(_queuedPacsRequestService.retrieve(queued.getId()).getRetrieveLevel()).isEqualTo(RetrieveLevel.SERIES);
     }
 
     private List<Pacs> getPacs() {

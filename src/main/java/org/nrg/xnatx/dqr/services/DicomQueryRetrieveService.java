@@ -235,6 +235,18 @@ public interface DicomQueryRetrieveService {
     void importSeries(UserI user, Pacs pacs, Study study, Series series, String ae) throws DqrException;
 
     /**
+     * Import an entire study from the indicated PACS to this XNAT instance in a single retrieve
+     * operation. Unlike {@link #importSeries(UserI, Pacs, Study, Series, String)} the series can't
+     * be filtered, so this applies only when the whole study is wanted.
+     *
+     * @param user  The user requesting the import operation.
+     * @param pacs  The PACS from which the user wants to import.
+     * @param study The study to be imported.
+     * @param ae    The AE title the PACS should use when sending the study back to XNAT.
+     */
+    void importStudy(UserI user, Pacs pacs, Study study, String ae) throws DqrException;
+
+    /**
      * Import a single instance from the specified series
      *
      * @param pacs              The PACS to be searched
@@ -286,13 +298,14 @@ public interface DicomQueryRetrieveService {
      * @return Returns <b>true</b> if all data was imported and <b>false</b> if more data needs to be imported from the PACS.
      *
      * @throws ArchiveProcessorsNotAvailableException         When archive processors aren't available for the DICOM receiver.
+     * @throws DataFormatException                            When the request asks for something the specified PACS can't do.
      * @throws DicomReceiverCustomProcessingDisabledException When custom processing is disabled for the DICOM receiver.
      * @throws NotFoundException                              When the requested data can't be found.
      * @throws PacsNotFoundException                          When the specified PACS can't be found.
      * @throws PacsNotQueryableException                      When the specified PACS isn't queryable..
      * @throws UnknownDicomScpInstanceException               When the specified DICOM receiver doesn't exist.
      */
-    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException;
+    List<QueuedPacsRequest> importFromPacs(final UserI user, final PacsImportRequest request) throws PacsNotFoundException, DicomReceiverCustomProcessingDisabledException, UnknownDicomScpInstanceException, NotFoundException, ArchiveProcessorsNotAvailableException, PacsNotQueryableException, DataFormatException;
 
     /**
      * Processes CSV import operations.
