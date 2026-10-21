@@ -9,16 +9,16 @@
 
 package org.nrg.xnatx.dqr.domain.entities;
 
-import javax.persistence.Cacheable;
-import javax.persistence.Column;
+import jakarta.persistence.Cacheable;
+import jakarta.persistence.Column;
 import lombok.Builder;
 
-import javax.persistence.Entity;
-import javax.persistence.NamedNativeQueries;
-import javax.persistence.NamedNativeQuery;
-import javax.persistence.NamedQueries;
-import javax.persistence.NamedQuery;
-import javax.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.NamedNativeQueries;
+import jakarta.persistence.NamedNativeQuery;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
+import jakarta.persistence.Table;
 import java.util.Date;
 import java.util.List;
 

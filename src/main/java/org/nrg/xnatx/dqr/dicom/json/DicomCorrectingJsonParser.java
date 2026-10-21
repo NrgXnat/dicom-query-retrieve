@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * @see javax.json.stream.JsonParser
+ * @see jakarta.json.stream.JsonParser
  * Filtering JsonParser that captures the token stream from another JsonParser and makes
  * corrections for an error in DICOM JSON content known to be made by some devices.
  * In detail: the content tag "InlineBinary" is allowed only to be used for the VRs listed

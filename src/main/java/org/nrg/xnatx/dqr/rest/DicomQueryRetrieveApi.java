@@ -81,7 +81,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import springfox.documentation.annotations.ApiIgnore;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -264,7 +263,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         */
     }
 
-    @ApiIgnore("Requires queuing and polling working so that searches can be run asynchronously and pushed when completed.")
     @ApiOperation(value = "Get list of the series in a list of studies.", notes = "The get series function returns a list of the series in the listed studies.", response = String.class, responseContainer = "Map")
     @ApiResponses({@ApiResponse(code = 200, message = "A queued DICOM query request."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),
@@ -550,7 +548,6 @@ public class DicomQueryRetrieveApi extends AbstractDqrRestController {
         return dataToSend;
     }
 
-    @ApiIgnore("This doesn't seem to be used any more.")
     @ApiOperation(value = "Get list of all ORM strategies.", notes = "Returns list of the names of all the ORM strategy bean IDs.", response = String.class, responseContainer = "List")
     @ApiResponses({@ApiResponse(code = 200, message = "A list of ORM strategy bean IDs."),
                    @ApiResponse(code = 401, message = "Must be authenticated to access the XNAT REST API."),

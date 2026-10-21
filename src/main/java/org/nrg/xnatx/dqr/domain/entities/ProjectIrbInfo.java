@@ -19,7 +19,7 @@ import org.nrg.framework.orm.hibernate.AbstractHibernateEntity;
 import org.nrg.xnat.entities.FileStoreInfo;
 
 import javax.annotation.Nonnull;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import org.hibernate.validator.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.ArrayList;

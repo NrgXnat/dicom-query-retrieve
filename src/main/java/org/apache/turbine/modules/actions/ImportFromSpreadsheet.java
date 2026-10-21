@@ -9,10 +9,11 @@
 
 package org.apache.turbine.modules.actions;
 
+import jakarta.servlet.http.Part;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.fileupload.FileItem;
 import org.apache.turbine.util.RunData;
-import org.apache.turbine.util.parser.ParameterParser;
+import org.apache.turbine.pipeline.PipelineData;
+import org.apache.fulcrum.parser.ParameterParser;
 import org.apache.velocity.context.Context;
 import org.nrg.xapi.exceptions.InitializationException;
 import org.nrg.xapi.exceptions.InsufficientPrivilegesException;
@@ -29,12 +30,16 @@ import org.nrg.xnatx.dqr.exceptions.PacsNotFoundException;
 import org.nrg.xnatx.dqr.exceptions.ProjectNotDqrEnabledException;
 
 import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 @SuppressWarnings("unused")
 @Slf4j
 public class ImportFromSpreadsheet extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) throws InsufficientPrivilegesException, NotFoundException, ProjectNotDqrEnabledException, InitializationException, NotAuthenticatedException, PacsNotFoundException {
+    public void doPerform(final PipelineData pipelineData, final Context context) throws InsufficientPrivilegesException, NotFoundException, ProjectNotDqrEnabledException, InitializationException, NotAuthenticatedException, PacsNotFoundException {
+        final RunData data = pipelineData.getRunData();
         final UserI user = XDAT.getUserDetails();
         if (user.isGuest()) {
             throw new NotAuthenticatedException("");
@@ -63,12 +68,16 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         final Pacs pacs = getPassedPacs(data);
 
         final ParameterParser parameters = data.getParameters();
-        //grab the FileItems available in ParameterParser
-        final FileItem fileItem = parameters.getFileItem("csv_to_store");
+        // Turbine 7 / fulcrum-parser 4.0.0 exposes multipart uploads as jakarta.servlet.http.Part
+        // (the old commons-fileupload FileItem is gone). Copy the part's stream to a temp file
+        // rather than Part.write(), whose target path is MultipartConfig-relative.
+        final Part fileItem = parameters.getPart("csv_to_store");
         final File     temp;
         try {
             temp = File.createTempFile("xnat", "csv");
-            fileItem.write(temp);
+            try (final InputStream in = fileItem.getInputStream()) {
+                Files.copy(in, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception e) {
             throw new DqrRuntimeException("An error occurred trying to write the incoming CSV file locally", e);
         }
@@ -77,7 +86,11 @@ public class ImportFromSpreadsheet extends DqrSecureAction {
         getDicomQueryRetrieveService().processSpreadsheetImport(user, temp, ae, projectId, pacs.getId());
 
         temp.delete();
-        fileItem.delete();
+        try {
+            fileItem.delete();
+        } catch (Exception e) {
+            log.warn("Failed to delete uploaded multipart file for CSV import", e);
+        }
         data.setScreenTemplate("XDATScreen_prearchives.vm");
     }
 }

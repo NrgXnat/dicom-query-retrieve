@@ -10,8 +10,8 @@
 package org.nrg.xnatx.dqr.dicom.net;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import javax.persistence.Transient;
-import javax.xml.bind.annotation.XmlTransient;
+import jakarta.persistence.Transient;
+import jakarta.xml.bind.annotation.XmlTransient;
 import org.nrg.xnatx.dqr.domain.entities.Pacs;
 
 public final class DicomConnectionProperties {

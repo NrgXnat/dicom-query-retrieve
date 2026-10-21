@@ -10,8 +10,9 @@
 package org.apache.turbine.modules.actions;
 
 import java.util.Date;
-import javax.jms.Destination;
+import jakarta.jms.Destination;
 import org.apache.turbine.util.RunData;
+import org.apache.turbine.pipeline.PipelineData;
 import org.apache.velocity.context.Context;
 import org.nrg.xdat.XDAT;
 import org.nrg.xdat.turbine.utils.TurbineUtils;
@@ -25,7 +26,8 @@ import org.springframework.jms.core.JmsTemplate;
 @SuppressWarnings("unused")
 public class ChoosePacsSeries extends DqrSecureAction {
     @Override
-    public void doPerform(final RunData data, final Context context) {
+    public void doPerform(final PipelineData pipelineData, final Context context) {
+        final RunData data = pipelineData.getRunData();
         final String[] selectedSeriesInstanceUids = (String[]) TurbineUtils.GetPassedObjects("selectedSeries", data);
         if (null == selectedSeriesInstanceUids) {
             context.put("numberOfProcessedSeries", 0);
