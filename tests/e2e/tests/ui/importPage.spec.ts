@@ -81,8 +81,13 @@ test('the page opens ready to search, on the default PACS and the DQR receiver, 
     expect(errors, 'the page should load without JavaScript errors').toEqual([]);
 });
 
-test('every searchable PACS is offered in the Source PACS list', async ({ page }) => {
-    // A second searchable PACS, registered after the default one.
+test('every searchable PACS is offered in the Source PACS list, including ones listed after the default', async ({
+    page,
+}) => {
+    // The server returns PACS in no fixed order. So that this test always
+    // covers a PACS listed after the default, it makes whichever PACS the
+    // server lists first the default for the duration of the test, and puts
+    // the fixture PACS back as the default afterwards.
     const second = await admin.createPacs({
         aeTitle: 'ORTHANC',
         label: uniqueLabel('E2E_UI_SECOND'),
@@ -94,13 +99,38 @@ test('every searchable PACS is offered in the Source PACS list', async ({ page }
     });
     madePacs.push(second.id);
 
-    await openImportPage(page);
-    const offered = await page
-        .locator('#select-pacs option')
-        .evaluateAll(o => o.map(x => (x as HTMLOptionElement).value));
-    const searchable = (await admin.listPacs({ queryable: true })).map(p => String(p.id));
-    for (const id of searchable)
-        expect.soft(offered, `PACS ${id} is searchable but not offered`).toContain(id);
+    const listed = await admin.listPacs();
+    const first = listed[0];
+    try {
+        if (!first.defaultQueryRetrievePacs) {
+            const res = await admin.rawUpdatePacs(first.id, { ...first, defaultQueryRetrievePacs: true });
+            expect(res.ok(), `make PACS ${first.id} the default: HTTP ${res.status()}`).toBeTruthy();
+        }
+        const order = await admin.listPacs();
+        expect(
+            order[0].defaultQueryRetrievePacs,
+            'precondition: the default PACS is listed first',
+        ).toBeTruthy();
+        expect(order.length, 'precondition: at least one PACS is listed after the default').toBeGreaterThan(
+            1,
+        );
+
+        await openImportPage(page);
+        const offered = await page
+            .locator('#select-pacs option')
+            .evaluateAll(o => o.map(x => (x as HTMLOptionElement).value));
+        for (const p of order.filter(x => x.queryable)) {
+            expect
+                .soft(offered, `PACS ${p.id} (${p.label}) is searchable but not offered`)
+                .toContain(String(p.id));
+        }
+    } finally {
+        const fixture = await admin.getPacs(pacs.id);
+        if (!fixture.defaultQueryRetrievePacs) {
+            const back = await admin.rawUpdatePacs(pacs.id, { ...fixture, defaultQueryRetrievePacs: true });
+            expect(back.ok(), 'put the fixture PACS back as the default').toBeTruthy();
+        }
+    }
 });
 
 test('a search lists the matching study with its details and empty relabel boxes', async ({ page }) => {
@@ -228,28 +258,34 @@ test('on a study-level PACS the series are locked and only the whole study can b
     });
     madePacs.push(studyPacs.id);
 
-    await openImportPage(page);
-    const offered = await page
-        .locator('#select-pacs option')
-        .evaluateAll(o => o.map(x => (x as HTMLOptionElement).value));
-    expect(offered, 'the study-level PACS must be offered in the Source PACS list').toContain(
-        String(studyPacs.id),
-    );
-    await page.locator('#select-pacs').selectOption(String(studyPacs.id));
-    await expect(page.locator('#pacs-status-indicator')).toContainText('Ready to Query', { timeout: 30_000 });
-    const row = await searchAccession(page, DISCO[1]);
-    await row.locator('input.select-session').check();
-    await page.locator('#import-selected-sessions').click();
+    // Made the default for this test, so the page selects it on load. Choosing
+    // it from the Source PACS list would depend on where the server lists it
+    // (see the test above).
+    const set = await admin.rawUpdatePacs(studyPacs.id, { ...studyPacs, defaultQueryRetrievePacs: true });
+    expect(set.ok(), `make the study-level PACS the default: HTTP ${set.status()}`).toBeTruthy();
+    try {
+        await openImportPage(page);
+        await expect(page.locator('#select-pacs')).toHaveValue(String(studyPacs.id));
+        const row = await searchAccession(page, DISCO[1]);
+        await row.locator('input.select-session').check();
+        await page.locator('#import-selected-sessions').click();
 
-    const boxes = page.locator('#scan-types-list input.select-scan-type');
-    await expect(boxes.first()).toBeVisible({ timeout: 60_000 });
-    for (const box of await boxes.all()) {
-        await expect(box).toBeChecked();
-        await expect(box).toBeDisabled();
+        const boxes = page.locator('#scan-types-list input.select-scan-type');
+        await expect(boxes.first()).toBeVisible({ timeout: 60_000 });
+        for (const box of await boxes.all()) {
+            await expect(box).toBeChecked();
+            await expect(box).toBeDisabled();
+        }
+        await expect(page.getByRole('button', { name: 'Import Entire Studies' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Import Selected' })).toHaveCount(0);
+        await page.getByRole('button', { name: 'Cancel' }).click();
+    } finally {
+        const fixture = await admin.getPacs(pacs.id);
+        if (!fixture.defaultQueryRetrievePacs) {
+            const back = await admin.rawUpdatePacs(pacs.id, { ...fixture, defaultQueryRetrievePacs: true });
+            expect(back.ok(), 'put the fixture PACS back as the default').toBeTruthy();
+        }
     }
-    await expect(page.getByRole('button', { name: 'Import Entire Studies' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Import Selected' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Cancel' }).click();
 });
 
 test("Search Via CSV fills the results with the CSV's matches and its labels", async ({ page }, testInfo) => {
