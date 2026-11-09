@@ -75,7 +75,7 @@ test.beforeAll(async () => {
 
 test.beforeEach(async () => {
     PROJECT = projectNameFor('que');
-    await admin.ensureProject(PROJECT);
+    await admin.ensureDqrProject(PROJECT);
     idle = await admin.createPacs({
         aeTitle: 'ORTHANC',
         label: uniqueLabel('E2E_IDLE'),
@@ -96,10 +96,13 @@ test.afterEach(async () => {
 });
 
 test.afterAll(async () => {
-    await neutralizeRelabels(admin, pacs.id, [...relabeled]);
-    await admin.clearUnassignedPrearchive(madeLabels);
-    await settings.restore();
-    await admin.dispose();
+    try {
+        await neutralizeRelabels(admin, pacs.id, [...relabeled]);
+        await admin.clearUnassignedPrearchive(madeLabels);
+    } finally {
+        await settings.restore();
+        await admin.dispose();
+    }
 });
 
 test('a queued request can be listed, counted and read back by id', async () => {

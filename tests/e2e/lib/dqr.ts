@@ -106,6 +106,11 @@ export class XnatClient {
             baseURL: XNAT_URL,
             ignoreHTTPSErrors: true,
             httpCredentials: { username: account.username, password: account.password, send: 'always' },
+            // Start with no cookies. Inside a project that uses a saved browser
+            // login, a request context otherwise starts with that login's
+            // session cookie, and a request made as another user over it ends
+            // the browser's session.
+            storageState: { cookies: [], origins: [] },
         });
         return new XnatClient(ctx, account);
     }
@@ -315,6 +320,17 @@ export class XnatClient {
             params: { secondary_ID: id, name: id },
         });
         expect(res.ok(), `create project ${id}: HTTP ${res.status()}`).toBeTruthy();
+    }
+
+    /**
+     * A project that accepts DQR imports whatever the site's project gate is
+     * set to: created, then switched on for DQR. Specs that are not testing
+     * the gate use this, so they never depend on how a stack is configured.
+     */
+    async ensureDqrProject(id: string): Promise<void> {
+        await this.ensureProject(id);
+        const res = await this.rawSetProjectEnabled(id, true);
+        expect([200, 304], `switch ${id} on for DQR: HTTP ${res.status()}`).toContain(res.status());
     }
 
     async deleteProjectQuietly(id: string): Promise<void> {

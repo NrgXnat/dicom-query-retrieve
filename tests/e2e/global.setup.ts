@@ -127,6 +127,16 @@ export default async function globalSetup(): Promise<void> {
         await login.dispose();
     }
 
+    // What the run must leave behind; checked by global.teardown.ts.
+    fs.writeFileSync(
+        path.join(AUTH_DIR, 'stack-at-start.json'),
+        JSON.stringify({
+            settings: await (await admin.get('/xapi/dqr/settings')).json(),
+            pacs: pacsList.map(p => p.label).sort(),
+        }),
+        'utf-8',
+    );
+
     await admin.dispose();
 
     if (problems.length) {

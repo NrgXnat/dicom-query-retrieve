@@ -14,6 +14,9 @@ export default defineConfig({
     // Fails the whole run with the reason if any is missing. See the file.
     globalSetup: require.resolve('./global.setup.ts'),
 
+    // Fails the run if it left the DQR settings or PACS list changed.
+    globalTeardown: require.resolve('./global.teardown.ts'),
+
     // A real import is a search, a queue, a scheduler tick, a C-MOVE and an
     // archive. The waits inside tests have their own deadlines; this is the
     // outer bound.

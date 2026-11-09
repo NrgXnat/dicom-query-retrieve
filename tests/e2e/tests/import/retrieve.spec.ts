@@ -44,7 +44,7 @@ test.beforeAll(async () => {
 
 test.beforeEach(async () => {
     PROJECT = projectNameFor('ret');
-    await admin.ensureProject(PROJECT);
+    await admin.ensureDqrProject(PROJECT);
 });
 
 test.afterEach(async () => {
@@ -52,11 +52,14 @@ test.afterEach(async () => {
 });
 
 test.afterAll(async () => {
-    for (const id of madePacs) await admin.deletePacsQuietly(id);
-    await neutralizeRelabels(admin, pacs.id, [...relabeled]);
-    await admin.clearUnassignedPrearchive(madeLabels);
-    await settings.restore();
-    await admin.dispose();
+    try {
+        for (const id of madePacs) await admin.deletePacsQuietly(id);
+        await neutralizeRelabels(admin, pacs.id, [...relabeled]);
+        await admin.clearUnassignedPrearchive(madeLabels);
+    } finally {
+        await settings.restore();
+        await admin.dispose();
+    }
 });
 
 function request(
@@ -233,7 +236,7 @@ test("an earlier import's relabels are not applied to a later import of the same
     await waitForSession(admin, PROJECT, first.Session);
 
     const other = projectNameFor('ret2');
-    await admin.ensureProject(other);
+    await admin.ensureDqrProject(other);
     try {
         const req2 = request(DISCO[4], { retrieveLevel: 'STUDY', projectId: other });
         await admin.queueImport(req2);

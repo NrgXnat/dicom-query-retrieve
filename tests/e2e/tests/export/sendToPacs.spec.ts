@@ -22,7 +22,7 @@ const madePacs: number[] = [];
 test.beforeAll(async () => {
     admin = await XnatClient.as(ADMIN);
     pacs = await admin.pacsByLabel(PACS_LABEL);
-    await admin.ensureProject(PROJECT);
+    await admin.ensureDqrProject(PROJECT);
     study = generateStudy(Date.now().toString(36).toUpperCase(), 2);
     sessionId = await admin.uploadStudy(PROJECT, uniqueLabel('ExpSubj'), uniqueLabel('ExpSess'), study);
 });
@@ -78,7 +78,11 @@ test('sending one scan puts that series, and only that series, in the PACS', asy
     expect(series.map(s => s.seriesInstanceUid)).toEqual([study.series[0].seriesInstanceUid]);
 
     const [found] = await admin.queryStudies({ pacsId: pacs.id, studyInstanceUid: study.studyInstanceUid });
-    expect(found.patient?.id, 'the data arrives as archived, with its own patient ID').toBe(study.patientId);
+    // XNAT's site anonymization may rewrite the patient ID on upload, so the
+    // value to expect is the one XNAT archived, not the one generated.
+    const archivedPatientId = (await admin.getSession(sessionId)).data_fields.dcmPatientId;
+    expect(archivedPatientId, 'XNAT records the archived patient ID').toBeTruthy();
+    expect(found.patient?.id, 'the data arrives as archived').toBe(archivedPatientId);
 });
 
 test('the send is recorded as a completed workflow on the session, by the user who sent it', async () => {

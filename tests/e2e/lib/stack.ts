@@ -128,7 +128,7 @@ export async function neutralizeRelabels(
 ): Promise<void> {
     if (studies.length === 0) return;
     const project = projectNameFor('neu');
-    await admin.ensureProject(project);
+    await admin.ensureDqrProject(project);
     try {
         const requestId = uniqueLabel('e2eneutral');
         await admin.queueImport({

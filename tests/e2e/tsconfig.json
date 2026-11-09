@@ -9,5 +9,11 @@
         "noEmit": true,
         "types": ["node"]
     },
-    "include": ["lib/**/*.ts", "tests/**/*.ts", "playwright.config.ts"]
+    "include": [
+        "global.setup.ts",
+        "global.teardown.ts",
+        "lib/**/*.ts",
+        "playwright.config.ts",
+        "tests/**/*.ts"
+    ]
 }
