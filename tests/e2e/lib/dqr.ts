@@ -155,6 +155,10 @@ export class XnatClient {
         return this.ok(await this.get('/xapi/dqr/settings'), 'GET /xapi/dqr/settings');
     }
 
+    rawSetSettings(values: Record<string, unknown>): Promise<APIResponse> {
+        return this.post('/xapi/dqr/settings', values);
+    }
+
     async setSettings(values: Record<string, unknown>): Promise<void> {
         await this.ok(await this.post('/xapi/dqr/settings', values), 'POST /xapi/dqr/settings');
     }
@@ -333,10 +337,38 @@ export class XnatClient {
         expect([200, 304], `switch ${id} on for DQR: HTTP ${res.status()}`).toContain(res.status());
     }
 
+    /**
+     * Deletes a project and its DQR switch row. XNAT does not remove the DQR
+     * row when the project goes, so without the first call every deleted test
+     * project would leave a row behind.
+     */
     async deleteProjectQuietly(id: string): Promise<void> {
+        await this.deleteProjectSettingsQuietly(id);
         await this.ctx
             .delete(`/data/projects/${encodeURIComponent(id)}`, { params: { removeFiles: 'true' } })
             .catch(() => undefined);
+    }
+
+    /** Every project's DQR switch row (admin only). */
+    async listProjectSettings(): Promise<Array<{ projectId: string; enabled: boolean }>> {
+        return this.ok(await this.get('/xapi/dqr/settings/project'), 'GET /xapi/dqr/settings/project');
+    }
+
+    /** Ids of every project visible to this account. */
+    async listProjectIds(): Promise<string[]> {
+        const res = await this.get('/data/projects', { format: 'json' });
+        const rows: any[] = (await this.ok<any>(res, 'GET /data/projects')).ResultSet.Result;
+        return rows.map(r => String(r.ID));
+    }
+
+    /** Prearchive rows, in any project, for a session label. */
+    async prearchiveRows(
+        sessionLabel: string,
+    ): Promise<Array<{ project: string; status: string; name: string }>> {
+        const res = await this.get('/data/prearchive', { format: 'json' });
+        if (!res.ok()) return [];
+        const rows: any[] = (await res.json()).ResultSet.Result;
+        return rows.filter(r => r.name === sessionLabel);
     }
 
     /** Adds a user to a project group: Owners, Members or Collaborators. */

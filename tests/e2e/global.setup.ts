@@ -17,6 +17,7 @@ import * as path from 'path';
 // playwright.config.ts loads .env before this module is required.
 import * as env from './lib/env';
 import { ALL_DISCO } from './lib/disco';
+import { takeSnapshot } from './lib/stackSnapshot';
 
 const AUTH_DIR = path.resolve(__dirname, '.auth');
 
@@ -130,10 +131,7 @@ export default async function globalSetup(): Promise<void> {
     // What the run must leave behind; checked by global.teardown.ts.
     fs.writeFileSync(
         path.join(AUTH_DIR, 'stack-at-start.json'),
-        JSON.stringify({
-            settings: await (await admin.get('/xapi/dqr/settings')).json(),
-            pacs: pacsList.map(p => p.label).sort(),
-        }),
+        JSON.stringify(await takeSnapshot(admin, env.PACS_LABEL)),
         'utf-8',
     );
 

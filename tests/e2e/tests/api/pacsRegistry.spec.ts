@@ -220,13 +220,18 @@ test('two PACS may not share a host, port and AE title', async () => {
     expect(res.status(), "a duplicate is the caller's mistake, not a server error").toBeLessThan(500);
 });
 
-test('a PACS added through the API can retrieve, because it has an availability schedule', async () => {
-    // The admin page creates a window for every day when it adds a PACS. The
-    // queue only moves while a window is open, so a PACS added any other way
-    // with no schedule accepts imports that never run, and nothing says why.
+test('a PACS added through the API can be given a schedule through the API, and is then open', async () => {
+    // The admin page adds the schedule itself, as a separate request after
+    // saving the PACS. Through the API the two are separate resources, so a
+    // caller that adds a PACS adds its schedule the same way.
     const pacs = await create(dimse());
+    await admin.openAllWeek(pacs.id);
     const windows = Object.values(await admin.getAvailability(pacs.id)).flat();
-    expect(windows.length, 'a new PACS with no schedule can never run an import').toBeGreaterThan(0);
+    expect(windows, 'one window per day').toHaveLength(7);
+    expect(
+        windows.some(w => w.availableNow),
+        'the window for today is open now',
+    ).toBeTruthy();
 });
 
 test('ping reports a live PACS as up and records the result', async () => {

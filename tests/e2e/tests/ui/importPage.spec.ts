@@ -14,7 +14,7 @@ import { test, expect } from '../../lib/fixtures';
 import { Pacs, XnatClient } from '../../lib/dqr';
 import { ADMIN, PACS_LABEL, RECEIVER_AE, RECEIVER_PORT, projectNameFor, uniqueLabel } from '../../lib/env';
 import { DISCO, DiscoStudy } from '../../lib/disco';
-import { FAST_QUEUE, SiteSettings, neutralizeRelabels, waitForSession } from '../../lib/stack';
+import { FAST_QUEUE, SiteSettings, cleanupAll, neutralizeRelabels, waitForSession } from '../../lib/stack';
 
 const PROJECT = projectNameFor('ui');
 
@@ -35,13 +35,16 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => {
     try {
-        for (const id of madePacs) await admin.deletePacsQuietly(id);
-        await neutralizeRelabels(admin, pacs.id, [...relabeled]);
-        await admin.clearUnassignedPrearchive(madeLabels);
-        await admin.deleteProjectSettingsQuietly(PROJECT);
-        await admin.deleteProjectQuietly(PROJECT);
+        await cleanupAll(
+            async () => {
+                for (const id of madePacs) await admin.deletePacsQuietly(id);
+            },
+            () => neutralizeRelabels(admin, pacs.id, [...relabeled]),
+            () => admin.clearUnassignedPrearchive(madeLabels),
+            () => admin.deleteProjectQuietly(PROJECT),
+            () => settings.restore(),
+        );
     } finally {
-        await settings.restore();
         await admin.dispose();
     }
 });

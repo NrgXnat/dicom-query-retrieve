@@ -12,13 +12,15 @@
  * the outcome (the history row for a request ID, then the archived session),
  * with a hard deadline, rather than sleeping.
  *
- * Relabeling leaves state behind too. DQR stores an import's relabels as a
- * site-wide script keyed to the study's UID and never removes it, so a later
- * import of that study without relabels of its own is renamed with the old
- * ones. `neutralizeRelabels` replaces that script with one that sets only the
- * patient name and ID to their original values, so the next plain import of
- * the study is unaffected. Every spec that relabels a fixture study calls it
- * afterwards.
+ * Relabeling may leave state behind too. DQR stores an import's relabels as a
+ * site-wide script keyed to the study's UID and does not remove it. On
+ * 2026-10-20 a later plain import of a relabeled study was seen three times to
+ * arrive under the earlier relabels; controlled repeats at +1, +10 and +30
+ * minutes have not reproduced it since, so it is unconfirmed. As a
+ * precaution, `neutralizeRelabels` replaces the stored script with one that
+ * sets only the patient name and ID to their original values, and every spec
+ * that relabels a fixture study calls it afterwards. The behavior itself is
+ * tested in tests/import/retrieve.spec.ts.
  */
 import { expect } from '@playwright/test';
 import { PacsRequestRow, XnatClient } from './dqr';
@@ -54,6 +56,23 @@ export class SiteSettings {
         }
         this.touched.clear();
     }
+}
+
+/**
+ * Runs every cleanup step even when an earlier one throws, then throws the
+ * first error. Used in afterAll/afterEach so one failed step (a neutralize
+ * that times out, say) cannot skip the project or prearchive cleanup after it.
+ */
+export async function cleanupAll(...steps: Array<() => Promise<unknown>>): Promise<void> {
+    const errors: unknown[] = [];
+    for (const step of steps) {
+        try {
+            await step();
+        } catch (e) {
+            errors.push(e);
+        }
+    }
+    if (errors.length) throw errors[0];
 }
 
 /** Both access gates switched on, which is the plugin's own default. */

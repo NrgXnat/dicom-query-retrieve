@@ -17,8 +17,27 @@
  * driven by jQuery handlers that is usually the deciding evidence.
  */
 import { test as base, expect } from '@playwright/test';
+import { login } from './auth';
+import { ADMIN } from './env';
 
 export const test = base.extend<{ diagnostics: void }>({
+    // Browser tests log in afresh for each test. A login saved once at the
+    // start of the run expires after the stack's session timeout (15 minutes
+    // on the reference stack), and the browser tests run last, so a long run
+    // would otherwise reach them logged out.
+    storageState: async ({ browser, baseURL, storageState }, use, testInfo) => {
+        if (testInfo.project.name !== 'browser') {
+            await use(storageState);
+            return;
+        }
+        const ctx = await browser.newContext({ baseURL, ignoreHTTPSErrors: true });
+        const page = await ctx.newPage();
+        await login(page, ADMIN.username, ADMIN.password, 'admin-csrf.txt');
+        const state = await ctx.storageState();
+        await ctx.close();
+        await use(state);
+    },
+
     diagnostics: [
         async ({ page }, use, testInfo) => {
             const consoleLines: string[] = [];

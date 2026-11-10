@@ -98,6 +98,10 @@ test.afterEach(async () => {
 
 test.afterAll(async () => {
     await clearQueue();
+    // A PACS the admin-only checks failed to stop, if one was ever created.
+    for (const p of await admin.listPacs()) {
+        if (p.label.startsWith('E2E_NOTALLOWED')) await admin.deletePacsQuietly(p.id);
+    }
     await admin.deletePacsQuietly(idle.id);
     await admin.deleteProjectSettingsQuietly(PROJECT);
     await admin.deleteProjectQuietly(PROJECT);

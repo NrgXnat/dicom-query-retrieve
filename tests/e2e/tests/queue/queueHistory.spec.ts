@@ -7,15 +7,23 @@
  * so nothing it queues runs until a test opens a window for it. Retrieves that
  * should run use the fixture PACS with the scheduler set to ten seconds.
  *
- * Every request relabels its study, because DQR applies a study's last stored
- * relabels to any later import that has none (see neutralizeRelabels), and a
- * test here must not depend on what an earlier test or user left behind.
+ * Every request relabels its study, so that what arrives never depends on a
+ * relabel script an earlier test or user stored for that study. Whether DQR
+ * reuses such a script is unconfirmed (see neutralizeRelabels); relabeling
+ * every request makes the question irrelevant here.
  */
 import { test, expect } from '../../lib/fixtures';
 import { ImportRequest, Pacs, PacsRequestRow, XnatClient } from '../../lib/dqr';
 import { ADMIN, PACS_LABEL, RECEIVER_AE, RECEIVER_PORT, projectNameFor, uniqueLabel } from '../../lib/env';
 import { DISCO, DiscoStudy } from '../../lib/disco';
-import { FAST_FAILURE, FAST_QUEUE, SiteSettings, neutralizeRelabels, waitForOutcome } from '../../lib/stack';
+import {
+    FAST_FAILURE,
+    FAST_QUEUE,
+    SiteSettings,
+    cleanupAll,
+    neutralizeRelabels,
+    waitForOutcome,
+} from '../../lib/stack';
 
 let admin: XnatClient;
 let pacs: Pacs;
@@ -88,19 +96,25 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(async () => {
-    await admin.removeFromQueueQuietly(queuedIds.splice(0));
-    await admin.deletePacsQuietly(idle.id);
-    await settings.restore();
-    await settings.apply(FAST_QUEUE);
-    await admin.deleteProjectQuietly(PROJECT);
+    await cleanupAll(
+        () => admin.removeFromQueueQuietly(queuedIds.splice(0)),
+        () => admin.deletePacsQuietly(idle.id),
+        () => admin.deleteProjectQuietly(PROJECT),
+        async () => {
+            await settings.restore();
+            await settings.apply(FAST_QUEUE);
+        },
+    );
 });
 
 test.afterAll(async () => {
     try {
-        await neutralizeRelabels(admin, pacs.id, [...relabeled]);
-        await admin.clearUnassignedPrearchive(madeLabels);
+        await cleanupAll(
+            () => neutralizeRelabels(admin, pacs.id, [...relabeled]),
+            () => admin.clearUnassignedPrearchive(madeLabels),
+            () => settings.restore(),
+        );
     } finally {
-        await settings.restore();
         await admin.dispose();
     }
 });
@@ -111,7 +125,7 @@ test('a queued request can be listed, counted and read back by id', async () => 
     const mine = await admin.queue();
     expect(mine.map(r => r.id)).toContain(row.id);
     const count = await (await admin.get('/xapi/dqr/import/queue/count')).json();
-    expect(count).toBeGreaterThanOrEqual(1);
+    expect(count, 'the count matches the listing it counts').toBe(mine.length);
 
     const one = await (await admin.get(`/xapi/dqr/import/queue/${row.id}`)).json();
     expect(one.studyInstanceUid).toBe(DISCO[1].studyInstanceUid);
@@ -134,25 +148,32 @@ test('a single study is queued at high priority, several at standard priority', 
 });
 
 test('the queue pages and sorts', async () => {
-    const rows = await queue({
-        ...request(DISCO[1]),
-        studies: [DISCO[1], DISCO[2], DISCO[3]].map(s => labeled(s)),
-    });
-    const ids = rows.map(r => r.id);
+    // Three separate requests, so the rows have distinct queue times and the
+    // order is fully determined. One request queues all its rows at once.
+    const ids: number[] = [];
+    for (const s of [DISCO[1], DISCO[2], DISCO[3]]) {
+        const [row] = await queue(request(s));
+        ids.push(row.id);
+    }
+    const listing = async (params: Record<string, string | number>) => {
+        const res = await admin.get('/xapi/dqr/import/queue', params);
+        expect(res.ok(), `GET queue ${JSON.stringify(params)}: HTTP ${res.status()}`).toBeTruthy();
+        return ((await res.json()) as PacsRequestRow[]).map(r => r.id);
+    };
+    const queuedTimes = (await admin.queue()).filter(r => ids.includes(r.id)).map(r => r.queuedTime);
+    expect(new Set(queuedTimes).size, 'precondition: the three rows have distinct queue times').toBe(3);
 
-    const page = async (n: number, sort: string) =>
-        (await (
-            await admin.get('/xapi/dqr/import/queue', { page: n, pageSize: 1, sort })
-        ).json()) as PacsRequestRow[];
-    const desc = [await page(1, 'desc'), await page(2, 'desc')].flat().map(r => r.id);
-    expect(desc, 'one row per page, newest first').toHaveLength(2);
-    expect(new Set(desc).size).toBe(2);
+    const asc = (await listing({ sort: 'asc', pageSize: 1000 })).filter(id => ids.includes(id));
+    const desc = (await listing({ sort: 'desc', pageSize: 1000 })).filter(id => ids.includes(id));
+    expect(asc, 'asc lists the oldest first').toEqual(ids);
+    expect(desc, 'desc lists the newest first').toEqual([...ids].reverse());
 
-    const asc = (await (
-        await admin.get('/xapi/dqr/import/queue', { sort: 'asc', pageSize: 1000 })
-    ).json()) as PacsRequestRow[];
-    const ours = asc.filter(r => ids.includes(r.id)).map(r => r.queuedTime);
-    expect(ours, 'ascending by queue time').toEqual([...ours].sort((a, b) => a - b));
+    // Nothing else is queued after ours, so ours are the first rows newest first.
+    const pages = [
+        await listing({ sort: 'desc', page: 1, pageSize: 1 }),
+        await listing({ sort: 'desc', page: 2, pageSize: 1 }),
+    ];
+    expect(pages, 'one row per page, in order').toEqual([[ids[2]], [ids[1]]]);
 });
 
 test('a sort other than asc or desc is refused with 400', async () => {
@@ -216,6 +237,9 @@ test('the retrieve level is fixed when a request is queued, not when it runs', a
 
     const updated = await admin.rawUpdatePacs(idle.id, { ...idle, retrieveLevel: 'STUDY' });
     expect(updated.ok()).toBeTruthy();
+    expect((await admin.getPacs(idle.id)).retrieveLevel, 'precondition: the PACS is now study level').toBe(
+        'STUDY',
+    );
     await admin.openAllWeek(idle.id);
 
     const [outcome] = await waitForOutcome(admin, req.requestId!);
@@ -252,14 +276,28 @@ test('a retrieve to a destination the PACS does not know fails once, with a reas
 });
 
 test('a maximum of zero attempts does not silently skip the retrieve', async () => {
-    // The setting is accepted, so a request should still be tried at least
-    // once. What must not happen is the request being marked done with no
-    // retrieve attempted.
+    // Either fix is acceptable: refuse 0 when the setting is saved, or still
+    // try the request. What must not happen is a saved 0 that then fails every
+    // request without a retrieve ever being attempted.
+    const original = (await admin.getSettings()).dqrMaxPacsRequestAttempts;
+    const res = await admin.rawSetSettings({ dqrMaxPacsRequestAttempts: '0' });
+    const saved = String((await admin.getSettings()).dqrMaxPacsRequestAttempts);
+    if (saved !== '0') {
+        expect(res.status(), 'a refused 0 is refused as a client error').toBeGreaterThanOrEqual(400);
+        expect(res.status()).toBeLessThan(500);
+        expect(saved, 'a refused 0 leaves the setting as it was').toBe(String(original));
+        return;
+    }
+    // Recorded so afterEach puts the original back.
     await settings.apply({ dqrMaxPacsRequestAttempts: '0' });
+    expect(res.ok(), 'the setting was saved').toBeTruthy();
 
     await admin.openAllWeek(idle.id);
     const req = request(DISCO[7]);
     await queue(req);
     const [outcome] = await waitForOutcome(admin, req.requestId!);
-    expect(outcome.status, `with zero attempts: ${outcome.errorMessage ?? ''}`).toBe('RECEIVED');
+    expect(
+        outcome.status,
+        `0 was accepted, so the request must still be tried: ${outcome.errorMessage ?? ''}`,
+    ).toBe('RECEIVED');
 });

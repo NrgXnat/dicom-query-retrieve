@@ -103,11 +103,16 @@ test('the send is recorded as a completed workflow on the session, by the user w
     expect.soft(wf.createUser, 'the workflow names who sent it').toBe(admin.account.username);
 
     await expect
-        .poll(async () => (await admin.querySeries(pacs.id, study.studyInstanceUid)).length, {
-            timeout: 120_000,
-            intervals: [5_000],
-        })
-        .toBe(2);
+        .poll(
+            async () =>
+                (await admin.querySeries(pacs.id, study.studyInstanceUid)).map(s => s.seriesInstanceUid),
+            {
+                message: 'the series for scan 2 reaches the PACS',
+                timeout: 120_000,
+                intervals: [5_000],
+            },
+        )
+        .toContain(study.series[1].seriesInstanceUid);
 });
 
 test('a send with no scans is refused with 400', async () => {

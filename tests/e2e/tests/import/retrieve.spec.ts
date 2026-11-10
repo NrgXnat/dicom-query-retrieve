@@ -19,6 +19,7 @@ import { DISCO, DiscoStudy, SESSION_TYPE } from '../../lib/disco';
 import {
     FAST_QUEUE,
     SiteSettings,
+    cleanupAll,
     neutralizeRelabels,
     waitForOutcome,
     waitForSession,
@@ -53,11 +54,15 @@ test.afterEach(async () => {
 
 test.afterAll(async () => {
     try {
-        for (const id of madePacs) await admin.deletePacsQuietly(id);
-        await neutralizeRelabels(admin, pacs.id, [...relabeled]);
-        await admin.clearUnassignedPrearchive(madeLabels);
+        await cleanupAll(
+            async () => {
+                for (const id of madePacs) await admin.deletePacsQuietly(id);
+            },
+            () => neutralizeRelabels(admin, pacs.id, [...relabeled]),
+            () => admin.clearUnassignedPrearchive(madeLabels),
+            () => settings.restore(),
+        );
     } finally {
-        await settings.restore();
         await admin.dispose();
     }
 });
@@ -271,7 +276,7 @@ test('one request for two studies queues one row per study, and both arrive', as
     expect((await waitForSession(admin, PROJECT, b.Session)).xsiType).toBe(SESSION_TYPE.MR);
 });
 
-test('importing a study again into the same project adds nothing and duplicates nothing', async () => {
+test('importing a study again into the same project duplicates nothing, and holds the second copy as a conflict', async () => {
     const relabel = labels('Again');
     for (let i = 0; i < 2; i++) {
         const req = request(DISCO[7], { retrieveLevel: 'STUDY' }, { relabelMap: relabel });
@@ -280,16 +285,25 @@ test('importing a study again into the same project adds nothing and duplicates 
         expect(outcome.status, `import ${i + 1}: ${outcome.errorMessage ?? ''}`).toBe('RECEIVED');
     }
     const session = await waitForSession(admin, PROJECT, relabel.Session);
-    // Give the second import's files time to be merged before counting.
+    // XNAT does not overwrite a session that already exists: the second copy
+    // is held in the project's prearchive as a CONFLICT for someone to
+    // resolve (observed on the reference stack). Wait for that row to appear,
+    // so the checks below run after the second import has arrived, and fail
+    // if it settles anywhere else (another project, Unassigned, ERROR).
     await expect
         .poll(
-            async () => (await admin.listSessions(PROJECT)).filter(s => s.label === relabel.Session).length,
+            async () => (await admin.prearchiveRows(relabel.Session)).map(r => `${r.project}:${r.status}`),
             {
-                timeout: 120_000,
-                intervals: [10_000],
+                message: 'the second import is held in the same project as a CONFLICT, and nowhere else',
+                timeout: 180_000,
+                intervals: [5_000],
             },
         )
-        .toBe(1);
+        .toEqual([`${PROJECT}:CONFLICT`]);
+    expect(
+        (await admin.listSessions(PROJECT)).map(s => s.label),
+        'one session in the project, the merged one',
+    ).toEqual([relabel.Session]);
     expect(await scanIds(session.ID)).toEqual(await pacsSeriesNumbers(DISCO[7]));
 });
 
@@ -321,18 +335,20 @@ test('an import of a study the PACS does not have is refused, not reported as qu
     const res = await admin.rawImport(req);
     const body = await res.text();
     expect(
-        res.ok() && JSON.parse(body || '[]').length === 0,
-        `answered ${res.status()} ${body.slice(0, 120)}: success with nothing queued tells the user it worked`,
-    ).toBeFalsy();
+        res.status(),
+        `answered ${res.status()} ${body.slice(0, 120)}: a request that queues nothing should be refused with a 4xx`,
+    ).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
 });
 
 test('an import whose series filter matches nothing is refused, not reported as queued', async () => {
     const res = await admin.rawImport(request(DISCO[1], {}, { seriesDescriptions: ['NO SUCH SERIES E2E'] }));
     const body = await res.text();
     expect(
-        res.ok() && JSON.parse(body || '[]').length === 0,
-        `answered ${res.status()} ${body.slice(0, 120)}: success with nothing queued tells the user it worked`,
-    ).toBeFalsy();
+        res.status(),
+        `answered ${res.status()} ${body.slice(0, 120)}: a request that queues nothing should be refused with a 4xx`,
+    ).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
 });
 
 test('an import from an unknown PACS is 404', async () => {
