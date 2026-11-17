@@ -162,24 +162,34 @@ test('a DQR user cannot import into a project they have no access to', async () 
     expect((await dqrUser.rawImport(importTo(OTHER))).status()).toBe(403);
 });
 
-test('with the project gate on, an import into a project not switched on is refused', async () => {
-    await settings.apply(GATES_ON);
-    await admin.deleteProjectSettingsQuietly(OTHER);
-    await admin.addProjectUser(OTHER, DQR_ROLE_USER.username, 'Members');
+// Fails on QA-573: project never switched on for DQR is reported as not existing; deleted projects leave DQR settings.
+test(
+    'with the project gate on, an import into a project not switched on is refused',
+    { annotation: { type: 'issue', description: 'QA-573' } },
+    async () => {
+        await settings.apply(GATES_ON);
+        await admin.deleteProjectSettingsQuietly(OTHER);
+        await admin.addProjectUser(OTHER, DQR_ROLE_USER.username, 'Members');
 
-    const res = await dqrUser.rawImport(importTo(OTHER));
-    expect(res.ok(), 'the project has not been switched on for DQR').toBeFalsy();
-    expect(res.status(), 'refused as forbidden, not as a missing resource').toBe(403);
-});
+        const res = await dqrUser.rawImport(importTo(OTHER));
+        expect(res.ok(), 'the project has not been switched on for DQR').toBeFalsy();
+        expect(res.status(), 'refused as forbidden, not as a missing resource').toBe(403);
+    },
+);
 
-test("a read-only collaborator cannot send the project's data to a PACS", async () => {
-    // The Send to PACS menu needs edit access and an enabled project. The API
-    // behind it should ask for no less, since sending data out of XNAT is at
-    // least as sensitive as bringing it in.
-    await settings.apply(GATES_ON);
-    const res = await readOnly.rawExport(idle.id, sessionId, ['1']);
-    expect(res.status(), `answered ${res.status()} ${(await res.text()).slice(0, 120)}`).toBe(403);
-});
+// Fails on QA-577: read-only project member can send project data to a PACS.
+test(
+    "a read-only collaborator cannot send the project's data to a PACS",
+    { annotation: { type: 'issue', description: 'QA-577' } },
+    async () => {
+        // The Send to PACS menu needs edit access and an enabled project. The API
+        // behind it should ask for no less, since sending data out of XNAT is at
+        // least as sensitive as bringing it in.
+        await settings.apply(GATES_ON);
+        const res = await readOnly.rawExport(idle.id, sessionId, ['1']);
+        expect(res.status(), `answered ${res.status()} ${(await res.text()).slice(0, 120)}`).toBe(403);
+    },
+);
 
 // ------------------------------------------------------------- admin only
 

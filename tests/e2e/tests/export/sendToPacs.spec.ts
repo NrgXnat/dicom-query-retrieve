@@ -85,39 +85,51 @@ test('sending one scan puts that series, and only that series, in the PACS', asy
     expect(found.patient?.id, 'the data arrives as archived').toBe(archivedPatientId);
 });
 
-test('the send is recorded as a completed workflow on the session, by the user who sent it', async () => {
-    const res = await admin.rawExport(pacs.id, sessionId, ['2']);
-    expect(res.ok()).toBeTruthy();
-    const { workflow } = await res.json();
+// Fails on QA-576: Send to PACS records the wrong session type; missing scan parameter causes a server error.
+test(
+    'the send is recorded as a completed workflow on the session, by the user who sent it',
+    { annotation: { type: 'issue', description: 'QA-576' } },
+    async () => {
+        const res = await admin.rawExport(pacs.id, sessionId, ['2']);
+        expect(res.ok()).toBeTruthy();
+        const { workflow } = await res.json();
 
-    await expect
-        .poll(async () => (await (await admin.get(`/xapi/workflows/${workflow}`)).json()).status, {
-            timeout: 120_000,
-            intervals: [5_000],
-        })
-        .toBe('Complete');
-    const wf = await (await admin.get(`/xapi/workflows/${workflow}`)).json();
-    expect(wf.pipelineName).toBe('EXPORT_TO_PACS_REQUEST');
-    expect(wf.id).toBe(sessionId);
-    expect.soft(wf.dataType, 'the workflow names the session type that was sent').toBe('xnat:ctSessionData');
-    expect.soft(wf.createUser, 'the workflow names who sent it').toBe(admin.account.username);
-
-    await expect
-        .poll(
-            async () =>
-                (await admin.querySeries(pacs.id, study.studyInstanceUid)).map(s => s.seriesInstanceUid),
-            {
-                message: 'the series for scan 2 reaches the PACS',
+        await expect
+            .poll(async () => (await (await admin.get(`/xapi/workflows/${workflow}`)).json()).status, {
                 timeout: 120_000,
                 intervals: [5_000],
-            },
-        )
-        .toContain(study.series[1].seriesInstanceUid);
-});
+            })
+            .toBe('Complete');
+        const wf = await (await admin.get(`/xapi/workflows/${workflow}`)).json();
+        expect(wf.pipelineName).toBe('EXPORT_TO_PACS_REQUEST');
+        expect(wf.id).toBe(sessionId);
+        expect
+            .soft(wf.dataType, 'the workflow names the session type that was sent')
+            .toBe('xnat:ctSessionData');
+        expect.soft(wf.createUser, 'the workflow names who sent it').toBe(admin.account.username);
 
-test('a send with no scans is refused with 400', async () => {
-    expect((await admin.rawExport(pacs.id, sessionId, [])).status()).toBe(400);
-});
+        await expect
+            .poll(
+                async () =>
+                    (await admin.querySeries(pacs.id, study.studyInstanceUid)).map(s => s.seriesInstanceUid),
+                {
+                    message: 'the series for scan 2 reaches the PACS',
+                    timeout: 120_000,
+                    intervals: [5_000],
+                },
+            )
+            .toContain(study.series[1].seriesInstanceUid);
+    },
+);
+
+// Fails on QA-576: Send to PACS records the wrong session type; missing scan parameter causes a server error.
+test(
+    'a send with no scans is refused with 400',
+    { annotation: { type: 'issue', description: 'QA-576' } },
+    async () => {
+        expect((await admin.rawExport(pacs.id, sessionId, [])).status()).toBe(400);
+    },
+);
 
 test('a send with no session is refused with 400', async () => {
     expect((await admin.rawExport(pacs.id, '', ['1'])).status()).toBe(400);

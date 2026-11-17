@@ -118,15 +118,20 @@ test('the validate call answers true for a free slot and false for an overlap', 
     expect(await clash.json()).toBe(false);
 });
 
-test('a window missing its day, start or end is refused', async () => {
-    for (const missing of ['dayOfWeek', 'availabilityStart', 'availabilityEnd']) {
-        const body: Record<string, unknown> = window('08:00', '09:00');
-        delete body[missing];
-        const res = await admin.rawCreateAvailability(pacs.id, body);
-        expect.soft(res.status(), `a window with no ${missing} is refused as a client error`).toBe(400);
-    }
-    expect(await dayWindows()).toEqual([]);
-});
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test(
+    'a window missing its day, start or end is refused',
+    { annotation: { type: 'issue', description: 'QA-580' } },
+    async () => {
+        for (const missing of ['dayOfWeek', 'availabilityStart', 'availabilityEnd']) {
+            const body: Record<string, unknown> = window('08:00', '09:00');
+            delete body[missing];
+            const res = await admin.rawCreateAvailability(pacs.id, body);
+            expect.soft(res.status(), `a window with no ${missing} is refused as a client error`).toBe(400);
+        }
+        expect(await dayWindows()).toEqual([]);
+    },
+);
 
 test('widening a window over its neighbor trims the neighbor rather than overlapping it', async () => {
     const first = await createWindow('08:00', '12:00');
@@ -178,23 +183,29 @@ test('an all-day window ending at midnight is open now', async () => {
     expect(w.availableNow, 'an all-day window for today is open now').toBeTruthy();
 });
 
-test('a window on an unknown PACS is refused, and nothing is stored for it', async () => {
-    const missing = 999999999;
-    const res = await admin.post(`/xapi/pacs/${missing}/availability`, {
-        pacsId: missing,
-        ...window('08:00', '09:00'),
-    });
-    const orphans = Object.values(
-        (await (await admin.get(`/xapi/pacs/${missing}/availability`)).json().catch(() => ({}))) as Record<
-            string,
-            any[]
-        >,
-    ).flat();
-    for (const o of orphans) await admin.delete(`/xapi/pacs/${missing}/availability/${o.id}`);
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test(
+    'a window on an unknown PACS is refused, and nothing is stored for it',
+    { annotation: { type: 'issue', description: 'QA-580' } },
+    async () => {
+        const missing = 999999999;
+        const res = await admin.post(`/xapi/pacs/${missing}/availability`, {
+            pacsId: missing,
+            ...window('08:00', '09:00'),
+        });
+        const orphans = Object.values(
+            (await (
+                await admin.get(`/xapi/pacs/${missing}/availability`)
+            )
+                .json()
+                .catch(() => ({}))) as Record<string, any[]>,
+        ).flat();
+        for (const o of orphans) await admin.delete(`/xapi/pacs/${missing}/availability/${o.id}`);
 
-    expect
-        .soft(res.status(), 'a schedule for a PACS that does not exist is refused as a client error')
-        .toBeGreaterThanOrEqual(400);
-    expect.soft(res.status()).toBeLessThan(500);
-    expect(orphans, 'no schedule entry is stored for a PACS that does not exist').toEqual([]);
-});
+        expect
+            .soft(res.status(), 'a schedule for a PACS that does not exist is refused as a client error')
+            .toBeGreaterThanOrEqual(400);
+        expect.soft(res.status()).toBeLessThan(500);
+        expect(orphans, 'no schedule entry is stored for a PACS that does not exist').toEqual([]);
+    },
+);

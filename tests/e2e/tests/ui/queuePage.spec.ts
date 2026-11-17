@@ -100,16 +100,21 @@ test('the "all users" view lists everyone\'s requests and who made them', async 
     await expect(row).toContainText(DQR_ROLE_USER.username);
 });
 
-test('in the "current user" view the page counts only the current user\'s requests', async ({ page }) => {
-    const countCalls: string[] = [];
-    page.on('request', (r: Request) => {
-        if (r.url().includes('/xapi/dqr/import/queue/count')) countCalls.push(r.url());
-    });
-    await openQueue(page, 'user');
-    await expect.poll(() => countCalls.length, { timeout: 15_000 }).toBeGreaterThan(0);
-    for (const url of countCalls)
-        expect(url, 'the count for "current user" must not ask for all users').not.toContain('all=true');
-});
+// Fails on QA-578: import page hides PACS from the list; queue page counts other users' requests.
+test(
+    'in the "current user" view the page counts only the current user\'s requests',
+    { annotation: { type: 'issue', description: 'QA-578' } },
+    async ({ page }) => {
+        const countCalls: string[] = [];
+        page.on('request', (r: Request) => {
+            if (r.url().includes('/xapi/dqr/import/queue/count')) countCalls.push(r.url());
+        });
+        await openQueue(page, 'user');
+        await expect.poll(() => countCalls.length, { timeout: 15_000 }).toBeGreaterThan(0);
+        for (const url of countCalls)
+            expect(url, 'the count for "current user" must not ask for all users').not.toContain('all=true');
+    },
+);
 
 test('clicking a request opens its details', async ({ page }) => {
     await openQueue(page);

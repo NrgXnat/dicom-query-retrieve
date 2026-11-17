@@ -91,26 +91,36 @@ test('a row with no criteria is skipped, because it would match every study on t
     expect(rows.map(r => r.relabelMap?.Subject)).toEqual(['CSV_SUBJ_2']);
 });
 
-test('a study date written with dashes, as spreadsheets write it, is read', async () => {
-    const res = await admin.rawQueryBatch(pacs.id, 'Study Date\n2017-12-06\n');
-    const body = await res.text();
-    expect(
-        res.ok(),
-        `a dashed date should be accepted: HTTP ${res.status()} ${body.slice(0, 200)}`,
-    ).toBeTruthy();
-    expect(uids(JSON.parse(body)[0])).toEqual([DISCO[6].studyInstanceUid]);
-});
+// Fails on QA-574: single-day search returns the next day; some CSV dates cause a server error.
+test(
+    'a study date written with dashes, as spreadsheets write it, is read',
+    { annotation: { type: 'issue', description: 'QA-574' } },
+    async () => {
+        const res = await admin.rawQueryBatch(pacs.id, 'Study Date\n2017-12-06\n');
+        const body = await res.text();
+        expect(
+            res.ok(),
+            `a dashed date should be accepted: HTTP ${res.status()} ${body.slice(0, 200)}`,
+        ).toBeTruthy();
+        expect(uids(JSON.parse(body)[0])).toEqual([DISCO[6].studyInstanceUid]);
+    },
+);
 
 test('a study date range in a CSV row is read', async () => {
     const rows = await batch('Study Date\n20201101-20201102\n');
     for (const n of [1, 2, 3, 5] as const) expect(uids(rows[0])).toContain(DISCO[n].studyInstanceUid);
 });
 
-test('a single study date in a CSV row finds only that day', async () => {
-    const rows = await batch('Study Date\n20201101\n');
-    const found = uids(rows[0]).filter(u => Object.values(DISCO).some(s => s.studyInstanceUid === u));
-    expect(found, 'Disco Study 3 is the only study on 2020-11-01').toEqual([DISCO[3].studyInstanceUid]);
-});
+// Fails on QA-574: single-day search returns the next day; some CSV dates cause a server error.
+test(
+    'a single study date in a CSV row finds only that day',
+    { annotation: { type: 'issue', description: 'QA-574' } },
+    async () => {
+        const rows = await batch('Study Date\n20201101\n');
+        const found = uids(rows[0]).filter(u => Object.values(DISCO).some(s => s.studyInstanceUid === u));
+        expect(found, 'Disco Study 3 is the only study on 2020-11-01').toEqual([DISCO[3].studyInstanceUid]);
+    },
+);
 
 test('a CSV of more than 1000 rows is refused with 400', async () => {
     const lines = [
@@ -126,12 +136,17 @@ test('a CSV search of an unknown PACS is 404', async () => {
     expect(res.status()).toBe(404);
 });
 
-test('a malformed date in a CSV is refused as a client error that names the value', async () => {
-    const res = await admin.rawQueryBatch(pacs.id, 'Study Date\nnot-a-date\n');
-    const body = await res.text();
-    expect(
-        res.status(),
-        `a bad value in the user's file is their mistake, not a server error: ${body.slice(0, 160)}`,
-    ).toBe(400);
-    expect(body).toContain('not-a-date');
-});
+// Fails on QA-574: single-day search returns the next day; some CSV dates cause a server error.
+test(
+    'a malformed date in a CSV is refused as a client error that names the value',
+    { annotation: { type: 'issue', description: 'QA-574' } },
+    async () => {
+        const res = await admin.rawQueryBatch(pacs.id, 'Study Date\nnot-a-date\n');
+        const body = await res.text();
+        expect(
+            res.status(),
+            `a bad value in the user's file is their mistake, not a server error: ${body.slice(0, 160)}`,
+        ).toBe(400);
+        expect(body).toContain('not-a-date');
+    },
+);

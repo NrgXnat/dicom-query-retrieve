@@ -73,16 +73,23 @@ test('with the project gate off, every project is enabled even with no switch se
     expect(await res.json()).toBe(true);
 });
 
-test('with the project gate on, a project nobody has switched on reads as not enabled', async () => {
-    // The answer for a project with no switch set should be "no", the same as
-    // a project switched off, not an error.
-    await settings.apply({ allowAllProjectsToUseDqr: false });
-    await admin.deleteProjectSettingsQuietly(PROJECT);
+// Fails on QA-573: project never switched on for DQR is reported as not existing; deleted projects leave DQR settings.
+test(
+    'with the project gate on, a project nobody has switched on reads as not enabled',
+    { annotation: { type: 'issue', description: 'QA-573' } },
+    async () => {
+        // The answer for a project with no switch set should be "no", the same as
+        // a project switched off, not an error.
+        await settings.apply({ allowAllProjectsToUseDqr: false });
+        await admin.deleteProjectSettingsQuietly(PROJECT);
 
-    const res = await admin.get(`/xapi/dqr/settings/project/${PROJECT}/enabled`);
-    expect(res.status(), 'a project with no switch set is a normal answer, not a missing resource').toBe(200);
-    expect(await res.json()).toBe(false);
-});
+        const res = await admin.get(`/xapi/dqr/settings/project/${PROJECT}/enabled`);
+        expect(res.status(), 'a project with no switch set is a normal answer, not a missing resource').toBe(
+            200,
+        );
+        expect(await res.json()).toBe(false);
+    },
+);
 
 test('the project switch turns a project on and off when the project gate is on', async () => {
     await settings.apply({ allowAllProjectsToUseDqr: false });

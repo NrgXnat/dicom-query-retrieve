@@ -138,36 +138,51 @@ const INVALID: Array<[string, Partial<PacsSettings>]> = [
     ],
 ];
 
-test('an invalid PACS is refused with a 400 that says why, and nothing is saved', async () => {
-    // Each rule is checked separately so one run reports every rule that is
-    // not enforced, rather than stopping at the first.
-    for (const [what, overrides] of INVALID) {
-        const settings = dimse(overrides);
-        const res = await admin.rawCreatePacs(settings);
-        const body = await res.text();
-        const saved = (await admin.listPacs()).find(p => p.label === settings.label);
-        if (saved) made.push(saved.id);
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test(
+    'an invalid PACS is refused with a 400 that says why, and nothing is saved',
+    { annotation: { type: 'issue', description: 'QA-580' } },
+    async () => {
+        // Each rule is checked separately so one run reports every rule that is
+        // not enforced, rather than stopping at the first.
+        for (const [what, overrides] of INVALID) {
+            const settings = dimse(overrides);
+            const res = await admin.rawCreatePacs(settings);
+            const body = await res.text();
+            const saved = (await admin.listPacs()).find(p => p.label === settings.label);
+            if (saved) made.push(saved.id);
+
+            expect
+                .soft(
+                    res.status(),
+                    `${what}: should be refused as a client error, got: ${body.slice(0, 120)}`,
+                )
+                .toBe(400);
+            expect
+                .soft(body.trim().length, `${what}: the refusal should say what is wrong`)
+                .toBeGreaterThan(0);
+            expect.soft(saved, `${what}: must not be saved`).toBeUndefined();
+        }
+    },
+);
+
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test(
+    'an invalid update is refused, and the stored PACS is left as it was',
+    { annotation: { type: 'issue', description: 'QA-580' } },
+    async () => {
+        const valid = dimse();
+        const pacs = await create(valid);
+
+        const res = await admin.rawUpdatePacs(pacs.id, { ...valid, host: '' });
+        const stored = await admin.getPacs(pacs.id);
 
         expect
-            .soft(res.status(), `${what}: should be refused as a client error, got: ${body.slice(0, 120)}`)
+            .soft(res.status(), 'removing the host of a DIMSE PACS should be refused as a client error')
             .toBe(400);
-        expect.soft(body.trim().length, `${what}: the refusal should say what is wrong`).toBeGreaterThan(0);
-        expect.soft(saved, `${what}: must not be saved`).toBeUndefined();
-    }
-});
-
-test('an invalid update is refused, and the stored PACS is left as it was', async () => {
-    const valid = dimse();
-    const pacs = await create(valid);
-
-    const res = await admin.rawUpdatePacs(pacs.id, { ...valid, host: '' });
-    const stored = await admin.getPacs(pacs.id);
-
-    expect
-        .soft(res.status(), 'removing the host of a DIMSE PACS should be refused as a client error')
-        .toBe(400);
-    expect(stored.host, 'the refused change must not be saved').toBe(valid.host);
-});
+        expect(stored.host, 'the refused change must not be saved').toBe(valid.host);
+    },
+);
 
 test('making a PACS the default query PACS takes the flag from the previous default', async () => {
     const fixture = await admin.pacsByLabel(PACS_LABEL);
@@ -186,7 +201,8 @@ test('making a PACS the default query PACS takes the flag from the previous defa
     }
 });
 
-test('two PACS may not share a label', async () => {
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test('two PACS may not share a label', { annotation: { type: 'issue', description: 'QA-580' } }, async () => {
     const first = await create(dimse());
     const res = await admin.rawCreatePacs(dimse({ label: first.label }));
     const sameLabel = (await admin.listPacs()).filter(p => p.label === first.label);
@@ -200,25 +216,30 @@ test('two PACS may not share a label', async () => {
     expect(sameLabel, 'only the first PACS carries the label').toHaveLength(1);
 });
 
-test('two PACS may not share a host, port and AE title', async () => {
-    const first = await create(dimse());
-    const twin = dimse({
-        aeTitle: first.aeTitle,
-        host: first.host,
-        queryRetrievePort: first.queryRetrievePort,
-    });
-    const res = await admin.rawCreatePacs(twin);
-    const body = await res.text();
-    const saved = (await admin.listPacs()).find(p => p.label === twin.label);
-    if (saved) made.push(saved.id);
+// Fails on QA-580: PACS and schedule API accept bad input, and duplicates cause a server error.
+test(
+    'two PACS may not share a host, port and AE title',
+    { annotation: { type: 'issue', description: 'QA-580' } },
+    async () => {
+        const first = await create(dimse());
+        const twin = dimse({
+            aeTitle: first.aeTitle,
+            host: first.host,
+            queryRetrievePort: first.queryRetrievePort,
+        });
+        const res = await admin.rawCreatePacs(twin);
+        const body = await res.text();
+        const saved = (await admin.listPacs()).find(p => p.label === twin.label);
+        if (saved) made.push(saved.id);
 
-    expect(saved, 'the duplicate must not be saved').toBeUndefined();
-    expect(
-        res.status(),
-        `a duplicate should be refused as a client error, got: ${body.slice(0, 120)}`,
-    ).toBeGreaterThanOrEqual(400);
-    expect(res.status(), "a duplicate is the caller's mistake, not a server error").toBeLessThan(500);
-});
+        expect(saved, 'the duplicate must not be saved').toBeUndefined();
+        expect(
+            res.status(),
+            `a duplicate should be refused as a client error, got: ${body.slice(0, 120)}`,
+        ).toBeGreaterThanOrEqual(400);
+        expect(res.status(), "a duplicate is the caller's mistake, not a server error").toBeLessThan(500);
+    },
+);
 
 test('a PACS added through the API can be given a schedule through the API, and is then open', async () => {
     // The admin page adds the schedule itself, as a separate request after

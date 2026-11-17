@@ -259,45 +259,55 @@ test('history records the patient the request was for', async () => {
     expect(outcome.patientId, 'history keeps the patient ID as well as the name').toBe(DISCO[7].patientId);
 });
 
-test('a retrieve to a destination the PACS does not know fails once, with a reason', async () => {
-    // The PACS refuses a move to an AE title it does not know. That cannot
-    // succeed on a second try, and the history should say what went wrong.
-    await settings.apply(FAST_FAILURE);
-    await admin.openAllWeek(idle.id);
-    const req = request(DISCO[7], { aeTitle: 'E2ENOSUCHAE' });
-    await queue(req);
+// Fails on QA-575: permanent failures retried with no reason; zero attempts fails every import.
+test(
+    'a retrieve to a destination the PACS does not know fails once, with a reason',
+    { annotation: { type: 'issue', description: 'QA-575' } },
+    async () => {
+        // The PACS refuses a move to an AE title it does not know. That cannot
+        // succeed on a second try, and the history should say what went wrong.
+        await settings.apply(FAST_FAILURE);
+        await admin.openAllWeek(idle.id);
+        const req = request(DISCO[7], { aeTitle: 'E2ENOSUCHAE' });
+        await queue(req);
 
-    const outcomes = await waitForOutcome(admin, req.requestId!, { timeoutMs: 180_000 });
-    expect(outcomes.every(o => o.status === 'FAILED')).toBeTruthy();
-    for (const o of outcomes) {
-        expect.soft(o.errorMessage ?? '', `history row ${o.id} should say why it failed`).not.toBe('');
-    }
-    expect.soft(outcomes, 'a permanent refusal is not retried').toHaveLength(1);
-});
+        const outcomes = await waitForOutcome(admin, req.requestId!, { timeoutMs: 180_000 });
+        expect(outcomes.every(o => o.status === 'FAILED')).toBeTruthy();
+        for (const o of outcomes) {
+            expect.soft(o.errorMessage ?? '', `history row ${o.id} should say why it failed`).not.toBe('');
+        }
+        expect.soft(outcomes, 'a permanent refusal is not retried').toHaveLength(1);
+    },
+);
 
-test('a maximum of zero attempts does not silently skip the retrieve', async () => {
-    // Either fix is acceptable: refuse 0 when the setting is saved, or still
-    // try the request. What must not happen is a saved 0 that then fails every
-    // request without a retrieve ever being attempted.
-    const original = (await admin.getSettings()).dqrMaxPacsRequestAttempts;
-    const res = await admin.rawSetSettings({ dqrMaxPacsRequestAttempts: '0' });
-    const saved = String((await admin.getSettings()).dqrMaxPacsRequestAttempts);
-    if (saved !== '0') {
-        expect(res.status(), 'a refused 0 is refused as a client error').toBeGreaterThanOrEqual(400);
-        expect(res.status()).toBeLessThan(500);
-        expect(saved, 'a refused 0 leaves the setting as it was').toBe(String(original));
-        return;
-    }
-    // Recorded so afterEach puts the original back.
-    await settings.apply({ dqrMaxPacsRequestAttempts: '0' });
-    expect(res.ok(), 'the setting was saved').toBeTruthy();
+// Fails on QA-575: permanent failures retried with no reason; zero attempts fails every import.
+test(
+    'a maximum of zero attempts does not silently skip the retrieve',
+    { annotation: { type: 'issue', description: 'QA-575' } },
+    async () => {
+        // Either fix is acceptable: refuse 0 when the setting is saved, or still
+        // try the request. What must not happen is a saved 0 that then fails every
+        // request without a retrieve ever being attempted.
+        const original = (await admin.getSettings()).dqrMaxPacsRequestAttempts;
+        const res = await admin.rawSetSettings({ dqrMaxPacsRequestAttempts: '0' });
+        const saved = String((await admin.getSettings()).dqrMaxPacsRequestAttempts);
+        if (saved !== '0') {
+            expect(res.status(), 'a refused 0 is refused as a client error').toBeGreaterThanOrEqual(400);
+            expect(res.status()).toBeLessThan(500);
+            expect(saved, 'a refused 0 leaves the setting as it was').toBe(String(original));
+            return;
+        }
+        // Recorded so afterEach puts the original back.
+        await settings.apply({ dqrMaxPacsRequestAttempts: '0' });
+        expect(res.ok(), 'the setting was saved').toBeTruthy();
 
-    await admin.openAllWeek(idle.id);
-    const req = request(DISCO[7]);
-    await queue(req);
-    const [outcome] = await waitForOutcome(admin, req.requestId!);
-    expect(
-        outcome.status,
-        `0 was accepted, so the request must still be tried: ${outcome.errorMessage ?? ''}`,
-    ).toBe('RECEIVED');
-});
+        await admin.openAllWeek(idle.id);
+        const req = request(DISCO[7]);
+        await queue(req);
+        const [outcome] = await waitForOutcome(admin, req.requestId!);
+        expect(
+            outcome.status,
+            `0 was accepted, so the request must still be tried: ${outcome.errorMessage ?? ''}`,
+        ).toBe('RECEIVED');
+    },
+);

@@ -125,24 +125,33 @@ test('the three accepted date formats give the same results', async () => {
     }
 });
 
-test("a search for a single day finds only that day's studies", async () => {
-    // Disco Study 3 is the only study on 2020-11-01; Studies 1, 2 and 5 are on
-    // the next day. A single-day search is what the page sends when From and
-    // To are the same date.
-    expect(
-        discoIn(
-            await admin.queryStudies({
-                pacsId: pacs.id,
-                studyDateRange: { start: '20201101', end: '20201101' },
-            }),
-        ),
-    ).toEqual([3]);
-    expect(
-        discoIn(
-            await admin.queryStudies({ pacsId: pacs.id, studyDateFrom: '20201101', studyDateTo: '20201101' }),
-        ),
-    ).toEqual([3]);
-});
+// Fails on QA-574: single-day search returns the next day; some CSV dates cause a server error.
+test(
+    "a search for a single day finds only that day's studies",
+    { annotation: { type: 'issue', description: 'QA-574' } },
+    async () => {
+        // Disco Study 3 is the only study on 2020-11-01; Studies 1, 2 and 5 are on
+        // the next day. A single-day search is what the page sends when From and
+        // To are the same date.
+        expect(
+            discoIn(
+                await admin.queryStudies({
+                    pacsId: pacs.id,
+                    studyDateRange: { start: '20201101', end: '20201101' },
+                }),
+            ),
+        ).toEqual([3]);
+        expect(
+            discoIn(
+                await admin.queryStudies({
+                    pacsId: pacs.id,
+                    studyDateFrom: '20201101',
+                    studyDateTo: '20201101',
+                }),
+            ),
+        ).toEqual([3]);
+    },
+);
 
 test('criteria are combined, so every one must match', async () => {
     const results = await admin.queryStudies({
@@ -213,20 +222,25 @@ test('a patient search finds the patient with their details', async () => {
     expect(body.results.map((p: any) => p.id)).toEqual([DISCO[6].patientId]);
 });
 
-test('when the PACS refuses a search, the caller is told it failed rather than that nothing matched', async () => {
-    // XNAT calls the PACS with its calling AE title. Orthanc answers a ping
-    // from any AE but refuses a search from one it does not know, which is
-    // the situation of a PACS that has not been told about this XNAT.
-    test.setTimeout(420_000);
-    await settings.apply({ dqrCallingAe: 'E2EUNKNOWN' });
+// Fails on QA-579: a search the PACS refuses looks like no results and takes 5 minutes.
+test(
+    'when the PACS refuses a search, the caller is told it failed rather than that nothing matched',
+    { annotation: { type: 'issue', description: 'QA-579' } },
+    async () => {
+        // XNAT calls the PACS with its calling AE title. Orthanc answers a ping
+        // from any AE but refuses a search from one it does not know, which is
+        // the situation of a PACS that has not been told about this XNAT.
+        test.setTimeout(420_000);
+        await settings.apply({ dqrCallingAe: 'E2EUNKNOWN' });
 
-    const started = Date.now();
-    const res = await admin.rawQueryStudies({ pacsId: pacs.id }, 400_000);
-    const seconds = Math.round((Date.now() - started) / 1000);
+        const started = Date.now();
+        const res = await admin.rawQueryStudies({ pacsId: pacs.id }, 400_000);
+        const seconds = Math.round((Date.now() - started) / 1000);
 
-    expect(
-        res.status(),
-        `answered ${res.status()} after ${seconds}s; 204 tells the user nothing matched`,
-    ).not.toBe(204);
-    expect(res.ok(), 'a refused search is an error').toBeFalsy();
-});
+        expect(
+            res.status(),
+            `answered ${res.status()} after ${seconds}s; 204 tells the user nothing matched`,
+        ).not.toBe(204);
+        expect(res.ok(), 'a refused search is an error').toBeFalsy();
+    },
+);

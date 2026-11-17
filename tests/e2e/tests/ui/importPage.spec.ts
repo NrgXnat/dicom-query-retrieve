@@ -71,70 +71,80 @@ function dialogWith(page: Page, text: string | RegExp) {
     return page.locator('.xnat-dialog').filter({ hasText: text }).last();
 }
 
-test('the page opens ready to search, on the default PACS and the DQR receiver, without script errors', async ({
-    page,
-}) => {
-    const errors: string[] = [];
-    page.on('pageerror', e => errors.push(String(e)));
-    await openImportPage(page);
-
-    await expect(page.locator('#select-pacs')).toHaveValue(String(pacs.id));
-    await expect(page.locator('#ae-menu')).toHaveValue(`${RECEIVER_AE}:${RECEIVER_PORT}`);
-    await expect(page.locator('#pacs-query-msg')).toBeVisible();
-    expect(errors, 'the page should load without JavaScript errors').toEqual([]);
-});
-
-test('every searchable PACS is offered in the Source PACS list, including ones listed after the default', async ({
-    page,
-}) => {
-    // The server returns PACS in no fixed order. So that this test always
-    // covers a PACS listed after the default, it makes whichever PACS the
-    // server lists first the default for the duration of the test, and puts
-    // the fixture PACS back as the default afterwards.
-    const second = await admin.createPacs({
-        aeTitle: 'ORTHANC',
-        label: uniqueLabel('E2E_UI_SECOND'),
-        host: '127.0.0.1',
-        queryRetrievePort: pacs.queryRetrievePort,
-        queryable: true,
-        storable: false,
-        dicomWebEnabled: false,
-    });
-    madePacs.push(second.id);
-
-    const listed = await admin.listPacs();
-    const first = listed[0];
-    try {
-        if (!first.defaultQueryRetrievePacs) {
-            const res = await admin.rawUpdatePacs(first.id, { ...first, defaultQueryRetrievePacs: true });
-            expect(res.ok(), `make PACS ${first.id} the default: HTTP ${res.status()}`).toBeTruthy();
-        }
-        const order = await admin.listPacs();
-        expect(
-            order[0].defaultQueryRetrievePacs,
-            'precondition: the default PACS is listed first',
-        ).toBeTruthy();
-        expect(order.length, 'precondition: at least one PACS is listed after the default').toBeGreaterThan(
-            1,
-        );
-
+// Fails on QA-578: import page hides PACS from the list; queue page counts other users' requests.
+test(
+    'the page opens ready to search, on the default PACS and the DQR receiver, without script errors',
+    { annotation: { type: 'issue', description: 'QA-578' } },
+    async ({ page }) => {
+        const errors: string[] = [];
+        page.on('pageerror', e => errors.push(String(e)));
         await openImportPage(page);
-        const offered = await page
-            .locator('#select-pacs option')
-            .evaluateAll(o => o.map(x => (x as HTMLOptionElement).value));
-        for (const p of order.filter(x => x.queryable)) {
-            expect
-                .soft(offered, `PACS ${p.id} (${p.label}) is searchable but not offered`)
-                .toContain(String(p.id));
+
+        await expect(page.locator('#select-pacs')).toHaveValue(String(pacs.id));
+        await expect(page.locator('#ae-menu')).toHaveValue(`${RECEIVER_AE}:${RECEIVER_PORT}`);
+        await expect(page.locator('#pacs-query-msg')).toBeVisible();
+        expect(errors, 'the page should load without JavaScript errors').toEqual([]);
+    },
+);
+
+// Fails on QA-578: import page hides PACS from the list; queue page counts other users' requests.
+test(
+    'every searchable PACS is offered in the Source PACS list, including ones listed after the default',
+    { annotation: { type: 'issue', description: 'QA-578' } },
+    async ({ page }) => {
+        // The server returns PACS in no fixed order. So that this test always
+        // covers a PACS listed after the default, it makes whichever PACS the
+        // server lists first the default for the duration of the test, and puts
+        // the fixture PACS back as the default afterwards.
+        const second = await admin.createPacs({
+            aeTitle: 'ORTHANC',
+            label: uniqueLabel('E2E_UI_SECOND'),
+            host: '127.0.0.1',
+            queryRetrievePort: pacs.queryRetrievePort,
+            queryable: true,
+            storable: false,
+            dicomWebEnabled: false,
+        });
+        madePacs.push(second.id);
+
+        const listed = await admin.listPacs();
+        const first = listed[0];
+        try {
+            if (!first.defaultQueryRetrievePacs) {
+                const res = await admin.rawUpdatePacs(first.id, { ...first, defaultQueryRetrievePacs: true });
+                expect(res.ok(), `make PACS ${first.id} the default: HTTP ${res.status()}`).toBeTruthy();
+            }
+            const order = await admin.listPacs();
+            expect(
+                order[0].defaultQueryRetrievePacs,
+                'precondition: the default PACS is listed first',
+            ).toBeTruthy();
+            expect(
+                order.length,
+                'precondition: at least one PACS is listed after the default',
+            ).toBeGreaterThan(1);
+
+            await openImportPage(page);
+            const offered = await page
+                .locator('#select-pacs option')
+                .evaluateAll(o => o.map(x => (x as HTMLOptionElement).value));
+            for (const p of order.filter(x => x.queryable)) {
+                expect
+                    .soft(offered, `PACS ${p.id} (${p.label}) is searchable but not offered`)
+                    .toContain(String(p.id));
+            }
+        } finally {
+            const fixture = await admin.getPacs(pacs.id);
+            if (!fixture.defaultQueryRetrievePacs) {
+                const back = await admin.rawUpdatePacs(pacs.id, {
+                    ...fixture,
+                    defaultQueryRetrievePacs: true,
+                });
+                expect(back.ok(), 'put the fixture PACS back as the default').toBeTruthy();
+            }
         }
-    } finally {
-        const fixture = await admin.getPacs(pacs.id);
-        if (!fixture.defaultQueryRetrievePacs) {
-            const back = await admin.rawUpdatePacs(pacs.id, { ...fixture, defaultQueryRetrievePacs: true });
-            expect(back.ok(), 'put the fixture PACS back as the default').toBeTruthy();
-        }
-    }
-});
+    },
+);
 
 test('a search lists the matching study with its details and empty relabel boxes', async ({ page }) => {
     await openImportPage(page);
@@ -157,19 +167,24 @@ test('a search with no matches says so', async ({ page }) => {
     await expect(resultRows(page)).toHaveCount(0);
 });
 
-test("a single-day date search lists only that day's studies", async ({ page }) => {
-    await openImportPage(page);
-    await page.locator('#study-date-from').fill('2020-11-01');
-    await page.locator('#study-date-to').fill('2020-11-01');
-    await page.locator('#submit-pacs-search').click();
-    await expect(resultRows(page).first()).toBeVisible({ timeout: 60_000 });
+// Fails on QA-574: single-day search returns the next day; some CSV dates cause a server error.
+test(
+    "a single-day date search lists only that day's studies",
+    { annotation: { type: 'issue', description: 'QA-574' } },
+    async ({ page }) => {
+        await openImportPage(page);
+        await page.locator('#study-date-from').fill('2020-11-01');
+        await page.locator('#study-date-to').fill('2020-11-01');
+        await page.locator('#submit-pacs-search').click();
+        await expect(resultRows(page).first()).toBeVisible({ timeout: 60_000 });
 
-    const uids = await resultRows(page).evaluateAll(rows => rows.map(r => r.getAttribute('data-uid')));
-    const disco = Object.values(DISCO)
-        .filter(s => uids.includes(s.studyInstanceUid))
-        .map(s => s.n);
-    expect(disco, 'Disco Study 3 is the only fixture study dated 2020-11-01').toEqual([3]);
-});
+        const uids = await resultRows(page).evaluateAll(rows => rows.map(r => r.getAttribute('data-uid')));
+        const disco = Object.values(DISCO)
+            .filter(s => uids.includes(s.studyInstanceUid))
+            .map(s => s.n);
+        expect(disco, 'Disco Study 3 is the only fixture study dated 2020-11-01').toEqual([3]);
+    },
+);
 
 test('a "From" date after the "To" date is refused with a message', async ({ page }) => {
     await openImportPage(page);
@@ -312,21 +327,24 @@ test("Search Via CSV fills the results with the CSV's matches and its labels", a
     await expect(row.locator('input.relabel-study-id')).toHaveValue('CSV_UI_SESS');
 });
 
-test('with the project gate on, a project not switched on for DQR says so instead of offering a search', async ({
-    page,
-}) => {
-    const off = projectNameFor('uioff');
-    await admin.ensureProject(off);
-    try {
-        await settings.apply({ allowAllProjectsToUseDqr: false });
-        await page.goto(`/app/template/Page.vm?view=dqr/import&project=${off}`);
-        await expect(page.getByText('This project is not configured for PACS DICOM import')).toBeVisible({
-            timeout: 30_000,
-        });
-        await expect(page.locator('#submit-pacs-search')).toBeHidden();
-    } finally {
-        await settings.restore();
-        await settings.apply(FAST_QUEUE);
-        await admin.deleteProjectQuietly(off);
-    }
-});
+// Fails on QA-573: project never switched on for DQR is reported as not existing; deleted projects leave DQR settings.
+test(
+    'with the project gate on, a project not switched on for DQR says so instead of offering a search',
+    { annotation: { type: 'issue', description: 'QA-573' } },
+    async ({ page }) => {
+        const off = projectNameFor('uioff');
+        await admin.ensureProject(off);
+        try {
+            await settings.apply({ allowAllProjectsToUseDqr: false });
+            await page.goto(`/app/template/Page.vm?view=dqr/import&project=${off}`);
+            await expect(page.getByText('This project is not configured for PACS DICOM import')).toBeVisible({
+                timeout: 30_000,
+            });
+            await expect(page.locator('#submit-pacs-search')).toBeHidden();
+        } finally {
+            await settings.restore();
+            await settings.apply(FAST_QUEUE);
+            await admin.deleteProjectQuietly(off);
+        }
+    },
+);
